@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import './App.css';
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faMicroscope } from '@fortawesome/free-solid-svg-icons';
 import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
 import Home from './Home';
 import Login from './Login';
+import registerFontAwesomeIcons from './registerFontAwesomeIcons';
 
-// Add icons to the library
-library.add(faMicroscope);
+// Register the FontAwesome Icons
+registerFontAwesomeIcons();
 
 function App(props) {
   let [user, setUser] = useState(null);
+
+  let handleSubmit = ({ email, password }) => {
+    console.log(
+      `Going to authenticate with email : ${email} and password: ${password}`
+    );
+  };
 
   return (
     <Router>
@@ -31,7 +36,10 @@ function App(props) {
         />
       )}
       <Route path="/home" component={Home} />
-      <Route path="/login" component={Login} />
+      <Route
+        path="/login"
+        render={props => <Login {...props} onSubmit={handleSubmit} />}
+      />
     </Router>
   );
 }

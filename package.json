@@ -35,6 +35,9 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/react": "^8.0.1",
+    "faker": "^4.1.0",
+    "jest-dom": "^3.5.0",
     "prettier": "^1.18.2"
   }
 }
