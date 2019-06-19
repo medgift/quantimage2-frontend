@@ -1,23 +1,38 @@
-import React from "react";
-import "./App.css";
+import React, { useState } from 'react';
+import './App.css';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faMicroscope } from '@fortawesome/free-solid-svg-icons';
+import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
+import Home from './Home';
+import Login from './Login';
 
-function App() {
+// Add icons to the library
+library.add(faMicroscope);
+
+function App(props) {
+  let [user, setUser] = useState(null);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          IMAGINE
-        </a>
-      </header>
-    </div>
+    <Router>
+      {(!user || !user.isLogged) && (
+        <Redirect
+          to={{
+            pathname: '/login',
+            state: { from: props.location }
+          }}
+        />
+      )}
+      {user && user.isLogged && (
+        <Redirect
+          to={{
+            pathname: '/home',
+            state: { from: props.location }
+          }}
+        />
+      )}
+      <Route path="/home" component={Home} />
+      <Route path="/login" component={Login} />
+    </Router>
   );
 }
 
