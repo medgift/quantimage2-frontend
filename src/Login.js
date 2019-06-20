@@ -7,9 +7,10 @@ function Login({ onSubmit }) {
   let [email, setEmail] = useState('');
   let [password, setPassword] = useState('');
   let [error, setError] = useState(null);
+  let [userName, setUserName] = useState(null);
 
   // Handle form submissions
-  let handleSubmit = e => {
+  let handleSubmit = async e => {
     // Prevent actual form submission from happening
     e.preventDefault();
 
@@ -17,7 +18,15 @@ function Login({ onSubmit }) {
     const { email, password } = e.target.elements;
 
     // Call the onSubmit function with the right parameters
-    onSubmit({ email: email.value, password: password.value });
+    try {
+      let user = await onSubmit({
+        email: email.value,
+        password: password.value
+      });
+      setUserName(user.name);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -55,8 +64,13 @@ function Login({ onSubmit }) {
           required
         />
         {error && (
-          <div className="text-danger small">
-            The given credentials were incorrect
+          <div data-testid="auth-error" className="text-danger small">
+            {error}
+          </div>
+        )}
+        {userName && (
+          <div data-testid="user-name" className="text-success small">
+            Welcome, {userName}!
           </div>
         )}
         <hr />

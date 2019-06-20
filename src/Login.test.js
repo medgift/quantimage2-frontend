@@ -10,7 +10,7 @@ it('renders correctly', () => {
   const onSubmit = jest.fn();
 
   // Render
-  const { debug, getByLabelText, getByText, queryByText } = render(<Login />);
+  const { debug, getByLabelText, getByText, queryByTestId } = render(<Login />);
 
   // Appearance is ok
   const usernameInput = getByLabelText(/email address/i);
@@ -22,7 +22,7 @@ it('renders correctly', () => {
   expect(passwordInput.value).toBe('');
 
   // No error message is shown
-  const errorMessage = queryByText(/the given credentials were incorrect/i);
+  const errorMessage = queryByTestId('auth-error');
   expect(errorMessage).toBe(null);
 });
 
@@ -31,7 +31,7 @@ it('submits the values when clicking on the sign in button', () => {
   const handleSubmit = jest.fn();
 
   // Render
-  const { debug, getByLabelText, getByText } = render(
+  const { debug, getByLabelText, getByText, queryByTestId } = render(
     <Login onSubmit={handleSubmit} />
   );
 
@@ -40,11 +40,15 @@ it('submits the values when clicking on the sign in button', () => {
   const passwordInput = getByLabelText(/password/i);
   const signInButton = getByText(/^sign in/i);
 
+  // No error message is shown
+  const errorMessage = queryByTestId('auth-error');
+  expect(errorMessage).toBe(null);
+
   // Behavior is ok
   const email = faker.internet.email();
   const password = faker.internet.password();
 
-  // Input email address & Password
+  // Input email & password
   fireEvent.change(usernameInput, { target: { value: email } });
   fireEvent.change(passwordInput, { target: { value: password } });
 
@@ -62,4 +66,40 @@ it('submits the values when clicking on the sign in button', () => {
   });
 });
 
-it('shows an error when the credentials are wrong', () => {});
+it('shows an error when the credentials are wrong', () => {
+  // Set up mocks etc.
+  const handleSubmit = jest.fn();
+
+  // Mock that the function returns an error
+  handleSubmit.mockImplementationOnce(() => {
+    throw new Error('Wrong credentials!');
+  });
+
+  // Render
+  const {
+    debug,
+    getByLabelText,
+    getByText,
+    getByTestId,
+    queryByTestId
+  } = render(<Login onSubmit={handleSubmit} />);
+
+  // Appearance is ok
+  const usernameInput = getByLabelText(/email address/i);
+  const passwordInput = getByLabelText(/password/i);
+  const signInButton = getByText(/^sign in/i);
+
+  // No error message is shown
+  const errorMessage = queryByTestId('auth-error');
+  expect(errorMessage).toBe(null);
+
+  // Behavior is ok
+  const email = faker.internet.email();
+  const password = faker.internet.password();
+
+  // Signing in calls the right method with the right parameters
+  signInButton.click();
+
+  // Error message is shown
+  getByTestId('auth-error');
+});
