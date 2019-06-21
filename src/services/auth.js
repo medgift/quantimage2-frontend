@@ -21,7 +21,8 @@ export async function login(email, password) {
       const error = (await response.json()).error;
       throw new Error(error);
     } else {
-      return response.json();
+      let responseBody = await response.json();
+      return { ...responseBody, isLogged: true };
     }
   } catch (err) {
     throw err; // Just throw it for now

@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Redirect
+} from 'react-router-dom';
 import Home from './Home';
 import Login from './Login';
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
@@ -28,7 +33,7 @@ function App(props) {
 
   return (
     <Router>
-      {(!user || !user.isLogged) && (
+      {!user && (
         <Redirect
           to={{
             pathname: '/login',
@@ -36,21 +41,15 @@ function App(props) {
           }}
         />
       )}
-      {user && user.isLogged && (
-        <Redirect
-          to={{
-            pathname: '/home',
-            state: { from: props.location }
-          }}
+      <Switch>
+        <Route exact path="/" component={Home} />
+        <Route
+          path="/login"
+          render={props => (
+            <Login {...props} user={user} onSubmit={handleSubmit} />
+          )}
         />
-      )}
-      <Route path="/home" component={Home} />
-      <Route
-        path="/login"
-        render={props => (
-          <Login {...props} user={user} onSubmit={handleSubmit} />
-        )}
-      />
+      </Switch>
     </Router>
   );
 }
