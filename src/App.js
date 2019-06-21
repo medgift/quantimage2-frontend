@@ -18,9 +18,8 @@ function App(props) {
     );
 
     try {
-      const response = await login(email, password);
-      console.log(response);
-      return response;
+      const user = await login(email, password);
+      setUser(user);
     } catch (err) {
       console.log('throwing', err);
       throw new Error(err);
@@ -48,7 +47,9 @@ function App(props) {
       <Route path="/home" component={Home} />
       <Route
         path="/login"
-        render={props => <Login {...props} onSubmit={handleSubmit} />}
+        render={props => (
+          <Login {...props} user={user} onSubmit={handleSubmit} />
+        )}
       />
     </Router>
   );

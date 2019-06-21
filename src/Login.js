@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
 
-function Login({ onSubmit }) {
+function Login({ user, onSubmit }) {
   // Set up state
   let [email, setEmail] = useState('');
   let [password, setPassword] = useState('');
   let [error, setError] = useState(null);
-  let [userName, setUserName] = useState(null);
 
   // Handle form submissions
   let handleSubmit = async e => {
@@ -19,11 +18,10 @@ function Login({ onSubmit }) {
 
     // Call the onSubmit function with the right parameters
     try {
-      let user = await onSubmit({
+      await onSubmit({
         email: email.value,
         password: password.value
       });
-      setUserName(user.name);
     } catch (err) {
       setError(err.message);
     }
@@ -68,9 +66,9 @@ function Login({ onSubmit }) {
             {error}
           </div>
         )}
-        {userName && (
+        {user && (
           <div data-testid="user-name" className="text-success small">
-            Welcome, {userName}!
+            Welcome, {user.name}!
           </div>
         )}
         <hr />
