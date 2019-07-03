@@ -1,5 +1,6 @@
 import { render, fireEvent } from '@testing-library/react';
 import Login from './Login';
+import UserContext from './context/UserContext';
 import React from 'react';
 import faker from 'faker';
 
@@ -66,20 +67,14 @@ it('shows an error when the credentials are wrong', () => {
     getByText,
     getByTestId,
     queryByTestId
-  } = render(<Login onSubmit={handleSubmit} />);
+  } = render(<Login />);
 
   // Appearance is ok
-  const usernameInput = getByLabelText(/email address/i);
-  const passwordInput = getByLabelText(/password/i);
   const signInButton = getByText(/^sign in/i);
 
   // No error message is shown
   const errorMessage = queryByTestId('auth-error');
   expect(errorMessage).toBe(null);
-
-  // Behavior is ok
-  const email = faker.internet.email();
-  const password = faker.internet.password();
 
   // Signing in calls the right method with the right parameters
   signInButton.click();
@@ -88,7 +83,7 @@ it('shows an error when the credentials are wrong', () => {
   getByTestId('auth-error');
 });
 
-it('shows the user name correctly', () => {
+it('shows the user name correctly when a user is supplied', () => {
   // Mock a user
   let user = {
     email: faker.internet.email(),
@@ -96,7 +91,11 @@ it('shows the user name correctly', () => {
   };
 
   // Render
-  const { getByTestId } = render(<Login user={user} />);
+  const { getByTestId } = render(
+    <UserContext.Provider value={[user, () => {}]}>
+      <Login />
+    </UserContext.Provider>
+  );
 
   // Check that the message is displayed and contains the user's name
   expect(getByTestId('user-name')).toHaveTextContent(user.name);

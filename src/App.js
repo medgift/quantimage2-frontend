@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import './App.css';
 import {
   BrowserRouter as Router,
@@ -8,23 +8,27 @@ import {
 } from 'react-router-dom';
 import Home from './Home';
 import Login from './Login';
+import { login } from './services/AuthService';
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
-import { login } from './services/auth';
+import UserContext from './context/UserContext';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
 
 function App(props) {
-  let [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  let handleSubmit = async ({ email, password }) => {
+  let handleLogin = async ({ email, password }) => {
     console.log(
       `Going to authenticate with email : ${email} and password: ${password}`
     );
 
     try {
       const user = await login(email, password);
-      setUser(user);
+      setCurrentUser(user);
+
+      // Redirect to main page after login
+      props.history.push('/');
     } catch (err) {
       console.log('throwing', err);
       throw new Error(err);
@@ -32,25 +36,26 @@ function App(props) {
   };
 
   return (
-    <Router>
-      {!user && (
-        <Redirect
-          to={{
-            pathname: '/login',
-            state: { from: props.location }
-          }}
-        />
-      )}
-      <Switch>
-        <Route exact path="/" component={Home} />
-        <Route
-          path="/login"
-          render={props => (
-            <Login {...props} user={user} onSubmit={handleSubmit} />
-          )}
-        />
-      </Switch>
-    </Router>
+    <UserContext.Provider value={[currentUser, setCurrentUser]}>
+      <Router>
+        {!currentUser && (
+          <Redirect
+            to={{
+              pathname: '/login',
+              state: { from: props.location }
+            }}
+          />
+        )}
+        <Switch>
+          <Route exact path="/" component={Home} />
+          <Route
+            exact
+            path="/login"
+            render={props => <Login {...props} onSubmit={handleLogin} />}
+          />
+        </Switch>
+      </Router>
+    </UserContext.Provider>
   );
 }
 

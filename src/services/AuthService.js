@@ -1,4 +1,4 @@
-import { serverBaseURL } from './config';
+import { serverBaseURL } from './ConfigService';
 
 const baseEndpoint = `${serverBaseURL}/auth`;
 

@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
+import { login } from './services/AuthService';
+import { withRouter } from 'react-router-dom';
+import UserContext from './context/UserContext';
 
-function Login({ user, onSubmit }) {
+function Login({ onSubmit, history }) {
   // Set up state
   let [email, setEmail] = useState('');
   let [password, setPassword] = useState('');
   let [error, setError] = useState(null);
+
+  // Get the context
+  let [user, setUser] = useContext(UserContext);
 
   // Handle form submissions
   let handleSubmit = async e => {
@@ -22,6 +28,8 @@ function Login({ user, onSubmit }) {
         email: email.value,
         password: password.value
       });
+
+      history.push('/');
     } catch (err) {
       setError(err.message);
     }
@@ -81,4 +89,4 @@ function Login({ user, onSubmit }) {
   );
 }
 
-export default Login;
+export default withRouter(Login);
