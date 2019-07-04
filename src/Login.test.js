@@ -1,4 +1,7 @@
 import { render, fireEvent } from '@testing-library/react';
+import { Router } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
+import renderWithRouter from './test-utils';
 import Login from './Login';
 import UserContext from './context/UserContext';
 import React from 'react';
@@ -17,7 +20,7 @@ it('submits the values when clicking on the sign in button', () => {
     getByText,
     getByTestId,
     queryByTestId
-  } = render(<Login onSubmit={handleSubmit} />);
+  } = renderWithRouter(<Login onSubmit={handleSubmit} />);
 
   // Appearance is ok
   const usernameInput = getByLabelText(/email address/i);
@@ -67,7 +70,7 @@ it('shows an error when the credentials are wrong', () => {
     getByText,
     getByTestId,
     queryByTestId
-  } = render(<Login />);
+  } = renderWithRouter(<Login />);
 
   // Appearance is ok
   const signInButton = getByText(/^sign in/i);
@@ -91,7 +94,7 @@ it('shows the user name correctly when a user is supplied', () => {
   };
 
   // Render
-  const { getByTestId } = render(
+  const { getByTestId } = renderWithRouter(
     <UserContext.Provider value={[user, () => {}]}>
       <Login />
     </UserContext.Provider>

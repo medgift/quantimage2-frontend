@@ -1,7 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
-import { login } from './services/AuthService';
 import { withRouter } from 'react-router-dom';
 import UserContext from './context/UserContext';
 
@@ -12,7 +11,7 @@ function Login({ onSubmit, history }) {
   let [error, setError] = useState(null);
 
   // Get the context
-  let [user, setUser] = useContext(UserContext);
+  let [user] = useContext(UserContext);
 
   // Handle form submissions
   let handleSubmit = async e => {
