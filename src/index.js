@@ -1,16 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import UserContext from './context/UserContext';
-import App from './App';
 import * as serviceWorker from './serviceWorker';
+import AppWrapper from './AppWrapper';
 
-ReactDOM.render(
-  <UserContext.Provider value={{ user: null, setUser: () => {} }}>
-    <App />
-  </UserContext.Provider>,
-  document.getElementById('root')
-);
+ReactDOM.render(<AppWrapper />, document.getElementById('root'));
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.

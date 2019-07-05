@@ -12,7 +12,7 @@ function Home() {
       <section id="intro">
         <h2>Intro</h2>
         <p>Hello {user.name}!</p>
-        <p>The IMAGINE project is part of...</p>
+        <p data-testid="intro-text">The IMAGINE project is part of...</p>
       </section>
     </div>
   );

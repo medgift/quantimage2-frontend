@@ -1,7 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
-import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
-import renderWithRouter from './test-utils';
+import { renderWithRouter } from './test-utils';
 import Login from './Login';
 import UserContext from './context/UserContext';
 import React from 'react';
@@ -15,7 +13,6 @@ it('submits the values when clicking on the sign in button', () => {
 
   // Render
   const {
-    debug,
     getByLabelText,
     getByText,
     getByTestId,
@@ -64,13 +61,7 @@ it('shows an error when the credentials are wrong', () => {
   });
 
   // Render
-  const {
-    debug,
-    getByLabelText,
-    getByText,
-    getByTestId,
-    queryByTestId
-  } = renderWithRouter(<Login />);
+  const { getByText, getByTestId, queryByTestId } = renderWithRouter(<Login />);
 
   // Appearance is ok
   const signInButton = getByText(/^sign in/i);
@@ -95,7 +86,7 @@ it('shows the user name correctly when a user is supplied', () => {
 
   // Render
   const { getByTestId } = renderWithRouter(
-    <UserContext.Provider value={[user, () => {}]}>
+    <UserContext.Provider value={{ user: user }}>
       <Login />
     </UserContext.Provider>
   );
@@ -103,3 +94,5 @@ it('shows the user name correctly when a user is supplied', () => {
   // Check that the message is displayed and contains the user's name
   expect(getByTestId('user-name')).toHaveTextContent(user.name);
 });
+
+it('redirects to the referrer after login', () => {});

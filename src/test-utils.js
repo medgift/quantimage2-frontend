@@ -5,7 +5,7 @@ import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import React from 'react';
 
-export default function renderWithRouter(
+export function renderWithRouter(
   ui,
   {
     route = '/',
