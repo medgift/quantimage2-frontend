@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import './App.css';
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Switch, Route, withRouter } from 'react-router-dom';
 import Home from './Home';
 import Login from './Login';
 import NoMatch from './NoMatch';
@@ -14,7 +14,15 @@ import Profile from './Profile';
 registerFontAwesomeIcons();
 
 function App(props) {
-  const { user: currentUser, setUser } = useContext(UserContext);
+  const { user, setUser } = useContext(UserContext);
+  const [settled, setSettled] = useState(false);
+
+  // Check authentication
+  useEffect(() => {
+    const authenticated = auth.isAuthenticated();
+    if (authenticated) setUser(auth.getUser());
+    setSettled(true);
+  }, [settled, setUser]);
 
   let handleLogin = async ({ email, password }) => {
     console.log(`Authenticating as ${email} : ${password}`);
@@ -28,19 +36,39 @@ function App(props) {
     }
   };
 
+  const handleLogout = async () => {
+    await auth.logout();
+    setUser(null);
+  };
+
   return (
-    <div className="App">
-      <Switch>
-        <ProtectedRoute exact path="/" component={Home} />
-        <Route path="/profile" component={Profile} />
-        <Route
-          path="/login"
-          render={props => <Login {...props} onSubmit={handleLogin} />}
-        />
-        <Route component={NoMatch} />
-      </Switch>
-    </div>
+    <>
+      {settled ? (
+        <div className="App">
+          <Switch>
+            <ProtectedRoute exact path="/" component={Home} />
+            <ProtectedRoute path="/profile" component={Profile} />
+            <Route
+              path="/login"
+              render={props => <Login {...props} onSubmit={handleLogin} />}
+            />
+            <Route component={NoMatch} />
+          </Switch>
+          {user && (
+            <button
+              role="button"
+              className="btn btn-link"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="text-center d-block">Loading...</div>
+      )}
+    </>
   );
 }
 
-export default App;
+export default withRouter(App);

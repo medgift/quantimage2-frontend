@@ -2,20 +2,34 @@ import React, { useState, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
 import UserContext from './context/UserContext';
+import { Redirect } from 'react-router-dom';
 
-function Login({ onSubmit, history }) {
+function Login({ onSubmit, location, history }) {
   // Set up state
+  const [redirectToReferrer, setRedirectToReferrer] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
+  const [formValid, setFormValid] = useState(true);
+  const [formPending, setFormPending] = useState(false);
+
   // Get the context
   const { user } = useContext(UserContext);
+
+  // Handle form changes
+  const handleFormChange = (mutator, value, e) => {
+    mutator(value);
+    const form = e.target.form;
+    setFormValid(form.checkValidity());
+  };
 
   // Handle form submissions
   const handleLoginSubmit = async e => {
     // Prevent actual form submission from happening
     e.preventDefault();
+
+    setFormPending(true);
 
     // Extract values from form elements
     const { email, password } = e.target.elements;
@@ -27,14 +41,17 @@ function Login({ onSubmit, history }) {
         password: password.value
       });
 
-      history.push('/');
+      setRedirectToReferrer(true);
     } catch (err) {
       setError(err.message);
     }
+
+    setFormPending(false);
   };
 
-  // Handle logout click
-  const handleLogoutClick = async e => {};
+  let { from } = location.state || { from: { pathname: '/' } };
+
+  if (redirectToReferrer) return <Redirect to={from} />;
 
   return (
     <div className="Login">
@@ -55,7 +72,7 @@ function Login({ onSubmit, history }) {
             className="form-control"
             placeholder="Email address"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={e => handleFormChange(setEmail, e.target.value, e)}
             required
             autoFocus
           />
@@ -68,7 +85,7 @@ function Login({ onSubmit, history }) {
             className="form-control"
             placeholder="Password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={e => handleFormChange(setPassword, e.target.value, e)}
             required
           />
           {error && (
@@ -77,20 +94,20 @@ function Login({ onSubmit, history }) {
             </div>
           )}
           <hr />
-          <button className="btn btn-lg btn-primary btn-block" type="submit">
+          <button
+            disabled={!formValid || formPending}
+            className="btn btn-lg btn-primary btn-block"
+            type="submit"
+          >
             Sign in
+            {formPending && (
+              <FontAwesomeIcon className="ml-2" icon="sync" spin={true} />
+            )}
           </button>
         </form>
       ) : (
         <div data-testid="user-name">
           <p>You are currently signed in, {user.name}!</p>
-          <button
-            className="btn btn-lg btn-secondary btn-block"
-            type="button"
-            onClick={handleLogoutClick}
-          >
-            Logout
-          </button>
         </div>
       )}
       <p className="m-2 text-muted">&copy; 2019</p>

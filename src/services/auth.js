@@ -1,4 +1,5 @@
 import { serverBaseURL } from './config';
+import ls from 'local-storage';
 
 const baseEndpoint = `${serverBaseURL}/auth`;
 
@@ -8,6 +9,11 @@ const endpoints = {
 
 class Auth {
   authenticated = false;
+
+  constructor() {
+    const storedUser = ls('user');
+    this.authenticated = Boolean(storedUser);
+  }
 
   async login(email, password) {
     try {
@@ -30,21 +36,27 @@ class Auth {
         const error = (await response.json()).error;
         throw new Error(error);
       } else {
+        const user = await response.json();
+        ls('user', user);
         this.authenticated = true;
-        return response.json();
+        return user;
       }
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  logout(cb) {
+  async logout() {
+    ls.remove('user');
     this.authenticated = false;
-    cb();
   }
 
   isAuthenticated() {
     return this.authenticated;
+  }
+
+  getUser() {
+    return ls('user');
   }
 }
 
