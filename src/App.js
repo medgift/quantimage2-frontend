@@ -50,7 +50,7 @@ function App(props) {
             <ProtectedRoute path="/profile" component={Profile} />
             <Route
               path="/login"
-              render={props => <Login {...props} onSubmit={handleLogin} />}
+              render={props => <Login onSubmit={handleLogin} />}
             />
             <Route component={NoMatch} />
           </Switch>

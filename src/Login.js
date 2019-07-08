@@ -1,8 +1,8 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
 import UserContext from './context/UserContext';
-import { Redirect } from 'react-router-dom';
+import { Redirect, withRouter } from 'react-router-dom';
 
 function Login({ onSubmit, location, history }) {
   // Set up state
@@ -12,9 +12,6 @@ function Login({ onSubmit, location, history }) {
   const [error, setError] = useState(null);
 
   const [formPending, setFormPending] = useState(false);
-
-  // Set up Refs
-  const loginForm = useRef(null);
 
   // Get the context
   const { user } = useContext(UserContext);
@@ -61,11 +58,7 @@ function Login({ onSubmit, location, history }) {
       <h1 className="m-2">IMAGINE</h1>
       <hr />
       {!user ? (
-        <form
-          className="form-signin"
-          onSubmit={handleLoginSubmit}
-          ref={loginForm}
-        >
+        <form className="form-signin" onSubmit={handleLoginSubmit}>
           <h3 className="h3 m-2">Please sign in</h3>
           <label htmlFor="email" className="sr-only">
             Email address
@@ -119,4 +112,4 @@ function Login({ onSubmit, location, history }) {
   );
 }
 
-export default Login;
+export default withRouter(Login);

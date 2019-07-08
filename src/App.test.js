@@ -33,8 +33,8 @@ it('shows the welcome page when authenticated', async () => {
   auth.isAuthenticated = jest.fn(() => true);
 
   // Render with user to be show the Homepage
-  const { getByTestId, history } = renderWithRouter(
-    <UserContext.Provider value={{ user: user }}>
+  const { getByTestId, history, debug } = renderWithRouter(
+    <UserContext.Provider value={{ user: user, setUser: () => {} }}>
       <App />
     </UserContext.Provider>
   );
