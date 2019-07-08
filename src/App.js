@@ -55,11 +55,7 @@ function App(props) {
             <Route component={NoMatch} />
           </Switch>
           {user && (
-            <button
-              role="button"
-              className="btn btn-link"
-              onClick={handleLogout}
-            >
+            <button className="btn btn-link" onClick={handleLogout}>
               Logout
             </button>
           )}

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Login.css';
 import UserContext from './context/UserContext';
@@ -11,8 +11,10 @@ function Login({ onSubmit, location, history }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
-  const [formValid, setFormValid] = useState(true);
   const [formPending, setFormPending] = useState(false);
+
+  // Set up Refs
+  const loginForm = useRef(null);
 
   // Get the context
   const { user } = useContext(UserContext);
@@ -20,8 +22,6 @@ function Login({ onSubmit, location, history }) {
   // Handle form changes
   const handleFormChange = (mutator, value, e) => {
     mutator(value);
-    const form = e.target.form;
-    setFormValid(form.checkValidity());
   };
 
   // Handle form submissions
@@ -61,7 +61,11 @@ function Login({ onSubmit, location, history }) {
       <h1 className="m-2">IMAGINE</h1>
       <hr />
       {!user ? (
-        <form className="form-signin" onSubmit={handleLoginSubmit}>
+        <form
+          className="form-signin"
+          onSubmit={handleLoginSubmit}
+          ref={loginForm}
+        >
           <h3 className="h3 m-2">Please sign in</h3>
           <label htmlFor="email" className="sr-only">
             Email address
@@ -95,7 +99,7 @@ function Login({ onSubmit, location, history }) {
           )}
           <hr />
           <button
-            disabled={!formValid || formPending}
+            disabled={formPending}
             className="btn btn-lg btn-primary btn-block"
             type="submit"
           >
