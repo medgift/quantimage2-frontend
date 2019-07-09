@@ -32,18 +32,22 @@ function Login({ onSubmit, location, history }) {
     const { email, password } = e.target.elements;
 
     // Call the onSubmit function with the right parameters
+    let user;
     try {
-      await onSubmit({
+      user = await onSubmit({
         email: email.value,
         password: password.value
       });
-
-      setRedirectToReferrer(true);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setFormPending(false);
     }
 
-    setFormPending(false);
+    // Login was successful, redirect to the referrer
+    if (user) {
+      setRedirectToReferrer(true);
+    }
   };
 
   let { from } = location.state || { from: { pathname: '/' } };

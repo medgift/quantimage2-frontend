@@ -12,9 +12,7 @@ function AppWrapper(props) {
     <UserContext.Provider
       value={{ user: authenticatedUser, setUser: setAuthenticatedUser }}
     >
-      <Router>
-        <App />
-      </Router>
+      <App />
     </UserContext.Provider>
   );
 }

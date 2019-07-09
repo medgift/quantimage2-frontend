@@ -30,6 +30,7 @@ function App(props) {
     try {
       const loggedInUser = await auth.login(email, password);
       setUser(loggedInUser);
+      return loggedInUser;
     } catch (err) {
       console.log('throwing', err);
       throw new Error(err);

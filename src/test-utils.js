@@ -4,6 +4,7 @@ import { render } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import React from 'react';
+import faker from 'faker';
 
 export function renderWithRouter(
   ui,
@@ -19,4 +20,15 @@ export function renderWithRouter(
     // this to test implementation details).
     history
   };
+}
+
+export function makeUser(
+  firstName = faker.name.firstName(),
+  lastName = faker.name.lastName()
+) {
+  const email = faker.internet.email(firstName, lastName);
+  const name = `${firstName} ${lastName}`;
+  const user = { email: email, name: name };
+
+  return user;
 }

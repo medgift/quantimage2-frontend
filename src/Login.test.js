@@ -1,11 +1,19 @@
-import { render, fireEvent } from '@testing-library/react';
-import { renderWithRouter } from './test-utils';
+import { render, fireEvent, wait } from '@testing-library/react';
+import { makeUser, renderWithRouter } from './test-utils';
 import Login from './Login';
 import UserContext from './context/UserContext';
 import React from 'react';
 import faker from 'faker';
+import auth from './services/auth';
+import App from './App';
+import { waitForElement } from '@testing-library/dom';
+import AppWrapper from './AppWrapper';
 
 beforeEach(() => {});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 it('submits the values when clicking on the sign in button', () => {
   // Set up mocks etc.
@@ -95,4 +103,41 @@ it('shows the user name correctly when a user is supplied', () => {
   expect(getByTestId('user-name')).toHaveTextContent(user.name);
 });
 
-it('redirects to the referrer after login', () => {});
+it('redirects to the referrer after login', async () => {
+  // Mock user
+  const user = makeUser();
+  const password = faker.internet.password();
+
+  // Render the profile without being logged in
+  const { getByLabelText, getByText } = renderWithRouter(<AppWrapper />, {
+    route: '/profile'
+  });
+
+  // Appearance is ok
+  const usernameInput = getByLabelText(/email address/i);
+  const passwordInput = getByLabelText(/password/i);
+  const signInButton = getByText(/^sign in/i);
+
+  // Behavior is ok
+
+  // Input email & password
+  fireEvent.change(usernameInput, { target: { value: user.email } });
+  fireEvent.change(passwordInput, { target: { value: password } });
+
+  // Mock the authentication
+  jest.spyOn(auth, 'isAuthenticated').mockImplementation(() => true);
+  jest
+    .spyOn(auth, 'login')
+    .mockImplementation(async () => Promise.resolve(user));
+
+  // Click on the Sign In button
+  signInButton.click();
+
+  // Wait for the fake login to complete
+  // Expect to be on the profile page
+  await waitForElement(() => getByText(/this is your user profile/i));
+
+  // User name and email should be correct
+  expect(getByLabelText('name')).toHaveTextContent(user.name);
+  expect(getByLabelText('email')).toHaveTextContent(user.email);
+});

@@ -1,11 +1,15 @@
 import React from 'react';
-import { renderWithRouter } from './test-utils';
+import { makeUser, renderWithRouter } from './test-utils';
 import faker from 'faker';
 import App from './App';
 import auth from './services/auth';
 import UserContext from './context/UserContext';
 
 const reactRouter = require('react-router-dom');
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 it('renders without crashing', () => {
   renderWithRouter(<App />);
@@ -23,14 +27,10 @@ it('redirects to the login page when not logged in', async () => {
 
 it('shows the welcome page when authenticated', async () => {
   // Mock user
-  const firstName = faker.name.firstName();
-  const lastName = faker.name.lastName();
-  const email = faker.internet.email(firstName, lastName);
-  const name = `${firstName} ${lastName}`;
-  const user = { email: email, name: name };
+  const user = makeUser();
 
   // Assume that we are authenticated
-  auth.isAuthenticated = jest.fn(() => true);
+  jest.spyOn(auth, 'isAuthenticated').mockImplementation(() => true);
 
   // Render with user to be show the Homepage
   const { getByTestId, history, debug } = renderWithRouter(
@@ -44,4 +44,9 @@ it('shows the welcome page when authenticated', async () => {
 
   // The location should be /
   expect(history.location.pathname).toBe('/');
+});
+
+it('shows 404 page when a non-matching route is given', () => {
+  const { getByText } = renderWithRouter(<App />, { route: '/doesnotmatch' });
+  getByText(/404 not found/i);
 });
