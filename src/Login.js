@@ -111,7 +111,6 @@ function Login({ onSubmit, location, history }) {
           <p>You are currently signed in, {user.name}!</p>
         </div>
       )}
-      <p className="m-2 text-muted">&copy; 2019</p>
     </div>
   );
 }

@@ -1,4 +1,15 @@
 .App {
   text-align: center;
-  margin: 1em;
+  margin: 0em;
+  padding: 1em;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.App-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }

@@ -9,12 +9,14 @@ import { ProtectedRoute } from './utils/ProtectedRoute';
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
 import UserContext from './context/UserContext';
 import Profile from './Profile';
+import Footer from './Footer';
+import Header from './Header';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
 
 function App(props) {
-  const { user, setUser } = useContext(UserContext);
+  const { setUser } = useContext(UserContext);
   const [settled, setSettled] = useState(false);
 
   // Check authentication
@@ -46,23 +48,26 @@ function App(props) {
     <>
       {settled ? (
         <div className="App">
-          <Switch>
-            <ProtectedRoute exact path="/" component={Home} />
-            <ProtectedRoute path="/profile" component={Profile} />
-            <Route
-              path="/login"
-              render={props => <Login onSubmit={handleLogin} />}
-            />
-            <Route component={NoMatch} />
-          </Switch>
-          {user && (
-            <button className="btn btn-link" onClick={handleLogout}>
-              Logout
-            </button>
-          )}
+          <Header />
+          <main className="App-content">
+            <Switch>
+              <ProtectedRoute exact path="/" component={Home} />
+              <ProtectedRoute path="/profile" component={Profile} />
+              <Route
+                path="/login"
+                render={props => <Login onSubmit={handleLogin} />}
+              />
+              <Route component={NoMatch} />
+            </Switch>
+          </main>
+          <Footer onLogout={handleLogout} />
         </div>
       ) : (
-        <div className="text-center d-block">Loading...</div>
+        <div className="App">
+          <div className="Main">
+            <div className="text-center d-block">Loading...</div>
+          </div>
+        </div>
       )}
     </>
   );
