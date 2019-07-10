@@ -50,7 +50,7 @@ function App(props) {
     <>
       {settled ? (
         <div className="App">
-          <Header />
+          <Header onLogout={handleLogout} />
           <main className="App-content">
             <Switch>
               <ProtectedRoute exact path="/" component={Home} />
@@ -62,7 +62,7 @@ function App(props) {
               <Route component={NoMatch} />
             </Switch>
           </main>
-          <Footer onLogout={handleLogout} />
+          <Footer />
         </div>
       ) : (
         <div className="App">
