@@ -1,6 +1,6 @@
 import React from 'react';
 import { makeUser, renderWithRouter } from './test-utils';
-import faker from 'faker';
+import { fireEvent } from '@testing-library/react';
 import App from './App';
 import auth from './services/auth';
 import UserContext from './context/UserContext';
@@ -44,6 +44,33 @@ it('shows the welcome page when authenticated', async () => {
 
   // The location should be /
   expect(history.location.pathname).toBe('/');
+});
+
+it('shows the profile page when clicked', async () => {
+  // Mock user
+  const user = makeUser();
+
+  // Assume that we are authenticated
+  jest.spyOn(auth, 'isAuthenticated').mockImplementation(() => true);
+
+  // Render with user to be show the Homepage
+  const { getByText, history } = renderWithRouter(
+    <UserContext.Provider value={{ user: user, setUser: () => {} }}>
+      <App />
+    </UserContext.Provider>
+  );
+
+  // We should see the navbar with the profile link
+  const profileLink = getByText(/^Profile/);
+
+  // Click on login
+  fireEvent.click(profileLink);
+
+  // We should see the profile page
+  getByText(/this is your user profile/i);
+
+  // The location should be /profile
+  expect(history.location.pathname).toBe('/profile');
 });
 
 it('shows 404 page when a non-matching route is given', () => {

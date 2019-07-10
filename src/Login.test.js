@@ -1,11 +1,10 @@
-import { render, fireEvent, wait } from '@testing-library/react';
+import { fireEvent } from '@testing-library/react';
 import { makeUser, renderWithRouter } from './test-utils';
 import Login from './Login';
 import UserContext from './context/UserContext';
 import React from 'react';
 import faker from 'faker';
 import auth from './services/auth';
-import App from './App';
 import { waitForElement } from '@testing-library/dom';
 import AppWrapper from './AppWrapper';
 
@@ -49,7 +48,7 @@ it('submits the values when clicking on the sign in button', () => {
   expect(passwordInput.value).toBe(password);
 
   // Click on the Sign In button
-  signInButton.click();
+  fireEvent.click(signInButton);
 
   // Signing in calls the right method with the right parameters
   expect(handleSubmit).toHaveBeenCalledTimes(1);
@@ -79,7 +78,7 @@ it('shows an error when the credentials are wrong', () => {
   expect(errorMessage).toBe(null);
 
   // Signing in calls the right method with the right parameters
-  signInButton.click();
+  fireEvent.click(signInButton);
 
   // Error message is shown
   getByTestId('auth-error');
@@ -131,7 +130,7 @@ it('redirects to the referrer after login', async () => {
     .mockImplementation(async () => Promise.resolve(user));
 
   // Click on the Sign In button
-  signInButton.click();
+  fireEvent.click(signInButton);
 
   // Wait for the fake login to complete
   // Expect to be on the profile page
