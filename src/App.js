@@ -26,7 +26,8 @@ function App(props) {
     setSettled(true);
   }, [settled, setUser]);
 
-  let handleLogin = async ({ email, password }) => {
+  // Handle login
+  const handleLogin = async ({ email, password }) => {
     console.log(`Authenticating as ${email} : ${password}`);
 
     try {
@@ -39,6 +40,7 @@ function App(props) {
     }
   };
 
+  // Handle logout
   const handleLogout = async () => {
     await auth.logout();
     setUser(null);
