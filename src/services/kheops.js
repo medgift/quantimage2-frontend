@@ -1,5 +1,7 @@
 import { kheopsBaseURL } from './config';
 
+import { request } from './common';
+
 const baseEndpoint = `${kheopsBaseURL}/api`;
 
 const endpoints = {
@@ -7,24 +9,11 @@ const endpoints = {
   studies: `${baseEndpoint}/studies`
 };
 
-function getAuthorization() {
-  return { Authorization: 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN };
-}
-
 class Kheops {
   async albums() {
     try {
-      const options = {
-        headers: new Headers(getAuthorization())
-      };
-      const response = await fetch(endpoints.albums, options);
-
-      if (!response.ok) {
-        const error = (await response.json()).error;
-        throw new Error(error);
-      } else {
-        return response.json();
-      }
+      const url = endpoints.albums;
+      return request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -32,20 +21,10 @@ class Kheops {
 
   async studies(albumID) {
     try {
-      const options = {
-        headers: new Headers(getAuthorization())
-      };
-      const finalEndpoint = albumID
+      const url = albumID
         ? `${endpoints.studies}?album=${albumID}`
         : endpoints.studies;
-      const response = await fetch(finalEndpoint, options);
-
-      if (!response.ok) {
-        const error = (await response.json()).error;
-        throw new Error(error);
-      } else {
-        return response.json();
-      }
+      return request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -53,20 +32,8 @@ class Kheops {
 
   async studyMetadata(studyUID) {
     try {
-      const options = {
-        headers: new Headers(getAuthorization())
-      };
-      const finalEndpoint = studyUID
-        ? `${endpoints.studies}/${studyUID}/metadata`
-        : endpoints.studies;
-      const response = await fetch(finalEndpoint, options);
-
-      if (!response.ok) {
-        const error = (await response.json()).error;
-        throw new Error(error);
-      } else {
-        return response.json();
-      }
+      const url = `${endpoints.studies}/${studyUID}/metadata`;
+      return request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }

@@ -15,6 +15,7 @@ function Study({ match }) {
   } = match;
 
   let [studyMetadata, setStudyMetadata] = useState(null);
+  let [studyFeatures, setStudyFeatures] = useState(null);
 
   let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
 
@@ -30,7 +31,13 @@ function Study({ match }) {
       setStudyMetadata(studyMetadata);
     }
 
+    async function getStudyFeatures() {
+      const studyFeatures = await Backend.features(studyUID);
+      setStudyFeatures(studyFeatures);
+    }
+
     getStudyMetadata();
+    getStudyFeatures();
   }, []);
 
   return (
@@ -61,8 +68,8 @@ function Study({ match }) {
               </tr>
               {Object.keys(series)
                 .sort()
-                .map(dataset => (
-                  <tr>
+                .map((dataset, index) => (
+                  <tr key={index}>
                     <th scope="row">{dataset}</th>
                     <td>
                       {series[dataset].length}{' '}
@@ -78,6 +85,7 @@ function Study({ match }) {
           <Spinner />
         </div>
       )}
+      <h2>Features</h2>
       <Link to="/">Back to Home</Link>
     </section>
   );

@@ -1,30 +1,28 @@
 import { pythonBackendBaseURL } from './config';
 
+import { request } from './common';
+
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
 const endpoints = {
-  extract: `${baseEndpoint}/extract`
+  extract: `${baseEndpoint}/extract`,
+  features: `${baseEndpoint}/features`
 };
-
-function getAuthorization() {
-  //return { Authorization: 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN };
-}
 
 class Backend {
   async extract(studyUID) {
     try {
-      const options = {
-        headers: new Headers(getAuthorization())
-      };
-      const finalEndpoint = `${endpoints.extract}/${studyUID}`;
-      const response = await fetch(finalEndpoint, options);
+      const url = `${endpoints.extract}/${studyUID}`;
+      return request(url, { authenticated: false, userID: true });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
 
-      if (!response.ok) {
-        const error = (await response.json()).error;
-        throw new Error(error);
-      } else {
-        return response.json();
-      }
+  async features(studyUID) {
+    try {
+      const url = `${endpoints.features}/${studyUID}`;
+      return request(url, { authenticated: false, userID: true });
     } catch (err) {
       throw err; // Just throw it for now
     }
