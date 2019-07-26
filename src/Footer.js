@@ -1,9 +1,8 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import './Footer.css';
-import UserContext from './context/UserContext';
 
 export default function Footer() {
-  let { user } = useContext(UserContext);
+  //let { user } = useContext(UserContext);
 
   return (
     <div className="Footer">

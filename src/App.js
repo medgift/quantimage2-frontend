@@ -11,6 +11,8 @@ import UserContext from './context/UserContext';
 import Profile from './Profile';
 import Footer from './Footer';
 import Header from './Header';
+import Study from './Study';
+import Kheops from './services/kheops';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -19,12 +21,41 @@ function App(props) {
   const { setUser } = useContext(UserContext);
   const [settled, setSettled] = useState(false);
 
+  const [albums, setAlbums] = useState([]);
+  const [studies, setStudies] = useState({});
+  const [, setDataFetched] = useState(false);
+
   // Check authentication
   useEffect(() => {
     const authenticated = auth.isAuthenticated();
     if (authenticated) setUser(auth.getUser());
     setSettled(true);
-  }, [settled, setUser]);
+  }, [setUser]);
+
+  // Get albums / studies
+  useEffect(() => {
+    async function getAlbums() {
+      const albums = await Kheops.albums();
+      setAlbums(albums);
+      getStudies(albums);
+    }
+
+    async function getStudies(albums) {
+      const studies = {};
+      await Promise.all(
+        albums.map(async album => {
+          const albumStudies = await Kheops.studies(album.id);
+          studies[album.album_id] = albumStudies;
+        })
+      );
+
+      setStudies(studies);
+
+      setDataFetched(true);
+    }
+
+    getAlbums();
+  }, []);
 
   // Handle login
   const handleLogin = async ({ email, password }) => {
@@ -53,8 +84,16 @@ function App(props) {
           <Header onLogout={handleLogout} />
           <main className="App-content">
             <Switch>
-              <ProtectedRoute exact path="/" component={Home} />
+              <ProtectedRoute
+                exact
+                path="/"
+                component={Home}
+                dataFetched={true}
+                albums={albums}
+                studies={studies}
+              />
               <ProtectedRoute path="/profile" component={Profile} />
+              <ProtectedRoute path="/study/:studyUID" component={Study} />
               <Route
                 path="/login"
                 render={props => <Login onSubmit={handleLogin} />}

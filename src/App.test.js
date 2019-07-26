@@ -39,8 +39,8 @@ it('shows the welcome page when authenticated', async () => {
     </UserContext.Provider>
   );
 
-  // We should see the intro text
-  getByTestId('intro-text');
+  // We should see the home page header
+  getByTestId('welcome-page-header');
 
   // The location should be /
   expect(history.location.pathname).toBe('/');

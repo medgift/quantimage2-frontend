@@ -1,0 +1,22 @@
+#study {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#study table {
+  border: 1px solid #ccc;
+}
+
+#study table tbody tr th {
+  background-color: #ddd;
+  text-align: right;
+}
+
+#study table tbody tr td {
+  text-align: left;
+}
+
+.study-details {
+  text-align: initial;
+}
