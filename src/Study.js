@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
-import Spinner from 'reactstrap/es/Spinner';
+import { Spinner } from 'reactstrap';
 import moment from 'moment';
 import DicomFields from './dicom/fields';
 import { DATE_FORMAT } from './config/constants';
