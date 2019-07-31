@@ -68,7 +68,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                                 DicomFields.MODALITIES
                               ][DicomFields.VALUE][0].split(',')) {
                                 modalities.push(
-                                  <Badge color="primary" className="mr-1">
+                                  <Badge
+                                    color="primary"
+                                    className="mr-1"
+                                    key={modality}
+                                  >
                                     {modality}
                                   </Badge>
                                 );

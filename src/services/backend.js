@@ -11,10 +11,10 @@ const endpoints = {
 };
 
 class Backend {
-  async extract(studyUID) {
+  async extract(study_uid, feature_name) {
     try {
-      const url = `${endpoints.extract}/${studyUID}`;
-      return await request(url);
+      const url = `${endpoints.extract}/${study_uid}/${feature_name}`;
+      return await request(url, { authenticated: false, userID: true });
     } catch (err) {
       throw err; // Just throw it for now
     }

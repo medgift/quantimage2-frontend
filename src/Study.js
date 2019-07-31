@@ -5,7 +5,7 @@ import Backend from './services/backend';
 import { Alert, Button, ListGroupItem, Spinner, Table } from 'reactstrap';
 import moment from 'moment';
 import DicomFields from './dicom/fields';
-import { DATE_FORMAT, FEATURE_TYPES } from './config/constants';
+import { DATE_FORMAT, FEATURE_STATUS } from './config/constants';
 
 import './Study.css';
 import ButtonGroup from 'reactstrap/es/ButtonGroup';
@@ -28,6 +28,39 @@ function Study({ match, kheopsError }) {
     return features;
   };
 
+  let handleComputeFeaturesClick = feature => {
+    Backend.extract(studyUID, feature.name)
+      .then(() => {
+        updateFeature(feature, {
+          status: FEATURE_STATUS.COMPLETE,
+          updated_at: 'a few seconds ago' // TODO - Get the new date from the server in the response
+        });
+        console.log('done');
+      })
+      .catch(err => {
+        console.error('error!');
+      });
+
+    updateFeature(feature, { status: FEATURE_STATUS.IN_PROGRESS });
+  };
+
+  let updateFeature = (feature, { ...rest }) => {
+    // Update element in feature
+    setFeatures(
+      features.map(f => {
+        if (feature.name === f.name) {
+          return { ...f, ...rest };
+        } else {
+          return f;
+        }
+      })
+    );
+  };
+
+  let handleViewFeaturesClick = feature => {
+    console.log(feature.payload);
+  };
+
   useEffect(() => {
     async function getFeatures() {
       const featureTypes = await Backend.featureTypes();
@@ -46,7 +79,7 @@ function Study({ match, kheopsError }) {
           features.push({
             name: featureType,
             updated_at: null,
-            status: FEATURE_TYPES.NOT_COMPUTED,
+            status: FEATURE_STATUS.NOT_COMPUTED,
             payload: null
           });
         }
@@ -119,20 +152,20 @@ function Study({ match, kheopsError }) {
             >
               <div
                 className={`mr-2${
-                  feature.status === FEATURE_TYPES.IN_PROGRESS
+                  feature.status === FEATURE_STATUS.IN_PROGRESS
                     ? ' text-muted'
                     : ''
                 }`}
               >
                 {feature.name}{' '}
                 <small>
-                  {feature.status === FEATURE_TYPES.NOT_COMPUTED && (
+                  {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
                     <>(never computed)</>
                   )}
-                  {feature.status === FEATURE_TYPES.IN_PROGRESS && (
+                  {feature.status === FEATURE_STATUS.IN_PROGRESS && (
                     <>(in progress...)</>
                   )}
-                  {feature.status === FEATURE_TYPES.COMPLETE && (
+                  {feature.status === FEATURE_STATUS.COMPLETE && (
                     <>(computed on {feature.updated_at})</>
                   )}
                 </small>
@@ -140,16 +173,21 @@ function Study({ match, kheopsError }) {
               <ButtonGroup>
                 {(() => {
                   switch (feature.status) {
-                    case FEATURE_TYPES.NOT_COMPUTED:
+                    case FEATURE_STATUS.NOT_COMPUTED:
                       return (
-                        <Button color="success">
+                        <Button
+                          color="success"
+                          onClick={() => {
+                            handleComputeFeaturesClick(feature);
+                          }}
+                        >
                           <FontAwesomeIcon
                             icon="cog"
                             title="Compute Features"
                           ></FontAwesomeIcon>
                         </Button>
                       );
-                    case FEATURE_TYPES.IN_PROGRESS:
+                    case FEATURE_STATUS.IN_PROGRESS:
                       return (
                         <Button color="secondary" disabled>
                           <FontAwesomeIcon
@@ -159,9 +197,14 @@ function Study({ match, kheopsError }) {
                           ></FontAwesomeIcon>
                         </Button>
                       );
-                    case FEATURE_TYPES.COMPLETE:
+                    case FEATURE_STATUS.COMPLETE:
                       return (
-                        <Button color="primary">
+                        <Button
+                          color="primary"
+                          onClick={() => {
+                            handleComputeFeaturesClick(feature);
+                          }}
+                        >
                           <FontAwesomeIcon
                             icon="redo"
                             title="Recompute Features"
@@ -172,15 +215,20 @@ function Study({ match, kheopsError }) {
                       return null;
                   }
                 })()}
-                <Button
-                  color="info"
-                  disabled={feature.status === FEATURE_TYPES.IN_PROGRESS}
-                >
-                  <FontAwesomeIcon
-                    icon="search"
-                    title="View Features"
-                  ></FontAwesomeIcon>
-                </Button>
+                {feature.status !== FEATURE_STATUS.NOT_COMPUTED && (
+                  <Button
+                    color="info"
+                    disabled={feature.status === FEATURE_STATUS.IN_PROGRESS}
+                    onClick={() => {
+                      handleViewFeaturesClick(feature);
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon="search"
+                      title="View Features"
+                    ></FontAwesomeIcon>
+                  </Button>
+                )}
               </ButtonGroup>
             </ListGroupItem>
           ))}
