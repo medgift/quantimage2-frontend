@@ -2,11 +2,12 @@ import React from 'react';
 import DicomFields from './dicom/fields';
 import moment from 'moment';
 import './Home.css';
-import { Spinner } from 'reactstrap';
+import { Alert, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { DATE_FORMAT } from './config/constants';
+import Badge from 'reactstrap/es/Badge';
 
-function Home({ albums, studies, dataFetched }) {
+function Home({ albums, studies, dataFetched, kheopsError }) {
   return (
     <div>
       <header className="App-header">
@@ -20,20 +21,23 @@ function Home({ albums, studies, dataFetched }) {
         </p>
         <h2>Your albums/studies</h2>
         <div>
-          {!dataFetched ? (
+          {kheopsError ? (
+            <Alert color="danger">Error fetching data from Kheops</Alert>
+          ) : !dataFetched ? (
             <Spinner />
           ) : albums.length > 0 && Object.keys(studies).length > 0 ? (
-            <ul className="albums">
+            <ListGroup className="albums">
               {albums.map(album => (
-                <li key={album.album_id}>
+                <ListGroupItem key={album.album_id}>
                   {album.name}
                   {studies[album.album_id] && (
-                    <ul>
+                    <ListGroup>
                       {studies[album.album_id].map(study => (
-                        <li
+                        <ListGroupItem
                           key={
                             study[DicomFields.STUDY_UID][DicomFields.VALUE][0]
                           }
+                          className="d-flex justify-content-between align-items-center"
                         >
                           <Link
                             to={`/study/${
@@ -55,21 +59,30 @@ function Home({ albums, studies, dataFetched }) {
                               study[DicomFields.DATE][DicomFields.VALUE][0],
                               DicomFields.DATE_FORMAT
                             ).format(DATE_FORMAT)}
-                            ,{' '}
-                            {
-                              study[DicomFields.MODALITIES][
-                                DicomFields.VALUE
-                              ][0]
-                            }
                             )
                           </Link>
-                        </li>
+                          <div>
+                            {(() => {
+                              let modalities = [];
+                              for (let modality of study[
+                                DicomFields.MODALITIES
+                              ][DicomFields.VALUE][0].split(',')) {
+                                modalities.push(
+                                  <Badge color="primary" className="mr-1">
+                                    {modality}
+                                  </Badge>
+                                );
+                              }
+                              return modalities;
+                            })()}
+                          </div>
+                        </ListGroupItem>
                       ))}
-                    </ul>
+                    </ListGroup>
                   )}
-                </li>
+                </ListGroupItem>
               ))}
-            </ul>
+            </ListGroup>
           ) : (
             <span>No albums found.</span>
           )}

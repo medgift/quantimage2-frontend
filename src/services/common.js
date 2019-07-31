@@ -5,19 +5,20 @@ export async function request(
   { method = 'GET', data = null, authenticated = true, userID = false } = {}
 ) {
   try {
-    let options = {};
+    let headers = new Headers();
+    let options = {
+      headers: headers,
+      method: method
+    };
 
     // Authentication
     if (authenticated) {
-      options = {
-        headers: new Headers(getAuthorization()),
-        method: method
-      };
+      headers.append('Authorization', getAuthorization());
+    }
 
-      // TODO - This will be replaced with a real session/user backend
-      if (userID && auth.getUser()) {
-        options.headers.append('X-User-ID', auth.getUser().id);
-      }
+    // TODO - This will be replaced with a real session/user backend
+    if (userID && auth.getUser()) {
+      headers.append('X-User-ID', getUserID());
     }
 
     // Add body
@@ -39,5 +40,9 @@ export async function request(
 }
 
 function getAuthorization() {
-  return { Authorization: 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN };
+  return 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN;
+}
+
+function getUserID() {
+  return auth.getUser().id;
 }

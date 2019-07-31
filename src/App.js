@@ -23,7 +23,8 @@ function App(props) {
 
   const [albums, setAlbums] = useState([]);
   const [studies, setStudies] = useState({});
-  const [, setDataFetched] = useState(false);
+  const [dataFetched, setDataFetched] = useState(false);
+  const [kheopsError, setKheopsError] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -35,9 +36,13 @@ function App(props) {
   // Get albums / studies
   useEffect(() => {
     async function getAlbums() {
-      const albums = await Kheops.albums();
-      setAlbums(albums);
-      getStudies(albums);
+      try {
+        const albums = await Kheops.albums();
+        setAlbums(albums);
+        getStudies(albums);
+      } catch (err) {
+        setKheopsError(true);
+      }
     }
 
     async function getStudies(albums) {
@@ -88,12 +93,17 @@ function App(props) {
                 exact
                 path="/"
                 component={Home}
-                dataFetched={true}
+                dataFetched={dataFetched}
+                kheopsError={kheopsError}
                 albums={albums}
                 studies={studies}
               />
               <ProtectedRoute path="/profile" component={Profile} />
-              <ProtectedRoute path="/study/:studyUID" component={Study} />
+              <ProtectedRoute
+                path="/study/:studyUID"
+                component={Study}
+                kheopsError={kheopsError}
+              />
               <Route
                 path="/login"
                 render={props => <Login onSubmit={handleLogin} />}

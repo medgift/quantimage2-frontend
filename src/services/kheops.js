@@ -13,7 +13,7 @@ class Kheops {
   async albums() {
     try {
       const url = endpoints.albums;
-      return request(url);
+      return await request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -24,7 +24,7 @@ class Kheops {
       const url = albumID
         ? `${endpoints.studies}?album=${albumID}`
         : endpoints.studies;
-      return request(url);
+      return await request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -33,7 +33,7 @@ class Kheops {
   async studyMetadata(studyUID) {
     try {
       const url = `${endpoints.studies}/${studyUID}/metadata`;
-      return request(url);
+      return await request(url);
     } catch (err) {
       throw err; // Just throw it for now
     }
