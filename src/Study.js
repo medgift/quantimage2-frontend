@@ -1,66 +1,67 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useContext,
+  useCallback
+} from 'react';
 import { Link } from 'react-router-dom';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
 import { Alert, Button, ListGroupItem, Spinner, Table } from 'reactstrap';
 import moment from 'moment';
 import DicomFields from './dicom/fields';
-import { DATE_FORMAT, FEATURE_STATUS } from './config/constants';
+import {
+  DICOM_DATE_FORMAT,
+  DB_DATE_FORMAT,
+  FEATURE_STATUS
+} from './config/constants';
 
 import './Study.css';
 import ButtonGroup from 'reactstrap/es/ButtonGroup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
+import SocketContext from './context/SocketContext';
 
 function Study({ match, kheopsError }) {
   let {
     params: { studyUID }
   } = match;
 
+  let socket = useContext(SocketContext);
+
   let [studyMetadata, setStudyMetadata] = useState(null);
-  let [features, setFeatures] = useState(null);
+  let [features, setFeatures] = useState([]);
 
   let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
 
-  let extractFeatures = async studyUID => {
-    const features = await Backend.extract(studyUID);
-    console.log(features);
-    return features;
-  };
+  let handleComputeFeaturesClick = async feature => {
+    let featureInProgress = await Backend.extract(studyUID, feature.name);
 
-  let handleComputeFeaturesClick = feature => {
-    Backend.extract(studyUID, feature.name)
-      .then(() => {
-        updateFeature(feature, {
-          status: FEATURE_STATUS.COMPLETE,
-          updated_at: 'a few seconds ago' // TODO - Get the new date from the server in the response
-        });
-        console.log('done');
-      })
-      .catch(err => {
-        console.error('error!');
-      });
-
-    updateFeature(feature, { status: FEATURE_STATUS.IN_PROGRESS });
-  };
-
-  let updateFeature = (feature, { ...rest }) => {
-    // Update element in feature
-    setFeatures(
-      features.map(f => {
-        if (feature.name === f.name) {
-          return { ...f, ...rest };
-        } else {
-          return f;
-        }
-      })
-    );
+    updateFeature(feature, { status: featureInProgress.status });
   };
 
   let handleViewFeaturesClick = feature => {
     console.log(feature.payload);
   };
 
+  const updateFeature = useCallback(
+    (feature, { ...rest }) => {
+      // Update element in feature
+      setFeatures(
+        features.map(f => {
+          if (feature.name === f.name) {
+            return { ...f, ...rest };
+          } else {
+            return f;
+          }
+        })
+      );
+    },
+    [features]
+  );
+
+  /* Fetch initial data */
   useEffect(() => {
     async function getFeatures() {
       const featureTypes = await Backend.featureTypes();
@@ -80,6 +81,7 @@ function Study({ match, kheopsError }) {
             name: featureType,
             updated_at: null,
             status: FEATURE_STATUS.NOT_COMPUTED,
+            status_message: null,
             payload: null
           });
         }
@@ -95,7 +97,31 @@ function Study({ match, kheopsError }) {
 
     getFeatures();
     getStudyMetadata();
-  }, []);
+  }, [studyUID]);
+
+  /* Manage Socket.IO events */
+  useEffect(() => {
+    socket.on('feature-status', featureStatus => {
+      console.log('GOT FEATURE STATUS!!!', featureStatus);
+
+      if (features !== null) {
+        let foundFeature = features.find(
+          f => f.id && f.id === featureStatus.feature_id
+        );
+
+        if (foundFeature) {
+          updateFeature(foundFeature, {
+            status: featureStatus.status,
+            status_message: featureStatus.status_message
+          });
+        }
+      }
+    });
+
+    return () => {
+      socket.off('feature-status');
+    };
+  }, [features]);
 
   return (
     <section id="study">
@@ -124,7 +150,7 @@ function Study({ match, kheopsError }) {
                   {moment(
                     studyMetadata[0][DicomFields.DATE][DicomFields.VALUE][0],
                     DicomFields.DATE_FORMAT
-                  ).format(DATE_FORMAT)}
+                  ).format(DICOM_DATE_FORMAT)}
                 </td>
               </tr>
               {Object.keys(series)
@@ -151,11 +177,11 @@ function Study({ match, kheopsError }) {
               className="d-flex justify-content-between align-items-center"
             >
               <div
-                className={`mr-2${
-                  feature.status === FEATURE_STATUS.IN_PROGRESS
+                className={
+                  `mr-2` + feature.status === FEATURE_STATUS.IN_PROGRESS
                     ? ' text-muted'
                     : ''
-                }`}
+                }
               >
                 {feature.name}{' '}
                 <small>
@@ -163,14 +189,21 @@ function Study({ match, kheopsError }) {
                     <>(never computed)</>
                   )}
                   {feature.status === FEATURE_STATUS.IN_PROGRESS && (
-                    <>(in progress...)</>
+                    <>({feature.status_message}...)</>
                   )}
                   {feature.status === FEATURE_STATUS.COMPLETE && (
-                    <>(computed on {feature.updated_at})</>
+                    <>
+                      (computed on{' '}
+                      {moment
+                        .utc(feature.updated_at, DB_DATE_FORMAT)
+                        .local()
+                        .format(DB_DATE_FORMAT)}
+                      )
+                    </>
                   )}
                 </small>
               </div>
-              <ButtonGroup>
+              <ButtonGroup className="ml-1">
                 {(() => {
                   switch (feature.status) {
                     case FEATURE_STATUS.NOT_COMPUTED:

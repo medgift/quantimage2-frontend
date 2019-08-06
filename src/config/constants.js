@@ -1,4 +1,5 @@
-export const DATE_FORMAT = 'DD.MM.YYYY';
+export const DICOM_DATE_FORMAT = 'DD.MM.YYYY';
+export const DB_DATE_FORMAT = 'DD.MM.YYYY HH:mm';
 
 export const FEATURE_STATUS = {
   NOT_COMPUTED: 0,

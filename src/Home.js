@@ -4,7 +4,7 @@ import moment from 'moment';
 import './Home.css';
 import { Alert, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { DATE_FORMAT } from './config/constants';
+import { DICOM_DATE_FORMAT } from './config/constants';
 import Badge from 'reactstrap/es/Badge';
 
 function Home({ albums, studies, dataFetched, kheopsError }) {
@@ -58,7 +58,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                             {moment(
                               study[DicomFields.DATE][DicomFields.VALUE][0],
                               DicomFields.DATE_FORMAT
-                            ).format(DATE_FORMAT)}
+                            ).format(DICOM_DATE_FORMAT)}
                             )
                           </Link>
                           <div>
