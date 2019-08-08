@@ -37,7 +37,8 @@ function App(props) {
   useEffect(() => {
     async function getAlbums() {
       try {
-        const albums = await Kheops.albums();
+        let albums = await Kheops.albums();
+        albums = albums.sort((a1, a2) => a1.name.localeCompare(a2.name));
         setAlbums(albums);
         getStudies(albums);
       } catch (err) {
@@ -49,7 +50,7 @@ function App(props) {
       const studies = {};
       await Promise.all(
         albums.map(async album => {
-          const albumStudies = await Kheops.studies(album.id);
+          const albumStudies = await Kheops.studies(album.album_id);
           studies[album.album_id] = albumStudies;
         })
       );

@@ -31,10 +31,6 @@ import ListGroup from 'reactstrap/es/ListGroup';
 import SocketContext from './context/SocketContext';
 import ModalHeader from 'reactstrap/es/ModalHeader';
 import ModalBody from 'reactstrap/es/ModalBody';
-import Card from 'reactstrap/es/Card';
-import CardTitle from 'reactstrap/es/CardTitle';
-import CardBody from 'reactstrap/es/CardBody';
-import CardText from 'reactstrap/es/CardText';
 
 function Study({ match, kheopsError }) {
   let {
@@ -246,21 +242,19 @@ function Study({ match, kheopsError }) {
                           onClick={() => {
                             handleComputeFeaturesClick(feature);
                           }}
+                          title="Compute Features"
                         >
-                          <FontAwesomeIcon
-                            icon="cog"
-                            title="Compute Features"
-                          ></FontAwesomeIcon>
+                          <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
                         </Button>
                       );
                     case FEATURE_STATUS.IN_PROGRESS:
                       return (
-                        <Button color="secondary" disabled>
-                          <FontAwesomeIcon
-                            icon="sync"
-                            spin
-                            title="Computation in Progress"
-                          ></FontAwesomeIcon>
+                        <Button
+                          color="secondary"
+                          disabled
+                          title="Computation in Progress"
+                        >
+                          <FontAwesomeIcon icon="sync" spin></FontAwesomeIcon>
                         </Button>
                       );
                     case FEATURE_STATUS.COMPLETE:
@@ -270,11 +264,9 @@ function Study({ match, kheopsError }) {
                           onClick={() => {
                             handleComputeFeaturesClick(feature);
                           }}
+                          title="Recompute Features"
                         >
-                          <FontAwesomeIcon
-                            icon="redo"
-                            title="Recompute Features"
-                          ></FontAwesomeIcon>
+                          <FontAwesomeIcon icon="redo"></FontAwesomeIcon>
                         </Button>
                       );
                     default:
@@ -288,11 +280,9 @@ function Study({ match, kheopsError }) {
                     onClick={() => {
                       handleViewFeaturesClick(feature);
                     }}
+                    title="View Features"
                   >
-                    <FontAwesomeIcon
-                      icon="search"
-                      title="View Features"
-                    ></FontAwesomeIcon>
+                    <FontAwesomeIcon icon="search"></FontAwesomeIcon>
                   </Button>
                 )}
               </ButtonGroup>
@@ -310,16 +300,16 @@ function Study({ match, kheopsError }) {
             Computed "{currentFeature.name}" Features
           </ModalHeader>
           <ModalBody>
-            {Object.keys(currentFeature.payload).map((key, index) => (
-              <Card key={index}>
-                <CardBody>
-                  <CardTitle>{key}</CardTitle>
-                  <CardText className="text-muted">
+            <ListGroup className="m-1">
+              {Object.keys(currentFeature.payload).map((key, index) => (
+                <ListGroupItem key={index}>
+                  <div>{key}</div>
+                  <div className="text-muted">
                     {JSON.stringify(currentFeature.payload[key], null, 1)}
-                  </CardText>
-                </CardBody>
-              </Card>
-            ))}
+                  </div>
+                </ListGroupItem>
+              ))}
+            </ListGroup>
           </ModalBody>
         </Modal>
       )}
