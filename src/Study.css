@@ -20,3 +20,12 @@
 .study-details {
   text-align: initial;
 }
+
+.features-list {
+  min-width: 510px;
+}
+
+.feature-modal .modal-body {
+  max-height: 85vh;
+  overflow-y: scroll;
+}

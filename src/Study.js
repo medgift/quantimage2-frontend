@@ -8,7 +8,14 @@ import React, {
 import { Link } from 'react-router-dom';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
-import { Alert, Button, ListGroupItem, Spinner, Table } from 'reactstrap';
+import {
+  Alert,
+  Button,
+  ListGroupItem,
+  Modal,
+  Spinner,
+  Table
+} from 'reactstrap';
 import moment from 'moment';
 import DicomFields from './dicom/fields';
 import {
@@ -22,6 +29,12 @@ import ButtonGroup from 'reactstrap/es/ButtonGroup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import SocketContext from './context/SocketContext';
+import ModalHeader from 'reactstrap/es/ModalHeader';
+import ModalBody from 'reactstrap/es/ModalBody';
+import Card from 'reactstrap/es/Card';
+import CardTitle from 'reactstrap/es/CardTitle';
+import CardBody from 'reactstrap/es/CardBody';
+import CardText from 'reactstrap/es/CardText';
 
 function Study({ match, kheopsError }) {
   let {
@@ -32,17 +45,29 @@ function Study({ match, kheopsError }) {
 
   let [studyMetadata, setStudyMetadata] = useState(null);
   let [features, setFeatures] = useState([]);
+  let [currentFeature, setCurrentFeature] = useState(null);
+  let [modal, setModal] = useState(false);
 
   let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
+
+  let toggleModal = () => {
+    setModal(!modal);
+  };
 
   let handleComputeFeaturesClick = async feature => {
     let featureInProgress = await Backend.extract(studyUID, feature.name);
 
-    updateFeature(feature, { status: featureInProgress.status });
+    updateFeature(feature, {
+      id: featureInProgress.id,
+      status: featureInProgress.status,
+      status_message: 'Starting'
+    });
   };
 
   let handleViewFeaturesClick = feature => {
     console.log(feature.payload);
+    setCurrentFeature(feature);
+    toggleModal();
   };
 
   const updateFeature = useCallback(
@@ -110,10 +135,18 @@ function Study({ match, kheopsError }) {
         );
 
         if (foundFeature) {
-          updateFeature(foundFeature, {
+          let updatedFeature = {
             status: featureStatus.status,
             status_message: featureStatus.status_message
-          });
+          };
+
+          // Set the updated date if the feature extraction has been completed
+          if (featureStatus.status === FEATURE_STATUS.COMPLETE) {
+            updatedFeature.updated_at = moment.utc(featureStatus.updated_at);
+            updatedFeature.payload = featureStatus.payload;
+          }
+
+          updateFeature(foundFeature, updatedFeature);
         }
       }
     });
@@ -121,7 +154,7 @@ function Study({ match, kheopsError }) {
     return () => {
       socket.off('feature-status');
     };
-  }, [features]);
+  }, [features, socket, updateFeature]);
 
   return (
     <section id="study">
@@ -169,7 +202,7 @@ function Study({ match, kheopsError }) {
         </>
       )}
       <h2>Features</h2>
-      <ListGroup>
+      <ListGroup className="features-list">
         {features &&
           features.map(feature => (
             <ListGroupItem
@@ -266,6 +299,30 @@ function Study({ match, kheopsError }) {
             </ListGroupItem>
           ))}
       </ListGroup>
+      {currentFeature && (
+        <Modal
+          isOpen={modal}
+          toggle={toggleModal}
+          size="lg"
+          className="feature-modal"
+        >
+          <ModalHeader toggle={toggleModal}>
+            Computed "{currentFeature.name}" Features
+          </ModalHeader>
+          <ModalBody>
+            {Object.keys(currentFeature.payload).map((key, index) => (
+              <Card key={index}>
+                <CardBody>
+                  <CardTitle>{key}</CardTitle>
+                  <CardText className="text-muted">
+                    {JSON.stringify(currentFeature.payload[key], null, 1)}
+                  </CardText>
+                </CardBody>
+              </Card>
+            ))}
+          </ModalBody>
+        </Modal>
+      )}
       <Link to="/">Back to Home</Link>
     </section>
   );
