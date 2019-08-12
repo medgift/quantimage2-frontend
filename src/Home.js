@@ -5,7 +5,7 @@ import './Home.css';
 import { Alert, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { DICOM_DATE_FORMAT } from './config/constants';
-import Badge from 'reactstrap/es/Badge';
+import { Badge } from 'reactstrap';
 
 function Home({ albums, studies, dataFetched, kheopsError }) {
   return (

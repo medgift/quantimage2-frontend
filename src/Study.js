@@ -11,8 +11,11 @@ import Backend from './services/backend';
 import {
   Alert,
   Button,
+  ButtonGroup,
   ListGroupItem,
   Modal,
+  ModalBody,
+  ModalHeader,
   Spinner,
   Table
 } from 'reactstrap';
@@ -25,12 +28,10 @@ import {
 } from './config/constants';
 
 import './Study.css';
-import ButtonGroup from 'reactstrap/es/ButtonGroup';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import SocketContext from './context/SocketContext';
-import ModalHeader from 'reactstrap/es/ModalHeader';
-import ModalBody from 'reactstrap/es/ModalBody';
+import FeaturesModal from './FeaturesModal';
 
 function Study({ match, kheopsError }) {
   let {
@@ -61,7 +62,6 @@ function Study({ match, kheopsError }) {
   };
 
   let handleViewFeaturesClick = feature => {
-    console.log(feature.payload);
     setCurrentFeature(feature);
     toggleModal();
   };
@@ -290,28 +290,11 @@ function Study({ match, kheopsError }) {
           ))}
       </ListGroup>
       {currentFeature && (
-        <Modal
+        <FeaturesModal
           isOpen={modal}
           toggle={toggleModal}
-          size="lg"
-          className="feature-modal"
-        >
-          <ModalHeader toggle={toggleModal}>
-            Computed "{currentFeature.name}" Features
-          </ModalHeader>
-          <ModalBody>
-            <ListGroup className="m-1">
-              {Object.keys(currentFeature.payload).map((key, index) => (
-                <ListGroupItem key={index}>
-                  <div>{key}</div>
-                  <div className="text-muted">
-                    {JSON.stringify(currentFeature.payload[key], null, 1)}
-                  </div>
-                </ListGroupItem>
-              ))}
-            </ListGroup>
-          </ModalBody>
-        </Modal>
+          feature={currentFeature}
+        />
       )}
       <Link to="/">Back to Home</Link>
     </section>

@@ -1,5 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
+  faBookMedical,
   faCog,
   faMicroscope,
   faRedo,
@@ -10,6 +11,7 @@ import {
 export default function registerIcons() {
   // Add icons to the library
   library.add(faMicroscope);
+  library.add(faBookMedical);
   library.add(faSearch);
   library.add(faCog);
   library.add(faSync);

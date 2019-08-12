@@ -31,7 +31,9 @@ class Backend {
 
   async features(studyUID) {
     try {
-      const url = `${endpoints.features}/${studyUID}`;
+      const url = studyUID
+        ? `${endpoints.features}/${studyUID}`
+        : endpoints.features;
       return await request(url, { authenticated: false, userID: true });
     } catch (err) {
       throw err; // Just throw it for now

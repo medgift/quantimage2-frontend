@@ -11,6 +11,7 @@ import UserContext from './context/UserContext';
 import Profile from './Profile';
 import Footer from './Footer';
 import Header from './Header';
+import Features from './Features';
 import Study from './Study';
 import Kheops from './services/kheops';
 
@@ -99,12 +100,17 @@ function App(props) {
                 albums={albums}
                 studies={studies}
               />
-              <ProtectedRoute path="/profile" component={Profile} />
+              <ProtectedRoute
+                path="/features"
+                component={Features}
+                kheopsError={kheopsError}
+              />
               <ProtectedRoute
                 path="/study/:studyUID"
                 component={Study}
                 kheopsError={kheopsError}
               />
+              <ProtectedRoute path="/profile" component={Profile} />
               <Route
                 path="/login"
                 render={props => <Login onSubmit={handleLogin} />}

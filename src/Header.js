@@ -11,9 +11,6 @@ import {
   NavLink
 } from 'reactstrap';
 import UserContext from './context/UserContext';
-//import { LinkContainer } from 'react-router-bootstrap';
-//import { Link, withRouter } from 'react-router-dom';
-//import { Nav, Navbar } from 'react-bootstrap';
 
 function Header({ location, onLogout }) {
   let { user } = useContext(UserContext);
@@ -39,23 +36,15 @@ function Header({ location, onLogout }) {
                   </NavLink>
                 </NavItem>
                 <NavItem>
+                  <NavLink tag={RouterNavLink} to="/features">
+                    Features
+                  </NavLink>
+                </NavItem>
+                <NavItem>
                   <NavLink tag={RouterNavLink} to="/profile">
                     Profile
                   </NavLink>
                 </NavItem>
-                {/*
-          <UncontrolledDropdown nav inNavbar>
-          <DropdownToggle nav caret>
-          Options
-          </DropdownToggle>
-          <DropdownMenu right>
-          <DropdownItem>Option 1</DropdownItem>
-          <DropdownItem>Option 2</DropdownItem>
-          <DropdownItem divider />
-          <DropdownItem>Reset</DropdownItem>
-          </DropdownMenu>
-          </UncontrolledDropdown>
-          */}
               </Nav>
               <span className="ml-auto">
                 <button className="btn btn-link" onClick={onLogout}>
