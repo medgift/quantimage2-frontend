@@ -29,7 +29,8 @@ export async function request(
     const response = await fetch(url, options);
 
     if (!response.ok) {
-      const error = (await response.json()).error;
+      let body = await response.json();
+      const error = body.error || body.message;
       throw new Error(error);
     } else {
       return response.json();

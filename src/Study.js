@@ -44,6 +44,8 @@ function Study({ match, kheopsError }) {
   let [features, setFeatures] = useState([]);
   let [currentFeature, setCurrentFeature] = useState(null);
   let [modal, setModal] = useState(false);
+  let [backendError, setBackendError] = useState(null);
+  let [backendErrorVisible, setBackendErrorVisible] = useState(false);
 
   let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
 
@@ -51,14 +53,23 @@ function Study({ match, kheopsError }) {
     setModal(!modal);
   };
 
-  let handleComputeFeaturesClick = async feature => {
-    let featureInProgress = await Backend.extract(studyUID, feature.name);
+  let hideBackendError = () => {
+    setBackendErrorVisible(false);
+  };
 
-    updateFeature(feature, {
-      id: featureInProgress.id,
-      status: featureInProgress.status,
-      status_message: 'Starting'
-    });
+  let handleComputeFeaturesClick = async feature => {
+    try {
+      let featureInProgress = await Backend.extract(studyUID, feature.name);
+
+      updateFeature(feature, {
+        id: featureInProgress.id,
+        status: featureInProgress.status,
+        status_message: 'Starting'
+      });
+    } catch (err) {
+      setBackendError(err.message);
+      setBackendErrorVisible(true);
+    }
   };
 
   let handleViewFeaturesClick = feature => {
@@ -289,6 +300,14 @@ function Study({ match, kheopsError }) {
             </ListGroupItem>
           ))}
       </ListGroup>
+      <Alert
+        color="danger"
+        className="mt-3"
+        isOpen={backendErrorVisible}
+        toggle={hideBackendError}
+      >
+        Error from the backend: {backendError}
+      </Alert>
       {currentFeature && (
         <FeaturesModal
           isOpen={modal}
