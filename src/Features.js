@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Backend from './services/backend';
-import { FEATURE_STATUS } from './config/constants';
 import {
   Spinner,
   ListGroup,
@@ -11,16 +10,17 @@ import {
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FeaturesModal from './FeaturesModal';
+import { useKeycloak } from 'react-keycloak';
 
 function Features({ history, match, kheopsError }) {
+  const [keycloak, initialized] = useKeycloak();
   const [features, setFeatures] = useState(null);
   const [currentFeature, setCurrentFeature] = useState(null);
   const [modal, setModal] = useState(false);
 
   useEffect(() => {
     async function getFeatures() {
-      const featureTypes = await Backend.featureTypes();
-      const features = await Backend.features();
+      const features = await Backend.features(keycloak.token);
 
       const features_by_name = features.reduce((collector, feature) => {
         if (!collector[feature.name]) collector[feature.name] = [];

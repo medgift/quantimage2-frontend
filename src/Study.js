@@ -13,9 +13,6 @@ import {
   Button,
   ButtonGroup,
   ListGroupItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
   Spinner,
   Table
 } from 'reactstrap';
@@ -32,6 +29,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import SocketContext from './context/SocketContext';
 import FeaturesModal from './FeaturesModal';
+import { useKeycloak } from 'react-keycloak';
 
 function Study({ match, kheopsError }) {
   let {
@@ -40,6 +38,7 @@ function Study({ match, kheopsError }) {
 
   let socket = useContext(SocketContext);
 
+  let [keycloak, initialized] = useKeycloak();
   let [studyMetadata, setStudyMetadata] = useState(null);
   let [features, setFeatures] = useState([]);
   let [currentFeature, setCurrentFeature] = useState(null);
@@ -59,7 +58,11 @@ function Study({ match, kheopsError }) {
 
   let handleComputeFeaturesClick = async feature => {
     try {
-      let featureInProgress = await Backend.extract(studyUID, feature.name);
+      let featureInProgress = await Backend.extract(
+        keycloak.token,
+        studyUID,
+        feature.name
+      );
 
       updateFeature(feature, {
         id: featureInProgress.id,
@@ -96,8 +99,8 @@ function Study({ match, kheopsError }) {
   /* Fetch initial data */
   useEffect(() => {
     async function getFeatures() {
-      const featureTypes = await Backend.featureTypes();
-      const studyFeatures = await Backend.features(studyUID);
+      const featureTypes = await Backend.featureTypes(keycloak.token);
+      const studyFeatures = await Backend.features(keycloak.token, studyUID);
 
       let features = [];
 
@@ -129,7 +132,7 @@ function Study({ match, kheopsError }) {
 
     getFeatures();
     getStudyMetadata();
-  }, [studyUID]);
+  }, [studyUID, keycloak.token]);
 
   /* Manage Socket.IO events */
   useEffect(() => {

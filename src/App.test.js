@@ -2,8 +2,6 @@ import React from 'react';
 import { makeUser, renderWithRouter } from './test-utils';
 import { fireEvent } from '@testing-library/react';
 import App from './App';
-import auth from './services/auth';
-import UserContext from './context/UserContext';
 
 const reactRouter = require('react-router-dom');
 

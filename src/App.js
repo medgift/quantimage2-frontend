@@ -1,38 +1,36 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import { Switch, Route, withRouter } from 'react-router-dom';
 import Home from './Home';
-import Login from './Login';
 import NoMatch from './NoMatch';
-import auth from './services/auth';
-import { ProtectedRoute } from './utils/ProtectedRoute';
+import { PropsRoute } from './utils/PropsRoute';
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
-import UserContext from './context/UserContext';
 import Profile from './Profile';
 import Footer from './Footer';
 import Header from './Header';
 import Features from './Features';
 import Study from './Study';
 import Kheops from './services/kheops';
+import { useKeycloak } from 'react-keycloak';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
 
-function App(props) {
-  const { setUser } = useContext(UserContext);
-  const [settled, setSettled] = useState(false);
-
+function App({ setUser }) {
   const [albums, setAlbums] = useState([]);
   const [studies, setStudies] = useState({});
   const [dataFetched, setDataFetched] = useState(false);
   const [kheopsError, setKheopsError] = useState(false);
 
-  // Check authentication
+  const [keycloak, initialized] = useKeycloak();
+
   useEffect(() => {
-    const authenticated = auth.isAuthenticated();
-    if (authenticated) setUser(auth.getUser());
-    setSettled(true);
-  }, [setUser]);
+    if (keycloak && initialized) {
+      keycloak.loadUserProfile().success(profile => {
+        setUser(profile);
+      });
+    }
+  }, [keycloak, initialized, setUser]);
 
   // Get albums / studies
   useEffect(() => {
@@ -64,34 +62,19 @@ function App(props) {
     getAlbums();
   }, []);
 
-  // Handle login
-  const handleLogin = async ({ email, password }) => {
-    console.log(`Authenticating as ${email} : ${password}`);
-
-    try {
-      const loggedInUser = await auth.login(email, password);
-      setUser(loggedInUser);
-      return loggedInUser;
-    } catch (err) {
-      console.log('throwing', err);
-      throw new Error(err);
-    }
-  };
-
   // Handle logout
   const handleLogout = async () => {
-    await auth.logout();
-    setUser(null);
+    keycloak.logout();
   };
 
   return (
     <>
-      {settled ? (
+      {initialized ? (
         <div className="App">
           <Header onLogout={handleLogout} />
           <main className="App-content">
             <Switch>
-              <ProtectedRoute
+              <PropsRoute
                 exact
                 path="/"
                 component={Home}
@@ -100,21 +83,17 @@ function App(props) {
                 albums={albums}
                 studies={studies}
               />
-              <ProtectedRoute
+              <PropsRoute
                 path="/features"
                 component={Features}
                 kheopsError={kheopsError}
               />
-              <ProtectedRoute
+              <PropsRoute
                 path="/study/:studyUID"
                 component={Study}
                 kheopsError={kheopsError}
               />
-              <ProtectedRoute path="/profile" component={Profile} />
-              <Route
-                path="/login"
-                render={props => <Login onSubmit={handleLogin} />}
-              />
+              <PropsRoute path="/profile" component={Profile} />
               <Route component={NoMatch} />
             </Switch>
           </main>

@@ -13,9 +13,9 @@ import {
 import UserContext from './context/UserContext';
 
 function Header({ location, onLogout }) {
-  let { user } = useContext(UserContext);
-
   const [isOpen, setIsOpen] = useState(false);
+
+  const user = useContext(UserContext);
 
   const toggle = () => {
     setIsOpen(!isOpen);

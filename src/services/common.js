@@ -1,8 +1,11 @@
-import auth from './auth';
-
 export async function request(
   url,
-  { method = 'GET', data = null, authenticated = true, userID = false } = {}
+  {
+    method = 'GET',
+    data = null,
+    authenticated: kheops = true,
+    token = null
+  } = {}
 ) {
   try {
     let headers = new Headers();
@@ -12,13 +15,10 @@ export async function request(
     };
 
     // Authentication
-    if (authenticated) {
-      headers.append('Authorization', getAuthorization());
-    }
-
-    // TODO - This will be replaced with a real session/user backend
-    if (userID && auth.getUser()) {
-      headers.append('X-User-ID', getUserID());
+    if (kheops) {
+      headers.append('Authorization', getKheopsAuthorization());
+    } else if (token) {
+      headers.append('Authorization', token);
     }
 
     // Add body
@@ -40,10 +40,6 @@ export async function request(
   }
 }
 
-function getAuthorization() {
+function getKheopsAuthorization() {
   return 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN;
-}
-
-function getUserID() {
-  return auth.getUser().id;
 }

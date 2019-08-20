@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import UserContext from './context/UserContext';
 import SocketContext from './context/SocketContext';
 import App from './App';
 import io from 'socket.io-client';
 import { pythonBackendBaseURL } from './services/config';
+import Keycloak from 'keycloak-js';
+import { KeycloakProvider } from 'react-keycloak';
+import UserContext from './context/UserContext';
+
+// Setup Keycloak instance
+const keycloak = new Keycloak({
+  url: process.env.REACT_APP_KEYCLOAK_URL,
+  clientId: 'imagine-frontend',
+  realm: 'IMAGINE'
+});
+
+const keycloakProviderInitConfig = {
+  onLoad: 'login-required'
+};
 
 // Connect to Socket.IO
 const socket = io(pythonBackendBaseURL, {});
@@ -12,18 +25,19 @@ socket.on('connect', () => {
 });
 
 function AppWrapper(props) {
-  const [authenticatedUser, setAuthenticatedUser] = useState(
-    props.user ? props.user : null
-  );
+  const [user, setUser] = useState(null);
 
   return (
-    <SocketContext.Provider value={socket}>
-      <UserContext.Provider
-        value={{ user: authenticatedUser, setUser: setAuthenticatedUser }}
-      >
-        <App />
-      </UserContext.Provider>
-    </SocketContext.Provider>
+    <KeycloakProvider
+      keycloak={keycloak}
+      initConfig={keycloakProviderInitConfig}
+    >
+      <SocketContext.Provider value={socket}>
+        <UserContext.Provider value={user}>
+          <App setUser={setUser} />
+        </UserContext.Provider>
+      </SocketContext.Provider>
+    </KeycloakProvider>
   );
 }
 
