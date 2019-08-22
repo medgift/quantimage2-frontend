@@ -38,7 +38,7 @@ function Study({ match, kheopsError }) {
 
   let socket = useContext(SocketContext);
 
-  let [keycloak, initialized] = useKeycloak();
+  let [keycloak] = useKeycloak();
   let [studyMetadata, setStudyMetadata] = useState(null);
   let [features, setFeatures] = useState([]);
   let [currentFeature, setCurrentFeature] = useState(null);
@@ -66,8 +66,8 @@ function Study({ match, kheopsError }) {
 
       updateFeature(feature, {
         id: featureInProgress.id,
-        status: featureInProgress.status,
-        status_message: 'Starting'
+        status: FEATURE_STATUS.STARTED,
+        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
       });
     } catch (err) {
       setBackendError(err.message);
@@ -148,6 +148,8 @@ function Study({ match, kheopsError }) {
           let updatedFeature = {
             status: featureStatus.status,
             status_message: featureStatus.status_message
+              ? featureStatus.status_message
+              : FEATURE_STATUS.properties[featureStatus.status].name
           };
 
           // Set the updated date if the feature extraction has been completed
@@ -231,7 +233,8 @@ function Study({ match, kheopsError }) {
                   {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
                     <>(never computed)</>
                   )}
-                  {feature.status === FEATURE_STATUS.IN_PROGRESS && (
+                  {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                    feature.status === FEATURE_STATUS.STARTED) && (
                     <>({feature.status_message}...)</>
                   )}
                   {feature.status === FEATURE_STATUS.COMPLETE && (
@@ -261,6 +264,7 @@ function Study({ match, kheopsError }) {
                           <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
                         </Button>
                       );
+                    case FEATURE_STATUS.STARTED:
                     case FEATURE_STATUS.IN_PROGRESS:
                       return (
                         <Button
@@ -290,7 +294,10 @@ function Study({ match, kheopsError }) {
                 {feature.status !== FEATURE_STATUS.NOT_COMPUTED && (
                   <Button
                     color="info"
-                    disabled={feature.status === FEATURE_STATUS.IN_PROGRESS}
+                    disabled={
+                      feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                      feature.status === FEATURE_STATUS.STARTED
+                    }
                     onClick={() => {
                       handleViewFeaturesClick(feature);
                     }}

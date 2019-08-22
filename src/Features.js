@@ -13,7 +13,7 @@ import FeaturesModal from './FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 
 function Features({ history, match, kheopsError }) {
-  const [keycloak, initialized] = useKeycloak();
+  const [keycloak] = useKeycloak();
   const [features, setFeatures] = useState(null);
   const [currentFeature, setCurrentFeature] = useState(null);
   const [modal, setModal] = useState(false);
@@ -32,7 +32,7 @@ function Features({ history, match, kheopsError }) {
     }
 
     getFeatures();
-  }, []);
+  }, [keycloak.token]);
 
   let handleViewFeaturesClick = feature => {
     setCurrentFeature(feature);

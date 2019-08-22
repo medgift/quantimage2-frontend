@@ -18,7 +18,7 @@ export async function request(
     if (kheops) {
       headers.append('Authorization', getKheopsAuthorization());
     } else if (token) {
-      headers.append('Authorization', token);
+      headers.append('Authorization', getTokenAuthorization(token));
     }
 
     // Add body
@@ -42,4 +42,8 @@ export async function request(
 
 function getKheopsAuthorization() {
   return 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN;
+}
+
+function getTokenAuthorization(token) {
+  return 'Bearer ' + token;
 }
