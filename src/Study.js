@@ -58,17 +58,17 @@ function Study({ match, kheopsError }) {
 
   let handleComputeFeaturesClick = async feature => {
     try {
+      updateFeature(feature, {
+        id: feature.id,
+        status: FEATURE_STATUS.STARTED,
+        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
+      });
+
       let featureInProgress = await Backend.extract(
         keycloak.token,
         studyUID,
         feature.name
       );
-
-      updateFeature(feature, {
-        id: featureInProgress.id,
-        status: FEATURE_STATUS.STARTED,
-        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
-      });
     } catch (err) {
       setBackendError(err.message);
       setBackendErrorVisible(true);
