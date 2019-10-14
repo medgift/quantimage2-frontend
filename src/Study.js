@@ -30,6 +30,7 @@ import ListGroup from 'reactstrap/es/ListGroup';
 import SocketContext from './context/SocketContext';
 import FeaturesModal from './FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
+import downloadFeature from './utils/featureDownload';
 
 function Study({ match, kheopsError }) {
   let {
@@ -80,6 +81,10 @@ function Study({ match, kheopsError }) {
     toggleModal();
   };
 
+  let handleDownloadFeaturesClick = feature => {
+    downloadFeature(feature);
+  };
+
   const updateFeature = useCallback(
     (feature, { ...rest }) => {
       // Update element in feature
@@ -126,7 +131,10 @@ function Study({ match, kheopsError }) {
     }
 
     async function getStudyMetadata() {
-      const studyMetadata = await Kheops.studyMetadata(studyUID);
+      const studyMetadata = await Kheops.studyMetadata(
+        keycloak.token,
+        studyUID
+      );
       setStudyMetadata(studyMetadata);
     }
 
@@ -292,19 +300,34 @@ function Study({ match, kheopsError }) {
                   }
                 })()}
                 {feature.status !== FEATURE_STATUS.NOT_COMPUTED && (
-                  <Button
-                    color="info"
-                    disabled={
-                      feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                      feature.status === FEATURE_STATUS.STARTED
-                    }
-                    onClick={() => {
-                      handleViewFeaturesClick(feature);
-                    }}
-                    title="View Features"
-                  >
-                    <FontAwesomeIcon icon="search"></FontAwesomeIcon>
-                  </Button>
+                  <>
+                    <Button
+                      color="info"
+                      disabled={
+                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                        feature.status === FEATURE_STATUS.STARTED
+                      }
+                      onClick={() => {
+                        handleViewFeaturesClick(feature);
+                      }}
+                      title="View Features"
+                    >
+                      <FontAwesomeIcon icon="search"></FontAwesomeIcon>
+                    </Button>
+                    <Button
+                      color="secondary"
+                      disabled={
+                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                        feature.status === FEATURE_STATUS.STARTED
+                      }
+                      onClick={() => {
+                        handleDownloadFeaturesClick(feature);
+                      }}
+                      title="Download Features"
+                    >
+                      <FontAwesomeIcon icon="download"></FontAwesomeIcon>
+                    </Button>
+                  </>
                 )}
               </ButtonGroup>
             </ListGroupItem>

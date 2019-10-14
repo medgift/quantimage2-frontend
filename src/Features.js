@@ -11,11 +11,13 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FeaturesModal from './FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
+import downloadFeature from './utils/featureDownload';
 
 function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
   const [features, setFeatures] = useState(null);
   const [currentFeature, setCurrentFeature] = useState(null);
+  const [downloadData, setDownloadData] = useState({});
   const [modal, setModal] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,10 @@ function Features({ history, match, kheopsError }) {
   let handleViewFeaturesClick = feature => {
     setCurrentFeature(feature);
     toggleModal();
+  };
+
+  let handleDownloadFeaturesClick = feature => {
+    downloadFeature(feature);
   };
 
   let toggleModal = () => {
@@ -79,6 +85,17 @@ function Features({ history, match, kheopsError }) {
                             >
                               <FontAwesomeIcon icon="search"></FontAwesomeIcon>
                             </Button>
+
+                            <Button
+                              color="secondary"
+                              title="Download Features"
+                              onClick={() =>
+                                handleDownloadFeaturesClick(feature)
+                              }
+                            >
+                              <FontAwesomeIcon icon="download"></FontAwesomeIcon>
+                            </Button>
+
                             <Button
                               color="primary"
                               onClick={() =>

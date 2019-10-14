@@ -14,7 +14,7 @@ class Backend {
   async extract(token, study_uid, feature_name) {
     try {
       const url = `${endpoints.extract}/${study_uid}/${feature_name}`;
-      return await request(url, { authenticated: false, token: token });
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -23,7 +23,7 @@ class Backend {
   async featureTypes(token) {
     try {
       const url = `${endpoints.featureTypes}`;
-      return await request(url, { authenticated: false, token: token });
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -34,7 +34,7 @@ class Backend {
       const url = studyUID
         ? `${endpoints.features}/${studyUID}`
         : endpoints.features;
-      return await request(url, { authenticated: false, token: token });
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }

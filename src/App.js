@@ -36,7 +36,7 @@ function App({ setUser }) {
   useEffect(() => {
     async function getAlbums() {
       try {
-        let albums = await Kheops.albums();
+        let albums = await Kheops.albums(keycloak.token);
         albums = albums.sort((a1, a2) => a1.name.localeCompare(a2.name));
         setAlbums(albums);
         getStudies(albums);
@@ -49,7 +49,10 @@ function App({ setUser }) {
       const studies = {};
       await Promise.all(
         albums.map(async album => {
-          const albumStudies = await Kheops.studies(album.album_id);
+          const albumStudies = await Kheops.studies(
+            keycloak.token,
+            album.album_id
+          );
           studies[album.album_id] = albumStudies;
         })
       );
@@ -59,8 +62,10 @@ function App({ setUser }) {
       setDataFetched(true);
     }
 
-    getAlbums();
-  }, []);
+    if (keycloak && initialized) {
+      getAlbums();
+    }
+  }, [keycloak, initialized, setUser]);
 
   // Handle logout
   const handleLogout = async () => {

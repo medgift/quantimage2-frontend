@@ -1,11 +1,6 @@
 export async function request(
   url,
-  {
-    method = 'GET',
-    data = null,
-    authenticated: kheops = true,
-    token = null
-  } = {}
+  { method = 'GET', data = null, token = null } = {}
 ) {
   try {
     let headers = new Headers();
@@ -15,9 +10,7 @@ export async function request(
     };
 
     // Authentication
-    if (kheops) {
-      headers.append('Authorization', getKheopsAuthorization());
-    } else if (token) {
+    if (token) {
       headers.append('Authorization', getTokenAuthorization(token));
     }
 
@@ -38,10 +31,6 @@ export async function request(
   } catch (err) {
     throw err; // Just throw it for now
   }
-}
-
-function getKheopsAuthorization() {
-  return 'Bearer ' + process.env.REACT_APP_KHEOPS_TOKEN;
 }
 
 function getTokenAuthorization(token) {

@@ -10,30 +10,30 @@ const endpoints = {
 };
 
 class Kheops {
-  async albums() {
+  async albums(token) {
     try {
       const url = endpoints.albums;
-      return await request(url);
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async studies(albumID) {
+  async studies(token, albumID) {
     try {
       const url = albumID
         ? `${endpoints.studies}?album=${albumID}`
         : endpoints.studies;
-      return await request(url);
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async studyMetadata(studyUID) {
+  async studyMetadata(token, studyUID) {
     try {
       const url = `${endpoints.studies}/${studyUID}/metadata`;
-      return await request(url);
+      return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
