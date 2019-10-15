@@ -6,6 +6,7 @@ export const FEATURE_STATUS = {
   STARTED: 'STARTED',
   IN_PROGRESS: 'PROGRESS',
   COMPLETE: 'SUCCESS',
+  FAILURE: 'FAILURE',
   properties: {
     PENDING: { name: 'Not Computed' },
     STARTED: { name: 'Starting' },

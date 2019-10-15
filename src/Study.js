@@ -213,7 +213,13 @@ function Study({ match, kheopsError }) {
                     <th scope="row">{dataset}</th>
                     <td>
                       {series[dataset].length}{' '}
-                      {series[dataset].length > 1 ? 'images' : 'image'}
+                      {dataset === 'RTSTRUCT'
+                        ? series[dataset].length > 1
+                          ? 'files'
+                          : 'file'
+                        : series[dataset].length > 1
+                        ? 'images'
+                        : 'image'}
                     </td>
                   </tr>
                 ))}
@@ -241,6 +247,9 @@ function Study({ match, kheopsError }) {
                   {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
                     <>(never computed)</>
                   )}
+                  {feature.status === FEATURE_STATUS.FAILURE && (
+                    <>(extraction failed, please try again)</>
+                  )}
                   {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
                     feature.status === FEATURE_STATUS.STARTED) && (
                     <>({feature.status_message}...)</>
@@ -261,6 +270,7 @@ function Study({ match, kheopsError }) {
                 {(() => {
                   switch (feature.status) {
                     case FEATURE_STATUS.NOT_COMPUTED:
+                    case FEATURE_STATUS.FAILURE:
                       return (
                         <Button
                           color="success"
@@ -299,36 +309,37 @@ function Study({ match, kheopsError }) {
                       return null;
                   }
                 })()}
-                {feature.status !== FEATURE_STATUS.NOT_COMPUTED && (
-                  <>
-                    <Button
-                      color="info"
-                      disabled={
-                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                        feature.status === FEATURE_STATUS.STARTED
-                      }
-                      onClick={() => {
-                        handleViewFeaturesClick(feature);
-                      }}
-                      title="View Features"
-                    >
-                      <FontAwesomeIcon icon="search"></FontAwesomeIcon>
-                    </Button>
-                    <Button
-                      color="secondary"
-                      disabled={
-                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                        feature.status === FEATURE_STATUS.STARTED
-                      }
-                      onClick={() => {
-                        handleDownloadFeaturesClick(feature);
-                      }}
-                      title="Download Features"
-                    >
-                      <FontAwesomeIcon icon="download"></FontAwesomeIcon>
-                    </Button>
-                  </>
-                )}
+                {feature.status !== FEATURE_STATUS.NOT_COMPUTED &&
+                  feature.status !== FEATURE_STATUS.FAILURE && (
+                    <>
+                      <Button
+                        color="info"
+                        disabled={
+                          feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                          feature.status === FEATURE_STATUS.STARTED
+                        }
+                        onClick={() => {
+                          handleViewFeaturesClick(feature);
+                        }}
+                        title="View Features"
+                      >
+                        <FontAwesomeIcon icon="search"></FontAwesomeIcon>
+                      </Button>
+                      <Button
+                        color="secondary"
+                        disabled={
+                          feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                          feature.status === FEATURE_STATUS.STARTED
+                        }
+                        onClick={() => {
+                          handleDownloadFeaturesClick(feature);
+                        }}
+                        title="Download Features"
+                      >
+                        <FontAwesomeIcon icon="download"></FontAwesomeIcon>
+                      </Button>
+                    </>
+                  )}
               </ButtonGroup>
             </ListGroupItem>
           ))}
