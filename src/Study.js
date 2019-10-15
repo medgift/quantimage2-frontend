@@ -70,7 +70,17 @@ function Study({ match, kheopsError }) {
         studyUID,
         feature.name
       );
+
+      updateFeature(feature, {
+        id: featureInProgress.id,
+        status: FEATURE_STATUS.STARTED,
+        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
+      });
     } catch (err) {
+      updateFeature(feature, {
+        status: FEATURE_STATUS.NOT_COMPUTED
+      });
+
       setBackendError(err.message);
       setBackendErrorVisible(true);
     }
@@ -147,6 +157,11 @@ function Study({ match, kheopsError }) {
     socket.on('feature-status', featureStatus => {
       console.log('GOT FEATURE STATUS!!!', featureStatus);
 
+      if (featureStatus.status === FEATURE_STATUS.FAILURE) {
+        setBackendError(featureStatus.status_message);
+        setBackendErrorVisible(true);
+      }
+
       if (features !== null) {
         let foundFeature = features.find(
           f => f.id && f.id === featureStatus.feature_id
@@ -213,7 +228,7 @@ function Study({ match, kheopsError }) {
                     <th scope="row">{dataset}</th>
                     <td>
                       {series[dataset].length}{' '}
-                      {dataset === 'RTSTRUCT'
+                      {dataset === 'RTSTRUCT' || dataset === 'RWV'
                         ? series[dataset].length > 1
                           ? 'files'
                           : 'file'
@@ -346,7 +361,7 @@ function Study({ match, kheopsError }) {
       </ListGroup>
       <Alert
         color="danger"
-        className="mt-3"
+        className="mt-3 compute-error"
         isOpen={backendErrorVisible}
         toggle={hideBackendError}
       >

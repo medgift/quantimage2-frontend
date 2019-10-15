@@ -26,7 +26,12 @@ export async function request(
       const error = body.error || body.message;
       throw new Error(error);
     } else {
-      return response.json();
+      try {
+        let body = await response.json();
+        return body;
+      } catch (e) {
+        return null;
+      }
     }
   } catch (err) {
     throw err; // Just throw it for now

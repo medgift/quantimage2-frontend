@@ -25,6 +25,10 @@
   min-width: 510px;
 }
 
+.compute-error {
+  max-width: 510px;
+}
+
 .feature-modal .modal-body {
   max-height: 85vh;
   overflow-y: scroll;
