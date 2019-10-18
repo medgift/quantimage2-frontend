@@ -26,6 +26,7 @@ socket.on('connect', () => {
 
 function AppWrapper(props) {
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   return (
     <KeycloakProvider
@@ -33,8 +34,8 @@ function AppWrapper(props) {
       initConfig={keycloakProviderInitConfig}
     >
       <SocketContext.Provider value={socket}>
-        <UserContext.Provider value={user}>
-          <App setUser={setUser} />
+        <UserContext.Provider value={{ user: user, isAdmin: isAdmin }}>
+          <App setUser={setUser} setIsAdmin={setIsAdmin} />
         </UserContext.Provider>
       </SocketContext.Provider>
     </KeycloakProvider>

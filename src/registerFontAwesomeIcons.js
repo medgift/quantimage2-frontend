@@ -6,7 +6,8 @@ import {
   faMicroscope,
   faRedo,
   faSearch,
-  faSync
+  faSync,
+  faLock
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -18,4 +19,5 @@ export default function registerIcons() {
   library.add(faCog);
   library.add(faSync);
   library.add(faRedo);
+  library.add(faLock);
 }

@@ -1,2 +1,14 @@
 .Header {
 }
+
+.admin-lock {
+  margin: 0 0.5em;
+  margin-top: 0.4rem;
+  color: grey !important;
+  font-size: 0.7rem;
+}
+
+.divider {
+  border-left: 1px solid lightgray;
+  margin: 0.25em 0;
+}

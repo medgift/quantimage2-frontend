@@ -7,7 +7,8 @@ const baseEndpoint = `${pythonBackendBaseURL}`;
 const endpoints = {
   extract: `${baseEndpoint}/extract`,
   features: `${baseEndpoint}/features`,
-  featureTypes: `${baseEndpoint}/features/types`
+  featureTypes: `${baseEndpoint}/features/types`,
+  featureFamilies: `${baseEndpoint}/feature-families`
 };
 
 class Backend {
@@ -35,6 +36,21 @@ class Backend {
         ? `${endpoints.features}/${studyUID}`
         : endpoints.features;
       return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async createFeatureFamily(token, formData) {
+    try {
+      const url = endpoints.featureFamilies;
+
+      return await request(url, {
+        method: 'POST',
+        data: formData,
+        token: token,
+        multipart: true
+      });
     } catch (err) {
       throw err; // Just throw it for now
     }

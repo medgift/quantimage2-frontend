@@ -12,11 +12,18 @@ import Features from './Features';
 import Study from './Study';
 import Kheops from './services/kheops';
 import { useKeycloak } from 'react-keycloak';
+import {
+  KEYCLOAK_ADMIN_ROLE,
+  KEYCLOAK_FRONTEND_CLIENT_ID,
+  KEYCLOAK_RESOURCE_ACCESS
+} from './config/constants';
+import FeatureFamilies from './FeatureFamilies';
+import FeatureFamilyCreate from './FeatureFamilyCreate';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
 
-function App({ setUser }) {
+function App({ setUser, setIsAdmin }) {
   const [albums, setAlbums] = useState([]);
   const [studies, setStudies] = useState({});
   const [dataFetched, setDataFetched] = useState(false);
@@ -29,6 +36,14 @@ function App({ setUser }) {
       keycloak.loadUserProfile().success(profile => {
         setUser(profile);
       });
+      let isAdmin =
+        keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS][
+          KEYCLOAK_FRONTEND_CLIENT_ID
+        ] &&
+        keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS][
+          KEYCLOAK_FRONTEND_CLIENT_ID
+        ].roles.includes(KEYCLOAK_ADMIN_ROLE);
+      setIsAdmin(isAdmin);
     }
   }, [keycloak, initialized, setUser]);
 
@@ -99,6 +114,16 @@ function App({ setUser }) {
                 kheopsError={kheopsError}
               />
               <PropsRoute path="/profile" component={Profile} />
+              <PropsRoute
+                path="/feature-families"
+                exact
+                component={FeatureFamilies}
+              />
+              <PropsRoute
+                path="/feature-families/create"
+                exact
+                component={FeatureFamilyCreate}
+              />
               <Route component={NoMatch} />
             </Switch>
           </main>

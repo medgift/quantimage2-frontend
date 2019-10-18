@@ -1,6 +1,6 @@
 export async function request(
   url,
-  { method = 'GET', data = null, token = null } = {}
+  { method = 'GET', data = null, token = null, multipart = false } = {}
 ) {
   try {
     let headers = new Headers();
@@ -16,7 +16,8 @@ export async function request(
 
     // Add body
     if ((method === 'POST' || method === 'PATH' || method === 'PUT') && data) {
-      options.body = JSON.stringify(data);
+      if (multipart) options.body = data;
+      else options.body = JSON.stringify(data);
     }
 
     const response = await fetch(url, options);
