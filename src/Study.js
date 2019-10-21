@@ -114,25 +114,25 @@ function Study({ match, kheopsError }) {
   /* Fetch initial data */
   useEffect(() => {
     async function getFeatures() {
-      const featureTypes = await Backend.featureTypes(keycloak.token);
+      const featureFamilies = await Backend.featureFamilies(keycloak.token);
       const studyFeatures = await Backend.features(keycloak.token, studyUID);
 
       let features = [];
 
-      for (let featureType of featureTypes) {
+      for (let featureFamily of featureFamilies) {
         let studyFeature = studyFeatures.find(
-          studyFeature => studyFeature.name === featureType
+          studyFeature => studyFeature.feature_family.id === featureFamily.id
         );
 
         if (studyFeature) {
           features.push(studyFeature);
         } else {
           features.push({
-            name: featureType,
             updated_at: null,
             status: FEATURE_STATUS.NOT_COMPUTED,
             status_message: null,
-            payload: null
+            payload: null,
+            feature_family: featureFamily
           });
         }
       }
@@ -247,7 +247,7 @@ function Study({ match, kheopsError }) {
         {features &&
           features.map(feature => (
             <ListGroupItem
-              key={feature.name}
+              key={feature.feature_family.name}
               className="d-flex justify-content-between align-items-center"
             >
               <div
@@ -257,7 +257,7 @@ function Study({ match, kheopsError }) {
                     : ''
                 }
               >
-                {feature.name}{' '}
+                {feature.feature_family.name}{' '}
                 <small>
                   {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
                     <>(never computed)</>

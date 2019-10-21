@@ -124,6 +124,11 @@ function App({ setUser, setIsAdmin }) {
                 exact
                 component={FeatureFamilyCreate}
               />
+              <PropsRoute
+                path="/feature-families/edit/:featureFamilyID"
+                exact
+                component={FeatureFamilyCreate}
+              />
               <Route component={NoMatch} />
             </Switch>
           </main>

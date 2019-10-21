@@ -15,9 +15,13 @@ export async function request(
     }
 
     // Add body
-    if ((method === 'POST' || method === 'PATH' || method === 'PUT') && data) {
-      if (multipart) options.body = data;
-      else options.body = JSON.stringify(data);
+    if ((method === 'POST' || method === 'PATCH' || method === 'PUT') && data) {
+      if (multipart) {
+        options.body = data;
+        headers.append('Accept', 'application/json');
+      } else {
+        options.body = JSON.stringify(data);
+      }
     }
 
     const response = await fetch(url, options);

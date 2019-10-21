@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Backend from './services/backend';
-import { Spinner } from 'reactstrap';
+import { ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
@@ -12,7 +12,7 @@ function FeatureFamilies({ history, match, kheopsError }) {
 
   useEffect(() => {
     async function getFeatureFamilies() {
-      const featureFamilies = await Backend.features(keycloak.token);
+      const featureFamilies = await Backend.featureFamilies(keycloak.token);
 
       setFeatureFamilies(featureFamilies);
 
@@ -28,7 +28,22 @@ function FeatureFamilies({ history, match, kheopsError }) {
       {dataFetched ? (
         <div>
           {featureFamilies.length ? (
-            <div>feature families</div>
+            <div>
+              <ListGroup>
+                {featureFamilies.map(family => (
+                  <ListGroupItem key={family.id}>
+                    <Link to={`/feature-families/edit/${family.id}`}>
+                      {family.name}
+                    </Link>
+                  </ListGroupItem>
+                ))}
+              </ListGroup>
+              <div className="m-2">
+                <Link to="/feature-families/create">
+                  Create a new Feature Family
+                </Link>
+              </div>
+            </div>
           ) : (
             <h3>
               You haven't defined any Feature Families yet.{' '}

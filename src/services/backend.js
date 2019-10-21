@@ -7,7 +7,6 @@ const baseEndpoint = `${pythonBackendBaseURL}`;
 const endpoints = {
   extract: `${baseEndpoint}/extract`,
   features: `${baseEndpoint}/features`,
-  featureTypes: `${baseEndpoint}/features/types`,
   featureFamilies: `${baseEndpoint}/feature-families`
 };
 
@@ -21,9 +20,18 @@ class Backend {
     }
   }
 
-  async featureTypes(token) {
+  async featureFamilies(token) {
     try {
-      const url = `${endpoints.featureTypes}`;
+      const url = `${endpoints.featureFamilies}`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async featureFamily(token, featureFamilyID) {
+    try {
+      const url = `${endpoints.featureFamilies}/${featureFamilyID}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -53,6 +61,21 @@ class Backend {
       });
     } catch (err) {
       throw err; // Just throw it for now
+    }
+  }
+
+  async updateFeatureFamily(token, featureFamilyID, formData) {
+    try {
+      const url = `${endpoints.featureFamilies}/${featureFamilyID}`;
+
+      return await request(url, {
+        method: 'PATCH',
+        data: formData,
+        token: token,
+        multipart: true
+      });
+    } catch (err) {
+      throw err;
     }
   }
 }
