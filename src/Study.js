@@ -68,7 +68,7 @@ function Study({ match, kheopsError }) {
       let featureInProgress = await Backend.extract(
         keycloak.token,
         studyUID,
-        feature.name
+        feature.feature_family.name
       );
 
       updateFeature(feature, {
@@ -100,7 +100,7 @@ function Study({ match, kheopsError }) {
       // Update element in feature
       setFeatures(
         features.map(f => {
-          if (feature.name === f.name) {
+          if (feature.feature_family.id === f.feature_family.id) {
             return { ...f, ...rest };
           } else {
             return f;

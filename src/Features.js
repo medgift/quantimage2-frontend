@@ -25,8 +25,9 @@ function Features({ history, match, kheopsError }) {
       const features = await Backend.features(keycloak.token);
 
       const features_by_name = features.reduce((collector, feature) => {
-        if (!collector[feature.name]) collector[feature.name] = [];
-        collector[feature.name].push(feature);
+        if (!collector[feature.feature_family.name])
+          collector[feature.feature_family.name] = [];
+        collector[feature.feature_family.name].push(feature);
         return collector;
       }, {});
 

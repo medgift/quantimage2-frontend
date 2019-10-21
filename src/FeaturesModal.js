@@ -6,7 +6,7 @@ export default function FeaturesModal({ isOpen, toggle, feature }) {
   return (
     <Modal isOpen={isOpen} toggle={toggle} size="lg" className="feature-modal">
       <ModalHeader toggle={toggle}>
-        Computed "{feature.name}" Features
+        Computed "{feature.feature_family.name}" Features
       </ModalHeader>
       <ModalBody>
         <ListGroup className="m-1">
