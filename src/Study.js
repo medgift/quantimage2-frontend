@@ -72,7 +72,8 @@ function Study({ match, kheopsError }) {
       let featureInProgress = await Backend.extract(
         keycloak.token,
         studyUID,
-        feature.feature_family.name
+        feature.feature_family.name,
+        feature.config
       );
 
       updateFeature(feature, {
@@ -177,8 +178,8 @@ function Study({ match, kheopsError }) {
         if (studyFeature) {
           features.push({
             ...studyFeature,
-            feature_family: featureFamily,
-            config: featureFamily.config
+            feature_family: featureFamily
+            //config: studyFeature.config
           });
         } else {
           features.push({
@@ -305,7 +306,8 @@ function Study({ match, kheopsError }) {
               <div className="feature-summary d-flex justify-content-between align-items-center">
                 <div
                   className={
-                    `mr-2` + feature.status === FEATURE_STATUS.IN_PROGRESS
+                    `mr-2 text-left` + feature.status ===
+                    FEATURE_STATUS.IN_PROGRESS
                       ? ' text-muted'
                       : ''
                   }
@@ -449,6 +451,10 @@ function Study({ match, kheopsError }) {
                     <ListGroupItem
                       className="text-left"
                       key={`${featureClass}-${feature.id}`}
+                      disabled={
+                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                        feature.status === FEATURE_STATUS.STARTED
+                      }
                     >
                       <div className="custom-control custom-checkbox">
                         <input
@@ -517,15 +523,5 @@ function parseMetadata(metadata) {
 function parseFeatureFamilyConfig(config) {
   let yamlConfig = YAML.parse(config);
 
-  let featureClass = yamlConfig.featureClass ? yamlConfig.featureClass : null;
-
-  let imageType = yamlConfig.imageType ? yamlConfig.imageType : null;
-
-  let setting = yamlConfig.setting ? yamlConfig.setting : null;
-
-  return {
-    featureClass: featureClass,
-    imageType: imageType,
-    setting: setting
-  };
+  return yamlConfig;
 }

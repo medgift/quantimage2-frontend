@@ -11,10 +11,14 @@ const endpoints = {
 };
 
 class Backend {
-  async extract(token, study_uid, feature_name) {
+  async extract(token, study_uid, feature_name, feature_config) {
     try {
       const url = `${endpoints.extract}/${study_uid}/${feature_name}`;
-      return await request(url, { token: token });
+      return await request(url, {
+        method: 'POST',
+        data: { feature_config: feature_config },
+        token: token
+      });
     } catch (err) {
       throw err; // Just throw it for now
     }

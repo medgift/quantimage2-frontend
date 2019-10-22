@@ -20,6 +20,7 @@ export async function request(
         options.body = data;
         headers.append('Accept', 'application/json');
       } else {
+        headers.append('Content-Type', 'application/json');
         options.body = JSON.stringify(data);
       }
     }
