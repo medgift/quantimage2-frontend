@@ -23,14 +23,15 @@ function Header({ location, onLogout }) {
 
   useEffect(() => {
     async function loadUser() {
-      keycloak.loadUserInfo().success(userInfo => {
+      // TODO - Remove these debugging logs
+      /*keycloak.loadUserInfo().success(userInfo => {
         console.log(userInfo);
-      });
-      keycloak.loadUserProfile().success(userProfile => {
+      });*/
+      /*keycloak.loadUserProfile().success(userProfile => {
         console.log(userProfile);
-      });
-      console.log(keycloak.tokenParsed);
-      console.log(keycloak.token);
+      });*/
+      //console.log(keycloak.tokenParsed);
+      //console.log(keycloak.token);
     }
 
     loadUser();

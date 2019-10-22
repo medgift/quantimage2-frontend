@@ -12,11 +12,15 @@ import {
   Alert,
   Button,
   ButtonGroup,
+  Card,
+  CardBody,
+  Collapse,
   ListGroupItem,
   Spinner,
   Table
 } from 'reactstrap';
 import moment from 'moment';
+import YAML from 'yaml';
 import DicomFields from './dicom/fields';
 import {
   DICOM_DATE_FORMAT,
@@ -46,6 +50,8 @@ function Study({ match, kheopsError }) {
   let [modal, setModal] = useState(false);
   let [backendError, setBackendError] = useState(null);
   let [backendErrorVisible, setBackendErrorVisible] = useState(false);
+
+  let [settingsCollapse, setSettingsCollapse] = useState({});
 
   let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
 
@@ -95,6 +101,44 @@ function Study({ match, kheopsError }) {
     downloadFeature(feature);
   };
 
+  let handleToggleSettingsClick = family => {
+    setSettingsCollapse(prevState => ({
+      ...prevState,
+      [family]: !prevState[family]
+    }));
+  };
+
+  let updateFeatureConfig = (e, feature, featureClass) => {
+    const checked = e.target.checked;
+
+    let updatedFeatures = [...features];
+    let featureToUpdate = updatedFeatures.find(
+      f => f.feature_family.name === feature.feature_family.name
+    );
+
+    let featureConfig = parseFeatureFamilyConfig(featureToUpdate.config);
+
+    if (!checked) {
+      let {
+        [featureClass]: removedFeature,
+        ...updatedConfig
+      } = featureConfig.featureClass;
+
+      featureConfig.featureClass = updatedConfig;
+    } else {
+      featureConfig.featureClass = {
+        ...featureConfig.featureClass,
+        [featureClass]: null
+      };
+    }
+
+    featureToUpdate.config = YAML.stringify(featureConfig, {
+      simpleKeys: true
+    });
+
+    setFeatures(updatedFeatures);
+  };
+
   const updateFeature = useCallback(
     (feature, { ...rest }) => {
       // Update element in feature
@@ -117,6 +161,14 @@ function Study({ match, kheopsError }) {
       const featureFamilies = await Backend.featureFamilies(keycloak.token);
       const studyFeatures = await Backend.features(keycloak.token, studyUID);
 
+      let featureFamilyNames = featureFamilies.map(family => family.name);
+      let settingsCollapse = {};
+      for (let familyName of featureFamilyNames) {
+        settingsCollapse[familyName] = false;
+      }
+
+      setSettingsCollapse(settingsCollapse);
+
       let features = [];
 
       for (let featureFamily of featureFamilies) {
@@ -125,14 +177,19 @@ function Study({ match, kheopsError }) {
         );
 
         if (studyFeature) {
-          features.push(studyFeature);
+          features.push({
+            ...studyFeature,
+            feature_family: featureFamily,
+            config: featureFamily.config
+          });
         } else {
           features.push({
             updated_at: null,
             status: FEATURE_STATUS.NOT_COMPUTED,
             status_message: null,
             payload: null,
-            feature_family: featureFamily
+            feature_family: featureFamily,
+            config: featureFamily.config
           });
         }
       }
@@ -246,116 +303,179 @@ function Study({ match, kheopsError }) {
       <ListGroup className="features-list">
         {features &&
           features.map(feature => (
-            <ListGroupItem
-              key={feature.feature_family.name}
-              className="d-flex justify-content-between align-items-center"
-            >
-              <div
-                className={
-                  `mr-2` + feature.status === FEATURE_STATUS.IN_PROGRESS
-                    ? ' text-muted'
-                    : ''
-                }
-              >
-                {feature.feature_family.name}{' '}
-                <small>
-                  {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
-                    <>(never computed)</>
-                  )}
-                  {feature.status === FEATURE_STATUS.FAILURE && (
-                    <>(extraction failed, please try again)</>
-                  )}
-                  {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                    feature.status === FEATURE_STATUS.STARTED) && (
-                    <>({feature.status_message}...)</>
-                  )}
-                  {feature.status === FEATURE_STATUS.COMPLETE && (
-                    <>
-                      (computed on{' '}
-                      {moment
-                        .utc(feature.updated_at, DB_DATE_FORMAT)
-                        .local()
-                        .format(DB_DATE_FORMAT)}
-                      )
-                    </>
-                  )}
-                </small>
-              </div>
-              <ButtonGroup className="ml-1">
-                {(() => {
-                  switch (feature.status) {
-                    case FEATURE_STATUS.NOT_COMPUTED:
-                    case FEATURE_STATUS.FAILURE:
-                      return (
+            <ListGroupItem key={feature.feature_family.name}>
+              <div className="feature-summary d-flex justify-content-between align-items-center">
+                <div
+                  className={
+                    `mr-2` + feature.status === FEATURE_STATUS.IN_PROGRESS
+                      ? ' text-muted'
+                      : ''
+                  }
+                >
+                  {feature.feature_family.name}{' '}
+                  <small>
+                    {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
+                      <>(never computed)</>
+                    )}
+                    {feature.status === FEATURE_STATUS.FAILURE && (
+                      <>(extraction failed, please try again)</>
+                    )}
+                    {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                      feature.status === FEATURE_STATUS.STARTED) && (
+                      <>({feature.status_message}...)</>
+                    )}
+                    {feature.status === FEATURE_STATUS.COMPLETE && (
+                      <>
+                        (computed on{' '}
+                        {moment
+                          .utc(feature.updated_at, DB_DATE_FORMAT)
+                          .local()
+                          .format(DB_DATE_FORMAT)}
+                        )
+                      </>
+                    )}
+                  </small>
+                  <div className="feature-description text-left">
+                    {Object.keys(
+                      parseFeatureFamilyConfig(feature.config).featureClass
+                    )
+                      .sort()
+                      .join(', ')}
+                  </div>
+                </div>
+                <ButtonGroup className="ml-1">
+                  {(() => {
+                    switch (feature.status) {
+                      case FEATURE_STATUS.NOT_COMPUTED:
+                      case FEATURE_STATUS.FAILURE:
+                        return (
+                          <Button
+                            color="success"
+                            onClick={() => {
+                              handleComputeFeaturesClick(feature);
+                            }}
+                            title="Compute Features"
+                          >
+                            <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
+                          </Button>
+                        );
+                      case FEATURE_STATUS.STARTED:
+                      case FEATURE_STATUS.IN_PROGRESS:
+                        return (
+                          <Button
+                            color="secondary"
+                            disabled
+                            title="Computation in Progress"
+                          >
+                            <FontAwesomeIcon icon="sync" spin></FontAwesomeIcon>
+                          </Button>
+                        );
+                      case FEATURE_STATUS.COMPLETE:
+                        return (
+                          <Button
+                            color="success"
+                            onClick={() => {
+                              handleComputeFeaturesClick(feature);
+                            }}
+                            title="Recompute Features"
+                            disabled={
+                              Object.keys(
+                                parseFeatureFamilyConfig(feature.config)
+                                  .featureClass
+                              ).length === 0
+                            }
+                          >
+                            <FontAwesomeIcon icon="redo"></FontAwesomeIcon>
+                          </Button>
+                        );
+                      default:
+                        return null;
+                    }
+                  })()}
+                  <Button
+                    color="primary"
+                    disabled={
+                      feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                      feature.status === FEATURE_STATUS.STARTED
+                    }
+                    title="Configure feature extraction"
+                    onClick={() => {
+                      handleToggleSettingsClick(feature.feature_family.name);
+                    }}
+                  >
+                    <FontAwesomeIcon icon="tasks"></FontAwesomeIcon>
+                  </Button>
+                  {feature.status !== FEATURE_STATUS.NOT_COMPUTED &&
+                    feature.status !== FEATURE_STATUS.FAILURE && (
+                      <>
                         <Button
-                          color="success"
+                          color="info"
+                          disabled={
+                            feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                            feature.status === FEATURE_STATUS.STARTED
+                          }
                           onClick={() => {
-                            handleComputeFeaturesClick(feature);
+                            handleViewFeaturesClick(feature);
                           }}
-                          title="Compute Features"
+                          title="View Features"
                         >
-                          <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
+                          <FontAwesomeIcon icon="search"></FontAwesomeIcon>
                         </Button>
-                      );
-                    case FEATURE_STATUS.STARTED:
-                    case FEATURE_STATUS.IN_PROGRESS:
-                      return (
                         <Button
                           color="secondary"
-                          disabled
-                          title="Computation in Progress"
-                        >
-                          <FontAwesomeIcon icon="sync" spin></FontAwesomeIcon>
-                        </Button>
-                      );
-                    case FEATURE_STATUS.COMPLETE:
-                      return (
-                        <Button
-                          color="primary"
+                          disabled={
+                            feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                            feature.status === FEATURE_STATUS.STARTED
+                          }
                           onClick={() => {
-                            handleComputeFeaturesClick(feature);
+                            handleDownloadFeaturesClick(feature);
                           }}
-                          title="Recompute Features"
+                          title="Download Features"
                         >
-                          <FontAwesomeIcon icon="redo"></FontAwesomeIcon>
+                          <FontAwesomeIcon icon="download"></FontAwesomeIcon>
                         </Button>
-                      );
-                    default:
-                      return null;
-                  }
-                })()}
-                {feature.status !== FEATURE_STATUS.NOT_COMPUTED &&
-                  feature.status !== FEATURE_STATUS.FAILURE && (
-                    <>
-                      <Button
-                        color="info"
-                        disabled={
-                          feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                          feature.status === FEATURE_STATUS.STARTED
-                        }
-                        onClick={() => {
-                          handleViewFeaturesClick(feature);
-                        }}
-                        title="View Features"
-                      >
-                        <FontAwesomeIcon icon="search"></FontAwesomeIcon>
-                      </Button>
-                      <Button
-                        color="secondary"
-                        disabled={
-                          feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                          feature.status === FEATURE_STATUS.STARTED
-                        }
-                        onClick={() => {
-                          handleDownloadFeaturesClick(feature);
-                        }}
-                        title="Download Features"
-                      >
-                        <FontAwesomeIcon icon="download"></FontAwesomeIcon>
-                      </Button>
-                    </>
-                  )}
-              </ButtonGroup>
+                      </>
+                    )}
+                </ButtonGroup>
+              </div>
+              <Collapse
+                isOpen={settingsCollapse[feature.feature_family.name]}
+                className="mt-2"
+                id={`settings-${feature.feature_family.name}`}
+              >
+                <ListGroup>
+                  {Object.keys(
+                    parseFeatureFamilyConfig(feature.feature_family.config)
+                      .featureClass
+                  ).map(featureClass => (
+                    <ListGroupItem
+                      className="text-left"
+                      key={`${featureClass}-${feature.id}`}
+                    >
+                      <div className="custom-control custom-checkbox">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          checked={Object.keys(
+                            parseFeatureFamilyConfig(feature.config)
+                              .featureClass
+                          ).includes(featureClass)}
+                          onChange={e =>
+                            updateFeatureConfig(e, feature, featureClass)
+                          }
+                          id={`${featureClass}-${feature.id}`}
+                        />
+                        <label
+                          className="custom-control-label d-block"
+                          htmlFor={`${featureClass}-${feature.id}`}
+                        >
+                          {featureClass}
+                        </label>
+                      </div>
+                    </ListGroupItem>
+                  ))}
+                </ListGroup>
+              </Collapse>
             </ListGroupItem>
           ))}
       </ListGroup>
@@ -394,4 +514,20 @@ function parseMetadata(metadata) {
   } else {
     return null;
   }
+}
+
+function parseFeatureFamilyConfig(config) {
+  let yamlConfig = YAML.parse(config);
+
+  let featureClass = yamlConfig.featureClass ? yamlConfig.featureClass : null;
+
+  let imageType = yamlConfig.imageType ? yamlConfig.imageType : null;
+
+  let setting = yamlConfig.setting ? yamlConfig.setting : null;
+
+  return {
+    featureClass: featureClass,
+    imageType: imageType,
+    setting: setting
+  };
 }

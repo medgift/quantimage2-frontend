@@ -7,7 +7,9 @@ import {
   faRedo,
   faSearch,
   faSync,
-  faLock
+  faLock,
+  faTasks,
+  faSlidersH
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -20,4 +22,6 @@ export default function registerIcons() {
   library.add(faSync);
   library.add(faRedo);
   library.add(faLock);
+  library.add(faTasks);
+  library.add(faSlidersH);
 }
