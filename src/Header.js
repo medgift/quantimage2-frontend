@@ -17,7 +17,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 function Header({ location, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const [keycloak, initialized] = useKeycloak();
+  const [keycloak] = useKeycloak();
 
   const { isAdmin } = useContext(UserContext);
 

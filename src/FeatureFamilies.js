@@ -20,7 +20,7 @@ function FeatureFamilies({ history, match, kheopsError }) {
     }
 
     getFeatureFamilies();
-  }, []);
+  }, [keycloak.token]);
 
   return (
     <div>

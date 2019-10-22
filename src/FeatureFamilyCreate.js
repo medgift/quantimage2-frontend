@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useKeycloak } from 'react-keycloak';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
-import {
-  Button,
-  Form as ReactForm,
-  FormGroup,
-  FormText,
-  Input,
-  Label,
-  Spinner
-} from 'reactstrap';
+import { Button, FormGroup, FormText, Label, Spinner } from 'reactstrap';
 import Backend from './services/backend';
-import { Debug } from './utils/Debug';
+//import { Debug } from './utils/Debug';
 import * as Yup from 'yup';
 import './FeatureFamilyCreate.css';
 
@@ -79,7 +71,7 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
     }
 
     getFeatureFamily();
-  }, []);
+  }, [featureFamilyID, keycloak.token]);
 
   return (
     <div>

@@ -17,7 +17,6 @@ function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
   const [features, setFeatures] = useState(null);
   const [currentFeature, setCurrentFeature] = useState(null);
-  const [downloadData, setDownloadData] = useState({});
   const [modal, setModal] = useState(false);
 
   useEffect(() => {

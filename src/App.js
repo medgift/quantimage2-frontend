@@ -45,7 +45,7 @@ function App({ setUser, setIsAdmin }) {
         ].roles.includes(KEYCLOAK_ADMIN_ROLE);
       setIsAdmin(isAdmin);
     }
-  }, [keycloak, initialized, setUser]);
+  }, [keycloak, initialized, setUser, setIsAdmin]);
 
   // Get albums / studies
   useEffect(() => {
