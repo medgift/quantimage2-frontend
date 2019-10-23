@@ -9,7 +9,8 @@ import {
   faSync,
   faLock,
   faTasks,
-  faSlidersH
+  faSlidersH,
+  faExternalLinkAlt
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -24,4 +25,5 @@ export default function registerIcons() {
   library.add(faLock);
   library.add(faTasks);
   library.add(faSlidersH);
+  library.add(faExternalLinkAlt);
 }

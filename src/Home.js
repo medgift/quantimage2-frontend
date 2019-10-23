@@ -6,6 +6,7 @@ import { Alert, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { DICOM_DATE_FORMAT } from './config/constants';
 import { Badge } from 'reactstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 function Home({ albums, studies, dataFetched, kheopsError }) {
   return (
@@ -18,6 +19,15 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         <p>
           This page allows you to extract features from images that were added
           to your collection.
+        </p>
+        <p>
+          <a
+            href={`${process.env.REACT_APP_KHEOPS_URL}/albums`}
+            target="_blank"
+          >
+            <FontAwesomeIcon icon="external-link-alt"></FontAwesomeIcon> Manage
+            Cases in Kheops
+          </a>
         </p>
         <h2>Your albums/studies</h2>
         <div>
