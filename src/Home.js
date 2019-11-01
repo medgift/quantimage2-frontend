@@ -12,7 +12,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   return (
     <div>
       <header className="App-header">
-        <h1 data-testid="welcome-page-header">IMAGINE</h1>
+        <h1 data-testid="welcome-page-header">QuantImage</h1>
       </header>
       <section id="extract-features">
         <h2>Extract features</h2>

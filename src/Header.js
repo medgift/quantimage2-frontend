@@ -46,7 +46,7 @@ function Header({ location, onLogout }) {
   return (
     <div className="Header">
       <Navbar light expand="md">
-        <NavbarBrand href="/">IMAGINE</NavbarBrand>
+        <NavbarBrand href="/">QuantImage</NavbarBrand>
         {user && (
           <>
             <NavbarToggler onClick={toggle} />
