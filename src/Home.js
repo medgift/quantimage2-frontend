@@ -24,6 +24,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           <a
             href={`${process.env.REACT_APP_KHEOPS_URL}/albums`}
             target="_blank"
+            rel="noopener noreferrer"
           >
             <FontAwesomeIcon icon="external-link-alt"></FontAwesomeIcon> Manage
             Cases in Kheops

@@ -5,6 +5,7 @@ import React, {
   useContext,
   useCallback
 } from 'react';
+import { cloneDeep } from 'lodash';
 import { Link } from 'react-router-dom';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
@@ -18,7 +19,6 @@ import {
   Table
 } from 'reactstrap';
 import moment from 'moment';
-import YAML from 'yaml';
 import DicomFields from './dicom/fields';
 import {
   DICOM_DATE_FORMAT,
@@ -83,7 +83,7 @@ function Study({ match, kheopsError }) {
       });
     } catch (err) {
       updateFeature(feature, {
-        status: FEATURE_STATUS.NOT_COMPUTED
+        status: FEATURE_STATUS.FAILURE
       });
 
       setBackendError(err.message);
@@ -107,7 +107,7 @@ function Study({ match, kheopsError }) {
     }));
   };
 
-  let updateFeatureConfig = (e, feature, featureClass) => {
+  let updateFeatureConfig = (e, feature, backend, featureName) => {
     const checked = e.target.checked;
 
     let updatedFeatures = [...features];
@@ -115,25 +115,20 @@ function Study({ match, kheopsError }) {
       f => f.feature_family.name === feature.feature_family.name
     );
 
-    let featureConfig = parseFeatureFamilyConfig(featureToUpdate.config);
+    let featureConfig = featureToUpdate.config;
 
     if (!checked) {
-      let {
-        [featureClass]: removedFeature,
-        ...updatedConfig
-      } = featureConfig.featureClass;
+      let currentFeatures = featureConfig.backends[backend].features;
 
-      featureConfig.featureClass = updatedConfig;
+      let newFeatures = currentFeatures.filter(fName => fName !== featureName);
+
+      featureConfig.backends[backend].features = newFeatures;
     } else {
-      featureConfig.featureClass = {
-        ...featureConfig.featureClass,
-        [featureClass]: null
-      };
+      featureConfig.backends[backend].features = [
+        ...featureConfig.backends[backend].features,
+        featureName
+      ];
     }
-
-    featureToUpdate.config = YAML.stringify(featureConfig, {
-      simpleKeys: true
-    });
 
     setFeatures(updatedFeatures);
   };
@@ -188,7 +183,7 @@ function Study({ match, kheopsError }) {
             status_message: null,
             payload: null,
             feature_family: featureFamily,
-            config: featureFamily.config
+            config: cloneDeep(featureFamily.config)
           });
         }
       }
@@ -206,7 +201,7 @@ function Study({ match, kheopsError }) {
 
     getFeatures();
     getStudyMetadata();
-  }, [studyUID, keycloak.token]);
+  }, [studyUID, keycloak]);
 
   /* Manage Socket.IO events */
   useEffect(() => {
@@ -306,41 +301,51 @@ function Study({ match, kheopsError }) {
               <div className="feature-summary d-flex justify-content-between align-items-center">
                 <div
                   className={
-                    `mr-2 text-left` + feature.status ===
-                    FEATURE_STATUS.IN_PROGRESS
+                    `mr-2 text-left` +
+                    (feature.status === FEATURE_STATUS.IN_PROGRESS
                       ? ' text-muted'
-                      : ''
+                      : '')
                   }
                 >
-                  {feature.feature_family.name}{' '}
-                  <small>
-                    {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
-                      <>(never computed)</>
-                    )}
-                    {feature.status === FEATURE_STATUS.FAILURE && (
-                      <>(extraction failed, please try again)</>
-                    )}
-                    {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                      feature.status === FEATURE_STATUS.STARTED) && (
-                      <>({feature.status_message}...)</>
-                    )}
-                    {feature.status === FEATURE_STATUS.COMPLETE && (
-                      <>
-                        (computed on{' '}
-                        {moment
-                          .utc(feature.updated_at, DB_DATE_FORMAT)
-                          .local()
-                          .format(DB_DATE_FORMAT)}
-                        )
-                      </>
-                    )}
-                  </small>
-                  <div className="feature-description text-left">
-                    {Object.keys(
-                      parseFeatureFamilyConfig(feature.config).featureClass
-                    )
-                      .sort()
-                      .join(', ')}
+                  <span>
+                    {feature.feature_family.name}{' '}
+                    <small>
+                      {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
+                        <>(never computed)</>
+                      )}
+                      {feature.status === FEATURE_STATUS.FAILURE && (
+                        <>(extraction failed, please try again)</>
+                      )}
+                      {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                        feature.status === FEATURE_STATUS.STARTED) && (
+                        <>({feature.status_message}...)</>
+                      )}
+                      {feature.status === FEATURE_STATUS.COMPLETE && (
+                        <>
+                          (computed on{' '}
+                          {moment
+                            .utc(feature.updated_at, DB_DATE_FORMAT)
+                            .local()
+                            .format(DB_DATE_FORMAT)}
+                          )
+                        </>
+                      )}
+                    </small>
+                  </span>
+                  <div className="feature-description">
+                    {Object.keys(feature.config.backends)
+                      .reduce(
+                        (featureNames, backend) => [
+                          ...featureNames,
+                          ...feature.config.backends[backend].features
+                        ],
+                        []
+                      )
+                      .sort((f1, f2) =>
+                        f1.localeCompare(f2, undefined, { sensitivity: 'base' })
+                      )
+                      .join(', ')
+                      .toLowerCase()}
                   </div>
                 </div>
                 <ButtonGroup className="ml-1">
@@ -355,6 +360,15 @@ function Study({ match, kheopsError }) {
                               handleComputeFeaturesClick(feature);
                             }}
                             title="Compute Features"
+                            disabled={
+                              Object.keys(feature.config.backends).reduce(
+                                (acc, backend) =>
+                                  (acc +=
+                                    feature.config.backends[backend].features
+                                      .length),
+                                0
+                              ) === 0
+                            }
                           >
                             <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
                           </Button>
@@ -379,10 +393,13 @@ function Study({ match, kheopsError }) {
                             }}
                             title="Recompute Features"
                             disabled={
-                              Object.keys(
-                                parseFeatureFamilyConfig(feature.config)
-                                  .featureClass
-                              ).length === 0
+                              Object.keys(feature.config.backends).reduce(
+                                (acc, backend) =>
+                                  (acc +=
+                                    feature.config.backends[backend].features
+                                      .length),
+                                0
+                              ) === 0
                             }
                           >
                             <FontAwesomeIcon icon="redo"></FontAwesomeIcon>
@@ -443,42 +460,52 @@ function Study({ match, kheopsError }) {
                 className="mt-2"
                 id={`settings-${feature.feature_family.name}`}
               >
-                <ListGroup>
-                  {Object.keys(
-                    parseFeatureFamilyConfig(feature.feature_family.config)
-                      .featureClass
-                  ).map(featureClass => (
-                    <ListGroupItem
-                      className="text-left"
-                      key={`${featureClass}-${feature.id}`}
-                      disabled={
-                        feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                        feature.status === FEATURE_STATUS.STARTED
-                      }
-                    >
-                      <div className="custom-control custom-checkbox">
-                        <input
-                          type="checkbox"
-                          className="custom-control-input"
-                          checked={Object.keys(
-                            parseFeatureFamilyConfig(feature.config)
-                              .featureClass
-                          ).includes(featureClass)}
-                          onChange={e =>
-                            updateFeatureConfig(e, feature, featureClass)
-                          }
-                          id={`${featureClass}-${feature.id}`}
-                        />
-                        <label
-                          className="custom-control-label d-block"
-                          htmlFor={`${featureClass}-${feature.id}`}
-                        >
-                          {featureClass}
-                        </label>
-                      </div>
-                    </ListGroupItem>
-                  ))}
-                </ListGroup>
+                {Object.keys(feature.feature_family.config.backends).map(
+                  backend => (
+                    <div key={backend}>
+                      <div>{backend}</div>
+                      <ListGroup>
+                        {feature.feature_family.config.backends[
+                          backend
+                        ].features.map(featureName => (
+                          <ListGroupItem
+                            className="text-left"
+                            key={`${featureName}-${feature.id}`}
+                            disabled={
+                              feature.status === FEATURE_STATUS.IN_PROGRESS ||
+                              feature.status === FEATURE_STATUS.STARTED
+                            }
+                          >
+                            <div className="custom-control custom-checkbox">
+                              <input
+                                type="checkbox"
+                                className="custom-control-input"
+                                checked={feature.config.backends[
+                                  backend
+                                ].features.includes(featureName)}
+                                onChange={e =>
+                                  updateFeatureConfig(
+                                    e,
+                                    feature,
+                                    backend,
+                                    featureName
+                                  )
+                                }
+                                id={`${featureName}-${feature.id}`}
+                              />
+                              <label
+                                className="custom-control-label d-block"
+                                htmlFor={`${featureName}-${feature.id}`}
+                              >
+                                {featureName.toLowerCase()}
+                              </label>
+                            </div>
+                          </ListGroupItem>
+                        ))}
+                      </ListGroup>
+                    </div>
+                  )
+                )}
               </Collapse>
             </ListGroupItem>
           ))}
@@ -518,10 +545,4 @@ function parseMetadata(metadata) {
   } else {
     return null;
   }
-}
-
-function parseFeatureFamilyConfig(config) {
-  let yamlConfig = YAML.parse(config);
-
-  return yamlConfig;
 }
