@@ -12,13 +12,13 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   return (
     <div>
       <header className="App-header">
-        <h1 data-testid="welcome-page-header">QuantImage</h1>
+        <h1 data-testid="welcome-page-header">QuantImage v2</h1>
       </header>
       <section id="extract-features">
         <h2>Extract features</h2>
         <p>
-          This page allows you to extract features from images that were added
-          to your collection.
+          This page allows you to extract features from studies that were added
+          to your albums in the Kheops platform.
         </p>
         <p>
           <a
@@ -27,7 +27,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
             rel="noopener noreferrer"
           >
             <FontAwesomeIcon icon="external-link-alt"></FontAwesomeIcon> Manage
-            Cases in Kheops
+            Studies in Kheops
           </a>
         </p>
         <h2>Your albums/studies</h2>
