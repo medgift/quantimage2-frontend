@@ -3,9 +3,5 @@ import { render } from '@testing-library/react';
 import Home from './Home';
 
 it('renders without crashing', () => {
-  render(
-    <UserContext.Provider value={{ user: { name: 'Roger' } }}>
-      <Home />
-    </UserContext.Provider>
-  );
+  render(<Home />);
 });

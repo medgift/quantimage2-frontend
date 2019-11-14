@@ -75,9 +75,19 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                           <div>
                             {(() => {
                               let modalities = [];
-                              for (let modality of study[
+
+                              // Determine if the modality types field is already an array or needs to be split
+                              let modalityArray = !study[
                                 DicomFields.MODALITIES
-                              ][DicomFields.VALUE][0].split(',')) {
+                              ][DicomFields.VALUE][0].includes(',')
+                                ? study[DicomFields.MODALITIES][
+                                    DicomFields.VALUE
+                                  ]
+                                : study[DicomFields.MODALITIES][
+                                    DicomFields.VALUE
+                                  ][0].split(',');
+
+                              for (let modality of modalityArray) {
                                 modalities.push(
                                   <Badge
                                     color="primary"
