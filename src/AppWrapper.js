@@ -5,6 +5,8 @@ import io from 'socket.io-client';
 import { pythonBackendBaseURL } from './services/config';
 import Keycloak from 'keycloak-js';
 import { KeycloakProvider } from 'react-keycloak';
+import { transitions, positions, Provider as AlertProvider } from 'react-alert';
+import AlertTemplate from './components/AlertTemplate';
 import UserContext from './context/UserContext';
 
 // Setup Keycloak instance
@@ -24,6 +26,16 @@ socket.on('connect', () => {
   console.log('Successfully connected to Socket.IO server!');
 });
 
+// optional cofiguration
+const options = {
+  // you can also just use 'bottom center'
+  position: positions.BOTTOM_CENTER,
+  timeout: 4000,
+  offset: '30px',
+  // you can also just use 'scale'
+  transition: transitions.FADE
+};
+
 function AppWrapper(props) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -35,7 +47,9 @@ function AppWrapper(props) {
     >
       <SocketContext.Provider value={socket}>
         <UserContext.Provider value={{ user: user, isAdmin: isAdmin }}>
-          <App setUser={setUser} setIsAdmin={setIsAdmin} />
+          <AlertProvider template={AlertTemplate} {...options}>
+            <App setUser={setUser} setIsAdmin={setIsAdmin} />
+          </AlertProvider>
         </UserContext.Provider>
       </SocketContext.Provider>
     </KeycloakProvider>

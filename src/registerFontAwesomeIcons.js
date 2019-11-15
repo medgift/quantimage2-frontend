@@ -10,7 +10,10 @@ import {
   faLock,
   faTasks,
   faSlidersH,
-  faExternalLinkAlt
+  faExternalLinkAlt,
+  faExclamationCircle,
+  faInfoCircle,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -26,4 +29,7 @@ export default function registerIcons() {
   library.add(faTasks);
   library.add(faSlidersH);
   library.add(faExternalLinkAlt);
+  library.add(faExclamationCircle);
+  library.add(faInfoCircle);
+  library.add(faCheckCircle);
 }

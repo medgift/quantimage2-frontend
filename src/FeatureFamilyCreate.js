@@ -3,12 +3,19 @@ import { useKeycloak } from 'react-keycloak';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import { Button, FormGroup, FormText, Label, Spinner } from 'reactstrap';
 import Backend from './services/backend';
-//import { Debug } from './utils/Debug';
 import * as Yup from 'yup';
 import './FeatureFamilyCreate.css';
+import { useAlert } from 'react-alert';
+//import { Debug } from './utils/Debug';
+
+const modes = {
+  CREATE: 'Create',
+  UPDATE: 'Update'
+};
 
 function FeatureFamilyCreate({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
+  const alert = useAlert();
 
   const [dataFetched, setDataFetched] = useState(false);
 
@@ -19,8 +26,8 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
   const [featureFamily, setFeatureFamily] = useState({ name: '', file: '' });
 
   let handleFormSubmit = async (values, { setSubmitting }) => {
-    if (!featureFamilyID) console.log('Creating!');
-    else console.log('Updating!');
+    let mode = !featureFamilyID ? modes.CREATE : modes.UPDATE;
+    console.log(mode);
 
     const data = new FormData();
 
@@ -30,18 +37,20 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
     }
 
     try {
-      if (!featureFamilyID) {
+      if (mode === modes.CREATE) {
         let createdFeatureFamily = await Backend.createFeatureFamily(
           keycloak.token,
           data
         );
         history.push(`/feature-families/edit/${createdFeatureFamily.id}`);
+        alert.success('Feature Family Created!');
       } else {
         await Backend.updateFeatureFamily(
           keycloak.token,
           featureFamilyID,
           data
         );
+        alert.success('Feature Family Updated!');
       }
     } catch (err) {
       console.log(err);
