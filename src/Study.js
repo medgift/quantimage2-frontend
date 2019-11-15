@@ -525,7 +525,9 @@ function Study({ match, kheopsError }) {
           feature={currentFeature}
         />
       )}
-      <Link to="/">Back to Home</Link>
+      <Link style={{ marginTop: '1em' }} to="/">
+        Back to Home
+      </Link>
     </section>
   );
 }

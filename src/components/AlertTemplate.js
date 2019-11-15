@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, UncontrolledAlert } from 'reactstrap';
+import { UncontrolledAlert } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const AlertTemplate = ({ message, options, style, close }) => {
