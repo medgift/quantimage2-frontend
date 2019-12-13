@@ -6,17 +6,20 @@ const baseEndpoint = `${pythonBackendBaseURL}`;
 
 const endpoints = {
   extract: `${baseEndpoint}/extract`,
-  features: `${baseEndpoint}/features`,
-  featureFamilies: `${baseEndpoint}/feature-families`
+  extractions: `${baseEndpoint}/extractions`,
+  tasks: `${baseEndpoint}/tasks`,
+  families: `${baseEndpoint}/feature-families`
 };
 
 class Backend {
-  async extract(token, study_uid, feature_name, feature_config) {
+  async extract(token, album_id, feature_families_map, study_uid) {
     try {
-      const url = `${endpoints.extract}/${study_uid}/${feature_name}`;
+      const url = album_id
+        ? `${endpoints.extract}/album/${album_id}`
+        : `${endpoints.extract}/study/${study_uid}`;
       return await request(url, {
         method: 'POST',
-        data: { feature_config: feature_config },
+        data: feature_families_map,
         token: token
       });
     } catch (err) {
@@ -24,38 +27,49 @@ class Backend {
     }
   }
 
-  async featureFamilies(token) {
+  async families(token) {
     try {
-      const url = `${endpoints.featureFamilies}`;
+      const url = `${endpoints.families}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async featureFamily(token, featureFamilyID) {
+  async family(token, featureFamilyID) {
     try {
-      const url = `${endpoints.featureFamilies}/${featureFamilyID}`;
+      const url = `${endpoints.families}/${featureFamilyID}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async features(token, studyUID) {
+  async tasks(token, studyUID) {
     try {
-      const url = studyUID
-        ? `${endpoints.features}/${studyUID}`
-        : endpoints.features;
+      const url = studyUID ? `${endpoints.tasks}/${studyUID}` : endpoints.tasks;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async createFeatureFamily(token, formData) {
+  async extractions(token, albumID, studyUID) {
     try {
-      const url = endpoints.featureFamilies;
+      const url = albumID
+        ? `${endpoints.extractions}/album/${albumID}`
+        : studyUID
+        ? `${endpoints.extractions}/study/${studyUID}`
+        : endpoints.extractions;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async createFamily(token, formData) {
+    try {
+      const url = endpoints.families;
 
       return await request(url, {
         method: 'POST',
@@ -68,9 +82,9 @@ class Backend {
     }
   }
 
-  async updateFeatureFamily(token, featureFamilyID, formData) {
+  async updateFamily(token, featureFamilyID, formData) {
     try {
-      const url = `${endpoints.featureFamilies}/${featureFamilyID}`;
+      const url = `${endpoints.families}/${featureFamilyID}`;
 
       return await request(url, {
         method: 'PATCH',

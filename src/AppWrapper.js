@@ -26,7 +26,7 @@ socket.on('connect', () => {
   console.log('Successfully connected to Socket.IO server!');
 });
 
-// optional cofiguration
+// optional configuration
 const options = {
   // you can also just use 'bottom center'
   position: positions.BOTTOM_CENTER,

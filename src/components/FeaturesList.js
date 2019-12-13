@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Alert,
   Button,
@@ -6,92 +6,102 @@ import {
   Collapse,
   ListGroupItem
 } from 'reactstrap';
-import { DB_DATE_FORMAT, FEATURE_STATUS } from '../config/constants';
-import moment from 'moment';
+import { FEATURE_STATUS } from '../config/constants';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import Backend from '../services/backend';
-import downloadFeature from '../utils/featureDownload';
 import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
 import { cloneDeep } from 'lodash';
+import { downloadFeature } from '../utils/feature-utils';
 
 export default function FeaturesList({ studyUID }) {
   let [keycloak] = useKeycloak();
 
-  let [features, setFeatures] = useState([]);
+  // Data
+  let [featureFamiles, setFeatureFamilies] = useState([]);
+  let [featureConfigs, setFeatureConfigs] = useState({});
   let [currentFeature, setCurrentFeature] = useState(null);
+  let [extraction, setExtraction] = useState(null);
+  let [tasks, setTasks] = useState([]);
+
+  // Selections
+  let [selectedFamilies, setSelectedFamilies] = useState({});
   let [settingsCollapse, setSettingsCollapse] = useState({});
+
+  // Errors
   let [backendError, setBackendError] = useState(null);
   let [backendErrorVisible, setBackendErrorVisible] = useState(false);
+
+  // Misc
   let [modal, setModal] = useState(false);
 
   let socket = useContext(SocketContext);
 
-  const updateFeature = useCallback(
-    (feature, { ...rest }) => {
-      // Update element in feature
-      setFeatures(
-        features.map(f => {
-          if (feature.feature_family.id === f.feature_family.id) {
-            return { ...f, ...rest };
-          } else {
-            return f;
-          }
-        })
-      );
-    },
-    [features]
-  );
-
   /* Fetch initial data */
   useEffect(() => {
-    async function getFeatures() {
-      const featureFamilies = await Backend.featureFamilies(keycloak.token);
-      const studyFeatures = await Backend.features(keycloak.token, studyUID);
+    async function getFeatureFamiliesAndConfigs() {
+      const latestExtraction = await Backend.extractions(
+        keycloak.token,
+        null,
+        studyUID
+      );
 
-      let featureFamilyNames = featureFamilies.map(family => family.name);
+      if (latestExtraction) {
+        setExtraction(latestExtraction);
+        setTasks(latestExtraction.tasks);
+      }
+
+      const featureFamilies = await Backend.families(keycloak.token);
+
+      setFeatureFamilies(featureFamilies);
+
       let settingsCollapse = {};
-      for (let familyName of featureFamilyNames) {
-        settingsCollapse[familyName] = false;
+
+      for (let featureFamily of featureFamilies) {
+        settingsCollapse[featureFamily.id] = false;
       }
 
       setSettingsCollapse(settingsCollapse);
 
-      let features = [];
+      let selectedFamilies = {};
+      let featureConfigs = {};
 
       for (let featureFamily of featureFamilies) {
-        let studyFeature = studyFeatures.find(
-          studyFeature => studyFeature.feature_family.id === featureFamily.id
-        );
-
-        if (studyFeature) {
-          features.push({
-            ...studyFeature,
-            feature_family: featureFamily
-            //config: studyFeature.config
-          });
+        // Select all families by default if there is no extraction, otherwise restore config of previous extraction
+        if (!latestExtraction) {
+          selectedFamilies[featureFamily.id] = true;
+          featureConfigs[featureFamily.id] = cloneDeep(featureFamily.config);
         } else {
-          features.push({
-            updated_at: null,
-            status: FEATURE_STATUS.NOT_COMPUTED,
-            status_message: null,
-            payload: null,
-            feature_family: featureFamily,
-            config: cloneDeep(featureFamily.config)
-          });
+          let familyInExtraction = latestExtraction.families.find(
+            family => family.feature_family.id === featureFamily.id
+          );
+
+          selectedFamilies[featureFamily.id] = familyInExtraction !== undefined;
+
+          if (familyInExtraction) {
+            featureConfigs[featureFamily.id] = cloneDeep(
+              familyInExtraction.config
+            );
+          } else {
+            featureConfigs[featureFamily.id] = cloneDeep(featureFamily.config);
+          }
         }
       }
 
-      setFeatures(features);
+      setSelectedFamilies(selectedFamilies);
+      setFeatureConfigs(featureConfigs);
     }
 
-    getFeatures();
+    getFeatureFamiliesAndConfigs();
   }, [studyUID, keycloak]);
 
   /* Manage Socket.IO events */
   useEffect(() => {
+    console.log('Configure Socket Listeners');
+
     socket.on('feature-status', featureStatus => {
       console.log('GOT FEATURE STATUS!!!', featureStatus);
 
@@ -100,34 +110,44 @@ export default function FeaturesList({ studyUID }) {
         setBackendErrorVisible(true);
       }
 
-      if (features !== null) {
-        let foundFeature = features.find(
-          f => f.id && f.id === featureStatus.feature_id
-        );
-
-        if (foundFeature) {
-          let updatedFeature = {
-            status: featureStatus.status,
-            status_message: featureStatus.status_message
-              ? featureStatus.status_message
-              : FEATURE_STATUS.properties[featureStatus.status].name
-          };
-
-          // Set the updated date if the feature extraction has been completed
-          if (featureStatus.status === FEATURE_STATUS.COMPLETE) {
-            updatedFeature.updated_at = moment.utc(featureStatus.updated_at);
-            updatedFeature.payload = featureStatus.payload;
+      setTasks(tasks =>
+        tasks.map(task => {
+          if (task.id === featureStatus.feature_extraction_task_id) {
+            return {
+              ...task,
+              status: featureStatus.status,
+              status_message: featureStatus.status_message
+            };
           }
 
-          updateFeature(foundFeature, updatedFeature);
-        }
-      }
+          return task;
+        })
+      );
     });
 
-    return () => {
+    socket.on('extraction-status', extractionStatus => {
+      console.log('GOT EXTRACTION STATUS!!!', extractionStatus);
+
+      setExtraction(extraction => {
+        if (
+          extraction &&
+          extractionStatus.feature_extraction_id === extraction.id
+        ) {
+          return {
+            ...extraction,
+            status: extractionStatus.status
+          };
+        } else {
+          return extraction;
+        }
+      });
+    });
+
+    /*return () => {
       socket.off('feature-status');
-    };
-  }, [features, socket, updateFeature]);
+      socket.off('extraction-status');
+    };*/
+  }, [socket]);
 
   let toggleModal = () => {
     setModal(!modal);
@@ -137,34 +157,44 @@ export default function FeaturesList({ studyUID }) {
     setBackendErrorVisible(false);
   };
 
-  let handleComputeFeaturesClick = async feature => {
+  let handleExtractFeaturesClick = async () => {
     try {
-      updateFeature(feature, {
-        id: feature.id,
-        status: FEATURE_STATUS.STARTED,
-        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
-      });
-
-      let featureInProgress = await Backend.extract(
-        keycloak.token,
-        studyUID,
-        feature.feature_family.name,
-        feature.config
+      let featureFamiliesMap = makeFeatureFamiliesMap(
+        selectedFamilies,
+        featureConfigs
       );
 
-      updateFeature(feature, {
-        id: featureInProgress.id,
-        status: FEATURE_STATUS.STARTED,
-        status_message: FEATURE_STATUS.properties[FEATURE_STATUS.STARTED].name
-      });
-    } catch (err) {
-      updateFeature(feature, {
-        status: FEATURE_STATUS.FAILURE
-      });
+      let featureExtraction = await Backend.extract(
+        keycloak.token,
+        null,
+        featureFamiliesMap,
+        studyUID
+      );
 
+      console.log(
+        'Setting feature extraction! With ' +
+          featureExtraction.tasks.length +
+          ' tasks!'
+      );
+      setExtraction(featureExtraction);
+      setTasks(featureExtraction.tasks);
+    } catch (err) {
       setBackendError(err.message);
       setBackendErrorVisible(true);
     }
+  };
+
+  let makeFeatureFamiliesMap = (selectedFamilies, featureConfigs) => {
+    let featureFamiliesMap = {};
+
+    for (let selectedFamilyID in selectedFamilies) {
+      if (selectedFamilies[selectedFamilyID] === true) {
+        featureFamiliesMap[selectedFamilyID] =
+          featureConfigs[+selectedFamilyID];
+      }
+    }
+
+    return featureFamiliesMap;
   };
 
   let handleViewFeaturesClick = feature => {
@@ -172,26 +202,21 @@ export default function FeaturesList({ studyUID }) {
     toggleModal();
   };
 
-  let handleDownloadFeaturesClick = feature => {
-    downloadFeature(feature);
+  let handleDownloadFeaturesClick = e => {
+    downloadFeature(extraction);
   };
 
-  let handleToggleSettingsClick = family => {
+  let handleToggleSettingsClick = familyID => {
     setSettingsCollapse(prevState => ({
       ...prevState,
-      [family]: !prevState[family]
+      [familyID]: !prevState[familyID]
     }));
   };
 
-  let updateFeatureConfig = (e, feature, backend, featureName) => {
+  let updateFeatureConfig = (e, featureConfig, backend, featureName) => {
     const checked = e.target.checked;
 
-    let updatedFeatures = [...features];
-    let featureToUpdate = updatedFeatures.find(
-      f => f.feature_family.name === feature.feature_family.name
-    );
-
-    let featureConfig = featureToUpdate.config;
+    let updatedFeatureConfigs = { ...featureConfigs };
 
     if (!checked) {
       let currentFeatures = featureConfig.backends[backend].features;
@@ -206,227 +231,202 @@ export default function FeaturesList({ studyUID }) {
       ];
     }
 
-    setFeatures(updatedFeatures);
+    setFeatureConfigs(updatedFeatureConfigs);
+  };
+
+  let handleFamilyCheck = (e, featureFamilyId) => {
+    let checked = e.target.checked;
+
+    setSelectedFamilies(selectedFamilies => ({
+      ...selectedFamilies,
+      [featureFamilyId]: checked
+    }));
+  };
+
+  let getFeatureTaskStatus = featureFamilyID => {
+    let task = tasks.find(task => task.feature_family.id === featureFamilyID);
+
+    return (
+      task &&
+      task.status !== FEATURE_STATUS.COMPLETE && (
+        <span>
+          <small>{task ? task.status_message : ''}...</small>
+        </span>
+      )
+    );
   };
 
   return (
     <>
       <ListGroup className="features-list">
-        {features &&
-          features.map(feature => (
-            <ListGroupItem key={feature.feature_family.name}>
-              <div className="feature-summary d-flex justify-content-between align-items-center">
-                <div
-                  className={
-                    `mr-2 text-left` +
-                    (feature.status === FEATURE_STATUS.IN_PROGRESS
-                      ? ' text-muted'
-                      : '')
-                  }
-                >
-                  <span>
-                    {feature.feature_family.name}{' '}
-                    <small>
-                      {feature.status === FEATURE_STATUS.NOT_COMPUTED && (
-                        <>(never computed)</>
-                      )}
-                      {feature.status === FEATURE_STATUS.FAILURE && (
-                        <>(extraction failed, please try again)</>
-                      )}
-                      {(feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                        feature.status === FEATURE_STATUS.STARTED) && (
-                        <>({feature.status_message}...)</>
-                      )}
-                      {feature.status === FEATURE_STATUS.COMPLETE && (
-                        <>
-                          (computed on{' '}
-                          {moment
-                            .utc(feature.updated_at, DB_DATE_FORMAT)
-                            .local()
-                            .format(DB_DATE_FORMAT)}
-                          )
-                        </>
-                      )}
-                    </small>
-                  </span>
-                  <div className="feature-description">
-                    {Object.keys(feature.config.backends)
-                      .reduce(
-                        (featureNames, backend) => [
-                          ...featureNames,
-                          ...feature.config.backends[backend].features
-                        ],
-                        []
-                      )
-                      .sort((f1, f2) =>
-                        f1.localeCompare(f2, undefined, { sensitivity: 'base' })
-                      )
-                      .join(', ')
-                      .toLowerCase()}
+        <ListGroupItem>
+          <span>Feature Configuration</span>
+        </ListGroupItem>
+        {featureFamiles.length > 0 &&
+          Object.keys(featureConfigs).length > 0 &&
+          featureFamiles.map(featureFamily => (
+            <ListGroupItem
+              key={featureFamily.id}
+              disabled={extraction && !extraction.status.ready}
+            >
+              <div className="d-flex flex-column">
+                <div className="feature-summary d-flex align-items-center">
+                  <div className={`custom-control custom-checkbox flex-grow-1`}>
+                    <input
+                      type="checkbox"
+                      className="custom-control-input"
+                      checked={selectedFamilies[featureFamily.id]}
+                      onChange={e => {
+                        handleFamilyCheck(e, featureFamily.id);
+                      }}
+                      id={`${featureFamily.id}-${featureFamily.name}`}
+                      aria-label={`Extract ${featureFamily.name} features`}
+                      disabled={extraction && !extraction.status.ready}
+                    />
+                    <label
+                      className="custom-control-label d-block text-left"
+                      htmlFor={`${featureFamily.id}-${featureFamily.name}`}
+                    >
+                      <span>{featureFamily.name} </span>
+                      {getFeatureTaskStatus(featureFamily.id)}
+                    </label>
                   </div>
+                  <ButtonGroup className="ml-1">
+                    <Button
+                      color="primary"
+                      title="Configure feature extraction"
+                      onClick={() => {
+                        handleToggleSettingsClick(featureFamily.id);
+                      }}
+                      disabled={extraction && !extraction.status.ready}
+                    >
+                      <FontAwesomeIcon icon="tasks"></FontAwesomeIcon>
+                    </Button>
+                  </ButtonGroup>
                 </div>
-                <ButtonGroup className="ml-1">
-                  {(() => {
-                    switch (feature.status) {
-                      case FEATURE_STATUS.NOT_COMPUTED:
-                      case FEATURE_STATUS.FAILURE:
-                        return (
-                          <Button
-                            color="success"
-                            onClick={() => {
-                              handleComputeFeaturesClick(feature);
-                            }}
-                            title="Compute Features"
-                            disabled={
-                              Object.keys(feature.config.backends).reduce(
-                                (acc, backend) =>
-                                  (acc +=
-                                    feature.config.backends[backend].features
-                                      .length),
-                                0
-                              ) === 0
-                            }
-                          >
-                            <FontAwesomeIcon icon="cog"></FontAwesomeIcon>
-                          </Button>
-                        );
-                      case FEATURE_STATUS.STARTED:
-                      case FEATURE_STATUS.IN_PROGRESS:
-                        return (
-                          <Button
-                            color="secondary"
-                            disabled
-                            title="Computation in Progress"
-                          >
-                            <FontAwesomeIcon icon="sync" spin></FontAwesomeIcon>
-                          </Button>
-                        );
-                      case FEATURE_STATUS.COMPLETE:
-                        return (
-                          <Button
-                            color="success"
-                            onClick={() => {
-                              handleComputeFeaturesClick(feature);
-                            }}
-                            title="Recompute Features"
-                            disabled={
-                              Object.keys(feature.config.backends).reduce(
-                                (acc, backend) =>
-                                  (acc +=
-                                    feature.config.backends[backend].features
-                                      .length),
-                                0
-                              ) === 0
-                            }
-                          >
-                            <FontAwesomeIcon icon="redo"></FontAwesomeIcon>
-                          </Button>
-                        );
-                      default:
-                        return null;
-                    }
-                  })()}
-                  <Button
-                    color="primary"
-                    disabled={
-                      feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                      feature.status === FEATURE_STATUS.STARTED
-                    }
-                    title="Configure feature extraction"
-                    onClick={() => {
-                      handleToggleSettingsClick(feature.feature_family.name);
-                    }}
-                  >
-                    <FontAwesomeIcon icon="tasks"></FontAwesomeIcon>
-                  </Button>
-                  {feature.status !== FEATURE_STATUS.NOT_COMPUTED &&
-                    feature.status !== FEATURE_STATUS.FAILURE && (
-                      <>
-                        <Button
-                          color="info"
-                          disabled={
-                            feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                            feature.status === FEATURE_STATUS.STARTED
-                          }
-                          onClick={() => {
-                            handleViewFeaturesClick(feature);
-                          }}
-                          title="View Features"
-                        >
-                          <FontAwesomeIcon icon="search"></FontAwesomeIcon>
-                        </Button>
-                        <Button
-                          color="secondary"
-                          disabled={
-                            feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                            feature.status === FEATURE_STATUS.STARTED
-                          }
-                          onClick={() => {
-                            handleDownloadFeaturesClick(feature);
-                          }}
-                          title="Download Features"
-                        >
-                          <FontAwesomeIcon icon="download"></FontAwesomeIcon>
-                        </Button>
-                      </>
-                    )}
-                </ButtonGroup>
+                <div className="feature-description text-left">
+                  {Object.keys(featureConfigs[featureFamily.id].backends)
+                    .reduce(
+                      (featureNames, backend) => [
+                        ...featureNames,
+                        ...featureConfigs[featureFamily.id].backends[backend]
+                          .features
+                      ],
+                      []
+                    )
+                    .sort((f1, f2) =>
+                      f1.localeCompare(f2, undefined, { sensitivity: 'base' })
+                    )
+                    .join(', ')
+                    .toLowerCase()}
+                </div>
               </div>
               <Collapse
-                isOpen={settingsCollapse[feature.feature_family.name]}
+                isOpen={settingsCollapse[featureFamily.id]}
                 className="mt-2"
-                id={`settings-${feature.feature_family.name}`}
+                id={`settings-${featureFamily.id}`}
               >
-                {Object.keys(feature.feature_family.config.backends).map(
-                  backend => (
-                    <div key={backend}>
-                      <div>{backend}</div>
-                      <ListGroup>
-                        {feature.feature_family.config.backends[
-                          backend
-                        ].features.map(featureName => (
+                {Object.keys(featureFamily.config.backends).map(backend => (
+                  <div key={backend}>
+                    <div>{backend}</div>
+                    <ListGroup>
+                      {featureFamily.config.backends[backend].features.map(
+                        featureName => (
                           <ListGroupItem
                             className="text-left"
-                            key={`${featureName}-${feature.id}`}
-                            disabled={
-                              feature.status === FEATURE_STATUS.IN_PROGRESS ||
-                              feature.status === FEATURE_STATUS.STARTED
-                            }
+                            key={`${featureName}`}
                           >
                             <div className="custom-control custom-checkbox">
                               <input
                                 type="checkbox"
                                 className="custom-control-input"
-                                checked={feature.config.backends[
-                                  backend
-                                ].features.includes(featureName)}
+                                checked={featureConfigs[
+                                  featureFamily.id
+                                ].backends[backend].features.includes(
+                                  featureName
+                                )}
                                 onChange={e =>
                                   updateFeatureConfig(
                                     e,
-                                    feature,
+                                    featureConfigs[featureFamily.id],
                                     backend,
                                     featureName
                                   )
                                 }
-                                id={`${featureName}-${feature.id}`}
+                                id={`${featureName}`}
+                                disabled={
+                                  extraction && !extraction.status.ready
+                                }
                               />
                               <label
                                 className="custom-control-label d-block"
-                                htmlFor={`${featureName}-${feature.id}`}
+                                htmlFor={`${featureName}`}
                               >
                                 {featureName.toLowerCase()}
                               </label>
                             </div>
                           </ListGroupItem>
-                        ))}
-                      </ListGroup>
-                    </div>
-                  )
-                )}
+                        )
+                      )}
+                    </ListGroup>
+                  </div>
+                ))}
               </Collapse>
             </ListGroupItem>
           ))}
+        {(!extraction ||
+          (extraction &&
+            (extraction.status.successful || extraction.status.failed))) && (
+          <>
+            <ListGroupItem>
+              <span>Actions</span>
+            </ListGroupItem>
+
+            <ListGroupItem>
+              <ButtonGroup>
+                <Button color="success" onClick={handleExtractFeaturesClick}>
+                  <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
+                  <span>Extract Features</span>
+                </Button>
+                {extraction && (
+                  <>
+                    <Button
+                      color="info"
+                      disabled={false}
+                      onClick={handleViewFeaturesClick}
+                      title="View Features"
+                    >
+                      <FontAwesomeIcon icon="search"></FontAwesomeIcon>{' '}
+                      <span>View Features</span>
+                    </Button>
+                    <Button
+                      color="secondary"
+                      disabled={false}
+                      onClick={handleDownloadFeaturesClick}
+                      title="Download Features"
+                    >
+                      <FontAwesomeIcon icon="download"></FontAwesomeIcon>{' '}
+                      <span>Download Features</span>
+                    </Button>
+                  </>
+                )}
+              </ButtonGroup>
+            </ListGroupItem>
+          </>
+        )}
+        {extraction && !extraction.status.ready && (
+          <>
+            <ListGroupItem>
+              <span>Status</span>
+            </ListGroupItem>
+            <ListGroupItem>
+              <FontAwesomeIcon icon="sync" spin></FontAwesomeIcon>{' '}
+              <span>Computing features...</span>
+            </ListGroupItem>
+          </>
+        )}
       </ListGroup>
+
       <Alert
         color="danger"
         className="mt-3 compute-error"
@@ -435,11 +435,11 @@ export default function FeaturesList({ studyUID }) {
       >
         Error from the backend: {backendError}
       </Alert>
-      {currentFeature && (
+      {extraction && (
         <FeaturesModal
           isOpen={modal}
           toggle={toggleModal}
-          feature={currentFeature}
+          extraction={extraction}
         />
       )}
     </>

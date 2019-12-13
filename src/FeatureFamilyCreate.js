@@ -38,18 +38,14 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
 
     try {
       if (mode === modes.CREATE) {
-        let createdFeatureFamily = await Backend.createFeatureFamily(
+        let createdFeatureFamily = await Backend.createFamily(
           keycloak.token,
           data
         );
         history.push(`/feature-families/edit/${createdFeatureFamily.id}`);
         alert.success('Feature Family Created!');
       } else {
-        await Backend.updateFeatureFamily(
-          keycloak.token,
-          featureFamilyID,
-          data
-        );
+        await Backend.updateFamily(keycloak.token, featureFamilyID, data);
         alert.success('Feature Family Updated!');
       }
     } catch (err) {
@@ -62,7 +58,7 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
   useEffect(() => {
     async function getFeatureFamily() {
       if (featureFamilyID) {
-        let featureFamilyResponse = await Backend.featureFamily(
+        let featureFamilyResponse = await Backend.family(
           keycloak.token,
           featureFamilyID
         );

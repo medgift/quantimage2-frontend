@@ -12,7 +12,7 @@ function FeatureFamilies({ history, match, kheopsError }) {
 
   useEffect(() => {
     async function getFeatureFamilies() {
-      const featureFamilies = await Backend.featureFamilies(keycloak.token);
+      const featureFamilies = await Backend.families(keycloak.token);
 
       setFeatureFamilies(featureFamilies);
 

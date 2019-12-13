@@ -1,39 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import Backend from './services/backend';
-import {
-  Spinner,
-  ListGroup,
-  ListGroupItem,
-  Button,
-  ButtonGroup
-} from 'reactstrap';
+import { Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FeaturesModal from './FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
-import downloadFeature from './utils/featureDownload';
+import { downloadFeature } from './utils/feature-utils';
 
 function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
-  const [features, setFeatures] = useState(null);
+  const [tasks, setTasks] = useState(null);
   const [currentFeature, setCurrentFeature] = useState(null);
   const [modal, setModal] = useState(false);
 
   useEffect(() => {
-    async function getFeatures() {
-      const features = await Backend.features(keycloak.token);
+    async function getTasks() {
+      const tasks = await Backend.tasks(keycloak.token);
 
-      const features_by_name = features.reduce((collector, feature) => {
+      /*const features_by_name = features.reduce((collector, feature) => {
         if (!collector[feature.feature_family.name])
           collector[feature.feature_family.name] = [];
         collector[feature.feature_family.name].push(feature);
         return collector;
-      }, {});
+      }, {});*/
 
-      setFeatures(features_by_name);
+      setTasks(tasks);
     }
 
-    getFeatures();
+    getTasks();
   }, [keycloak.token]);
 
   let handleViewFeaturesClick = feature => {
@@ -53,8 +46,11 @@ function Features({ history, match, kheopsError }) {
     <>
       <h1>Feature Collection</h1>
       <div>
-        {features ? (
-          Object.keys(features).length > 0 ? (
+        {tasks ? (
+          tasks.length > 0 ? (
+            JSON.stringify(tasks)
+          ) : (
+            /*Object.keys(features).length > 0 ? (
             Object.keys(features).map(featureName => (
               <div key={featureName}>
                 <h2>{featureName}</h2>
@@ -111,8 +107,7 @@ function Features({ history, match, kheopsError }) {
                     ))}
                 </ListGroup>
               </div>
-            ))
-          ) : (
+            ))*/
             <h3>
               You haven't computed any Features yet.
               <br />
