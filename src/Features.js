@@ -4,12 +4,11 @@ import { Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import FeaturesModal from './FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
-import { downloadFeature } from './utils/feature-utils';
 
 function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
   const [tasks, setTasks] = useState(null);
-  const [currentFeature, setCurrentFeature] = useState(null);
+  const [currentFeature] = useState(null);
   const [modal, setModal] = useState(false);
 
   useEffect(() => {
@@ -29,14 +28,14 @@ function Features({ history, match, kheopsError }) {
     getTasks();
   }, [keycloak.token]);
 
-  let handleViewFeaturesClick = feature => {
+  /*let handleViewFeaturesClick = feature => {
     setCurrentFeature(feature);
     toggleModal();
   };
 
   let handleDownloadFeaturesClick = feature => {
     downloadFeature(feature);
-  };
+  };*/
 
   let toggleModal = () => {
     setModal(!modal);

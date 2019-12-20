@@ -30,6 +30,16 @@ class Kheops {
     }
   }
 
+  async study(token, studyUID) {
+    try {
+      const url = `${endpoints.studies}/?StudyInstanceUID=${studyUID}`;
+      let response = await request(url, { token: token });
+      return response[0];
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async studyMetadata(token, studyUID) {
     try {
       const url = `${endpoints.studies}/${studyUID}/metadata`;

@@ -1,9 +1,16 @@
 import { Parser } from 'json2csv';
 
-export function downloadFeature(extraction) {
-  const featuresContent = assembleFeatures(extraction.tasks);
+import DicomFields from '../dicom/fields';
+import slugify from 'slugify';
 
-  const parser = new Parser({ fields: Object.keys(featuresContent) });
+export function downloadFeature(extraction, studies, album) {
+  const featuresContent = assembleFeatures(extraction, studies, album);
+
+  const parser = new Parser({
+    fields: Object.keys(
+      Array.isArray(featuresContent) ? featuresContent[0] : featuresContent
+    )
+  });
 
   const fileContent = new Blob([parser.parse(featuresContent)], {
     type: 'text/csv'
@@ -11,23 +18,65 @@ export function downloadFeature(extraction) {
 
   const title = assembleFeatureTitles(extraction.families, '_').toLowerCase();
 
-  downloadContent(fileContent, `features_${extraction.study_uid}_${title}.csv`);
+  const filename = `features_${
+    album
+      ? slugify(album.name, { replacement: '_', lower: true })
+      : studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+          DicomFields.ALPHABETIC
+        ]
+  }_${title}.csv`;
+
+  downloadContent(fileContent, filename);
 }
 
 export function assembleFeatureTitles(families, separator = ',') {
-  const familyNames = [];
-
-  families.map(family => {
-    familyNames.push(family.feature_family.name);
-  });
-
-  return familyNames.join(separator);
+  return families
+    .map(family => {
+      return family.feature_family.name;
+    })
+    .join(separator);
 }
 
-export function assembleFeatures(tasks) {
-  let features = {};
+export function assembleFeatures(extraction, studies, album) {
+  let features;
 
+  if (!album) {
+    let study = studies;
+
+    let patientID = `${
+      study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+        DicomFields.ALPHABETIC
+      ]
+    }`;
+
+    features = getFeaturesFromTasks(patientID, extraction.tasks);
+  } else {
+    features = [];
+
+    for (let study of studies) {
+      let studyUID = study[DicomFields.STUDY_UID][DicomFields.VALUE][0];
+
+      let patientID = `${
+        study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+          DicomFields.ALPHABETIC
+        ]
+      }_${studyUID}`;
+
+      let tasks = extraction.tasks.filter(task => task.study_uid === studyUID);
+
+      let studyFeatures = getFeaturesFromTasks(patientID, tasks);
+
+      features.push(studyFeatures);
+    }
+  }
+
+  return features;
+}
+
+function getFeaturesFromTasks(patientID, tasks) {
   let leaveOutPrefix = 'diagnostics_';
+
+  let features = { patientID: patientID };
 
   tasks.map(task => {
     let filteredTask = Object.fromEntries(
@@ -37,6 +86,8 @@ export function assembleFeatures(tasks) {
     );
 
     features = { ...features, ...filteredTask };
+
+    return task;
   });
 
   return features;

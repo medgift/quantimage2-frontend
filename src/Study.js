@@ -83,7 +83,7 @@ function Study({ match, kheopsError }) {
         </>
       )}
       <h2>Features</h2>
-      <FeaturesList studyUID={studyUID} />
+      <FeaturesList studyUID={studyUID} setMinWidth={true} />
       <Link style={{ marginTop: '1em' }} to="/">
         Back to Home
       </Link>

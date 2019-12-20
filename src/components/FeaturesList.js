@@ -16,14 +16,19 @@ import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
 import { cloneDeep } from 'lodash';
 import { downloadFeature } from '../utils/feature-utils';
+import Kheops from '../services/kheops';
 
-export default function FeaturesList({ studyUID }) {
+export default function FeaturesList({
+  albumID,
+  studyUID,
+  setMinWidth,
+  extractionCallback
+}) {
   let [keycloak] = useKeycloak();
 
   // Data
   let [featureFamiles, setFeatureFamilies] = useState([]);
   let [featureConfigs, setFeatureConfigs] = useState({});
-  let [currentFeature, setCurrentFeature] = useState(null);
   let [extraction, setExtraction] = useState(null);
   let [tasks, setTasks] = useState([]);
 
@@ -40,12 +45,61 @@ export default function FeaturesList({ studyUID }) {
 
   let socket = useContext(SocketContext);
 
+  const handleFeatureStatus = featureStatus => {
+    console.log('GOT TASK STATUS!!!', featureStatus);
+
+    if (featureStatus.status === FEATURE_STATUS.FAILURE) {
+      setBackendError(featureStatus.status_message);
+      setBackendErrorVisible(true);
+    }
+
+    setTasks(tasks =>
+      tasks.map(task => {
+        if (task.id === featureStatus.feature_extraction_task_id) {
+          return {
+            ...task,
+            status: featureStatus.status,
+            status_message: featureStatus.status_message
+          };
+        }
+
+        return task;
+      })
+    );
+  };
+
+  const handleExtractionStatus = extractionStatus => {
+    console.log('GOT EXTRACTION STATUS!!!', extractionStatus);
+
+    setExtraction(extraction => {
+      if (extractionStatus.id) {
+        if (extraction && extractionStatus.id === extraction.id) {
+          return { ...extractionStatus };
+        } else {
+          return extraction;
+        }
+      } else {
+        if (
+          extraction &&
+          extractionStatus.feature_extraction_id === extraction.id
+        ) {
+          return {
+            ...extraction,
+            status: extractionStatus.status
+          };
+        } else {
+          return extraction;
+        }
+      }
+    });
+  };
+
   /* Fetch initial data */
   useEffect(() => {
     async function getFeatureFamiliesAndConfigs() {
       const latestExtraction = await Backend.extractions(
         keycloak.token,
-        null,
+        albumID,
         studyUID
       );
 
@@ -96,57 +150,19 @@ export default function FeaturesList({ studyUID }) {
     }
 
     getFeatureFamiliesAndConfigs();
-  }, [studyUID, keycloak]);
+  }, [albumID, studyUID, keycloak]);
 
   /* Manage Socket.IO events */
   useEffect(() => {
     console.log('Configure Socket Listeners');
 
-    socket.on('feature-status', featureStatus => {
-      console.log('GOT FEATURE STATUS!!!', featureStatus);
+    socket.on('feature-status', handleFeatureStatus);
+    socket.on('extraction-status', handleExtractionStatus);
 
-      if (featureStatus.status === FEATURE_STATUS.FAILURE) {
-        setBackendError(featureStatus.status_message);
-        setBackendErrorVisible(true);
-      }
-
-      setTasks(tasks =>
-        tasks.map(task => {
-          if (task.id === featureStatus.feature_extraction_task_id) {
-            return {
-              ...task,
-              status: featureStatus.status,
-              status_message: featureStatus.status_message
-            };
-          }
-
-          return task;
-        })
-      );
-    });
-
-    socket.on('extraction-status', extractionStatus => {
-      console.log('GOT EXTRACTION STATUS!!!', extractionStatus);
-
-      setExtraction(extraction => {
-        if (
-          extraction &&
-          extractionStatus.feature_extraction_id === extraction.id
-        ) {
-          return {
-            ...extraction,
-            status: extractionStatus.status
-          };
-        } else {
-          return extraction;
-        }
-      });
-    });
-
-    /*return () => {
-      socket.off('feature-status');
-      socket.off('extraction-status');
-    };*/
+    return () => {
+      socket.off('feature-status', handleFeatureStatus);
+      socket.off('extraction-status', handleExtractionStatus);
+    };
   }, [socket]);
 
   let toggleModal = () => {
@@ -166,7 +182,7 @@ export default function FeaturesList({ studyUID }) {
 
       let featureExtraction = await Backend.extract(
         keycloak.token,
-        null,
+        albumID,
         featureFamiliesMap,
         studyUID
       );
@@ -178,6 +194,10 @@ export default function FeaturesList({ studyUID }) {
       );
       setExtraction(featureExtraction);
       setTasks(featureExtraction.tasks);
+
+      if (extractionCallback) {
+        extractionCallback(featureExtraction);
+      }
     } catch (err) {
       setBackendError(err.message);
       setBackendErrorVisible(true);
@@ -197,13 +217,13 @@ export default function FeaturesList({ studyUID }) {
     return featureFamiliesMap;
   };
 
-  let handleViewFeaturesClick = feature => {
-    setCurrentFeature(feature);
+  let handleViewFeaturesClick = () => {
     toggleModal();
   };
 
-  let handleDownloadFeaturesClick = e => {
-    downloadFeature(extraction);
+  let handleDownloadFeaturesClick = async e => {
+    let study = await Kheops.study(keycloak.token, studyUID);
+    await downloadFeature(extraction, study);
   };
 
   let handleToggleSettingsClick = familyID => {
@@ -258,7 +278,9 @@ export default function FeaturesList({ studyUID }) {
 
   return (
     <>
-      <ListGroup className="features-list">
+      <ListGroup
+        className={`features-list ${setMinWidth ? 'min-width-510' : ''}`}
+      >
         <ListGroupItem>
           <span>Feature Configuration</span>
         </ListGroupItem>
@@ -435,11 +457,12 @@ export default function FeaturesList({ studyUID }) {
       >
         Error from the backend: {backendError}
       </Alert>
-      {extraction && (
+      {extraction && !albumID && (
         <FeaturesModal
           isOpen={modal}
           toggle={toggleModal}
           extraction={extraction}
+          studyUID={studyUID}
         />
       )}
     </>

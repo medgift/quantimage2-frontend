@@ -21,10 +21,6 @@
   text-align: initial;
 }
 
-.features-list {
-  min-width: 510px;
-}
-
 .compute-error {
   max-width: 510px;
 }
@@ -37,4 +33,8 @@
 .feature-description {
   font-size: small;
   font-family: monospace;
+}
+
+.min-width-510 {
+  min-width: 510px;
 }

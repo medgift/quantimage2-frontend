@@ -12,6 +12,19 @@ const endpoints = {
 };
 
 class Backend {
+  async extractions(token, albumID, studyUID) {
+    try {
+      const url = albumID
+        ? `${endpoints.extractions}/album/${albumID}`
+        : studyUID
+        ? `${endpoints.extractions}/study/${studyUID}`
+        : endpoints.extractions;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extract(token, album_id, feature_families_map, study_uid) {
     try {
       const url = album_id
@@ -48,19 +61,6 @@ class Backend {
   async tasks(token, studyUID) {
     try {
       const url = studyUID ? `${endpoints.tasks}/${studyUID}` : endpoints.tasks;
-      return await request(url, { token: token });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
-  async extractions(token, albumID, studyUID) {
-    try {
-      const url = albumID
-        ? `${endpoints.extractions}/album/${albumID}`
-        : studyUID
-        ? `${endpoints.extractions}/study/${studyUID}`
-        : endpoints.extractions;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
