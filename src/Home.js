@@ -102,17 +102,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         return (
           <div className="text-muted">
             <FontAwesomeIcon icon="sync" spin />{' '}
-            <span>Extraction In Progress</span>{' '}
-            <span>
-              (
-              {(albumExtraction.status.total_steps !== 0
-                ? (albumExtraction.status.completed_steps /
-                    albumExtraction.status.total_steps) *
-                  100
-                : 0
-              ).toFixed()}
-              %)
-            </span>
+            {featureExtractionStatusText(albumExtraction)}
           </div>
         );
       } else {
@@ -128,8 +118,39 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
   };
 
+  const featureExtractionStatusText = albumExtraction => {
+    if (
+      albumExtraction.status.pending_tasks ===
+      albumExtraction.status.total_tasks
+    ) {
+      return <span>Extraction Pending...</span>;
+    }
+
+    if (
+      albumExtraction.status.total_steps !== 0 &&
+      albumExtraction.status.completed_steps > 0
+    ) {
+      return (
+        <span>
+          Extraction In Progress (
+          {(
+            (albumExtraction.status.completed_steps /
+              albumExtraction.status.total_steps) *
+            100
+          ).toFixed()}
+          %)
+        </span>
+      );
+    } else {
+      return <span>Extraction Starting...</span>;
+    }
+  };
+
   const handleExtractionStatus = useCallback(extractionStatus => {
-    console.log('GOT EXTRACTION STATUS!!!', extractionStatus);
+    console.log(
+      `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
+      extractionStatus
+    );
 
     // If full extraction object
     if (extractionStatus.id) {
@@ -138,7 +159,6 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         ...extractionStatus
       });
     } else {
-      console.log('Updating status only');
       updateExtraction(extractionStatus.feature_extraction_id, {
         status: extractionStatus.status
       });
