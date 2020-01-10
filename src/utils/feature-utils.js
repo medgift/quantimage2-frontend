@@ -2,6 +2,43 @@ import { Parser } from 'json2csv';
 
 import DicomFields from '../dicom/fields';
 import slugify from 'slugify';
+import Kheops from '../services/kheops';
+
+export async function downloadFeatureSet(token, tasks) {
+  let allFeatures = [];
+
+  for (let task of tasks) {
+    let study = await Kheops.study(token, task.study_uid);
+
+    let studyUID = task.study_uid;
+
+    let patientID = `${
+      study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+        DicomFields.ALPHABETIC
+      ]
+    }_${studyUID}`;
+
+    let features = getFeaturesFromTasks(patientID, [task]);
+
+    allFeatures.push(features);
+  }
+
+  const parser = new Parser({
+    fields: Object.keys(
+      Array.isArray(allFeatures) ? allFeatures[0] : allFeatures
+    )
+  });
+
+  const fileContent = new Blob([parser.parse(allFeatures)], {
+    type: 'text/csv'
+  });
+
+  const title = assembleFeatureTitles([tasks[0]], '_').toLowerCase();
+
+  const filename = `features_${title}.csv`;
+
+  downloadContent(fileContent, filename);
+}
 
 export function downloadFeature(extraction, studies, album) {
   const featuresContent = assembleFeatures(extraction, studies, album);
