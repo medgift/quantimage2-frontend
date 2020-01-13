@@ -19,6 +19,7 @@ import {
 } from './config/constants';
 import FeatureFamilies from './FeatureFamilies';
 import FeatureFamilyCreate from './FeatureFamilyCreate';
+import { PrivateRoute } from './utils/PrivateRoute';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -37,9 +38,9 @@ function App({ setUser, setIsAdmin }) {
         setUser(profile);
       });
       let isAdmin =
-        keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS][
+        Object.keys(keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS]).includes(
           KEYCLOAK_FRONTEND_CLIENT_ID
-        ] &&
+        ) &&
         keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS][
           KEYCLOAK_FRONTEND_CLIENT_ID
         ].roles.includes(KEYCLOAK_ADMIN_ROLE);
@@ -114,17 +115,17 @@ function App({ setUser, setIsAdmin }) {
                 kheopsError={kheopsError}
               />
               <PropsRoute path="/profile" component={Profile} />
-              <PropsRoute
+              <PrivateRoute
                 path="/feature-families"
                 exact
                 component={FeatureFamilies}
               />
-              <PropsRoute
+              <PrivateRoute
                 path="/feature-families/create"
                 exact
                 component={FeatureFamilyCreate}
               />
-              <PropsRoute
+              <PrivateRoute
                 path="/feature-families/edit/:featureFamilyID"
                 exact
                 component={FeatureFamilyCreate}
