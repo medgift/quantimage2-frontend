@@ -142,7 +142,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         </span>
       );
     } else {
-      return <span>Extraction Starting...</span>;
+      if (albumExtraction.status.pending_tasks !== 0) {
+        return <span>Extraction Starting...</span>;
+      } else {
+        return <span>Fetching Data...</span>;
+      }
     }
   };
 
