@@ -225,86 +225,94 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
               <Spinner />
             ) : albums.length > 0 && Object.keys(studies).length > 0 ? (
               <ListGroup className="albums">
-                {albums.map(album => (
-                  <ListGroupItem key={album.album_id}>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <h5 style={{ margin: 0 }}>{album.name}</h5>
-                      {showAlbumButtons(album)}
-                    </div>
-                    {studies[album.album_id] && (
-                      <>
-                        <ListGroup>
-                          {studies[album.album_id].map(study => (
-                            <ListGroupItem
-                              key={
-                                study[DicomFields.STUDY_UID][
-                                  DicomFields.VALUE
-                                ][0]
-                              }
-                              className="d-flex justify-content-between align-items-center"
-                            >
-                              <Link
-                                to={`/study/${
-                                  study[DicomFields.STUDY_UID][
-                                    DicomFields.VALUE
-                                  ][0]
-                                }`}
-                                className="btn btn-link"
-                                href="#"
-                                title={
+                {albums
+                  .filter(
+                    album =>
+                      studies[album.album_id] &&
+                      studies[album.album_id].length > 0
+                  )
+                  .map(album => (
+                    <ListGroupItem key={album.album_id}>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <h5 style={{ margin: 0 }}>{album.name}</h5>
+                        {showAlbumButtons(album)}
+                      </div>
+                      {studies[album.album_id] && (
+                        <>
+                          <ListGroup>
+                            {studies[album.album_id].map(study => (
+                              <ListGroupItem
+                                key={
                                   study[DicomFields.STUDY_UID][
                                     DicomFields.VALUE
                                   ][0]
                                 }
+                                className="d-flex justify-content-between align-items-center"
                               >
-                                {
-                                  study[DicomFields.PATIENT_NAME][
-                                    DicomFields.VALUE
-                                  ][0][DicomFields.ALPHABETIC]
-                                }{' '}
-                                (
-                                {moment(
-                                  study[DicomFields.DATE][DicomFields.VALUE][0],
-                                  DicomFields.DATE_FORMAT
-                                ).format(DICOM_DATE_FORMAT)}
-                                )
-                              </Link>
-                              <div>
-                                {(() => {
-                                  let modalities = [];
-
-                                  // Determine if the modality types field is already an array or needs to be split
-                                  let modalityArray = !study[
-                                    DicomFields.MODALITIES
-                                  ][DicomFields.VALUE][0].includes(',')
-                                    ? study[DicomFields.MODALITIES][
-                                        DicomFields.VALUE
-                                      ]
-                                    : study[DicomFields.MODALITIES][
-                                        DicomFields.VALUE
-                                      ][0].split(',');
-
-                                  for (let modality of modalityArray) {
-                                    modalities.push(
-                                      <Badge
-                                        color="primary"
-                                        className="mr-1"
-                                        key={modality}
-                                      >
-                                        {modality}
-                                      </Badge>
-                                    );
+                                <Link
+                                  to={`/study/${
+                                    study[DicomFields.STUDY_UID][
+                                      DicomFields.VALUE
+                                    ][0]
+                                  }`}
+                                  className="btn btn-link"
+                                  href="#"
+                                  title={
+                                    study[DicomFields.STUDY_UID][
+                                      DicomFields.VALUE
+                                    ][0]
                                   }
-                                  return modalities;
-                                })()}
-                              </div>
-                            </ListGroupItem>
-                          ))}
-                        </ListGroup>
-                      </>
-                    )}
-                  </ListGroupItem>
-                ))}
+                                >
+                                  {
+                                    study[DicomFields.PATIENT_NAME][
+                                      DicomFields.VALUE
+                                    ][0][DicomFields.ALPHABETIC]
+                                  }{' '}
+                                  (
+                                  {moment(
+                                    study[DicomFields.DATE][
+                                      DicomFields.VALUE
+                                    ][0],
+                                    DicomFields.DATE_FORMAT
+                                  ).format(DICOM_DATE_FORMAT)}
+                                  )
+                                </Link>
+                                <div>
+                                  {(() => {
+                                    let modalities = [];
+
+                                    // Determine if the modality types field is already an array or needs to be split
+                                    let modalityArray = !study[
+                                      DicomFields.MODALITIES
+                                    ][DicomFields.VALUE][0].includes(',')
+                                      ? study[DicomFields.MODALITIES][
+                                          DicomFields.VALUE
+                                        ]
+                                      : study[DicomFields.MODALITIES][
+                                          DicomFields.VALUE
+                                        ][0].split(',');
+
+                                    for (let modality of modalityArray) {
+                                      modalities.push(
+                                        <Badge
+                                          color="primary"
+                                          className="mr-1"
+                                          key={modality}
+                                        >
+                                          {modality}
+                                        </Badge>
+                                      );
+                                    }
+                                    return modalities;
+                                  })()}
+                                </div>
+                              </ListGroupItem>
+                            ))}
+                          </ListGroup>
+                        </>
+                      )}
+                    </ListGroupItem>
+                  ))}
               </ListGroup>
             ) : (
               <span>No albums found.</span>
