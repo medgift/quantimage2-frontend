@@ -268,11 +268,16 @@ export default function FeaturesList({
 
     return (
       task &&
-      task.status !== FEATURE_STATUS.COMPLETE && (
+      task.status !== FEATURE_STATUS.COMPLETE &&
+      (task.status !== FEATURE_STATUS.FAILURE ? (
         <span>
           <small>{task ? task.status_message : ''}...</small>
         </span>
-      )
+      ) : (
+        <span className="text-danger">
+          <small>ERROR - {task ? task.status_message : ''}...</small>
+        </span>
+      ))
     );
   };
 
