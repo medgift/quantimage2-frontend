@@ -3,6 +3,9 @@ import { Parser } from 'json2csv';
 import DicomFields from '../dicom/fields';
 import slugify from 'slugify';
 import Kheops from '../services/kheops';
+import JSZip from 'jszip';
+
+const PATIENT_ID_FIELD = 'patientID';
 
 export async function downloadFeatureSet(token, tasks) {
   let allFeatures = [];
@@ -40,30 +43,99 @@ export async function downloadFeatureSet(token, tasks) {
   downloadContent(fileContent, filename);
 }
 
-export function downloadFeature(extraction, studies, album) {
+export async function downloadFeature(extraction, studies, album) {
   const featuresContent = assembleFeatures(extraction, studies, album);
 
-  const parser = new Parser({
-    fields: Object.keys(
-      Array.isArray(featuresContent) ? featuresContent[0] : featuresContent
-    )
+  // Create file for each modality & label
+  let files = assembleFeatureFiles(extraction, studies, album, featuresContent);
+
+  let zipFile = new JSZip();
+
+  Object.keys(files).map(filename => {
+    zipFile.file(filename, files[filename]);
   });
 
-  const fileContent = new Blob([parser.parse(featuresContent)], {
-    type: 'text/csv'
-  });
-
-  const title = assembleFeatureTitles(extraction.families, '_').toLowerCase();
-
-  const filename = `features_${
-    album
-      ? slugify(album.name, { replacement: '_', lower: true })
-      : studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+  let zipTitle = album
+    ? slugify(album.name, { replacement: '_', lower: true })
+    : `${
+        studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
           DicomFields.ALPHABETIC
         ]
-  }_${title}.csv`;
+      }_${studies[DicomFields.STUDY_UID][DicomFields.VALUE][0]}`;
 
-  downloadContent(fileContent, filename);
+  let zipFileName = `features_${zipTitle}.zip`;
+
+  let zipFileContent = await zipFile.generateAsync({ type: 'blob' });
+
+  downloadContent(zipFileContent, zipFileName);
+}
+
+export function assembleFeatureFiles(
+  extraction,
+  studies,
+  album,
+  featuresContent
+) {
+  let featureFiles = {};
+
+  // Single study, transform to array
+  if (!Array.isArray(featuresContent)) {
+    featuresContent = [featuresContent];
+  }
+
+  let formattedFeaturesContent = {};
+  let csvHeader;
+
+  // Format the features content in order to parse it and transform to CSV
+  for (let features of featuresContent) {
+    Object.keys(features)
+      .filter(key => key !== PATIENT_ID_FIELD)
+      .map(modality => {
+        Object.keys(features[modality]).map(label => {
+          let featuresKey = `${modality}_${label}`;
+          if (!formattedFeaturesContent[featuresKey])
+            formattedFeaturesContent[featuresKey] = [];
+
+          let featuresWithPatientID = {
+            [PATIENT_ID_FIELD]: features[PATIENT_ID_FIELD],
+            ...features[modality][label]
+          };
+
+          if (!csvHeader) csvHeader = Object.keys(featuresWithPatientID);
+
+          formattedFeaturesContent[featuresKey].push(featuresWithPatientID);
+        });
+      });
+  }
+
+  // Generate CSV files for the different modality/label combinations
+  const parser = new Parser({
+    fields: csvHeader
+  });
+
+  Object.keys(formattedFeaturesContent).map(featuresKey => {
+    const fileContent = new Blob(
+      [parser.parse(formattedFeaturesContent[featuresKey])],
+      {
+        type: 'text/csv'
+      }
+    );
+
+    let title = assembleFeatureTitles(extraction.families, '_').toLowerCase();
+    title = `${title}_${featuresKey}`;
+
+    const filename = `features${
+      album
+        ? '_' + slugify(album.name, { replacement: '_', lower: true })
+        : /*studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+                DicomFields.ALPHABETIC
+              ]*/ ''
+    }_${title}.csv`;
+
+    featureFiles[filename] = fileContent;
+  });
+
+  return featureFiles;
 }
 
 export function assembleFeatureTitles(families, separator = ',') {
@@ -113,21 +185,32 @@ export function assembleFeatures(extraction, studies, album) {
 function getFeaturesFromTasks(patientID, tasks) {
   let leaveOutPrefix = 'diagnostics_';
 
-  let features = { patientID: patientID };
+  let filteredFeatures = { [PATIENT_ID_FIELD]: patientID };
 
   tasks.map(task => {
-    let filteredTask = Object.fromEntries(
-      Object.entries(task.payload).filter(
-        ([key, val]) => !key.startsWith(leaveOutPrefix)
-      )
-    );
+    // Go through modalities
+    Object.keys(task.payload).map(modality => {
+      if (!filteredFeatures[modality]) filteredFeatures[modality] = {};
 
-    features = { ...features, ...filteredTask };
+      // Go through labels
+      Object.keys(task.payload[modality]).map(label => {
+        //if (!filteredFeatures[modality][label]) filteredFeatures[modality][label] = {};
+        filteredFeatures[modality][label] = {
+          ...filteredFeatures[modality][label],
+          ...Object.fromEntries(
+            Object.entries(task.payload[modality][label]).filter(
+              ([key, val]) => !key.startsWith(leaveOutPrefix)
+            )
+          )
+        };
+      });
+    });
 
+    // The return value is not really used in this case, we are just filling the features object
     return task;
   });
 
-  return features;
+  return filteredFeatures;
 }
 
 function downloadContent(content, filename) {

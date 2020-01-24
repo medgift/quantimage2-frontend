@@ -35,7 +35,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
     let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
-    downloadFeature(albumExtraction, albumStudies, album);
+    await downloadFeature(albumExtraction, albumStudies, album);
   };
 
   let toggleModal = () => {

@@ -48,7 +48,7 @@ export default function FeaturesModal({
                   </div>
                 ) : (
                   Object.keys(features[key]).map((label, idx) => (
-                    <>
+                    <React.Fragment key={`${key}-${label}`}>
                       <div>{label}</div>
                       <ListGroup className="m-1">
                         {Object.keys(features[key][label]).map(
@@ -70,7 +70,7 @@ export default function FeaturesModal({
                           )
                         )}
                       </ListGroup>
-                    </>
+                    </React.Fragment>
                   ))
                 )}
               </ListGroupItem>
