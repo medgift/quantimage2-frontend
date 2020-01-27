@@ -233,7 +233,39 @@ export default function FeaturesList({
     }));
   };
 
-  let updateFeatureConfig = (e, featureConfig, backend, featureName) => {
+  let countActiveFeaturesInFamily = featureConfig => {
+    let activeFeatures = 0;
+
+    for (let backend in featureConfig['backends']) {
+      activeFeatures += featureConfig['backends'][backend]['features'].length;
+    }
+
+    return activeFeatures;
+  };
+
+  let handleFeatureFamilyStatusAfterConfigUpdate = (
+    featureConfig,
+    featureFamilyID
+  ) => {
+    let activeFeatures = countActiveFeaturesInFamily(featureConfig);
+
+    // If we're disabling the last feature of a family, uncheck the family
+    if (selectedFamilies[featureFamilyID] && activeFeatures === 0) {
+      console.log('disable!');
+      setSelectedFamilies({ ...selectedFamilies, [featureFamilyID]: false });
+    } else if (!selectedFamilies[featureFamilyID] && activeFeatures !== 0) {
+      console.log('enable!');
+      setSelectedFamilies({ ...selectedFamilies, [featureFamilyID]: true });
+    }
+  };
+
+  let updateFeatureConfig = (
+    e,
+    featureFamilyID,
+    featureConfig,
+    backend,
+    featureName
+  ) => {
     const checked = e.target.checked;
 
     let updatedFeatureConfigs = { ...featureConfigs };
@@ -250,6 +282,8 @@ export default function FeaturesList({
         featureName
       ];
     }
+
+    handleFeatureFamilyStatusAfterConfigUpdate(featureConfig, featureFamilyID);
 
     setFeatureConfigs(updatedFeatureConfigs);
   };
@@ -375,6 +409,7 @@ export default function FeaturesList({
                                 onChange={e =>
                                   updateFeatureConfig(
                                     e,
+                                    featureFamily.id,
                                     featureConfigs[featureFamily.id],
                                     backend,
                                     featureName
@@ -411,11 +446,18 @@ export default function FeaturesList({
 
             <ListGroupItem>
               <ButtonGroup>
-                <Button color="success" onClick={handleExtractFeaturesClick}>
+                <Button
+                  color="success"
+                  onClick={handleExtractFeaturesClick}
+                  disabled={
+                    Object.values(selectedFamilies).filter(value => value)
+                      .length === 0
+                  }
+                >
                   <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
                   <span>Extract Features</span>
                 </Button>
-                {extraction && (
+                {extraction && !albumID && (
                   <>
                     <Button
                       color="info"
