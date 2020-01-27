@@ -6,6 +6,8 @@ import Kheops from '../services/kheops';
 import JSZip from 'jszip';
 
 const PATIENT_ID_FIELD = 'patientID';
+const MODALITY_FIELD = 'modality';
+const LABEL_FIELD = 'label';
 
 export async function downloadFeatureSet(token, tasks) {
   let allFeatures = [];
@@ -26,13 +28,17 @@ export async function downloadFeatureSet(token, tasks) {
     allFeatures.push(features);
   }
 
+  // Assemble CSV header & data
+  let fields = assembleCSVHeader(allFeatures);
+  let data = assembleCSVData(allFeatures);
+
   const parser = new Parser({
-    fields: Object.keys(
-      Array.isArray(allFeatures) ? allFeatures[0] : allFeatures
-    )
+    fields: fields
   });
 
-  const fileContent = new Blob([parser.parse(allFeatures)], {
+  let parsedData = parser.parse(data);
+
+  const fileContent = new Blob([parsedData], {
     type: 'text/csv'
   });
 
@@ -41,6 +47,52 @@ export async function downloadFeatureSet(token, tasks) {
   const filename = `features_${title}.csv`;
 
   downloadContent(fileContent, filename);
+}
+
+function assembleCSVHeader(allFeatures) {
+  let fields = [];
+  for (let features of allFeatures) {
+    Object.keys(features)
+      .filter(key => key !== PATIENT_ID_FIELD)
+      .map(modality => {
+        Object.keys(features[modality]).map(label => {
+          Object.keys(features[modality][label]).map(featureName => {
+            if (!fields.includes(featureName)) fields.push(featureName);
+          });
+        });
+      });
+  }
+  fields = [PATIENT_ID_FIELD, MODALITY_FIELD, LABEL_FIELD, ...fields.sort()];
+
+  return fields;
+}
+
+function assembleCSVData(allFeatures, fields) {
+  let dataLines = [];
+
+  let alwaysPresentFields = [PATIENT_ID_FIELD, MODALITY_FIELD, LABEL_FIELD];
+
+  for (let features of allFeatures) {
+    let patientID = features[PATIENT_ID_FIELD];
+
+    Object.keys(features)
+      .filter(key => key !== PATIENT_ID_FIELD)
+      .map(modality => {
+        Object.keys(features[modality]).map(label => {
+          let dataLine = {};
+
+          dataLine[PATIENT_ID_FIELD] = patientID;
+          dataLine[MODALITY_FIELD] = modality;
+          dataLine[LABEL_FIELD] = label;
+
+          dataLine = { ...dataLine, ...features[modality][label] };
+
+          dataLines.push(dataLine);
+        });
+      });
+  }
+
+  return dataLines;
 }
 
 export async function downloadFeature(extraction, studies, album) {
