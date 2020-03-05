@@ -150,6 +150,14 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
   };
 
+  const getPatientNameForStudy = study => {
+    if (study[DicomFields.PATIENT_NAME][DicomFields.VALUE])
+      return study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
+        DicomFields.ALPHABETIC
+      ];
+    else return 'UNNAMED';
+  };
+
   const handleExtractionStatus = useCallback(extractionStatus => {
     console.log(
       `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
@@ -263,12 +271,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                                     ][0]
                                   }
                                 >
-                                  {
-                                    study[DicomFields.PATIENT_NAME][
-                                      DicomFields.VALUE
-                                    ][0][DicomFields.ALPHABETIC]
-                                  }{' '}
-                                  (
+                                  {getPatientNameForStudy(study)} (
                                   {moment(
                                     study[DicomFields.DATE][
                                       DicomFields.VALUE
