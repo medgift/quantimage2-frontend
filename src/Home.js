@@ -98,18 +98,30 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
       if (!albumExtraction) {
         return <div>{extractionButton}</div>;
-      } else if (!albumExtraction.status.successful) {
+      } else if (
+        !albumExtraction.status.successful &&
+        !albumExtraction.status.failed
+      ) {
         return (
           <div className="text-muted">
             <FontAwesomeIcon icon="sync" spin />{' '}
             {featureExtractionStatusText(albumExtraction)}
           </div>
         );
-      } else {
+      } else if (albumExtraction.status.successful) {
         return (
           <div>
             {extractionButton}
             {downloadButton}
+          </div>
+        );
+      } else {
+        return (
+          <div>
+            <span className="text-danger">
+              {featureExtractionStatusText(albumExtraction)}
+            </span>
+            {extractionButton}
           </div>
         );
       }
@@ -119,6 +131,10 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   };
 
   const featureExtractionStatusText = albumExtraction => {
+    if (albumExtraction.status.failed) {
+      return <span>Failed!</span>;
+    }
+
     if (
       albumExtraction.status.pending_tasks ===
       albumExtraction.status.total_tasks
