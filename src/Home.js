@@ -13,7 +13,7 @@ import FeaturesList from './components/FeaturesList';
 import MyModal from './components/MyModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from './context/SocketContext';
-import { downloadFeature } from './utils/feature-utils';
+import { analyzeFeatures, downloadFeature } from './utils/feature-utils';
 
 function Home({ albums, studies, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
@@ -36,6 +36,16 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
     await downloadFeature(albumExtraction, albumStudies, album);
+  };
+
+  let handleAnalyzeButtonClick = async album => {
+    let albumExtraction = extractions.find(
+      extraction => extraction.album_id === album.album_id
+    );
+
+    let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
+
+    await analyzeFeatures(albumExtraction, albumStudies, album, keycloak.token);
   };
 
   let toggleModal = () => {
@@ -91,6 +101,13 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       </Button>
     );
 
+    let analyzeButton = (
+      <Button color="link" onClick={() => handleAnalyzeButtonClick(album)}>
+        <FontAwesomeIcon icon="chart-bar" />{' '}
+        <span>Analyze Features for Album</span>
+      </Button>
+    );
+
     if (extractions) {
       let albumExtraction = extractions.find(
         extraction => extraction.album_id === album.album_id
@@ -113,6 +130,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           <div>
             {extractionButton}
             {downloadButton}
+            {analyzeButton}
           </div>
         );
       } else {

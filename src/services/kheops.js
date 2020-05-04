@@ -40,6 +40,15 @@ class Kheops {
     }
   }
 
+  async series(token, studyUID) {
+    try {
+      const url = `${endpoints.studies}/${studyUID}/series`; //?album=${albumID} //&includefield=00080021&includefield=00080031
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async studyMetadata(token, studyUID) {
     try {
       const url = `${endpoints.studies}/${studyUID}/metadata`;

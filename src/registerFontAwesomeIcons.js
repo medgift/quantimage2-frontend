@@ -13,7 +13,8 @@ import {
   faExternalLinkAlt,
   faExclamationCircle,
   faInfoCircle,
-  faCheckCircle
+  faCheckCircle,
+  faChartBar
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -32,4 +33,5 @@ export default function registerIcons() {
   library.add(faExclamationCircle);
   library.add(faInfoCircle);
   library.add(faCheckCircle);
+  library.add(faChartBar);
 }

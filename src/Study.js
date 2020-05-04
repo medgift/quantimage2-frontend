@@ -16,19 +16,28 @@ function Study({ match, kheopsError }) {
   } = match;
 
   let [keycloak] = useKeycloak();
-  let [studyMetadata, setStudyMetadata] = useState(null);
+  //let [studyMetadata, setStudyMetadata] = useState(null);
+  let [studyDetails, setStudyDetails] = useState(null);
+  let [seriesDetails, setSeriesDetails] = useState(null);
 
-  let series = useMemo(() => parseMetadata(studyMetadata), [studyMetadata]);
+  let series = useMemo(() => parseSeriesDetails(seriesDetails), [
+    seriesDetails
+  ]);
 
   useEffect(() => {
-    async function getStudyMetadata() {
-      const studyMetadata = await Kheops.studyMetadata(
+    async function getStudyDetails() {
+      const studyDetails = await Kheops.study(keycloak.token, studyUID);
+      setStudyDetails(studyDetails);
+
+      const seriesDetails = await Kheops.series(
         keycloak.token,
         studyUID
+        //albumID
       );
-      setStudyMetadata(studyMetadata);
+      setSeriesDetails(seriesDetails);
     }
-    getStudyMetadata();
+
+    getStudyDetails();
   }, [keycloak, studyUID]);
 
   return (
@@ -36,7 +45,7 @@ function Study({ match, kheopsError }) {
       <h2>Study Details</h2>
       {kheopsError ? (
         <Alert color="danger">Error fetching data from Kheops</Alert>
-      ) : !studyMetadata ? (
+      ) : !seriesDetails ? (
         <Spinner />
       ) : (
         <>
@@ -46,7 +55,7 @@ function Study({ match, kheopsError }) {
                 <th scope="row">Patient</th>
                 <td>
                   {
-                    studyMetadata[0][DicomFields.PATIENT_NAME][
+                    studyDetails[DicomFields.PATIENT_NAME][
                       DicomFields.VALUE
                     ][0][DicomFields.ALPHABETIC]
                   }
@@ -56,7 +65,7 @@ function Study({ match, kheopsError }) {
                 <th scope="row">Date</th>
                 <td>
                   {moment(
-                    studyMetadata[0][DicomFields.DATE][DicomFields.VALUE][0],
+                    studyDetails[DicomFields.DATE][DicomFields.VALUE][0],
                     DicomFields.DATE_FORMAT
                   ).format(DICOM_DATE_FORMAT)}
                 </td>
@@ -67,12 +76,12 @@ function Study({ match, kheopsError }) {
                   <tr key={index}>
                     <th scope="row">{dataset}</th>
                     <td>
-                      {series[dataset].length}{' '}
+                      {series[dataset]}{' '}
                       {dataset === 'RTSTRUCT' || dataset === 'RWV'
-                        ? series[dataset].length > 1
+                        ? series[dataset] > 1
                           ? 'files'
                           : 'file'
-                        : series[dataset].length > 1
+                        : series[dataset] > 1
                         ? 'images'
                         : 'image'}
                     </td>
@@ -93,14 +102,15 @@ function Study({ match, kheopsError }) {
 
 export default Study;
 
-function parseMetadata(metadata) {
-  if (metadata) {
+function parseSeriesDetails(seriesDetails) {
+  if (seriesDetails) {
     let series = {};
-    for (let entry of metadata) {
+    for (let entry of seriesDetails) {
       let modality = entry[DicomFields.MODALITY][DicomFields.VALUE][0];
-      if (!series[modality]) series[modality] = [];
+      let instances =
+        entry[DicomFields.SERIES_INSTANCES_NB][DicomFields.VALUE][0];
 
-      series[modality].push(entry);
+      series[modality] = instances;
     }
     return series;
   } else {

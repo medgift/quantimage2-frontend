@@ -5,10 +5,11 @@ import { request } from './common';
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
 const endpoints = {
+  analyze: `${baseEndpoint}/analyze`,
   extract: `${baseEndpoint}/extract`,
   extractions: `${baseEndpoint}/extractions`,
-  tasks: `${baseEndpoint}/tasks`,
-  families: `${baseEndpoint}/feature-families`
+  families: `${baseEndpoint}/feature-families`,
+  tasks: `${baseEndpoint}/tasks`
 };
 
 class Backend {
@@ -33,6 +34,19 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: feature_families_map,
+        token: token
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async analyze(token, featureFiles) {
+    try {
+      const url = `${endpoints.analyze}`;
+      return await request(url, {
+        method: 'POST',
+        data: featureFiles,
         token: token
       });
     } catch (err) {

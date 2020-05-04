@@ -2,6 +2,7 @@ import { Parser } from 'json2csv';
 
 import DicomFields from '../dicom/fields';
 import slugify from 'slugify';
+import Backend from '../services/backend';
 import Kheops from '../services/kheops';
 import JSZip from 'jszip';
 
@@ -95,11 +96,32 @@ function assembleCSVData(allFeatures, fields) {
   return dataLines;
 }
 
+export async function analyzeFeatures(extraction, studies, album, token) {
+  const featuresContent = assembleFeatures(extraction, studies, album);
+
+  const tabularizedObject = tabularizeFeatures(featuresContent);
+
+  let analyzedFeatures = await Backend.analyze(
+    token,
+    tabularizedObject.features
+  );
+
+  console.log(analyzedFeatures);
+}
+
 export async function downloadFeature(extraction, studies, album) {
   const featuresContent = assembleFeatures(extraction, studies, album);
 
+  const tabularizedObject = tabularizeFeatures(featuresContent);
+
   // Create file for each modality & label
-  let files = assembleFeatureFiles(extraction, studies, album, featuresContent);
+  let files = assembleFeatureFiles(
+    extraction,
+    studies,
+    album,
+    tabularizedObject.features,
+    tabularizedObject.header
+  );
 
   let zipFile = new JSZip();
 
@@ -122,14 +144,7 @@ export async function downloadFeature(extraction, studies, album) {
   downloadContent(zipFileContent, zipFileName);
 }
 
-export function assembleFeatureFiles(
-  extraction,
-  studies,
-  album,
-  featuresContent
-) {
-  let featureFiles = {};
-
+export function tabularizeFeatures(featuresContent) {
   // Single study, transform to array
   if (!Array.isArray(featuresContent)) {
     featuresContent = [featuresContent];
@@ -160,14 +175,26 @@ export function assembleFeatureFiles(
       });
   }
 
+  return { features: formattedFeaturesContent, header: csvHeader };
+}
+
+export function assembleFeatureFiles(
+  extraction,
+  studies,
+  album,
+  tabularizedFeatures,
+  csvHeader
+) {
+  let featureFiles = {};
+
   // Generate CSV files for the different modality/label combinations
   const parser = new Parser({
     fields: csvHeader
   });
 
-  Object.keys(formattedFeaturesContent).map(featuresKey => {
+  Object.keys(tabularizedFeatures).map(featuresKey => {
     const fileContent = new Blob(
-      [parser.parse(formattedFeaturesContent[featuresKey])],
+      [parser.parse(tabularizedFeatures[featuresKey])],
       {
         type: 'text/csv'
       }

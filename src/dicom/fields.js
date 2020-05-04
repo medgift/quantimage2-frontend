@@ -5,6 +5,7 @@ const fields = {
   MODALITY: '00080060',
   MODALITIES: '00080061',
   DICOM_FILE_URL: '7FE00010',
+  SERIES_INSTANCES_NB: '00201209',
   VALUE: 'Value',
   BULK_DATA_URI: 'BulkDataURI',
   ALPHABETIC: 'Alphabetic',
