@@ -217,7 +217,7 @@ export function assembleFeatureFiles(
   return featureFiles;
 }
 
-export function assembleFeatureTitles(families, separator = ',') {
+export function assembleFeatureTitles(families, separator = ', ') {
   return families
     .map(family => {
       return family.feature_family.name;

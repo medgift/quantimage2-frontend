@@ -26,6 +26,28 @@ class Backend {
     }
   }
 
+  async extraction(token, extractionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  downloadExtractionURL(extractionID, patientID, studyDate, userID) {
+    try {
+      let url = `${endpoints.extractions}/${extractionID}/download`;
+      if (patientID && studyDate)
+        url += `?patientID=${patientID}&studyDate=${studyDate}`;
+      else if (userID) url += `?userID=${userID}`;
+      return url;
+      //return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extract(token, album_id, feature_families_map, study_uid) {
     try {
       const url = album_id

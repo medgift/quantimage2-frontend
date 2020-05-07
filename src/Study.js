@@ -16,7 +16,6 @@ function Study({ match, kheopsError }) {
   } = match;
 
   let [keycloak] = useKeycloak();
-  //let [studyMetadata, setStudyMetadata] = useState(null);
   let [studyDetails, setStudyDetails] = useState(null);
   let [seriesDetails, setSeriesDetails] = useState(null);
 
@@ -77,7 +76,9 @@ function Study({ match, kheopsError }) {
                     <th scope="row">{dataset}</th>
                     <td>
                       {series[dataset]}{' '}
-                      {dataset === 'RTSTRUCT' || dataset === 'RWV'
+                      {dataset === 'RTSTRUCT' ||
+                      dataset === 'RWV' ||
+                      dataset === 'SEG'
                         ? series[dataset] > 1
                           ? 'files'
                           : 'file'
@@ -92,7 +93,14 @@ function Study({ match, kheopsError }) {
         </>
       )}
       <h2>Features</h2>
-      <FeaturesList studyUID={studyUID} setMinWidth={true} />
+      {studyDetails && (
+        <FeaturesList
+          studyUID={studyUID}
+          patientID={studyDetails[DicomFields.PATIENT_ID][DicomFields.VALUE][0]}
+          studyDate={studyDetails[DicomFields.DATE][DicomFields.VALUE][0]}
+          setMinWidth={true}
+        />
+      )}
       <Link style={{ marginTop: '1em' }} to="/">
         Back to Home
       </Link>

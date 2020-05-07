@@ -33,9 +33,16 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       extraction => extraction.album_id === album.album_id
     );
 
-    let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
+    //let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
-    await downloadFeature(albumExtraction, albumStudies, album);
+    //await downloadFeature(albumExtraction, albumStudies, album);
+
+    window.location.href = Backend.downloadExtractionURL(
+      albumExtraction.id,
+      null,
+      null,
+      keycloak.tokenParsed.sub
+    );
   };
 
   let handleAnalyzeButtonClick = async album => {

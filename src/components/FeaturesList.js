@@ -21,6 +21,8 @@ import Kheops from '../services/kheops';
 export default function FeaturesList({
   albumID,
   studyUID,
+  studyDate,
+  patientID,
   setMinWidth,
   extractionCallback
 }) {
@@ -222,8 +224,19 @@ export default function FeaturesList({
   };
 
   let handleDownloadFeaturesClick = async e => {
-    let study = await Kheops.study(keycloak.token, studyUID);
-    await downloadFeature(extraction, study);
+    //let study = await Kheops.study(keycloak.token, studyUID);
+    //await downloadFeature(extraction, study);
+    // let content = await Backend.downloadExtraction(
+    //   keycloak.token,
+    //   extraction.id
+    // );
+
+    window.location.href = Backend.downloadExtractionURL(
+      extraction.id,
+      patientID,
+      studyDate
+    );
+    //console.log('Downloaded content', content);
   };
 
   let handleToggleSettingsClick = familyID => {
@@ -508,7 +521,7 @@ export default function FeaturesList({
         <FeaturesModal
           isOpen={modal}
           toggle={toggleModal}
-          extraction={extraction}
+          extractionID={extraction.id}
           studyUID={studyUID}
         />
       )}
