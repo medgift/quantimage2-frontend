@@ -20,6 +20,8 @@ import {
 import FeatureFamilies from './FeatureFamilies';
 import FeatureFamilyCreate from './FeatureFamilyCreate';
 import { PrivateRoute } from './utils/PrivateRoute';
+import kheops from './services/kheops';
+import Train from './Train';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -113,6 +115,12 @@ function App({ setUser, setIsAdmin }) {
                 path="/study/:studyUID"
                 component={Study}
                 kheopsError={kheopsError}
+              />
+              <PropsRoute
+                path="/models/:albumID"
+                component={Train}
+                kheopsError={kheopsError}
+                albums={albums}
               />
               <PropsRoute path="/profile" component={Profile} />
               <PrivateRoute

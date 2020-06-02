@@ -96,125 +96,26 @@ function assembleCSVData(allFeatures, fields) {
   return dataLines;
 }
 
-export async function analyzeFeatures(extraction, studies, album, token) {
-  const featuresContent = assembleFeatures(extraction, studies, album);
-
-  const tabularizedObject = tabularizeFeatures(featuresContent);
-
-  let analyzedFeatures = await Backend.analyze(
-    token,
-    tabularizedObject.features
-  );
-
-  console.log(analyzedFeatures);
-}
-
-export async function downloadFeature(extraction, studies, album) {
-  const featuresContent = assembleFeatures(extraction, studies, album);
-
-  const tabularizedObject = tabularizeFeatures(featuresContent);
-
-  // Create file for each modality & label
-  let files = assembleFeatureFiles(
-    extraction,
-    studies,
-    album,
-    tabularizedObject.features,
-    tabularizedObject.header
-  );
-
-  let zipFile = new JSZip();
-
-  Object.keys(files).map(filename => {
-    zipFile.file(filename, files[filename]);
-  });
-
-  let zipTitle = album
-    ? slugify(album.name, { replacement: '_', lower: true })
-    : `${
-        studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
-          DicomFields.ALPHABETIC
-        ]
-      }_${studies[DicomFields.STUDY_UID][DicomFields.VALUE][0]}`;
-
-  let zipFileName = `features_${zipTitle}.zip`;
-
-  let zipFileContent = await zipFile.generateAsync({ type: 'blob' });
-
-  downloadContent(zipFileContent, zipFileName);
-}
-
-export function tabularizeFeatures(featuresContent) {
-  // Single study, transform to array
-  if (!Array.isArray(featuresContent)) {
-    featuresContent = [featuresContent];
-  }
-
-  let formattedFeaturesContent = {};
-  let csvHeader;
-
-  // Format the features content in order to parse it and transform to CSV
-  for (let features of featuresContent) {
-    Object.keys(features)
-      .filter(key => key !== PATIENT_ID_FIELD)
-      .map(modality => {
-        Object.keys(features[modality]).map(label => {
-          let featuresKey = `${modality}_${label}`;
-          if (!formattedFeaturesContent[featuresKey])
-            formattedFeaturesContent[featuresKey] = [];
-
-          let featuresWithPatientID = {
-            [PATIENT_ID_FIELD]: features[PATIENT_ID_FIELD],
-            ...features[modality][label]
-          };
-
-          if (!csvHeader) csvHeader = Object.keys(featuresWithPatientID);
-
-          formattedFeaturesContent[featuresKey].push(featuresWithPatientID);
-        });
-      });
-  }
-
-  return { features: formattedFeaturesContent, header: csvHeader };
-}
-
-export function assembleFeatureFiles(
+export async function trainModel(
   extraction,
   studies,
   album,
-  tabularizedFeatures,
-  csvHeader
+  labels,
+  modelType,
+  algorithmType,
+  token
 ) {
-  let featureFiles = {};
+  let createdModel = await Backend.trainModel(
+    token,
+    extraction,
+    studies,
+    album,
+    labels,
+    modelType,
+    algorithmType
+  );
 
-  // Generate CSV files for the different modality/label combinations
-  const parser = new Parser({
-    fields: csvHeader
-  });
-
-  Object.keys(tabularizedFeatures).map(featuresKey => {
-    const fileContent = new Blob(
-      [parser.parse(tabularizedFeatures[featuresKey])],
-      {
-        type: 'text/csv'
-      }
-    );
-
-    let title = assembleFeatureTitles(extraction.families, '_').toLowerCase();
-    title = `${title}_${featuresKey}`;
-
-    const filename = `features${
-      album
-        ? '_' + slugify(album.name, { replacement: '_', lower: true })
-        : /*studies[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
-                DicomFields.ALPHABETIC
-              ]*/ ''
-    }_${title}.csv`;
-
-    featureFiles[filename] = fileContent;
-  });
-
-  return featureFiles;
+  return createdModel;
 }
 
 export function assembleFeatureTitles(families, separator = ', ') {

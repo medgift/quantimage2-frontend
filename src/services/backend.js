@@ -9,6 +9,8 @@ const endpoints = {
   extract: `${baseEndpoint}/extract`,
   extractions: `${baseEndpoint}/extractions`,
   families: `${baseEndpoint}/feature-families`,
+  models: `${baseEndpoint}/models`,
+  labels: `${baseEndpoint}/labels`,
   tasks: `${baseEndpoint}/tasks`
 };
 
@@ -35,11 +37,67 @@ class Backend {
     }
   }
 
-  downloadExtractionURL(extractionID, patientID, studyDate, userID) {
+  async extractionFeatureDetails(token, extractionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/feature-details`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async labels(token, albumID) {
+    try {
+      const url = `${endpoints.labels}/${albumID}`;
+
+      return await request(url, {
+        token: token
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async saveLabels(token, albumID, labelMap) {
+    try {
+      const url = `${endpoints.labels}/${albumID}`;
+
+      return await request(url, {
+        method: 'POST',
+        data: labelMap,
+        token: token
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async models(token, albumID) {
+    try {
+      let url;
+      if (albumID) url = `${endpoints.models}/${albumID}`;
+      else url = `${endpoints.models}`;
+
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async deleteModel(token, modelID) {
+    try {
+      let url = `${endpoints.models}/${modelID}`;
+      return await request(url, { method: 'DELETE', token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  downloadExtractionURL(extractionID, patientID, studyDate, studyUID, userID) {
     try {
       let url = `${endpoints.extractions}/${extractionID}/download`;
-      if (patientID && studyDate)
-        url += `?patientID=${patientID}&studyDate=${studyDate}`;
+      if (patientID && studyDate && studyUID)
+        url += `?patientID=${patientID}&studyDate=${studyDate}&studyUID=${studyUID}`;
       else if (userID) url += `?userID=${userID}`;
       return url;
       //return await request(url, { token: token });
@@ -63,12 +121,27 @@ class Backend {
     }
   }
 
-  async analyze(token, featureFiles) {
+  async trainModel(
+    token,
+    extraction,
+    studies,
+    album,
+    labels,
+    modelType,
+    algorithmType
+  ) {
     try {
-      const url = `${endpoints.analyze}`;
+      const url = `${endpoints.models}/${album.album_id}`;
       return await request(url, {
         method: 'POST',
-        data: featureFiles,
+        data: {
+          'extraction-id': extraction.id,
+          studies: studies,
+          album: album,
+          labels: labels,
+          'model-type': modelType,
+          'algorithm-type': algorithmType
+        },
         token: token
       });
     } catch (err) {

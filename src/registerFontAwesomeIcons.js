@@ -14,7 +14,10 @@ import {
   faExclamationCircle,
   faInfoCircle,
   faCheckCircle,
-  faChartBar
+  faChartBar,
+  faGraduationCap,
+  faPlus,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -34,4 +37,7 @@ export default function registerIcons() {
   library.add(faInfoCircle);
   library.add(faCheckCircle);
   library.add(faChartBar);
+  library.add(faGraduationCap);
+  library.add(faPlus);
+  library.add(faArrowLeft);
 }

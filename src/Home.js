@@ -4,7 +4,14 @@ import moment from 'moment';
 import './Home.css';
 import Backend from './services/backend';
 import Kheops from './services/kheops';
-import { Alert, Button, ListGroup, ListGroupItem, Spinner } from 'reactstrap';
+import {
+  Alert,
+  Button,
+  Collapse,
+  ListGroup,
+  ListGroupItem,
+  Spinner
+} from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { DICOM_DATE_FORMAT } from './config/constants';
 import { Badge } from 'reactstrap';
@@ -13,12 +20,13 @@ import FeaturesList from './components/FeaturesList';
 import MyModal from './components/MyModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from './context/SocketContext';
-import { analyzeFeatures, downloadFeature } from './utils/feature-utils';
+import { trainModel } from './utils/feature-utils';
 
 function Home({ albums, studies, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
   let [currentAlbum, setCurrentAlbum] = useState(null);
-  let [extractions, setExtractions] = useState([]);
+  let [extractions, setExtractions] = useState(null);
+  let [models, setModels] = useState(null);
   let [keycloak] = useKeycloak();
 
   let socket = useContext(SocketContext);
@@ -33,26 +41,13 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       extraction => extraction.album_id === album.album_id
     );
 
-    //let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
-
-    //await downloadFeature(albumExtraction, albumStudies, album);
-
     window.location.href = Backend.downloadExtractionURL(
       albumExtraction.id,
       null,
       null,
+      null,
       keycloak.tokenParsed.sub
     );
-  };
-
-  let handleAnalyzeButtonClick = async album => {
-    let albumExtraction = extractions.find(
-      extraction => extraction.album_id === album.album_id
-    );
-
-    let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
-
-    await analyzeFeatures(albumExtraction, albumStudies, album, keycloak.token);
   };
 
   let toggleModal = () => {
@@ -97,28 +92,34 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   let showAlbumButtons = album => {
     let extractionButton = (
       <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
-        <FontAwesomeIcon icon="cog" /> <span>Extract Features for Album</span>
+        <FontAwesomeIcon icon="cog" /> <span>Extract Features</span>
       </Button>
     );
 
     let downloadButton = (
       <Button color="link" onClick={() => handleDownloadAlbumClick(album)}>
-        <FontAwesomeIcon icon="download" />{' '}
-        <span>Download Features for Album</span>
+        <FontAwesomeIcon icon="download" /> <span>Download Features</span>
       </Button>
     );
 
-    let analyzeButton = (
-      <Button color="link" onClick={() => handleAnalyzeButtonClick(album)}>
-        <FontAwesomeIcon icon="chart-bar" />{' '}
-        <span>Analyze Features for Album</span>
-      </Button>
+    let analyzeButton = (album, models) => (
+      <Link
+        to={`/models/${album.album_id}`}
+        className="btn btn-link"
+        href="#"
+        title={album.name}
+      >
+        <FontAwesomeIcon icon="graduation-cap" />{' '}
+        <span>{!models ? 'Train a Model' : 'Manage Models'}</span>
+      </Link>
     );
 
-    if (extractions) {
+    if (extractions && models) {
       let albumExtraction = extractions.find(
         extraction => extraction.album_id === album.album_id
       );
+
+      let albumModels = models.find(model => model.album_id === album.album_id);
 
       if (!albumExtraction) {
         return <div>{extractionButton}</div>;
@@ -137,7 +138,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           <div>
             {extractionButton}
             {downloadButton}
-            {analyzeButton}
+            {analyzeButton(album, albumModels)}
           </div>
         );
       } else {
@@ -151,7 +152,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         );
       }
     } else {
-      return null;
+      return <span>Loading...</span>;
     }
   };
 
@@ -199,6 +200,14 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     else return 'UNNAMED';
   };
 
+  const [studyToggles, setStudyToggles] = useState({});
+
+  const handleStudyToggle = albumID => {
+    const updatedStudyToggles = { ...studyToggles };
+    updatedStudyToggles[albumID] = !updatedStudyToggles[albumID];
+    setStudyToggles(updatedStudyToggles);
+  };
+
   const handleExtractionStatus = useCallback(extractionStatus => {
     console.log(
       `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
@@ -218,6 +227,19 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
   }, []);
 
+  // Initialize all albums to NOT show the studies
+  useEffect(() => {
+    if (albums && albums.length > 0 && Object.keys(studyToggles).length === 0) {
+      setStudyToggles(
+        albums.reduce((acc, album) => {
+          acc[album.album_id] = false;
+          return acc;
+        }, {})
+      );
+    }
+  }, [albums]);
+
+  // Subscribe to Socket messages
   useEffect(() => {
     socket.on('extraction-status', handleExtractionStatus);
 
@@ -226,6 +248,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     };
   }, [socket, handleExtractionStatus]);
 
+  // Load extractions & models
   useEffect(() => {
     async function getAlbumExtractions() {
       let latestExtractions = [];
@@ -241,7 +264,19 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       setExtractions(extractions => latestExtractions);
     }
 
-    if (albums && albums.length > 0) getAlbumExtractions();
+    async function getAlbumModels() {
+      let models = [];
+      for (let album of albums) {
+        let albumModels = await Backend.models(keycloak.token, album.album_id);
+        if (albumModels) models.push(...albumModels);
+      }
+      setModels(models);
+    }
+
+    if (albums && albums.length > 0) {
+      getAlbumExtractions();
+      getAlbumModels();
+    }
   }, [keycloak, albums]);
 
   return (
@@ -251,10 +286,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           <h1 data-testid="welcome-page-header">QuantImage v2</h1>
         </header>
         <section id="extract-features">
-          <h2>Extract features</h2>
+          <h2>Dashboard</h2>
           <p>
             This page allows you to extract features from studies that were
-            added to your albums in the Kheops platform.
+            added to your albums in the Kheops platform. You can then download
+            the extracted features or train a machine learning model with them.
           </p>
           <p>
             <a
@@ -283,76 +319,99 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                   .map(album => (
                     <ListGroupItem key={album.album_id}>
                       <div className="d-flex justify-content-between align-items-center">
-                        <h5 style={{ margin: 0 }}>{album.name}</h5>
+                        <h5 style={{ margin: 0 }}>
+                          {album.name}{' '}
+                          <Badge pill>
+                            {studies[album.album_id].length} studies
+                          </Badge>
+                        </h5>
                         {showAlbumButtons(album)}
                       </div>
                       {studies[album.album_id] && (
                         <>
-                          <ListGroup>
-                            {studies[album.album_id].map(study => (
-                              <ListGroupItem
-                                key={
-                                  study[DicomFields.STUDY_UID][
-                                    DicomFields.VALUE
-                                  ][0]
-                                }
-                                className="d-flex justify-content-between align-items-center"
-                              >
-                                <Link
-                                  to={`/study/${
-                                    study[DicomFields.STUDY_UID][
-                                      DicomFields.VALUE
-                                    ][0]
-                                  }`}
-                                  className="btn btn-link"
-                                  href="#"
-                                  title={
+                          <a
+                            href="#"
+                            onClick={() => {
+                              handleStudyToggle(album.album_id);
+                            }}
+                          >
+                            {studyToggles && studyToggles[album.album_id]
+                              ? 'Hide studies'
+                              : 'Show studies'}
+                          </a>
+                          <Collapse
+                            isOpen={
+                              studyToggles
+                                ? studyToggles[album.album_id]
+                                : false
+                            }
+                          >
+                            <ListGroup>
+                              {studies[album.album_id].map(study => (
+                                <ListGroupItem
+                                  key={
                                     study[DicomFields.STUDY_UID][
                                       DicomFields.VALUE
                                     ][0]
                                   }
+                                  className="d-flex justify-content-between align-items-center"
                                 >
-                                  {getPatientNameForStudy(study)} (
-                                  {moment(
-                                    study[DicomFields.DATE][
-                                      DicomFields.VALUE
-                                    ][0],
-                                    DicomFields.DATE_FORMAT
-                                  ).format(DICOM_DATE_FORMAT)}
-                                  )
-                                </Link>
-                                <div>
-                                  {(() => {
-                                    let modalities = [];
-
-                                    // Determine if the modality types field is already an array or needs to be split
-                                    let modalityArray = !study[
-                                      DicomFields.MODALITIES
-                                    ][DicomFields.VALUE][0].includes(',')
-                                      ? study[DicomFields.MODALITIES][
-                                          DicomFields.VALUE
-                                        ]
-                                      : study[DicomFields.MODALITIES][
-                                          DicomFields.VALUE
-                                        ][0].split(',');
-
-                                    for (let modality of modalityArray) {
-                                      modalities.push(
-                                        <Badge
-                                          color="primary"
-                                          className="mr-1"
-                                          key={modality}
-                                        >
-                                          {modality}
-                                        </Badge>
-                                      );
+                                  <Link
+                                    to={`/study/${
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    }`}
+                                    className="btn btn-link"
+                                    href="#"
+                                    title={
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
                                     }
-                                    return modalities;
-                                  })()}
-                                </div>
-                              </ListGroupItem>
-                            ))}
-                          </ListGroup>
+                                  >
+                                    {getPatientNameForStudy(study)} (
+                                    {moment(
+                                      study[DicomFields.DATE][
+                                        DicomFields.VALUE
+                                      ][0],
+                                      DicomFields.DATE_FORMAT
+                                    ).format(DICOM_DATE_FORMAT)}
+                                    )
+                                  </Link>
+                                  <div>
+                                    {(() => {
+                                      let modalities = [];
+
+                                      // Determine if the modality types field is already an array or needs to be split
+                                      let modalityArray = !study[
+                                        DicomFields.MODALITIES
+                                      ][DicomFields.VALUE][0].includes(',')
+                                        ? study[DicomFields.MODALITIES][
+                                            DicomFields.VALUE
+                                          ]
+                                        : study[DicomFields.MODALITIES][
+                                            DicomFields.VALUE
+                                          ][0].split(',');
+
+                                      for (let modality of modalityArray) {
+                                        modalities.push(
+                                          <Badge
+                                            color="primary"
+                                            className="mr-1"
+                                            key={modality}
+                                          >
+                                            {modality}
+                                          </Badge>
+                                        );
+                                      }
+                                      return modalities;
+                                    })()}
+                                  </div>
+                                </ListGroupItem>
+                              ))}
+                            </ListGroup>
+                          </Collapse>
                         </>
                       )}
                     </ListGroupItem>

@@ -15,7 +15,6 @@ import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
 import { cloneDeep } from 'lodash';
-import { downloadFeature } from '../utils/feature-utils';
 import Kheops from '../services/kheops';
 
 export default function FeaturesList({
@@ -224,19 +223,12 @@ export default function FeaturesList({
   };
 
   let handleDownloadFeaturesClick = async e => {
-    //let study = await Kheops.study(keycloak.token, studyUID);
-    //await downloadFeature(extraction, study);
-    // let content = await Backend.downloadExtraction(
-    //   keycloak.token,
-    //   extraction.id
-    // );
-
     window.location.href = Backend.downloadExtractionURL(
       extraction.id,
       patientID,
-      studyDate
+      studyDate,
+      studyUID
     );
-    //console.log('Downloaded content', content);
   };
 
   let handleToggleSettingsClick = familyID => {
