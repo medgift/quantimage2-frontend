@@ -17,7 +17,8 @@ import {
   faChartBar,
   faGraduationCap,
   faPlus,
-  faArrowLeft
+  faArrowLeft,
+  faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -40,4 +41,5 @@ export default function registerIcons() {
   library.add(faGraduationCap);
   library.add(faPlus);
   library.add(faArrowLeft);
+  library.add(faSpinner);
 }

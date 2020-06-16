@@ -55,7 +55,7 @@ export default function Train({ match, albums }) {
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
   let [albumExtraction, setAlbumExtraction] = useState(null);
-  let [featureDetails, setFeatureDetails] = useState(null);
+  let [dataPoints, setDataPoints] = useState(null);
 
   let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(false);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
@@ -66,6 +66,8 @@ export default function Train({ match, albums }) {
   let [labelFileError, setLabelFileError] = useState(null);
 
   let [dataLabels, setDataLabels] = useState({});
+
+  let [isTraining, setIsTraining] = useState(false);
 
   let fileInput = useRef(null);
 
@@ -85,15 +87,15 @@ export default function Train({ match, albums }) {
   }, [keycloak.token]);
 
   useEffect(() => {
-    async function getFeatureDetails() {
-      let featureDetails = await Backend.extractionFeatureDetails(
+    async function getDataPoints() {
+      let response = await Backend.extractionDataPoints(
         keycloak.token,
         albumExtraction.id
       );
-      setFeatureDetails(featureDetails);
+      setDataPoints(response['data-points']);
     }
 
-    if (albumExtraction) getFeatureDetails();
+    if (albumExtraction) getDataPoints();
   }, [albumExtraction]);
 
   const handleModelTypeChange = e => {
@@ -129,6 +131,8 @@ export default function Train({ match, albums }) {
   };
 
   const handleTrainModelClick = async () => {
+    setIsTraining(true);
+
     let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
     let model = await trainModel(
@@ -141,6 +145,7 @@ export default function Train({ match, albums }) {
       keycloak.token
     );
 
+    setIsTraining(false);
     setModels([...models, model]);
     setShowNewModel(false);
   };
@@ -154,30 +159,6 @@ export default function Train({ match, albums }) {
     setIsAutoLabellingOpen(open => !open);
     setIsManualLabellingOpen(false);
   };
-
-  const filteredFeatureDetails = useMemo(() => {
-    if (!featureDetails) return null;
-
-    return featureDetails.header.filter(
-      feature => !NON_FEATURE_FIELDS.includes(feature)
-    );
-  }, [featureDetails]);
-
-  const dataPoints = useMemo(() => {
-    if (!featureDetails) return null;
-
-    const points = [];
-    for (let feature of featureDetails.features) {
-      const dataPoint = [feature[0], feature[2]];
-      if (
-        !points.find(pt => pt[0] === dataPoint[0] && pt[1] === dataPoint[1])
-      ) {
-        points.push(dataPoint);
-      }
-    }
-
-    return points;
-  }, [featureDetails]);
 
   useEffect(() => {
     if (!dataPoints) return;
@@ -252,20 +233,16 @@ export default function Train({ match, albums }) {
   let newModelForm = (
     <div>
       <h2>Train a new model on album "{album.name}"</h2>
-      {featureDetails && (
-        <>
-          <div className="extractions-container">
-            <p>
-              Train model based on the latest extraction for this album,
-              initiated at <strong>{albumExtraction.created_at}</strong>
-            </p>
-            <p className="features-container">
-              There are <strong>{filteredFeatureDetails.length}</strong>{' '}
-              different features available for use.
-            </p>
-          </div>
-        </>
+
+      {albumExtraction && (
+        <div className="extractions-container">
+          <p>
+            Train model based on the latest extraction for this album, initiated
+            at <strong>{albumExtraction.created_at}</strong>
+          </p>
+        </div>
       )}
+
       <h3>Model configuration</h3>
       <div>Choose the type of model to train</div>
       <div className="form-container">
@@ -309,7 +286,7 @@ export default function Train({ match, albums }) {
           </div>
         </>
       )}
-      {featureDetails ? (
+      {dataPoints ? (
         <>
           <h3>Data Labelling</h3>
           <p>
@@ -415,7 +392,14 @@ export default function Train({ match, albums }) {
             </p>
           ) : (
             <Button color="info" onClick={handleTrainModelClick}>
-              Train Model
+              {isTraining ? (
+                <>
+                  <FontAwesomeIcon icon="spinner" spin />{' '}
+                  <span>Training Model...</span>
+                </>
+              ) : (
+                <span>Train Model</span>
+              )}
             </Button>
           )}
         </>
@@ -424,6 +408,78 @@ export default function Train({ match, albums }) {
       )}
     </div>
   );
+
+  const formatMetrics = metrics => {
+    let { true_pos, true_neg, false_pos, false_neg, ...otherMetrics } = metrics;
+
+    let formattedOtherMetrics = Object.keys(otherMetrics).map(metricName => (
+      <tr key={metricName}>
+        <td>
+          <strong>{metricName}</strong>
+        </td>
+        <td>{metrics[metricName]}</td>
+      </tr>
+    ));
+
+    let confusionMatrix = (
+      <>
+        <tr>
+          <td>
+            <span>
+              <strong>True Positives</strong>
+            </span>
+            <br />
+            <span>{true_pos}</span>
+          </td>
+          <td>
+            <span>
+              <strong>False Positives</strong>
+            </span>
+            <br />
+            <span>{false_pos}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span>
+              <strong>False Negatives</strong>
+            </span>
+            <br />
+            <span>{false_neg}</span>
+          </td>
+          <td>
+            <span>
+              <strong>True Negatives</strong>
+            </span>
+            <br />
+            <span>{true_neg}</span>
+          </td>
+        </tr>
+      </>
+    );
+
+    return (
+      <>
+        <Table>
+          <thead>
+            <tr>
+              <th>Metric Name</th>
+              <th>Metric Value</th>
+            </tr>
+          </thead>
+          <tbody>{formattedOtherMetrics}</tbody>
+        </Table>
+        <Table>
+          <thead>
+            <tr>
+              <th colSpan="2">Confusion Matrix</th>
+            </tr>
+          </thead>
+          <tbody>{confusionMatrix}</tbody>
+        </Table>
+      </>
+    );
+  };
 
   const modelsList = (
     <>
@@ -440,6 +496,11 @@ export default function Train({ match, albums }) {
             </div>
             <div>
               <strong>Used Algorithm :</strong> {model.algorithm}
+            </div>
+            <hr />
+            <div>
+              <strong>Model Metrics</strong>
+              {formatMetrics(model.metrics)}
             </div>
             <br />
             <p>

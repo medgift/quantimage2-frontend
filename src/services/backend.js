@@ -46,6 +46,15 @@ class Backend {
     }
   }
 
+  async extractionDataPoints(token, extractionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/data-points`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async labels(token, albumID) {
     try {
       const url = `${endpoints.labels}/${albumID}`;

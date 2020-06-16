@@ -303,7 +303,7 @@ export default function FeaturesList({
   };
 
   let getFeatureTaskStatus = featureFamilyID => {
-    let task = tasks.find(task => task.feature_family.id === featureFamilyID);
+    let task = tasks.find(task => task.feature_family_id === featureFamilyID);
 
     return (
       task &&
