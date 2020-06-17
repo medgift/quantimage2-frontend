@@ -277,7 +277,7 @@ export default function Train({ match, albums }) {
                 {Object.keys(CLASSIFICATION_ALGORITHMS).map(key => (
                   <option key={key} value={CLASSIFICATION_ALGORITHMS[key]}>
                     {_.startCase(
-                      CLASSIFICATION_ALGORITHMS[key].replaceAll('_', ' ')
+                      CLASSIFICATION_ALGORITHMS[key].replace('_', ' ')
                     )}
                   </option>
                 ))}
