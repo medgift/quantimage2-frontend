@@ -619,11 +619,14 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
       'text/tab-separated-values',
       'application/csv',
       'application/x-csv'
-    ].includes(file.type) ||
-    (file.type === 'application/vnd.ms-excel' && !file.name.endsWith('.csv'))
-  ) {
-    error = 'The file is not a CSV file!';
-    return [valid, error];
+    ].includes(file.type)){
+      if((file.type === 'application/vnd.ms-excel' && file.name.endsWith('.csv'))) {
+        // Ok, Windows sends strange MIME type
+      }else {
+        error = 'The file is not a CSV file!';
+        return [valid, error];
+      }
+    }
   }
 
   /* Validate file content */
