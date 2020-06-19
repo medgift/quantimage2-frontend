@@ -612,7 +612,16 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
   let error = null;
 
   /* Validate metadata - file type */
-  if (!['text/csv'].includes(file.type)) {
+  if (
+    ![
+      'text/csv',
+      'text/comma-separated-values',
+      'text/tab-separated-values',
+      'application/csv',
+      'application/x-csv'
+    ].includes(file.type) ||
+    (file.type === 'application/vnd.ms-excel' && !file.name.endsWith('.csv'))
+  ) {
     error = 'The file is not a CSV file!';
     return [valid, error];
   }
