@@ -28,3 +28,25 @@
   margin: 1em;
   padding: 1em;
 }
+
+.model-details-container {
+  display: flex;
+  justify-content: center;
+}
+
+.model-details-table {
+  margin: 1em;
+  width: 500px;
+  text-align: left;
+}
+
+.model-details-table tbody tr td:nth-child(odd) {
+  font-weight: bold;
+}
+
+.metrics-table,
+.confusion-matrix {
+  width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}

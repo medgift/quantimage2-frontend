@@ -6,7 +6,7 @@ export default function Footer() {
 
   return (
     <div className="Footer">
-      <p className="m-2 text-muted">&copy; 2019</p>
+      <p className="m-2 text-muted">&copy; 2020</p>
     </div>
   );
 }

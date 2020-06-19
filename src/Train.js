@@ -9,7 +9,8 @@ import {
   Label,
   FormText,
   ListGroup,
-  ListGroupItem
+  ListGroupItem,
+  Badge
 } from 'reactstrap';
 
 import './Train.css';
@@ -56,6 +57,7 @@ export default function Train({ match, albums }) {
   );
   let [albumExtraction, setAlbumExtraction] = useState(null);
   let [dataPoints, setDataPoints] = useState(null);
+  let [featureDetails, setFeatureDetails] = useState([]);
 
   let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(false);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
@@ -74,7 +76,10 @@ export default function Train({ match, albums }) {
   useEffect(() => {
     async function getModels() {
       let models = await Backend.models(keycloak.token, albumID);
-      setModels(models);
+      let sortedModels = models.sort(
+        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+      );
+      setModels(sortedModels);
     }
 
     async function getExtraction() {
@@ -146,7 +151,7 @@ export default function Train({ match, albums }) {
     );
 
     setIsTraining(false);
-    setModels([...models, model]);
+    setModels([model, ...models]);
     setShowNewModel(false);
   };
 
@@ -460,7 +465,7 @@ export default function Train({ match, albums }) {
 
     return (
       <>
-        <Table>
+        <Table className="metrics-table">
           <thead>
             <tr>
               <th>Metric Name</th>
@@ -469,12 +474,8 @@ export default function Train({ match, albums }) {
           </thead>
           <tbody>{formattedOtherMetrics}</tbody>
         </Table>
-        <Table>
-          <thead>
-            <tr>
-              <th colSpan="2">Confusion Matrix</th>
-            </tr>
-          </thead>
+        <strong>Confusion Matrix</strong>
+        <Table className="confusion-matrix">
           <tbody>{confusionMatrix}</tbody>
         </Table>
       </>
@@ -483,37 +484,92 @@ export default function Train({ match, albums }) {
 
   const modelsList = (
     <>
-      <h2>Existing models for album {album.name}</h2>
-      <ListGroup>
-        {models.map(model => (
-          <ListGroupItem key={model.id} className="model-entry">
-            <h3>{model.name}</h3>
-            <div>
-              <strong>Created at :</strong> {model.created_at}
-            </div>
-            <div>
-              <strong>Model type :</strong> {model.type}
-            </div>
-            <div>
-              <strong>Used Algorithm :</strong> {model.algorithm}
-            </div>
-            <hr />
-            <div>
-              <strong>Model Metrics</strong>
-              {formatMetrics(model.metrics)}
-            </div>
-            <br />
-            <p>
-              <Button
-                color="danger"
-                onClick={() => handleDeleteModelClick(model.id)}
-              >
-                Delete Model
-              </Button>
-            </p>
-          </ListGroupItem>
-        ))}
-      </ListGroup>
+      {albumExtraction && (
+        <ListGroup>
+          {models.map(model => (
+            <ListGroupItem key={model.id} className="model-entry">
+              <h3>{model.name}</h3>
+              <div className="model-details-container">
+                <Table bordered className="model-details-table">
+                  <tbody>
+                    <tr>
+                      <td>Created at</td>
+                      <td>{model.created_at}</td>
+                    </tr>
+                    <tr>
+                      <td>Model type</td>
+                      <td>{model.type}</td>
+                    </tr>
+                    <tr>
+                      <td>Used Algorithm</td>
+                      <td>{model.algorithm}</td>
+                    </tr>
+                    <tr>
+                      <td>Validation Strategy</td>
+                      <td>5-Fold Stratified Cross-Validation</td>
+                      {/*TODO - Get this from Melampus*/}
+                    </tr>
+                    <tr>
+                      <td>Feature Selection</td>
+                      <td>None</td>
+                      {/*TODO - Get this from Melampus*/}
+                    </tr>
+                    <tr>
+                      <td>Modalities Used</td>
+                      <td>
+                        <Badge color="primary">CT</Badge>
+                      </td>
+                      {/*TODO - Get this dynamically or based on user input*/}
+                    </tr>
+                    <tr>
+                      <td>ROIs Used</td>
+                      <td>
+                        <Badge color="primary">GTV_L</Badge>
+                      </td>
+                      {/*TODO - Get this dynamically or based on user input*/}
+                    </tr>
+                    <tr>
+                      <td>Feature Families Used</td>
+                      <td>
+                        {albumExtraction.families
+                          .map(family => family.feature_family.name)
+                          .join(', ')}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Number of Features</td>
+                      <td>{albumExtraction['feature-number']}</td>
+                    </tr>
+                    <tr>
+                      <td>Number of Observations</td>
+                      <td>
+                        {model.metrics.true_pos +
+                          model.metrics.true_neg +
+                          model.metrics.false_pos +
+                          model.metrics.false_neg}
+                      </td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+              <hr />
+              <div>
+                <strong>Model Metrics</strong>
+                {formatMetrics(model.metrics)}
+              </div>
+              <br />
+              <p>
+                <Button
+                  color="danger"
+                  onClick={() => handleDeleteModelClick(model.id)}
+                >
+                  Delete Model
+                </Button>
+              </p>
+            </ListGroupItem>
+          ))}
+        </ListGroup>
+      )}
     </>
   );
 
@@ -536,7 +592,7 @@ export default function Train({ match, albums }) {
     else
       return (
         <>
-          {modelsList}
+          <h2>Existing models for album {album.name}</h2>
           <div>
             <br />
             <Button color="primary" onClick={handleShowNewModelClick}>
@@ -544,6 +600,7 @@ export default function Train({ match, albums }) {
               <span>Train a new model</span>
             </Button>
           </div>
+          {modelsList}
         </>
       );
   }
