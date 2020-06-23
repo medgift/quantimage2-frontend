@@ -303,7 +303,7 @@ export default function Train({ match, albums }) {
               Manual labelling
             </Button>{' '}
             <Button color="success" onClick={toggleAutoLabelling}>
-              Automatic labelling
+              Import Labels
             </Button>
           </p>
           <Collapse isOpen={isManualLabellingOpen}>
