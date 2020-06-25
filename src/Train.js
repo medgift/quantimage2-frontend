@@ -24,6 +24,10 @@ import _ from 'lodash';
 import Kheops from './services/kheops';
 import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import FeaturesList from './components/FeaturesList';
+import MyModal from './components/MyModal';
+import FeaturesConfig from './components/FeaturesConfig';
+import FeatureNames from './components/FeatureNames';
 
 const PATIENT_ID_FIELD = 'PatientID';
 const ROI_FIELD = 'ROI';
@@ -57,7 +61,12 @@ export default function Train({ match, albums }) {
   );
   let [albumExtraction, setAlbumExtraction] = useState(null);
   let [dataPoints, setDataPoints] = useState(null);
-  let [featureDetails, setFeatureDetails] = useState([]);
+
+  let [featuresConfigFamilies, setFeaturesConfigFamilies] = useState(null);
+  let [featureConfigOpen, setFeatureConfigOpen] = useState(false);
+
+  let [featureNames, setFeatureNames] = useState(null);
+  let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
   let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(false);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
@@ -165,6 +174,14 @@ export default function Train({ match, albums }) {
     setIsManualLabellingOpen(false);
   };
 
+  const toggleFeatureConfig = () => {
+    setFeatureConfigOpen(open => !open);
+  };
+
+  const toggleFeatureNames = () => {
+    setFeatureNamesOpen(open => !open);
+  };
+
   useEffect(() => {
     if (!dataPoints) return;
 
@@ -229,6 +246,16 @@ export default function Train({ match, albums }) {
 
   const handleBackToModelsClick = () => {
     setShowNewModel(false);
+  };
+
+  const handleShowFeaturesConfig = families => {
+    setFeaturesConfigFamilies(families);
+    toggleFeatureConfig();
+  };
+
+  const handleShowFeatureNames = names => {
+    setFeatureNames(names);
+    toggleFeatureNames();
   };
 
   if (albums.length === 0) return <span>Loading...</span>;
@@ -501,7 +528,7 @@ export default function Train({ match, albums }) {
                       <td>{model.type}</td>
                     </tr>
                     <tr>
-                      <td>Used Algorithm</td>
+                      <td>Algorithm Used</td>
                       <td>{model.algorithm}</td>
                     </tr>
                     <tr>
@@ -531,14 +558,36 @@ export default function Train({ match, albums }) {
                     <tr>
                       <td>Feature Families Used</td>
                       <td>
-                        {albumExtraction.families
+                        {model.extraction.families
                           .map(family => family.feature_family.name)
                           .join(', ')}
+                        {' - '}
+                        <a
+                          href="#"
+                          onClick={event => {
+                            event.preventDefault();
+                            handleShowFeaturesConfig(model.extraction.families);
+                          }}
+                        >
+                          Show details
+                        </a>
                       </td>
                     </tr>
                     <tr>
                       <td>Number of Features</td>
-                      <td>{albumExtraction['feature-number']}</td>
+                      <td>
+                        {model['feature-number']}
+                        {' - '}
+                        <a
+                          href="#"
+                          onClick={event => {
+                            event.preventDefault();
+                            handleShowFeatureNames(model['feature-names']);
+                          }}
+                        >
+                          Show details
+                        </a>
+                      </td>
                     </tr>
                     <tr>
                       <td>Number of Observations</td>
@@ -570,6 +619,20 @@ export default function Train({ match, albums }) {
           ))}
         </ListGroup>
       )}
+      <MyModal
+        isOpen={featureConfigOpen}
+        toggle={toggleFeatureConfig}
+        title={<span>Feature Groups</span>}
+      >
+        <FeaturesConfig families={featuresConfigFamilies} />
+      </MyModal>
+      <MyModal
+        isOpen={featureNamesOpen}
+        toggle={toggleFeatureNames}
+        title={<span>Feature Names</span>}
+      >
+        <FeatureNames names={featureNames} />
+      </MyModal>
     </>
   );
 
