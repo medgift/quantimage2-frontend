@@ -24,7 +24,7 @@ import _ from 'lodash';
 import Kheops from './services/kheops';
 import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import FeaturesList from './components/FeaturesList';
+import CheckboxGroup from 'react-checkbox-group';
 import MyModal from './components/MyModal';
 import FeaturesConfig from './components/FeaturesConfig';
 import FeatureNames from './components/FeatureNames';
@@ -59,6 +59,9 @@ export default function Train({ match, albums }) {
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
+
+  let [usedModalities, setUsedModalities] = useState([]);
+  let [usedROIs, setUsedROIs] = useState([]);
   let [albumExtraction, setAlbumExtraction] = useState(null);
   let [dataPoints, setDataPoints] = useState(null);
 
@@ -81,6 +84,14 @@ export default function Train({ match, albums }) {
   let [isTraining, setIsTraining] = useState(false);
 
   let fileInput = useRef(null);
+
+  // Initialize all modalities & ROIs to be checked
+  useEffect(() => {
+    if (albumExtraction) {
+      setUsedModalities(albumExtraction['extraction-modalities']);
+      setUsedROIs(albumExtraction['extraction-rois']);
+    }
+  }, [albumExtraction]);
 
   useEffect(() => {
     async function getModels() {
@@ -120,12 +131,21 @@ export default function Train({ match, albums }) {
     setAlgorithmType(e.target.value);
   };
 
-  const handleLabelInputChange = (e, patientID, roi) => {
+  // TODO - Allow choosing a mode
+  // const handleLabelInputChange = (e, patientID, roi) => {
+  //   let updatedLabels = { ...dataLabels };
+  //
+  //   if (!updatedLabels[patientID]) updatedLabels[patientID] = {};
+  //
+  //   updatedLabels[patientID][roi] = e.target.value;
+  //
+  //   setDataLabels(updatedLabels);
+  // };
+
+  const handleLabelInputChange = (e, patientID) => {
     let updatedLabels = { ...dataLabels };
 
-    if (!updatedLabels[patientID]) updatedLabels[patientID] = {};
-
-    updatedLabels[patientID][roi] = e.target.value;
+    updatedLabels[patientID] = e.target.value;
 
     setDataLabels(updatedLabels);
   };
@@ -156,6 +176,8 @@ export default function Train({ match, albums }) {
       tabularDataLabels,
       modelType,
       algorithmType,
+      usedModalities,
+      usedROIs,
       keycloak.token
     );
 
@@ -188,22 +210,25 @@ export default function Train({ match, albums }) {
     async function getLabels() {
       let labels = await Backend.labels(keycloak.token, albumID);
 
+      // TODO - Allow choosing a mode (patient id only or patient id & roi)
+
+      // let formattedLabels = labels.reduce((acc, label) => {
+      //   if (!acc[label.patient_id]) acc[label.patient_id] = {};
+      //
+      //   acc[label.patient_id][label.roi] = label.outcome;
+      //
+      //   return acc;
+      // }, {});
+
       let formattedLabels = labels.reduce((acc, label) => {
-        if (!acc[label.patient_id]) acc[label.patient_id] = {};
-
-        acc[label.patient_id][label.roi] = label.outcome;
-
+        acc[label.patient_id] = label.outcome;
         return acc;
       }, {});
 
       // Add potentially missing labels
-      for (let [patientID, roi] of dataPoints) {
+      for (let patientID of dataPoints) {
         if (!Object.keys(formattedLabels).includes(patientID)) {
-          formattedLabels[patientID] = {};
-        }
-
-        if (!Object.keys(formattedLabels[patientID]).includes(roi)) {
-          formattedLabels[patientID][roi] = '';
+          formattedLabels[patientID] = '';
         }
       }
 
@@ -216,9 +241,11 @@ export default function Train({ match, albums }) {
   const unlabelledDataPoints = useMemo(() => {
     let unlabelled = 0;
     for (let patientID in dataLabels) {
-      for (let roi in dataLabels[patientID]) {
-        if (dataLabels[patientID][roi] === '') unlabelled++;
-      }
+      if (dataLabels[patientID] === '') unlabelled++;
+      // TODO - Allow choosing a mode (patient id only or patient id & roi)
+      //for (let roi in dataLabels[patientID]) {
+      //if (dataLabels[patientID][roi] === '') unlabelled++;
+      //}
     }
 
     return unlabelled;
@@ -227,9 +254,11 @@ export default function Train({ match, albums }) {
   const tabularDataLabels = useMemo(() => {
     let formattedLabels = [];
     for (let patientID in dataLabels) {
-      for (let roi in dataLabels[patientID]) {
-        formattedLabels.push([patientID, roi, dataLabels[patientID][roi]]);
-      }
+      // TODO - Allow choosing a mode (patient id only or patient id & roi)
+      // for (let roi in dataLabels[patientID]) {
+      //   formattedLabels.push([patientID, roi, dataLabels[patientID][roi]]);
+      // }
+      formattedLabels.push([patientID, dataLabels[patientID]]);
     }
 
     return formattedLabels;
@@ -318,12 +347,46 @@ export default function Train({ match, albums }) {
           </div>
         </>
       )}
+      {albumExtraction && (
+        <>
+          <div>Choose the imaging modalities used for training the model</div>
+          <CheckboxGroup
+            name="modalities"
+            value={usedModalities}
+            onChange={setUsedModalities}
+          >
+            {Checkbox => (
+              <>
+                {albumExtraction['extraction-modalities']
+                  .sort()
+                  .map(modality => (
+                    <label key={modality} style={{ margin: '0.5em' }}>
+                      <Checkbox value={modality} /> {modality}
+                    </label>
+                  ))}
+              </>
+            )}
+          </CheckboxGroup>
+          <div>Choose the ROIs used for training the model</div>
+          <CheckboxGroup name="rois" value={usedROIs} onChange={setUsedROIs}>
+            {Checkbox => (
+              <>
+                {albumExtraction['extraction-rois'].sort().map(roi => (
+                  <label key={roi} style={{ margin: '0.5em' }}>
+                    <Checkbox value={roi} /> {roi}
+                  </label>
+                ))}
+              </>
+            )}
+          </CheckboxGroup>
+        </>
+      )}
       {dataPoints ? (
         <>
           <h3>Data Labelling</h3>
           <p>
             There are <strong>{dataPoints.length} data points</strong>
-            (PatientID,ROI)
+            (PatientID)
           </p>
           <p>
             <Button color="primary" onClick={toggleManualLabelling}>
@@ -338,31 +401,46 @@ export default function Train({ match, albums }) {
               <thead>
                 <tr>
                   <th>PatientID</th>
-                  <th>ROI</th>
+                  {/*<th>ROI</th>*/}
                   <th>Label</th>
                 </tr>
               </thead>
               <tbody className="data-points">
                 {dataPoints.map(dataPoint => (
-                  <tr key={`${dataPoint[0]}-${dataPoint[1]}`}>
-                    <td>{dataPoint[0]}</td>
-                    <td>{dataPoint[1]}</td>
+                  <tr key={`${dataPoint}`}>
+                    <td>{dataPoint}</td>
                     <td className="data-label">
                       <Input
                         type="text"
                         placeholder="LABEL"
                         value={
-                          dataLabels[dataPoint[0]] &&
-                          dataLabels[dataPoint[0]][dataPoint[1]]
-                            ? dataLabels[dataPoint[0]][dataPoint[1]]
-                            : ''
+                          dataLabels[dataPoint] ? dataLabels[dataPoint] : ''
                         }
                         onChange={e => {
-                          handleLabelInputChange(e, dataPoint[0], dataPoint[1]);
+                          handleLabelInputChange(e, dataPoint);
                         }}
                       />
                     </td>
                   </tr>
+                  // <tr key={`${dataPoint[0]}-${dataPoint[1]}`}>
+                  //   <td>{dataPoint[0]}</td>
+                  //   <td>{dataPoint[1]}</td>
+                  //   <td className="data-label">
+                  //     <Input
+                  //       type="text"
+                  //       placeholder="LABEL"
+                  //       value={
+                  //         dataLabels[dataPoint[0]] &&
+                  //         dataLabels[dataPoint[0]][dataPoint[1]]
+                  //           ? dataLabels[dataPoint[0]][dataPoint[1]]
+                  //           : ''
+                  //       }
+                  //       onChange={e => {
+                  //         handleLabelInputChange(e, dataPoint[0], dataPoint[1]);
+                  //       }}
+                  //     />
+                  //   </td>
+                  // </tr>
                 ))}
               </tbody>
             </Table>
@@ -376,13 +454,13 @@ export default function Train({ match, albums }) {
             <p>
               Please upload a CSV file with{' '}
               <strong>{dataPoints.length} rows</strong> (+optionnally a header
-              row) containing the following <strong>3 columns</strong>:
+              row) containing the following <strong>2 columns</strong>:
             </p>
             <Table className="narrow-table">
               <thead>
                 <tr>
                   <th>PatientID</th>
-                  <th>ROI</th>
+                  {/*<th>ROI</th>*/}
                   <th>Outcome</th>
                 </tr>
               </thead>
@@ -419,8 +497,9 @@ export default function Train({ match, albums }) {
           <h3>Train Model</h3>
           {unlabelledDataPoints > 0 ? (
             <p>
-              There are still {unlabelledDataPoints} unlabelled PatientID/ROI
-              pairs, assign an outcome to them first!
+              There are still {unlabelledDataPoints} unlabelled PatientIDs,
+              assign an outcome to them first!
+              {/*/ROI pairs, assign an outcome to them first!*/}
             </p>
           ) : (
             <Button color="info" onClick={handleTrainModelClick}>
@@ -544,14 +623,30 @@ export default function Train({ match, albums }) {
                     <tr>
                       <td>Modalities Used</td>
                       <td>
-                        <Badge color="primary">CT</Badge>
+                        {model.modalities.map(modality => (
+                          <Badge
+                            style={{ marginRight: '0.5em' }}
+                            color="primary"
+                            key={modality}
+                          >
+                            {modality}
+                          </Badge>
+                        ))}
                       </td>
                       {/*TODO - Get this dynamically or based on user input*/}
                     </tr>
                     <tr>
                       <td>ROIs Used</td>
                       <td>
-                        <Badge color="primary">GTV_L</Badge>
+                        {model.rois.map(roi => (
+                          <Badge
+                            style={{ marginRight: '0.5em' }}
+                            color="primary"
+                            key={roi}
+                          >
+                            {roi}
+                          </Badge>
+                        ))}
                       </td>
                       {/*TODO - Get this dynamically or based on user input*/}
                     </tr>
@@ -706,12 +801,13 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
     let headerFields = firstLine.split(separator);
 
     let hasHeader =
-      headerFields.length === 3 &&
+      headerFields.length === 2 &&
       headerFields.includes('PatientID') &&
-      headerFields.includes('ROI') &&
+      //headerFields.includes('ROI') &&
       headerFields.includes('Outcome');
 
-    let columns = hasHeader ? true : ['PatientID', 'ROI', 'Outcome'];
+    //let columns = hasHeader ? true : ['PatientID', 'ROI', 'Outcome'];
+    let columns = hasHeader ? true : ['PatientID', 'Outcome'];
 
     const records = parse(content, {
       columns: columns,
@@ -732,25 +828,39 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
 
     let labels = {};
 
-    for (let dataPoint of dataPoints) {
+    for (let patientID of dataPoints) {
       let matchingRecord = records.find(
-        record =>
-          record.PatientID === dataPoint[0] && record.ROI === dataPoint[1]
+        record => record.PatientID === patientID
       );
+
       if (!matchingRecord) {
         allMatched = false;
       } else {
         nbMatches++;
 
         // Fill labels
-        if (!labels[matchingRecord.PatientID]) {
-          labels[matchingRecord.PatientID] = {};
-        }
-
-        labels[matchingRecord.PatientID][matchingRecord.ROI] =
-          matchingRecord.Outcome;
+        labels[matchingRecord.PatientID] = matchingRecord.Outcome;
       }
     }
+    // for (let dataPoint of dataPoints) {
+    //   let matchingRecord = records.find(
+    //     record =>
+    //       record.PatientID === dataPoint[0]// && record.ROI === dataPoint[1]
+    //   );
+    //   if (!matchingRecord) {
+    //     allMatched = false;
+    //   } else {
+    //     nbMatches++;
+    //
+    //     // Fill labels
+    //     if (!labels[matchingRecord.PatientID]) {
+    //       labels[matchingRecord.PatientID] = {};
+    //     }
+    //
+    //     labels[matchingRecord.PatientID][matchingRecord.ROI] =
+    //       matchingRecord.Outcome;
+    //   }
+    // }
 
     if (!allMatched) {
       error = `The CSV file matched only ${nbMatches}/${dataPoints.length} Patient/ROI pairs!`;

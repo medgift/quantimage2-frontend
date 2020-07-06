@@ -103,6 +103,8 @@ export async function trainModel(
   labels,
   modelType,
   algorithmType,
+  usedModalities,
+  usedROIs,
   token
 ) {
   let createdModel = await Backend.trainModel(
@@ -112,7 +114,9 @@ export async function trainModel(
     album,
     labels,
     modelType,
-    algorithmType
+    algorithmType,
+    usedModalities,
+    usedROIs
   );
 
   return createdModel;

@@ -137,7 +137,9 @@ class Backend {
     album,
     labels,
     modelType,
-    algorithmType
+    algorithmType,
+    usedModalities,
+    usedROIs
   ) {
     try {
       const url = `${endpoints.models}/${album.album_id}`;
@@ -149,7 +151,9 @@ class Backend {
           album: album,
           labels: labels,
           'model-type': modelType,
-          'algorithm-type': algorithmType
+          'algorithm-type': algorithmType,
+          modalities: usedModalities,
+          rois: usedROIs
         },
         token: token
       });
