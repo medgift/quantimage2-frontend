@@ -53,11 +53,11 @@ function Study({ match, kheopsError }) {
               <tr>
                 <th scope="row">Patient</th>
                 <td>
-                  {
-                    studyDetails[DicomFields.PATIENT_NAME][
-                      DicomFields.VALUE
-                    ][0][DicomFields.ALPHABETIC]
-                  }
+                  {studyDetails[DicomFields.PATIENT_NAME][DicomFields.VALUE]
+                    ? studyDetails[DicomFields.PATIENT_NAME][
+                        DicomFields.VALUE
+                      ][0][DicomFields.ALPHABETIC]
+                    : 'UNNAMED'}
                 </td>
               </tr>
               <tr>
