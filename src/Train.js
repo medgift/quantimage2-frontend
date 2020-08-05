@@ -28,6 +28,7 @@ import CheckboxGroup from 'react-checkbox-group';
 import MyModal from './components/MyModal';
 import FeaturesConfig from './components/FeaturesConfig';
 import FeatureNames from './components/FeatureNames';
+import DataLabels from './components/DataLabels';
 
 const PATIENT_ID_FIELD = 'PatientID';
 const ROI_FIELD = 'ROI';
@@ -46,6 +47,43 @@ const CLASSIFICATION_ALGORITHMS = {
   RANDOM_FOREST: 'random_forest',
   SVM: 'svm'
 };
+
+const CLASSIFICATION_OUTCOMES = ['Outcome'];
+
+const SURVIVAL_OUTCOMES = ['Time', 'Event'];
+
+async function getFormattedLabels(
+  token,
+  albumID,
+  dataPoints,
+  labelType,
+  outcomeColumns
+) {
+  let labels = await Backend.labels(token, albumID, labelType);
+
+  let formattedLabels = labels.reduce((acc, label) => {
+    acc[label.patient_id] = label.label_content;
+    return acc;
+  }, {});
+
+  // Add potentially missing labels
+  for (let patientID of dataPoints) {
+    // Go through all outcome columns
+    if (!Object.keys(formattedLabels).includes(patientID)) {
+      formattedLabels[patientID] = {};
+      for (let outcomeColumn of outcomeColumns) {
+        formattedLabels[patientID][outcomeColumn] = '';
+      }
+    } else {
+      for (let outcomeColumn of outcomeColumns) {
+        if (!Object.keys(formattedLabels[patientID]).includes(outcomeColumn))
+          formattedLabels[patientID][outcomeColumn] = '';
+      }
+    }
+  }
+
+  return formattedLabels;
+}
 
 export default function Train({ match, albums }) {
   let {
@@ -71,19 +109,12 @@ export default function Train({ match, albums }) {
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
-  let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(false);
-  let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
+  let [isTraining, setIsTraining] = useState(false);
 
   let [showNewModel, setShowNewModel] = useState(false);
 
-  let [isLabelFileValid, setIsLabelFileValid] = useState(null);
-  let [labelFileError, setLabelFileError] = useState(null);
-
-  let [dataLabels, setDataLabels] = useState({});
-
-  let [isTraining, setIsTraining] = useState(false);
-
-  let fileInput = useRef(null);
+  let [classificationLabels, setClassificationLabels] = useState({});
+  let [survivalLabels, setSurvivalLabels] = useState({});
 
   // Initialize all modalities & ROIs to be checked
   useEffect(() => {
@@ -131,49 +162,89 @@ export default function Train({ match, albums }) {
     setAlgorithmType(e.target.value);
   };
 
-  // TODO - Allow choosing a mode
-  // const handleLabelInputChange = (e, patientID, roi) => {
-  //   let updatedLabels = { ...dataLabels };
-  //
-  //   if (!updatedLabels[patientID]) updatedLabels[patientID] = {};
-  //
-  //   updatedLabels[patientID][roi] = e.target.value;
-  //
-  //   setDataLabels(updatedLabels);
-  // };
+  const tabularClassificationLabels = useMemo(() => {
+    let formattedLabels = [];
+    for (let patientID in classificationLabels) {
+      formattedLabels.push([
+        patientID,
+        classificationLabels[patientID].Outcome
+      ]);
+    }
 
-  const handleLabelInputChange = (e, patientID) => {
-    let updatedLabels = { ...dataLabels };
+    return formattedLabels;
+  }, [classificationLabels]);
 
-    updatedLabels[patientID] = e.target.value;
+  const tabularSurvivalLabels = useMemo(() => {
+    let formattedLabels = [];
+    for (let patientID in survivalLabels) {
+      formattedLabels.push([
+        patientID,
+        survivalLabels[patientID].Time,
+        survivalLabels[patientID].Event
+      ]);
+    }
+    return formattedLabels;
+  });
 
-    setDataLabels(updatedLabels);
+  const toggleFeatureConfig = () => {
+    setFeatureConfigOpen(open => !open);
   };
 
-  const handleSaveLabelsClick = async e => {
-    await Backend.saveLabels(keycloak.token, albumID, dataLabels);
+  const toggleFeatureNames = () => {
+    setFeatureNamesOpen(open => !open);
   };
 
-  const handleFileInputChange = async () => {
-    let [isValid, error] = await validateLabelFile(
-      fileInput.current.files[0],
-      dataPoints,
-      setDataLabels
-    );
-    setIsLabelFileValid(isValid);
-    setLabelFileError(error);
-  };
+  // Get classification labels
+  useEffect(() => {
+    if (!dataPoints) return;
+
+    async function getLabels() {
+      let formattedLabels = await getFormattedLabels(
+        keycloak.token,
+        albumID,
+        dataPoints,
+        MODEL_TYPES.CLASSIFICATION,
+        CLASSIFICATION_OUTCOMES
+      );
+      setClassificationLabels(formattedLabels);
+    }
+
+    getLabels();
+  }, [dataPoints]);
+
+  // Get survival labels
+  useEffect(() => {
+    if (!dataPoints) return;
+
+    async function getLabels() {
+      let formattedLabels = await getFormattedLabels(
+        keycloak.token,
+        albumID,
+        dataPoints,
+        MODEL_TYPES.SURVIVAL,
+        SURVIVAL_OUTCOMES
+      );
+      setSurvivalLabels(formattedLabels);
+    }
+
+    getLabels();
+  }, [dataPoints]);
 
   const handleTrainModelClick = async () => {
     setIsTraining(true);
 
     let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
+    let labels =
+      modelType === MODEL_TYPES.CLASSIFICATION
+        ? tabularClassificationLabels
+        : tabularSurvivalLabels;
+
     let model = await trainModel(
       albumExtraction,
       albumStudies,
       album,
-      tabularDataLabels,
+      labels,
       modelType,
       algorithmType,
       usedModalities,
@@ -185,84 +256,6 @@ export default function Train({ match, albums }) {
     setModels([model, ...models]);
     setShowNewModel(false);
   };
-
-  const toggleManualLabelling = () => {
-    setIsManualLabellingOpen(open => !open);
-    setIsAutoLabellingOpen(false);
-  };
-
-  const toggleAutoLabelling = () => {
-    setIsAutoLabellingOpen(open => !open);
-    setIsManualLabellingOpen(false);
-  };
-
-  const toggleFeatureConfig = () => {
-    setFeatureConfigOpen(open => !open);
-  };
-
-  const toggleFeatureNames = () => {
-    setFeatureNamesOpen(open => !open);
-  };
-
-  useEffect(() => {
-    if (!dataPoints) return;
-
-    async function getLabels() {
-      let labels = await Backend.labels(keycloak.token, albumID);
-
-      // TODO - Allow choosing a mode (patient id only or patient id & roi)
-
-      // let formattedLabels = labels.reduce((acc, label) => {
-      //   if (!acc[label.patient_id]) acc[label.patient_id] = {};
-      //
-      //   acc[label.patient_id][label.roi] = label.outcome;
-      //
-      //   return acc;
-      // }, {});
-
-      let formattedLabels = labels.reduce((acc, label) => {
-        acc[label.patient_id] = label.outcome;
-        return acc;
-      }, {});
-
-      // Add potentially missing labels
-      for (let patientID of dataPoints) {
-        if (!Object.keys(formattedLabels).includes(patientID)) {
-          formattedLabels[patientID] = '';
-        }
-      }
-
-      setDataLabels(formattedLabels);
-    }
-
-    getLabels();
-  }, [dataPoints]);
-
-  const unlabelledDataPoints = useMemo(() => {
-    let unlabelled = 0;
-    for (let patientID in dataLabels) {
-      if (dataLabels[patientID] === '') unlabelled++;
-      // TODO - Allow choosing a mode (patient id only or patient id & roi)
-      //for (let roi in dataLabels[patientID]) {
-      //if (dataLabels[patientID][roi] === '') unlabelled++;
-      //}
-    }
-
-    return unlabelled;
-  }, [dataLabels]);
-
-  const tabularDataLabels = useMemo(() => {
-    let formattedLabels = [];
-    for (let patientID in dataLabels) {
-      // TODO - Allow choosing a mode (patient id only or patient id & roi)
-      // for (let roi in dataLabels[patientID]) {
-      //   formattedLabels.push([patientID, roi, dataLabels[patientID][roi]]);
-      // }
-      formattedLabels.push([patientID, dataLabels[patientID]]);
-    }
-
-    return formattedLabels;
-  }, [dataLabels]);
 
   const handleDeleteModelClick = async id => {
     const deletedModel = await Backend.deleteModel(keycloak.token, id);
@@ -388,130 +381,45 @@ export default function Train({ match, albums }) {
             There are <strong>{dataPoints.length} data points</strong>
             (PatientID)
           </p>
-          <p>
-            <Button color="primary" onClick={toggleManualLabelling}>
-              Manual labelling
-            </Button>{' '}
-            <Button color="success" onClick={toggleAutoLabelling}>
-              Import Labels
-            </Button>
-          </p>
-          <Collapse isOpen={isManualLabellingOpen}>
-            <Table className="narrow-table">
-              <thead>
-                <tr>
-                  <th>PatientID</th>
-                  {/*<th>ROI</th>*/}
-                  <th>Label</th>
-                </tr>
-              </thead>
-              <tbody className="data-points">
-                {dataPoints.map(dataPoint => (
-                  <tr key={`${dataPoint}`}>
-                    <td>{dataPoint}</td>
-                    <td className="data-label">
-                      <Input
-                        type="text"
-                        placeholder="LABEL"
-                        value={
-                          dataLabels[dataPoint] ? dataLabels[dataPoint] : ''
-                        }
-                        onChange={e => {
-                          handleLabelInputChange(e, dataPoint);
-                        }}
-                      />
-                    </td>
-                  </tr>
-                  // <tr key={`${dataPoint[0]}-${dataPoint[1]}`}>
-                  //   <td>{dataPoint[0]}</td>
-                  //   <td>{dataPoint[1]}</td>
-                  //   <td className="data-label">
-                  //     <Input
-                  //       type="text"
-                  //       placeholder="LABEL"
-                  //       value={
-                  //         dataLabels[dataPoint[0]] &&
-                  //         dataLabels[dataPoint[0]][dataPoint[1]]
-                  //           ? dataLabels[dataPoint[0]][dataPoint[1]]
-                  //           : ''
-                  //       }
-                  //       onChange={e => {
-                  //         handleLabelInputChange(e, dataPoint[0], dataPoint[1]);
-                  //       }}
-                  //     />
-                  //   </td>
-                  // </tr>
-                ))}
-              </tbody>
-            </Table>
-
-            <Button color="success" onClick={handleSaveLabelsClick}>
-              Save Labels
-            </Button>
-          </Collapse>
-
-          <Collapse isOpen={isAutoLabellingOpen}>
-            <p>
-              Please upload a CSV file with{' '}
-              <strong>{dataPoints.length} rows</strong> (+optionnally a header
-              row) containing the following <strong>2 columns</strong>:
-            </p>
-            <Table className="narrow-table">
-              <thead>
-                <tr>
-                  <th>PatientID</th>
-                  {/*<th>ROI</th>*/}
-                  <th>Outcome</th>
-                </tr>
-              </thead>
-            </Table>
-            <Label for="label-file">Upload CSV File</Label>
-            <Input
-              type="file"
-              name="file"
-              id="label-file"
-              innerRef={fileInput}
-              style={{ textAlign: 'center' }}
-              onChange={handleFileInputChange}
+          {modelType === MODEL_TYPES.CLASSIFICATION && (
+            <DataLabels
+              albumID={albumID}
+              dataPoints={dataPoints}
+              isTraining={isTraining}
+              handleTrainModelClick={handleTrainModelClick}
+              dataLabels={classificationLabels}
+              setDataLabels={setClassificationLabels}
+              labelType={MODEL_TYPES.CLASSIFICATION}
+              outcomeColumns={CLASSIFICATION_OUTCOMES}
+              validateLabelFile={(file, dataPoints, setDataLabels) =>
+                validateLabelFile(
+                  file,
+                  dataPoints,
+                  setDataLabels,
+                  CLASSIFICATION_OUTCOMES
+                )
+              }
             />
-            <br />
-            {fileInput.current &&
-              fileInput.current.files[0] &&
-              !isLabelFileValid && (
-                <Alert color="danger">
-                  The selected file is not valid: {labelFileError}
-                </Alert>
-              )}
-            {fileInput.current &&
-              fileInput.current.files[0] &&
-              isLabelFileValid && (
-                <>
-                  <Alert color="success">The selected file is valid!</Alert>
-                  <Button color="success" onClick={handleSaveLabelsClick}>
-                    Save Labels
-                  </Button>
-                </>
-              )}
-          </Collapse>
-          <br />
-          <h3>Train Model</h3>
-          {unlabelledDataPoints > 0 ? (
-            <p>
-              There are still {unlabelledDataPoints} unlabelled PatientIDs,
-              assign an outcome to them first!
-              {/*/ROI pairs, assign an outcome to them first!*/}
-            </p>
-          ) : (
-            <Button color="info" onClick={handleTrainModelClick}>
-              {isTraining ? (
-                <>
-                  <FontAwesomeIcon icon="spinner" spin />{' '}
-                  <span>Training Model...</span>
-                </>
-              ) : (
-                <span>Train Model</span>
-              )}
-            </Button>
+          )}
+          {modelType === MODEL_TYPES.SURVIVAL && (
+            <DataLabels
+              albumID={albumID}
+              dataPoints={dataPoints}
+              isTraining={isTraining}
+              handleTrainModelClick={handleTrainModelClick}
+              dataLabels={survivalLabels}
+              setDataLabels={setSurvivalLabels}
+              labelType={MODEL_TYPES.SURVIVAL}
+              outcomeColumns={SURVIVAL_OUTCOMES}
+              validateLabelFile={(file, dataPoints, setDataLabels) =>
+                validateLabelFile(
+                  file,
+                  dataPoints,
+                  setDataLabels,
+                  SURVIVAL_OUTCOMES
+                )
+              }
+            />
           )}
         </>
       ) : (
@@ -580,10 +488,14 @@ export default function Train({ match, albums }) {
           </thead>
           <tbody>{formattedOtherMetrics}</tbody>
         </Table>
-        <strong>Confusion Matrix</strong>
-        <Table className="confusion-matrix">
-          <tbody>{confusionMatrix}</tbody>
-        </Table>
+        {true_pos !== undefined && (
+          <>
+            <strong>Confusion Matrix</strong>
+            <Table className="confusion-matrix">
+              <tbody>{confusionMatrix}</tbody>
+            </Table>
+          </>
+        )}
       </>
     );
   };
@@ -687,10 +599,13 @@ export default function Train({ match, albums }) {
                     <tr>
                       <td>Number of Observations</td>
                       <td>
-                        {model.metrics.true_pos +
-                          model.metrics.true_neg +
-                          model.metrics.false_pos +
-                          model.metrics.false_neg}
+                        {model.metrics.true_pos !== undefined &&
+                          model.metrics.true_pos +
+                            model.metrics.true_neg +
+                            model.metrics.false_pos +
+                            model.metrics.false_neg}
+                        {model.metrics.events_observed !== undefined &&
+                          model.metrics.events_observed}
                       </td>
                     </tr>
                   </tbody>
@@ -764,11 +679,7 @@ export default function Train({ match, albums }) {
   }
 }
 
-async function validateLabelFile(file, dataPoints, setDataLabels) {
-  console.log(file);
-  let valid = false;
-  let error = null;
-
+function validateFileType(file) {
   /* Validate metadata - file type */
   if (
     ![
@@ -784,16 +695,41 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
       file.name.endsWith('.csv')
     ) {
       // Ok, Windows sends strange MIME type
+      return true;
     } else {
-      error = 'The file is not a CSV file!';
-      return [valid, error];
+      return false;
     }
+  }
+
+  return true;
+}
+
+async function validateLabelFile(
+  file,
+  dataPoints,
+  setDataLabels,
+  headerFieldNames
+) {
+  console.log(file);
+  let valid = false;
+  let error = null;
+
+  /* Validate file type */
+  let fileTypeIsValid = validateFileType(file);
+
+  if (!fileTypeIsValid) {
+    error = 'The file is not a CSV file!';
+    return [valid, error];
   }
 
   /* Validate file content */
   const content = await file.text();
 
   try {
+    /* Add PatientID to the header field names (should always exist) */
+    let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
+    console.log('full header field names', fullHeaderFieldNames);
+
     let firstLine = content.split('\n')[0];
 
     let separator = csvString.detect(firstLine);
@@ -801,13 +737,10 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
     let headerFields = firstLine.split(separator);
 
     let hasHeader =
-      headerFields.length === 2 &&
-      headerFields.includes('PatientID') &&
-      //headerFields.includes('ROI') &&
-      headerFields.includes('Outcome');
+      headerFields.length === fullHeaderFieldNames.length &&
+      fullHeaderFieldNames.every(fieldName => headerFields.includes(fieldName));
 
-    //let columns = hasHeader ? true : ['PatientID', 'ROI', 'Outcome'];
-    let columns = hasHeader ? true : ['PatientID', 'Outcome'];
+    let columns = hasHeader ? true : fullHeaderFieldNames;
 
     const records = parse(content, {
       columns: columns,
@@ -839,28 +772,10 @@ async function validateLabelFile(file, dataPoints, setDataLabels) {
         nbMatches++;
 
         // Fill labels
-        labels[matchingRecord.PatientID] = matchingRecord.Outcome;
+        const { PatientID, ...recordContent } = matchingRecord;
+        labels[PatientID] = recordContent;
       }
     }
-    // for (let dataPoint of dataPoints) {
-    //   let matchingRecord = records.find(
-    //     record =>
-    //       record.PatientID === dataPoint[0]// && record.ROI === dataPoint[1]
-    //   );
-    //   if (!matchingRecord) {
-    //     allMatched = false;
-    //   } else {
-    //     nbMatches++;
-    //
-    //     // Fill labels
-    //     if (!labels[matchingRecord.PatientID]) {
-    //       labels[matchingRecord.PatientID] = {};
-    //     }
-    //
-    //     labels[matchingRecord.PatientID][matchingRecord.ROI] =
-    //       matchingRecord.Outcome;
-    //   }
-    // }
 
     if (!allMatched) {
       error = `The CSV file matched only ${nbMatches}/${dataPoints.length} Patient/ROI pairs!`;

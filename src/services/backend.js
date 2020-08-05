@@ -55,9 +55,9 @@ class Backend {
     }
   }
 
-  async labels(token, albumID) {
+  async labels(token, albumID, labelType) {
     try {
-      const url = `${endpoints.labels}/${albumID}`;
+      const url = `${endpoints.labels}/${albumID}/${labelType}`;
 
       return await request(url, {
         token: token
@@ -67,9 +67,9 @@ class Backend {
     }
   }
 
-  async saveLabels(token, albumID, labelMap) {
+  async saveLabels(token, albumID, labelType, labelMap) {
     try {
-      const url = `${endpoints.labels}/${albumID}`;
+      const url = `${endpoints.labels}/${albumID}/${labelType}`;
 
       return await request(url, {
         method: 'POST',
