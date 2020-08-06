@@ -524,13 +524,19 @@ export default function Train({ match, albums }) {
                     </tr>
                     <tr>
                       <td>Validation Strategy</td>
-                      <td>5-Fold Stratified Cross-Validation</td>
-                      {/*TODO - Get this from Melampus*/}
+                      <td>
+                        {model.validation_strategy
+                          ? model.validation_strategy
+                          : 'None'}
+                      </td>
                     </tr>
                     <tr>
                       <td>Feature Selection</td>
-                      <td>None</td>
-                      {/*TODO - Get this from Melampus*/}
+                      <td>
+                        {model.feature_selection
+                          ? model.feature_selection
+                          : 'None'}
+                      </td>
                     </tr>
                     <tr>
                       <td>Modalities Used</td>
