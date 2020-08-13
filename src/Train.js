@@ -429,18 +429,19 @@ export default function Train({ match, albums }) {
   );
 
   const formatMetrics = metrics => {
-    let { true_pos, true_neg, false_pos, false_neg, ...otherMetrics } = metrics;
-
-    let formattedOtherMetrics = Object.keys(otherMetrics).map(metricName => (
+    let formattedOtherMetrics = Object.keys(metrics).map(metricName => (
       <tr key={metricName}>
         <td>
           <strong>{metricName}</strong>
         </td>
-        <td>{metrics[metricName]}</td>
+        <td>
+          {metrics[metricName]['m'].toFixed(3)} (±
+          {metrics[metricName]['h'].toFixed(3)})
+        </td>
       </tr>
     ));
 
-    let confusionMatrix = (
+    /*let confusionMatrix = (
       <>
         <tr>
           <td>
@@ -475,7 +476,7 @@ export default function Train({ match, albums }) {
           </td>
         </tr>
       </>
-    );
+    );*/
 
     return (
       <>
@@ -488,14 +489,14 @@ export default function Train({ match, albums }) {
           </thead>
           <tbody>{formattedOtherMetrics}</tbody>
         </Table>
+        {/* Remove confusion matrix for now, focus on having confidence intervals}
         {true_pos !== undefined && (
           <>
             <strong>Confusion Matrix</strong>
             <Table className="confusion-matrix">
               <tbody>{confusionMatrix}</tbody>
             </Table>
-          </>
-        )}
+          </>*/}
       </>
     );
   };
@@ -604,15 +605,7 @@ export default function Train({ match, albums }) {
                     </tr>
                     <tr>
                       <td>Number of Observations</td>
-                      <td>
-                        {model.metrics.true_pos !== undefined &&
-                          model.metrics.true_pos +
-                            model.metrics.true_neg +
-                            model.metrics.false_pos +
-                            model.metrics.false_neg}
-                        {model.metrics.events_observed !== undefined &&
-                          model.metrics.events_observed}
-                      </td>
+                      <td>{model.observations}</td>
                     </tr>
                   </tbody>
                 </Table>
