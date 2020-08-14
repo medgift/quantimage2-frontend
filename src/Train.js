@@ -10,7 +10,8 @@ import {
   FormText,
   ListGroup,
   ListGroupItem,
-  Badge
+  Badge,
+  Tooltip
 } from 'reactstrap';
 
 import './Train.css';
@@ -116,6 +117,8 @@ export default function Train({ match, albums }) {
   let [classificationLabels, setClassificationLabels] = useState({});
   let [survivalLabels, setSurvivalLabels] = useState({});
 
+  let [ciTooltipOpen, setCITooltipOpen] = useState(false);
+
   // Initialize all modalities & ROIs to be checked
   useEffect(() => {
     if (albumExtraction) {
@@ -153,6 +156,8 @@ export default function Train({ match, albums }) {
 
     if (albumExtraction) getDataPoints();
   }, [albumExtraction]);
+
+  const toggleCITooltip = () => setCITooltipOpen(open => !open);
 
   const handleModelTypeChange = e => {
     setModelType(e.target.value);
@@ -435,8 +440,9 @@ export default function Train({ match, albums }) {
           <strong>{metricName}</strong>
         </td>
         <td>
-          {metrics[metricName]['m'].toFixed(3)} (±
-          {metrics[metricName]['h'].toFixed(3)})
+          {metrics[metricName]['median'].toFixed(3)} (
+          {metrics[metricName]['inf_value'].toFixed(3)} -{' '}
+          {metrics[metricName]['sup_value'].toFixed(3)})
         </td>
       </tr>
     ));
@@ -484,7 +490,18 @@ export default function Train({ match, albums }) {
           <thead>
             <tr>
               <th>Metric Name</th>
-              <th>Metric Value</th>
+              <th>
+                Metric Value{' '}
+                <FontAwesomeIcon icon="question-circle" id="ciTooltip" />
+                <Tooltip
+                  placement="right"
+                  isOpen={ciTooltipOpen}
+                  target="ciTooltip"
+                  toggle={toggleCITooltip}
+                >
+                  Shows the median value & 95% confidence interval
+                </Tooltip>
+              </th>
             </tr>
           </thead>
           <tbody>{formattedOtherMetrics}</tbody>
