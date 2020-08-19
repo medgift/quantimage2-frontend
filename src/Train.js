@@ -440,7 +440,7 @@ export default function Train({ match, albums }) {
           <strong>{metricName}</strong>
         </td>
         <td>
-          {metrics[metricName]['median'].toFixed(3)} (
+          {metrics[metricName]['mean'].toFixed(3)} (
           {metrics[metricName]['inf_value'].toFixed(3)} -{' '}
           {metrics[metricName]['sup_value'].toFixed(3)})
         </td>
@@ -499,7 +499,7 @@ export default function Train({ match, albums }) {
                   target="ciTooltip"
                   toggle={toggleCITooltip}
                 >
-                  Shows the median value & 95% confidence interval
+                  Shows the mean value & 95% confidence interval
                 </Tooltip>
               </th>
             </tr>
