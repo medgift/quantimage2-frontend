@@ -19,7 +19,8 @@ import {
   faPlus,
   faArrowLeft,
   faSpinner,
-  faQuestionCircle
+  faQuestionCircle,
+  faBug,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -44,4 +45,5 @@ export default function registerIcons() {
   library.add(faArrowLeft);
   library.add(faSpinner);
   library.add(faQuestionCircle);
+  library.add(faBug);
 }

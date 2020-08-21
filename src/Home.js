@@ -10,7 +10,7 @@ import {
   Collapse,
   ListGroup,
   ListGroupItem,
-  Spinner
+  Spinner,
 } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { DICOM_DATE_FORMAT } from './config/constants';
@@ -31,14 +31,14 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
   let socket = useContext(SocketContext);
 
-  let handleExtractAlbumClick = album => {
+  let handleExtractAlbumClick = (album) => {
     setModal(true);
     setCurrentAlbum(album);
   };
 
-  let handleDownloadAlbumClick = async album => {
+  let handleDownloadAlbumClick = async (album) => {
     let albumExtraction = extractions.find(
-      extraction => extraction.album_id === album.album_id
+      (extraction) => extraction.album_id === album.album_id
     );
 
     window.location.href = Backend.downloadExtractionURL(
@@ -55,16 +55,16 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   };
 
   let updateExtraction = (featureExtractionID, updatedContent) => {
-    setExtractions(extractions => {
+    setExtractions((extractions) => {
       let updatedExtractions = [...extractions];
       let extractionToUpdate = updatedExtractions.find(
-        extraction => extraction.id === featureExtractionID
+        (extraction) => extraction.id === featureExtractionID
       );
 
       if (extractionToUpdate) {
         Object.assign(extractionToUpdate, {
           ...extractionToUpdate,
-          ...updatedContent
+          ...updatedContent,
         });
       }
 
@@ -73,10 +73,10 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   };
 
   let replaceExtraction = (albumID, newExtraction) => {
-    setExtractions(extractions => {
+    setExtractions((extractions) => {
       let updatedExtractions = [...extractions];
       let extractionToReplace = updatedExtractions.find(
-        extraction => extraction.album_id === albumID
+        (extraction) => extraction.album_id === albumID
       );
 
       if (extractionToReplace) {
@@ -89,7 +89,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     });
   };
 
-  let showAlbumButtons = album => {
+  let showAlbumButtons = (album) => {
     let extractionButton = (
       <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
         <FontAwesomeIcon icon="cog" /> <span>Extract Features</span>
@@ -116,10 +116,12 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
     if (extractions && models) {
       let albumExtraction = extractions.find(
-        extraction => extraction.album_id === album.album_id
+        (extraction) => extraction.album_id === album.album_id
       );
 
-      let albumModels = models.find(model => model.album_id === album.album_id);
+      let albumModels = models.find(
+        (model) => model.album_id === album.album_id
+      );
 
       if (!albumExtraction) {
         return <div>{extractionButton}</div>;
@@ -144,10 +146,19 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       } else {
         return (
           <div>
+            {albumExtraction.status.completed_tasks +
+              albumExtraction.status.failed_tasks <
+              albumExtraction.status.total_tasks && (
+              <>
+                <FontAwesomeIcon icon="sync" className="text-danger" spin />{' '}
+              </>
+            )}
             <span className="text-danger">
               {featureExtractionStatusText(albumExtraction)}
             </span>
-            {extractionButton}
+            {albumExtraction.status.completed_tasks +
+              albumExtraction.status.failed_tasks ===
+              albumExtraction.status.total_tasks && extractionButton}
           </div>
         );
       }
@@ -156,9 +167,19 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
   };
 
-  const featureExtractionStatusText = albumExtraction => {
-    if (albumExtraction.status.failed) {
-      return <span>Failed!</span>;
+  const featureExtractionStatusText = (albumExtraction) => {
+    if (
+      albumExtraction.status.failed &&
+      albumExtraction.status.completed_tasks +
+        albumExtraction.status.failed_tasks ==
+        albumExtraction.status.total_tasks
+    ) {
+      return (
+        <span>
+          Failed! ({albumExtraction.status.completed_tasks}/
+          {albumExtraction.status.total_tasks} tasks successful)
+        </span>
+      );
     }
 
     if (
@@ -169,15 +190,17 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
 
     if (
-      albumExtraction.status.total_steps !== 0 &&
-      albumExtraction.status.completed_steps > 0
+      albumExtraction.status.total_tasks !== 0 &&
+      (albumExtraction.status.completed_tasks > 0 ||
+        albumExtraction.status.failed_tasks > 0)
     ) {
       return (
         <span>
           Extraction In Progress (
           {(
-            (albumExtraction.status.completed_steps /
-              albumExtraction.status.total_steps) *
+            ((albumExtraction.status.completed_tasks +
+              albumExtraction.status.failed_tasks) /
+              albumExtraction.status.total_tasks) *
             100
           ).toFixed()}
           %)
@@ -192,7 +215,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     }
   };
 
-  const getPatientNameForStudy = study => {
+  const getPatientNameForStudy = (study) => {
     if (study[DicomFields.PATIENT_NAME][DicomFields.VALUE])
       return study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
         DicomFields.ALPHABETIC
@@ -202,13 +225,13 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
   const [studyToggles, setStudyToggles] = useState({});
 
-  const handleStudyToggle = albumID => {
+  const handleStudyToggle = (albumID) => {
     const updatedStudyToggles = { ...studyToggles };
     updatedStudyToggles[albumID] = !updatedStudyToggles[albumID];
     setStudyToggles(updatedStudyToggles);
   };
 
-  const handleExtractionStatus = useCallback(extractionStatus => {
+  const handleExtractionStatus = useCallback((extractionStatus) => {
     console.log(
       `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
       extractionStatus
@@ -218,11 +241,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     if (extractionStatus.id) {
       console.log('Updating full object');
       updateExtraction(extractionStatus.id, {
-        ...extractionStatus
+        ...extractionStatus,
       });
     } else {
       updateExtraction(extractionStatus.feature_extraction_id, {
-        status: extractionStatus.status
+        status: extractionStatus.status,
       });
     }
   }, []);
@@ -261,7 +284,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         if (latestExtraction) latestExtractions.push(latestExtraction);
       }
 
-      setExtractions(extractions => latestExtractions);
+      setExtractions((extractions) => latestExtractions);
     }
 
     async function getAlbumModels() {
@@ -278,6 +301,49 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       getAlbumModels();
     }
   }, [keycloak, albums]);
+
+  const getStudyStatusClass = (albumID, studyUID) => {
+    if (!extractions) return '';
+
+    let albumExtraction = extractions.find(
+      (extraction) => extraction.album_id === albumID
+    );
+
+    if (!albumExtraction) {
+      return '';
+    } else {
+      if (
+        albumExtraction.status.errors &&
+        albumExtraction.status.errors[studyUID]
+      )
+        return 'text-danger';
+      else return '';
+    }
+  };
+
+  const getStudyErrors = (albumID, studyUID) => {
+    if (!extractions) return null;
+
+    let albumExtraction = extractions.find(
+      (extraction) => extraction.album_id === albumID
+    );
+
+    if (!albumExtraction) {
+      return null;
+    } else {
+      if (
+        albumExtraction.status.errors &&
+        albumExtraction.status.errors[studyUID]
+      )
+        return (
+          <FontAwesomeIcon
+            icon="bug"
+            title={albumExtraction.status.errors[studyUID].join('&#013;')}
+          />
+        );
+      else return null;
+    }
+  };
 
   return (
     <>
@@ -312,11 +378,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
               <ListGroup className="albums">
                 {albums
                   .filter(
-                    album =>
+                    (album) =>
                       studies[album.album_id] &&
                       studies[album.album_id].length > 0
                   )
-                  .map(album => (
+                  .map((album) => (
                     <ListGroupItem key={album.album_id}>
                       <div className="d-flex justify-content-between align-items-center">
                         <h5 style={{ margin: 0 }}>
@@ -347,7 +413,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                             }
                           >
                             <ListGroup>
-                              {studies[album.album_id].map(study => (
+                              {studies[album.album_id].map((study) => (
                                 <ListGroupItem
                                   key={
                                     study[DicomFields.STUDY_UID][
@@ -362,7 +428,12 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                                         DicomFields.VALUE
                                       ][0]
                                     }`}
-                                    className="btn btn-link"
+                                    className={`btn btn-link ${getStudyStatusClass(
+                                      album.album_id,
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    )}`}
                                     href="#"
                                     title={
                                       study[DicomFields.STUDY_UID][
@@ -377,7 +448,13 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
                                       ][0],
                                       DicomFields.DATE_FORMAT
                                     ).format(DICOM_DATE_FORMAT)}
-                                    )
+                                    ){' '}
+                                    {getStudyErrors(
+                                      album.album_id,
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    )}
                                   </Link>
                                   <div>
                                     {(() => {
@@ -436,7 +513,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         >
           <FeaturesList
             albumID={currentAlbum.album_id}
-            extractionCallback={newExtraction => {
+            extractionCallback={(newExtraction) => {
               toggleModal();
               replaceExtraction(newExtraction.album_id, newExtraction);
             }}

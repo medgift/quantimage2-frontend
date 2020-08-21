@@ -12,7 +12,7 @@ import FeaturesList from './components/FeaturesList';
 
 function Study({ match, kheopsError }) {
   let {
-    params: { studyUID }
+    params: { studyUID },
   } = match;
 
   let [keycloak] = useKeycloak();
@@ -20,7 +20,7 @@ function Study({ match, kheopsError }) {
   let [seriesDetails, setSeriesDetails] = useState(null);
 
   let series = useMemo(() => parseSeriesDetails(seriesDetails), [
-    seriesDetails
+    seriesDetails,
   ]);
 
   useEffect(() => {
@@ -92,7 +92,7 @@ function Study({ match, kheopsError }) {
           </Table>
         </>
       )}
-      <h2>Features</h2>
+      {/*<h2>Features</h2>
       {studyDetails && (
         <FeaturesList
           studyUID={studyUID}
@@ -100,7 +100,7 @@ function Study({ match, kheopsError }) {
           studyDate={studyDetails[DicomFields.DATE][DicomFields.VALUE][0]}
           setMinWidth={true}
         />
-      )}
+      )}*/}
       <Link style={{ marginTop: '1em' }} to="/">
         Back to Home
       </Link>
