@@ -4,7 +4,7 @@ import {
   Button,
   ButtonGroup,
   Collapse,
-  ListGroupItem
+  ListGroupItem,
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
 
@@ -23,7 +23,7 @@ export default function FeaturesList({
   studyDate,
   patientID,
   setMinWidth,
-  extractionCallback
+  extractionCallback,
 }) {
   let [keycloak] = useKeycloak();
 
@@ -46,7 +46,7 @@ export default function FeaturesList({
 
   let socket = useContext(SocketContext);
 
-  const handleFeatureStatus = featureStatus => {
+  const handleFeatureStatus = (featureStatus) => {
     console.log('GOT TASK STATUS!!!', featureStatus);
 
     if (featureStatus.status === FEATURE_STATUS.FAILURE) {
@@ -54,13 +54,13 @@ export default function FeaturesList({
       setBackendErrorVisible(true);
     }
 
-    setTasks(tasks =>
-      tasks.map(task => {
+    setTasks((tasks) =>
+      tasks.map((task) => {
         if (task.id === featureStatus.feature_extraction_task_id) {
           return {
             ...task,
             status: featureStatus.status,
-            status_message: featureStatus.status_message
+            status_message: featureStatus.status_message,
           };
         }
 
@@ -69,10 +69,10 @@ export default function FeaturesList({
     );
   };
 
-  const handleExtractionStatus = extractionStatus => {
+  const handleExtractionStatus = (extractionStatus) => {
     console.log('GOT EXTRACTION STATUS!!!', extractionStatus);
 
-    setExtraction(extraction => {
+    setExtraction((extraction) => {
       if (extractionStatus.id) {
         if (extraction && extractionStatus.id === extraction.id) {
           return { ...extractionStatus };
@@ -86,7 +86,7 @@ export default function FeaturesList({
         ) {
           return {
             ...extraction,
-            status: extractionStatus.status
+            status: extractionStatus.status,
           };
         } else {
           return extraction;
@@ -131,7 +131,7 @@ export default function FeaturesList({
           featureConfigs[featureFamily.id] = cloneDeep(featureFamily.config);
         } else {
           let familyInExtraction = latestExtraction.families.find(
-            family => family.feature_family.id === featureFamily.id
+            (family) => family.feature_family.id === featureFamily.id
           );
 
           selectedFamilies[featureFamily.id] = familyInExtraction !== undefined;
@@ -222,7 +222,7 @@ export default function FeaturesList({
     toggleModal();
   };
 
-  let handleDownloadFeaturesClick = async e => {
+  let handleDownloadFeaturesClick = async (e) => {
     window.location.href = Backend.downloadExtractionURL(
       extraction.id,
       patientID,
@@ -231,14 +231,14 @@ export default function FeaturesList({
     );
   };
 
-  let handleToggleSettingsClick = familyID => {
-    setSettingsCollapse(prevState => ({
+  let handleToggleSettingsClick = (familyID) => {
+    setSettingsCollapse((prevState) => ({
       ...prevState,
-      [familyID]: !prevState[familyID]
+      [familyID]: !prevState[familyID],
     }));
   };
 
-  let countActiveFeaturesInFamily = featureConfig => {
+  let countActiveFeaturesInFamily = (featureConfig) => {
     let activeFeatures = 0;
 
     for (let backend in featureConfig['backends']) {
@@ -278,13 +278,15 @@ export default function FeaturesList({
     if (!checked) {
       let currentFeatures = featureConfig.backends[backend].features;
 
-      let newFeatures = currentFeatures.filter(fName => fName !== featureName);
+      let newFeatures = currentFeatures.filter(
+        (fName) => fName !== featureName
+      );
 
       featureConfig.backends[backend].features = newFeatures;
     } else {
       featureConfig.backends[backend].features = [
         ...featureConfig.backends[backend].features,
-        featureName
+        featureName,
       ];
     }
 
@@ -296,14 +298,14 @@ export default function FeaturesList({
   let handleFamilyCheck = (e, featureFamilyId) => {
     let checked = e.target.checked;
 
-    setSelectedFamilies(selectedFamilies => ({
+    setSelectedFamilies((selectedFamilies) => ({
       ...selectedFamilies,
-      [featureFamilyId]: checked
+      [featureFamilyId]: checked,
     }));
   };
 
-  let getFeatureTaskStatus = featureFamilyID => {
-    let task = tasks.find(task => task.feature_family_id === featureFamilyID);
+  let getFeatureTaskStatus = (featureFamilyID) => {
+    let task = tasks.find((task) => task.feature_family_id === featureFamilyID);
 
     return (
       task &&
@@ -330,7 +332,7 @@ export default function FeaturesList({
         </ListGroupItem>
         {featureFamiles.length > 0 &&
           Object.keys(featureConfigs).length > 0 &&
-          featureFamiles.map(featureFamily => (
+          featureFamiles.map((featureFamily) => (
             <ListGroupItem
               key={featureFamily.id}
               disabled={extraction && !extraction.status.ready}
@@ -342,7 +344,7 @@ export default function FeaturesList({
                       type="checkbox"
                       className="custom-control-input"
                       checked={selectedFamilies[featureFamily.id]}
-                      onChange={e => {
+                      onChange={(e) => {
                         handleFamilyCheck(e, featureFamily.id);
                       }}
                       id={`${featureFamily.id}-${featureFamily.name}`}
@@ -376,7 +378,7 @@ export default function FeaturesList({
                       (featureNames, backend) => [
                         ...featureNames,
                         ...featureConfigs[featureFamily.id].backends[backend]
-                          .features
+                          .features,
                       ],
                       []
                     )
@@ -392,12 +394,12 @@ export default function FeaturesList({
                 className="mt-2"
                 id={`settings-${featureFamily.id}`}
               >
-                {Object.keys(featureFamily.config.backends).map(backend => (
+                {Object.keys(featureFamily.config.backends).map((backend) => (
                   <div key={backend}>
                     <div>{backend}</div>
                     <ListGroup>
                       {featureFamily.config.backends[backend].features.map(
-                        featureName => (
+                        (featureName) => (
                           <ListGroupItem
                             className="text-left"
                             key={`${featureName}`}
@@ -411,7 +413,7 @@ export default function FeaturesList({
                                 ].backends[backend].features.includes(
                                   featureName
                                 )}
-                                onChange={e =>
+                                onChange={(e) =>
                                   updateFeatureConfig(
                                     e,
                                     featureFamily.id,
@@ -455,7 +457,7 @@ export default function FeaturesList({
                   color="success"
                   onClick={handleExtractFeaturesClick}
                   disabled={
-                    Object.values(selectedFamilies).filter(value => value)
+                    Object.values(selectedFamilies).filter((value) => value)
                       .length === 0
                   }
                 >
@@ -503,7 +505,7 @@ export default function FeaturesList({
 
       <Alert
         color="danger"
-        className="mt-3 compute-error"
+        className="mt-3"
         isOpen={backendErrorVisible}
         toggle={hideBackendError}
       >
