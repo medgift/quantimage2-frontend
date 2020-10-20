@@ -15,7 +15,7 @@ import { useKeycloak } from 'react-keycloak';
 import {
   KEYCLOAK_ADMIN_ROLE,
   KEYCLOAK_FRONTEND_CLIENT_ID,
-  KEYCLOAK_RESOURCE_ACCESS
+  KEYCLOAK_RESOURCE_ACCESS,
 } from './config/constants';
 import FeatureFamilies from './FeatureFamilies';
 import FeatureFamilyCreate from './FeatureFamilyCreate';
@@ -36,7 +36,7 @@ function App({ setUser, setIsAdmin }) {
 
   useEffect(() => {
     if (keycloak && initialized) {
-      keycloak.loadUserProfile().success(profile => {
+      keycloak.loadUserProfile().success((profile) => {
         setUser(profile);
       });
       let isAdmin =
@@ -66,7 +66,7 @@ function App({ setUser, setIsAdmin }) {
     async function getStudies(albums) {
       const studies = {};
       await Promise.all(
-        albums.map(async album => {
+        albums.map(async (album) => {
           const albumStudies = await Kheops.studies(
             keycloak.token,
             album.album_id
@@ -107,7 +107,7 @@ function App({ setUser, setIsAdmin }) {
                 studies={studies}
               />
               <PropsRoute
-                path="/features"
+                path="/features/:albumID?"
                 component={Features}
                 kheopsError={kheopsError}
               />

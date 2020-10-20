@@ -8,10 +8,11 @@ const endpoints = {
   analyze: `${baseEndpoint}/analyze`,
   extract: `${baseEndpoint}/extract`,
   extractions: `${baseEndpoint}/extractions`,
+  collections: `${baseEndpoint}/feature-collections`,
   families: `${baseEndpoint}/feature-families`,
   models: `${baseEndpoint}/models`,
   labels: `${baseEndpoint}/labels`,
-  tasks: `${baseEndpoint}/tasks`
+  tasks: `${baseEndpoint}/tasks`,
 };
 
 class Backend {
@@ -46,6 +47,15 @@ class Backend {
     }
   }
 
+  async extractionCollectionFeatureDetails(token, extractionID, collectionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/collections/${collectionID}/feature-details`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extractionDataPoints(token, extractionID) {
     try {
       const url = `${endpoints.extractions}/${extractionID}/data-points`;
@@ -60,7 +70,7 @@ class Backend {
       const url = `${endpoints.labels}/${albumID}/${labelType}`;
 
       return await request(url, {
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -74,7 +84,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: labelMap,
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -123,7 +133,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: feature_families_map,
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -153,9 +163,9 @@ class Backend {
           'model-type': modelType,
           'algorithm-type': algorithmType,
           modalities: usedModalities,
-          rois: usedROIs
+          rois: usedROIs,
         },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -197,7 +207,7 @@ class Backend {
         method: 'POST',
         data: formData,
         token: token,
-        multipart: true
+        multipart: true,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -212,10 +222,40 @@ class Backend {
         method: 'PATCH',
         data: formData,
         token: token,
-        multipart: true
+        multipart: true,
       });
     } catch (err) {
       throw err;
+    }
+  }
+
+  async saveCollection(token, featureExtractionID, name, rows) {
+    try {
+      const url = `${endpoints.collections}`;
+
+      return await request(url, {
+        method: 'POST',
+        data: {
+          featureExtractionID: featureExtractionID,
+          name: name,
+          rows: rows,
+        },
+        token: token,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async collectionsByExtraction(token, featureExtractionID) {
+    try {
+      const url = `${endpoints.collections}/extraction/${featureExtractionID}`;
+
+      return await request(url, {
+        token: token,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
     }
   }
 }

@@ -6,13 +6,22 @@ const baseEndpoint = `${kheopsBaseURL}/api`;
 
 const endpoints = {
   albums: `${baseEndpoint}/albums`,
-  studies: `${baseEndpoint}/studies`
+  studies: `${baseEndpoint}/studies`,
 };
 
 class Kheops {
   async albums(token) {
     try {
       const url = endpoints.albums;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async album(token, albumID) {
+    try {
+      const url = `${endpoints.albums}/${albumID}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now

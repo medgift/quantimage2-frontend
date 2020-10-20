@@ -4,6 +4,7 @@ import moment from 'moment';
 import './Home.css';
 import Backend from './services/backend';
 import Kheops from './services/kheops';
+import { useHistory } from 'react-router-dom';
 import {
   Alert,
   Button,
@@ -28,6 +29,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
   let [keycloak] = useKeycloak();
+  let history = useHistory();
 
   let socket = useContext(SocketContext);
 
@@ -48,6 +50,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       null,
       keycloak.tokenParsed.sub
     );
+  };
+
+  let handleEditAlbumClick = async (album) => {
+    // Redirect to feature table route here
+    history.push(`/features/${album.album_id}`);
   };
 
   let toggleModal = () => {
@@ -96,6 +103,12 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       </Button>
     );
 
+    let editButton = (
+      <Button color="link" onClick={() => handleEditAlbumClick(album)}>
+        <FontAwesomeIcon icon="table" /> <span>View / Edit Features</span>
+      </Button>
+    );
+
     let downloadButton = (
       <Button color="link" onClick={() => handleDownloadAlbumClick(album)}>
         <FontAwesomeIcon icon="download" /> <span>Download Features</span>
@@ -139,6 +152,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
         return (
           <div>
             {extractionButton}
+            {editButton}
             {downloadButton}
             {analyzeButton(album, albumModels)}
           </div>

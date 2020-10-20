@@ -21,6 +21,12 @@ import {
   faSpinner,
   faQuestionCircle,
   faBug,
+  faTable,
+  faEdit,
+  faAngleRight,
+  faAngleDoubleRight,
+  faAngleLeft,
+  faAngleDoubleLeft,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -46,4 +52,10 @@ export default function registerIcons() {
   library.add(faSpinner);
   library.add(faQuestionCircle);
   library.add(faBug);
+  library.add(faTable);
+  library.add(faEdit);
+  library.add(faAngleRight);
+  library.add(faAngleDoubleRight);
+  library.add(faAngleLeft);
+  library.add(faAngleDoubleLeft);
 }

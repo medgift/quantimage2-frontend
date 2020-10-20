@@ -11,7 +11,7 @@ import {
   ListGroup,
   ListGroupItem,
   Badge,
-  Tooltip
+  Tooltip,
 } from 'reactstrap';
 
 import './Train.css';
@@ -34,11 +34,11 @@ import DataLabels from './components/DataLabels';
 const PATIENT_ID_FIELD = 'PatientID';
 const ROI_FIELD = 'ROI';
 const MODALITY_FIELD = 'Modality';
-const NON_FEATURE_FIELDS = [PATIENT_ID_FIELD, MODALITY_FIELD, ROI_FIELD];
+export const NON_FEATURE_FIELDS = [PATIENT_ID_FIELD, MODALITY_FIELD, ROI_FIELD];
 
 const MODEL_TYPES = {
   CLASSIFICATION: 'Classification',
-  SURVIVAL: 'Survival'
+  SURVIVAL: 'Survival',
 };
 
 const CLASSIFICATION_ALGORITHMS = {
@@ -46,7 +46,7 @@ const CLASSIFICATION_ALGORITHMS = {
   LASSO_REGRESSION: 'lasso_regression',
   ELASTIC_NET: 'elastic_net',
   RANDOM_FOREST: 'random_forest',
-  SVM: 'svm'
+  SVM: 'svm',
 };
 
 const CLASSIFICATION_OUTCOMES = ['Outcome'];
@@ -88,7 +88,7 @@ async function getFormattedLabels(
 
 export default function Train({ match, albums }) {
   let {
-    params: { albumID }
+    params: { albumID },
   } = match;
 
   let [keycloak] = useKeycloak();
@@ -157,13 +157,13 @@ export default function Train({ match, albums }) {
     if (albumExtraction) getDataPoints();
   }, [albumExtraction]);
 
-  const toggleCITooltip = () => setCITooltipOpen(open => !open);
+  const toggleCITooltip = () => setCITooltipOpen((open) => !open);
 
-  const handleModelTypeChange = e => {
+  const handleModelTypeChange = (e) => {
     setModelType(e.target.value);
   };
 
-  const handleAlgorithmTypeChange = e => {
+  const handleAlgorithmTypeChange = (e) => {
     setAlgorithmType(e.target.value);
   };
 
@@ -172,7 +172,7 @@ export default function Train({ match, albums }) {
     for (let patientID in classificationLabels) {
       formattedLabels.push([
         patientID,
-        classificationLabels[patientID].Outcome
+        classificationLabels[patientID].Outcome,
       ]);
     }
 
@@ -185,18 +185,18 @@ export default function Train({ match, albums }) {
       formattedLabels.push([
         patientID,
         survivalLabels[patientID].Time,
-        survivalLabels[patientID].Event
+        survivalLabels[patientID].Event,
       ]);
     }
     return formattedLabels;
   });
 
   const toggleFeatureConfig = () => {
-    setFeatureConfigOpen(open => !open);
+    setFeatureConfigOpen((open) => !open);
   };
 
   const toggleFeatureNames = () => {
-    setFeatureNamesOpen(open => !open);
+    setFeatureNamesOpen((open) => !open);
   };
 
   // Get classification labels
@@ -262,9 +262,9 @@ export default function Train({ match, albums }) {
     setShowNewModel(false);
   };
 
-  const handleDeleteModelClick = async id => {
+  const handleDeleteModelClick = async (id) => {
     const deletedModel = await Backend.deleteModel(keycloak.token, id);
-    setModels(models.filter(model => model.id !== id));
+    setModels(models.filter((model) => model.id !== id));
   };
 
   const handleShowNewModelClick = () => {
@@ -275,19 +275,19 @@ export default function Train({ match, albums }) {
     setShowNewModel(false);
   };
 
-  const handleShowFeaturesConfig = families => {
+  const handleShowFeaturesConfig = (families) => {
     setFeaturesConfigFamilies(families);
     toggleFeatureConfig();
   };
 
-  const handleShowFeatureNames = names => {
+  const handleShowFeatureNames = (names) => {
     setFeatureNames(names);
     toggleFeatureNames();
   };
 
   if (albums.length === 0) return <span>Loading...</span>;
 
-  let album = albums.find(a => a.album_id === albumID);
+  let album = albums.find((a) => a.album_id === albumID);
 
   let newModelForm = (
     <div>
@@ -313,7 +313,7 @@ export default function Train({ match, albums }) {
             value={modelType}
             onChange={handleModelTypeChange}
           >
-            {Object.keys(MODEL_TYPES).map(key => (
+            {Object.keys(MODEL_TYPES).map((key) => (
               <option key={key} value={MODEL_TYPES[key]}>
                 {MODEL_TYPES[key]}
               </option>
@@ -333,7 +333,7 @@ export default function Train({ match, albums }) {
                 value={algorithmType}
                 onChange={handleAlgorithmTypeChange}
               >
-                {Object.keys(CLASSIFICATION_ALGORITHMS).map(key => (
+                {Object.keys(CLASSIFICATION_ALGORITHMS).map((key) => (
                   <option key={key} value={CLASSIFICATION_ALGORITHMS[key]}>
                     {_.startCase(
                       CLASSIFICATION_ALGORITHMS[key].replace('_', ' ')
@@ -353,11 +353,11 @@ export default function Train({ match, albums }) {
             value={usedModalities}
             onChange={setUsedModalities}
           >
-            {Checkbox => (
+            {(Checkbox) => (
               <>
                 {albumExtraction['extraction-modalities']
                   .sort()
-                  .map(modality => (
+                  .map((modality) => (
                     <label key={modality} style={{ margin: '0.5em' }}>
                       <Checkbox value={modality} /> {modality}
                     </label>
@@ -367,9 +367,9 @@ export default function Train({ match, albums }) {
           </CheckboxGroup>
           <div>Choose the ROIs used for training the model</div>
           <CheckboxGroup name="rois" value={usedROIs} onChange={setUsedROIs}>
-            {Checkbox => (
+            {(Checkbox) => (
               <>
-                {albumExtraction['extraction-rois'].sort().map(roi => (
+                {albumExtraction['extraction-rois'].sort().map((roi) => (
                   <label key={roi} style={{ margin: '0.5em' }}>
                     <Checkbox value={roi} /> {roi}
                   </label>
@@ -433,8 +433,8 @@ export default function Train({ match, albums }) {
     </div>
   );
 
-  const formatMetrics = metrics => {
-    let formattedOtherMetrics = Object.keys(metrics).map(metricName => (
+  const formatMetrics = (metrics) => {
+    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
       <tr key={metricName}>
         <td>
           <strong>{metricName}</strong>
@@ -522,7 +522,7 @@ export default function Train({ match, albums }) {
     <>
       {albumExtraction && (
         <ListGroup>
-          {models.map(model => (
+          {models.map((model) => (
             <ListGroupItem key={model.id} className="model-entry">
               <h3>{model.name}</h3>
               <div className="model-details-container">
@@ -559,7 +559,7 @@ export default function Train({ match, albums }) {
                     <tr>
                       <td>Modalities Used</td>
                       <td>
-                        {model.modalities.map(modality => (
+                        {model.modalities.map((modality) => (
                           <Badge
                             style={{ marginRight: '0.5em' }}
                             color="primary"
@@ -574,7 +574,7 @@ export default function Train({ match, albums }) {
                     <tr>
                       <td>ROIs Used</td>
                       <td>
-                        {model.rois.map(roi => (
+                        {model.rois.map((roi) => (
                           <Badge
                             style={{ marginRight: '0.5em' }}
                             color="primary"
@@ -590,12 +590,12 @@ export default function Train({ match, albums }) {
                       <td>Feature Families Used</td>
                       <td>
                         {model.extraction.families
-                          .map(family => family.feature_family.name)
+                          .map((family) => family.feature_family.name)
                           .join(', ')}
                         {' - '}
                         <a
                           href="#"
-                          onClick={event => {
+                          onClick={(event) => {
                             event.preventDefault();
                             handleShowFeaturesConfig(model.extraction.families);
                           }}
@@ -611,7 +611,7 @@ export default function Train({ match, albums }) {
                         {' - '}
                         <a
                           href="#"
-                          onClick={event => {
+                          onClick={(event) => {
                             event.preventDefault();
                             handleShowFeatureNames(model['feature-names']);
                           }}
@@ -703,7 +703,7 @@ function validateFileType(file) {
       'text/comma-separated-values',
       'text/tab-separated-values',
       'application/csv',
-      'application/x-csv'
+      'application/x-csv',
     ].includes(file.type)
   ) {
     if (
@@ -754,13 +754,15 @@ async function validateLabelFile(
 
     let hasHeader =
       headerFields.length === fullHeaderFieldNames.length &&
-      fullHeaderFieldNames.every(fieldName => headerFields.includes(fieldName));
+      fullHeaderFieldNames.every((fieldName) =>
+        headerFields.includes(fieldName)
+      );
 
     let columns = hasHeader ? true : fullHeaderFieldNames;
 
     const records = parse(content, {
       columns: columns,
-      skip_empty_lines: true
+      skip_empty_lines: true,
     });
 
     // Check number of rows
@@ -779,7 +781,7 @@ async function validateLabelFile(
 
     for (let patientID of dataPoints) {
       let matchingRecord = records.find(
-        record => record.PatientID === patientID
+        (record) => record.PatientID === patientID
       );
 
       if (!matchingRecord) {
