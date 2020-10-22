@@ -12,6 +12,7 @@
 
 table {
   border-spacing: 0;
+  font-size: smaller;
 }
 
 table thead tr:first-child th {
