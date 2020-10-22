@@ -34,13 +34,13 @@ export async function downloadFeatureSet(token, tasks) {
   let data = assembleCSVData(allFeatures);
 
   const parser = new Parser({
-    fields: fields
+    fields: fields,
   });
 
   let parsedData = parser.parse(data);
 
   const fileContent = new Blob([parsedData], {
-    type: 'text/csv'
+    type: 'text/csv',
   });
 
   const title = assembleFeatureTitles([tasks[0]], '_').toLowerCase();
@@ -54,10 +54,10 @@ function assembleCSVHeader(allFeatures) {
   let fields = [];
   for (let features of allFeatures) {
     Object.keys(features)
-      .filter(key => key !== PATIENT_ID_FIELD)
-      .map(modality => {
-        Object.keys(features[modality]).map(label => {
-          Object.keys(features[modality][label]).map(featureName => {
+      .filter((key) => key !== PATIENT_ID_FIELD)
+      .map((modality) => {
+        Object.keys(features[modality]).map((label) => {
+          Object.keys(features[modality][label]).map((featureName) => {
             if (!fields.includes(featureName)) fields.push(featureName);
           });
         });
@@ -77,9 +77,9 @@ function assembleCSVData(allFeatures, fields) {
     let patientID = features[PATIENT_ID_FIELD];
 
     Object.keys(features)
-      .filter(key => key !== PATIENT_ID_FIELD)
-      .map(modality => {
-        Object.keys(features[modality]).map(label => {
+      .filter((key) => key !== PATIENT_ID_FIELD)
+      .map((modality) => {
+        Object.keys(features[modality]).map((label) => {
           let dataLine = {};
 
           dataLine[PATIENT_ID_FIELD] = patientID;
@@ -98,6 +98,7 @@ function assembleCSVData(allFeatures, fields) {
 
 export async function trainModel(
   extraction,
+  collection,
   studies,
   album,
   labels,
@@ -110,6 +111,7 @@ export async function trainModel(
   let createdModel = await Backend.trainModel(
     token,
     extraction,
+    collection,
     studies,
     album,
     labels,
@@ -124,7 +126,7 @@ export async function trainModel(
 
 export function assembleFeatureTitles(families, separator = ', ') {
   return families
-    .map(family => {
+    .map((family) => {
       return family.feature_family.name;
     })
     .join(separator);
@@ -155,7 +157,9 @@ export function assembleFeatures(extraction, studies, album) {
         ]
       }_${studyUID}`;
 
-      let tasks = extraction.tasks.filter(task => task.study_uid === studyUID);
+      let tasks = extraction.tasks.filter(
+        (task) => task.study_uid === studyUID
+      );
 
       let studyFeatures = getFeaturesFromTasks(patientID, tasks);
 
@@ -171,13 +175,13 @@ function getFeaturesFromTasks(patientID, tasks) {
 
   let filteredFeatures = { [PATIENT_ID_FIELD]: patientID };
 
-  tasks.map(task => {
+  tasks.map((task) => {
     // Go through modalities
-    Object.keys(task.payload).map(modality => {
+    Object.keys(task.payload).map((modality) => {
       if (!filteredFeatures[modality]) filteredFeatures[modality] = {};
 
       // Go through labels
-      Object.keys(task.payload[modality]).map(label => {
+      Object.keys(task.payload[modality]).map((label) => {
         //if (!filteredFeatures[modality][label]) filteredFeatures[modality][label] = {};
         filteredFeatures[modality][label] = {
           ...filteredFeatures[modality][label],
@@ -185,7 +189,7 @@ function getFeaturesFromTasks(patientID, tasks) {
             Object.entries(task.payload[modality][label]).filter(
               ([key, val]) => !key.startsWith(leaveOutPrefix)
             )
-          )
+          ),
         };
       });
     });

@@ -14,6 +14,10 @@ table {
   border-spacing: 0;
 }
 
+table thead tr:first-child th {
+  text-align: left;
+}
+
 table tbody {
   overflow-x: scroll;
 }

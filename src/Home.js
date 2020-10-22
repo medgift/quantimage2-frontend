@@ -105,7 +105,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
 
     let editButton = (
       <Button color="link" onClick={() => handleEditAlbumClick(album)}>
-        <FontAwesomeIcon icon="table" /> <span>View / Edit Features</span>
+        <FontAwesomeIcon icon="table" /> <span>Manage Features</span>
       </Button>
     );
 

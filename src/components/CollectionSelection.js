@@ -22,7 +22,6 @@ export default function CollectionSelection({
           key="original"
           tag="a"
           href="#"
-          action
           active={activeCollection === null ? true : null}
           onClick={handleCollectionClick}
         >
@@ -30,14 +29,14 @@ export default function CollectionSelection({
         </ListGroupItem>
         {collections.map((c) => (
           <ListGroupItem
-            id={c.id}
-            key={c.id}
+            id={c.collection.id}
+            key={c.collection.id}
             tag="a"
             href="#"
-            active={+activeCollection === c.id ? true : null}
+            active={+activeCollection === c.collection.id ? true : null}
             onClick={handleCollectionClick}
           >
-            {c.name}
+            {c.collection.name}
           </ListGroupItem>
         ))}
       </ListGroup>

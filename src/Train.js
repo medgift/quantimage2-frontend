@@ -99,6 +99,9 @@ export default function Train({ match, albums }) {
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
 
+  let [collections, setCollections] = useState([]);
+  let [activeCollection, setActiveCollection] = useState('');
+
   let [usedModalities, setUsedModalities] = useState([]);
   let [usedROIs, setUsedROIs] = useState([]);
   let [albumExtraction, setAlbumExtraction] = useState(null);
@@ -127,6 +130,7 @@ export default function Train({ match, albums }) {
     }
   }, [albumExtraction]);
 
+  // Get Models & Extraction
   useEffect(() => {
     async function getModels() {
       let models = await Backend.models(keycloak.token, albumID);
@@ -145,6 +149,21 @@ export default function Train({ match, albums }) {
     getExtraction();
   }, [keycloak.token]);
 
+  // Get Collections
+  useEffect(() => {
+    async function getCollections() {
+      let collectionObjects = await Backend.collectionsByExtraction(
+        keycloak.token,
+        albumExtraction.id
+      );
+
+      setCollections(collectionObjects);
+    }
+
+    if (albumExtraction) getCollections();
+  }, [albumExtraction]);
+
+  // Get Data Points for Labelling
   useEffect(() => {
     async function getDataPoints() {
       let response = await Backend.extractionDataPoints(
@@ -154,8 +173,53 @@ export default function Train({ match, albums }) {
       setDataPoints(response['data-points']);
     }
 
-    if (albumExtraction) getDataPoints();
-  }, [albumExtraction]);
+    async function getCollectionDataPoints() {
+      let response = await Backend.extractionCollectionDataPoints(
+        keycloak.token,
+        albumExtraction.id,
+        +activeCollection
+      );
+      setDataPoints(response['data-points']);
+    }
+
+    if (albumExtraction) {
+      if (activeCollection) getCollectionDataPoints();
+      else getDataPoints();
+    }
+  }, [albumExtraction, activeCollection]);
+
+  let availableModalities = albumExtraction
+    ? activeCollection
+      ? collections.find((c) => c.collection.id === +activeCollection)
+          .modalities
+      : albumExtraction['extraction-modalities']
+    : [];
+
+  let availableROIs = albumExtraction
+    ? activeCollection
+      ? collections.find((c) => c.collection.id === +activeCollection).rois
+      : albumExtraction['extraction-rois']
+    : [];
+
+  // Update used modalities
+  useEffect(() => {
+    if (usedModalities.length > 0 && availableModalities.length > 0) {
+      let newUsed = usedModalities.filter((m) =>
+        availableModalities.includes(m)
+      );
+
+      setUsedModalities(newUsed);
+    }
+  }, [availableModalities]);
+
+  // Update used ROIs
+  useEffect(() => {
+    if (usedROIs.length > 0 && availableROIs.length > 0) {
+      let newUsed = usedROIs.filter((m) => availableROIs.includes(m));
+
+      setUsedROIs(newUsed);
+    }
+  }, [availableROIs]);
 
   const toggleCITooltip = () => setCITooltipOpen((open) => !open);
 
@@ -165,6 +229,10 @@ export default function Train({ match, albums }) {
 
   const handleAlgorithmTypeChange = (e) => {
     setAlgorithmType(e.target.value);
+  };
+
+  const handleCollectionChange = (e) => {
+    setActiveCollection(e.target.value);
   };
 
   const tabularClassificationLabels = useMemo(() => {
@@ -247,6 +315,7 @@ export default function Train({ match, albums }) {
 
     let model = await trainModel(
       albumExtraction,
+      activeCollection ? +activeCollection : null,
       albumStudies,
       album,
       labels,
@@ -347,6 +416,26 @@ export default function Train({ match, albums }) {
       )}
       {albumExtraction && (
         <>
+          <div>Choose the Collection used for training the model</div>
+          <div className="form-container">
+            <Form>
+              <Input
+                type="select"
+                id="collection"
+                name="collection"
+                value={activeCollection}
+                onChange={handleCollectionChange}
+              >
+                <option value="">{'<original>'}</option>
+                {collections.map((c) => (
+                  <option key={c.collection.id} value={c.collection.id}>
+                    {c.collection.name}
+                  </option>
+                ))}
+              </Input>
+            </Form>
+          </div>
+
           <div>Choose the imaging modalities used for training the model</div>
           <CheckboxGroup
             name="modalities"
@@ -355,13 +444,11 @@ export default function Train({ match, albums }) {
           >
             {(Checkbox) => (
               <>
-                {albumExtraction['extraction-modalities']
-                  .sort()
-                  .map((modality) => (
-                    <label key={modality} style={{ margin: '0.5em' }}>
-                      <Checkbox value={modality} /> {modality}
-                    </label>
-                  ))}
+                {availableModalities.sort().map((modality) => (
+                  <label key={modality} style={{ margin: '0.5em' }}>
+                    <Checkbox value={modality} /> {modality}
+                  </label>
+                ))}
               </>
             )}
           </CheckboxGroup>
@@ -369,7 +456,7 @@ export default function Train({ match, albums }) {
           <CheckboxGroup name="rois" value={usedROIs} onChange={setUsedROIs}>
             {(Checkbox) => (
               <>
-                {albumExtraction['extraction-rois'].sort().map((roi) => (
+                {availableROIs.sort().map((roi) => (
                   <label key={roi} style={{ margin: '0.5em' }}>
                     <Checkbox value={roi} /> {roi}
                   </label>

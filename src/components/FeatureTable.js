@@ -3,7 +3,7 @@ import { useTable, usePagination, useRowSelect, useFilters } from 'react-table';
 
 import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
-import { Alert, Button, FormGroup, Label, Input } from 'reactstrap';
+import { Alert, Button, FormGroup, Label, Input, Spinner } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useKeycloak } from 'react-keycloak';
 
@@ -102,22 +102,24 @@ export default function FeatureTable({
   const [keycloak] = useKeycloak();
   const data = useMemo(() => features, []);
   const [collectionName, setCollectionName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleCollectionNameChange = (e) => {
     setCollectionName(e.target.value);
   };
 
   const saveFeatures = async () => {
-    console.log('going to save', { rows: selectedRows });
+    setIsSaving(true);
+    //console.log('going to save', { rows: selectedRows });
     let newCollection = await Backend.saveCollection(
       keycloak.token,
       featureExtractionID,
       collectionName,
       selectedRows
     );
-
+    setIsSaving(false);
     setCollections((c) => [...c, newCollection]);
-    setActiveCollection(newCollection.id);
+    setActiveCollection(newCollection.collection.id);
   };
 
   const getColumnClassName = (column) => {
@@ -128,33 +130,51 @@ export default function FeatureTable({
     }
   };
 
+  const COLUMN_GROUP_METADATA = 'Metadata';
+  const COLUMN_GROUP_FEATURES = 'Features';
+
+  const columnsObject = useMemo(
+    () =>
+      header.reduce(
+        (acc, column) => {
+          let columnGroup = NON_FEATURE_FIELDS.includes(column)
+            ? COLUMN_GROUP_METADATA
+            : COLUMN_GROUP_FEATURES;
+
+          acc[columnGroup].columns.push({
+            Header: column,
+            accessor: column,
+            Filter: SelectColumnFilter,
+            filter: 'includes',
+            disableFilters: !NON_FEATURE_FIELDS.includes(column),
+          });
+
+          return acc;
+        },
+        {
+          [COLUMN_GROUP_METADATA]: {
+            Header: COLUMN_GROUP_METADATA,
+            columns: [],
+          },
+          [COLUMN_GROUP_FEATURES]: {
+            Header: COLUMN_GROUP_FEATURES,
+            columns: [],
+          },
+        }
+      ),
+    []
+  );
+
   const columns = useMemo(
     () =>
-      header.map((column) => ({
-        /*Header: () => (
-          <div
-            className={
-              NON_FEATURE_FIELDS.includes(column) ? 'align-left' : 'align-right'
-            }
-          >
-            {column}
-          </div>
-        ),*/
+      /*header.map((column) => ({
         Header: column,
         accessor: column,
         Filter: SelectColumnFilter,
         filter: 'includes',
         disableFilters: !NON_FEATURE_FIELDS.includes(column),
-        /*Cell: (row) => (
-          <div
-            className={
-              NON_FEATURE_FIELDS.includes(column) ? 'align-left' : 'align-right'
-            }
-          >
-            {row.value}
-          </div>
-        ),*/
-      })),
+      }))*/
+      Object.values(columnsObject),
     []
   );
 
@@ -396,7 +416,13 @@ export default function FeatureTable({
         onClick={saveFeatures}
         disabled={Object.keys(selectedRowIds).length === 0}
       >
-        Save Custom Features
+        {isSaving ? (
+          <>
+            <FontAwesomeIcon icon="spinner" spin /> Saving Custom Features
+          </>
+        ) : (
+          'Save Custom Features'
+        )}
       </Button>
     </div>
   );

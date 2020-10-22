@@ -65,6 +65,15 @@ class Backend {
     }
   }
 
+  async extractionCollectionDataPoints(token, extractionID, collectionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/collections/${collectionID}/data-points`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async labels(token, albumID, labelType) {
     try {
       const url = `${endpoints.labels}/${albumID}/${labelType}`;
@@ -143,6 +152,7 @@ class Backend {
   async trainModel(
     token,
     extraction,
+    collection,
     studies,
     album,
     labels,
@@ -157,6 +167,7 @@ class Backend {
         method: 'POST',
         data: {
           'extraction-id': extraction.id,
+          'collection-id': collection,
           studies: studies,
           album: album,
           labels: labels,
