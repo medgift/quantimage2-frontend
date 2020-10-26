@@ -92,6 +92,24 @@ function SelectColumnFilter({
   );
 }
 
+function CheckableColumnHeader({
+  selectedFeatures,
+  updateSelectedFeature,
+  column,
+}) {
+  return (
+    <div>
+      <input
+        checked={selectedFeatures[column]}
+        type="checkbox"
+        onChange={(e) => updateSelectedFeature(column, e.target.checked)}
+      />
+      <br />
+      {column}
+    </div>
+  );
+}
+
 export default function FeatureTable({
   features,
   header,
@@ -103,6 +121,21 @@ export default function FeatureTable({
   const data = useMemo(() => features, []);
   const [collectionName, setCollectionName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const [selectedFeatures, setSelectedFeatures] = useState({});
+  const updateSelectedFeature = (column, value) => {
+    setSelectedFeatures((f) => ({ ...f, [column]: value }));
+  };
+
+  useEffect(() => {
+    let defaultFeatures = {};
+    for (let feature of header) {
+      if (!NON_FEATURE_FIELDS.includes(feature))
+        defaultFeatures[feature] = true;
+    }
+
+    setSelectedFeatures(defaultFeatures);
+  }, [header]);
 
   const handleCollectionNameChange = (e) => {
     setCollectionName(e.target.value);
@@ -142,7 +175,15 @@ export default function FeatureTable({
             : COLUMN_GROUP_FEATURES;
 
           acc[columnGroup].columns.push({
-            Header: column,
+            Header: NON_FEATURE_FIELDS.includes(column)
+              ? column
+              : () => (
+                  <CheckableColumnHeader
+                    selectedFeatures={selectedFeatures}
+                    updateSelectedFeature={updateSelectedFeature}
+                    column={column}
+                  />
+                ),
             accessor: column,
             Filter: SelectColumnFilter,
             filter: 'includes',
@@ -162,7 +203,7 @@ export default function FeatureTable({
           },
         }
       ),
-    []
+    [selectedFeatures]
   );
 
   const columns = useMemo(
@@ -175,7 +216,7 @@ export default function FeatureTable({
         disableFilters: !NON_FEATURE_FIELDS.includes(column),
       }))*/
       Object.values(columnsObject),
-    []
+    [columnsObject]
   );
 
   // Set up the react-table instance
@@ -269,161 +310,167 @@ export default function FeatureTable({
     });
 
   return (
-    <div>
-      <div className="whole-table-container">
-        <div className="table-container">
-          {/* MAIN TABLE */}
-          <table {...getTableProps()}>
-            <thead>
-              {
-                // Loop over the header rows
-                headerGroups.map((headerGroup) => (
-                  // Apply the header row props
-                  <tr {...headerGroup.getHeaderGroupProps()}>
-                    {
-                      // Loop over the headers in each row
-                      headerGroup.headers.map((column) => (
-                        // Apply the header cell props
-                        <th {...column.getHeaderProps()}>
-                          {
-                            // Render the header
-                            column.render('Header')
-                          }
-                          {
-                            // Render the filter (if necessary)
-                            <div>
-                              {column.canFilter
-                                ? column.render('Filter')
-                                : null}
-                            </div>
-                          }
-                        </th>
-                      ))
-                    }
-                  </tr>
-                ))
-              }
-            </thead>
-            {/* Apply the table body props */}
-            <tbody {...getTableBodyProps()}>
-              {
-                // Loop over the table rows
-                page.map((row) => {
-                  prepareRow(row);
-                  return (
-                    // Apply the row props
-                    <tr {...row.getRowProps()}>
+    Object.keys(selectedFeatures).length > 0 && (
+      <div>
+        <div className="whole-table-container">
+          <div className="table-container">
+            {/* MAIN TABLE */}
+            <table {...getTableProps()}>
+              <thead>
+                {
+                  // Loop over the header rows
+                  headerGroups.map((headerGroup) => (
+                    // Apply the header row props
+                    <tr {...headerGroup.getHeaderGroupProps()}>
                       {
-                        // Loop over the rows cells
-                        row.cells.map((cell) => {
-                          // Apply the cell props
-                          return (
-                            <td {...cell.getCellProps()}>
-                              {
-                                // Render the cell contents
-                                cell.render('Cell')
-                              }
-                            </td>
-                          );
-                        })
+                        // Loop over the headers in each row
+                        headerGroup.headers.map((column) => (
+                          // Apply the header cell props
+                          <th {...column.getHeaderProps()}>
+                            {
+                              // Render the header
+                              column.render('Header')
+                            }
+                            {
+                              // Render the filter (if necessary)
+                              <div>
+                                {column.canFilter
+                                  ? column.render('Filter')
+                                  : null}
+                              </div>
+                            }
+                          </th>
+                        ))
                       }
                     </tr>
-                  );
-                })
-              }
-            </tbody>
-          </table>
-        </div>
-        {/* PAGINATION CONTROLS */}
-        <div className="pagination">
-          <Button
-            color="link"
-            onClick={() => gotoPage(0)}
-            disabled={!canPreviousPage}
-          >
-            <FontAwesomeIcon icon="angle-double-left" />
-          </Button>{' '}
-          <Button
-            color="link"
-            onClick={() => previousPage()}
-            disabled={!canPreviousPage}
-          >
-            <FontAwesomeIcon icon="angle-left" />
-          </Button>{' '}
-          <span>
-            Page <strong>{pageIndex + 1}</strong> of{' '}
-            <strong>{pageOptions.length}</strong>{' '}
-          </span>
-          <Button
-            color="link"
-            onClick={() => nextPage()}
-            disabled={!canNextPage}
-          >
-            <FontAwesomeIcon icon="angle-right" />
-          </Button>{' '}
-          <Button
-            color="link"
-            onClick={() => gotoPage(pageCount - 1)}
-            disabled={!canNextPage}
-          >
-            <FontAwesomeIcon icon="angle-double-right" />
-          </Button>{' '}
-          <span>
-            Go to page:{' '}
-            <input
-              type="number"
-              defaultValue={pageIndex + 1}
+                  ))
+                }
+              </thead>
+              {/* Apply the table body props */}
+              <tbody {...getTableBodyProps()}>
+                {
+                  // Loop over the table rows
+                  page.map((row) => {
+                    prepareRow(row);
+                    return (
+                      // Apply the row props
+                      <tr {...row.getRowProps()}>
+                        {
+                          // Loop over the rows cells
+                          row.cells.map((cell) => {
+                            // Apply the cell props
+                            return (
+                              <td {...cell.getCellProps()}>
+                                {
+                                  // Render the cell contents
+                                  cell.render('Cell')
+                                }
+                              </td>
+                            );
+                          })
+                        }
+                      </tr>
+                    );
+                  })
+                }
+              </tbody>
+            </table>
+          </div>
+          {/* PAGINATION CONTROLS */}
+          <div className="pagination">
+            <Button
+              color="link"
+              onClick={() => gotoPage(0)}
+              disabled={!canPreviousPage}
+            >
+              <FontAwesomeIcon icon="angle-double-left" />
+            </Button>{' '}
+            <Button
+              color="link"
+              onClick={() => previousPage()}
+              disabled={!canPreviousPage}
+            >
+              <FontAwesomeIcon icon="angle-left" />
+            </Button>{' '}
+            <span>
+              Page <strong>{pageIndex + 1}</strong> of{' '}
+              <strong>{pageOptions.length}</strong>{' '}
+            </span>
+            <Button
+              color="link"
+              onClick={() => nextPage()}
+              disabled={!canNextPage}
+            >
+              <FontAwesomeIcon icon="angle-right" />
+            </Button>{' '}
+            <Button
+              color="link"
+              onClick={() => gotoPage(pageCount - 1)}
+              disabled={!canNextPage}
+            >
+              <FontAwesomeIcon icon="angle-double-right" />
+            </Button>{' '}
+            <span>
+              Go to page:{' '}
+              <input
+                type="number"
+                defaultValue={pageIndex + 1}
+                onChange={(e) => {
+                  const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                  gotoPage(page);
+                }}
+                style={{ width: '100px' }}
+              />
+            </span>{' '}
+            <select
+              value={pageSize}
               onChange={(e) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                gotoPage(page);
+                setPageSize(Number(e.target.value));
               }}
-              style={{ width: '100px' }}
-            />
-          </span>{' '}
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-            }}
-          >
-            {[5, 15, 30, 45, 60].map((pageSize) => (
-              <option key={pageSize} value={pageSize}>
-                Show {pageSize}
-              </option>
-            ))}
-          </select>
+            >
+              {[5, 15, 30, 45, 60].map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  Show {pageSize}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
-      <Alert color="success">
-        {JSON.stringify(Object.keys(selectedRowIds).length)}
-        {'/'}
-        {data.length} {selectedRowIds.length == 1 ? 'row' : 'rows'} selected
-      </Alert>
-      <FormGroup>
-        {/*<Label for="collectionName">Collection Name</Label>*/}
-        <Input
-          type="text"
-          name="collectionName"
-          id="collectionName"
-          placeholder="Name of your collection"
-          value={collectionName}
-          onChange={handleCollectionNameChange}
+        <Alert color="success">
+          {JSON.stringify(Object.keys(selectedRowIds).length)}
+          {'/'}
+          {data.length} {selectedRowIds.length == 1 ? 'row' : 'rows'} selected,{' '}
+          {Object.values(selectedFeatures).filter((f) => f === true).length}
+          {'/'}
+          {header.filter((f) => !NON_FEATURE_FIELDS.includes(f)).length}{' '}
+          features selected
+        </Alert>
+        <FormGroup>
+          {/*<Label for="collectionName">Collection Name</Label>*/}
+          <Input
+            type="text"
+            name="collectionName"
+            id="collectionName"
+            placeholder="Name of your collection"
+            value={collectionName}
+            onChange={handleCollectionNameChange}
+            disabled={Object.keys(selectedRowIds).length === 0}
+          />
+        </FormGroup>
+        <Button
+          color="primary"
+          onClick={saveFeatures}
           disabled={Object.keys(selectedRowIds).length === 0}
-        />
-      </FormGroup>
-      <Button
-        color="primary"
-        onClick={saveFeatures}
-        disabled={Object.keys(selectedRowIds).length === 0}
-      >
-        {isSaving ? (
-          <>
-            <FontAwesomeIcon icon="spinner" spin /> Saving Custom Features
-          </>
-        ) : (
-          'Save Custom Features'
-        )}
-      </Button>
-    </div>
+        >
+          {isSaving ? (
+            <>
+              <FontAwesomeIcon icon="spinner" spin /> Saving Custom Features
+            </>
+          ) : (
+            'Save Custom Features'
+          )}
+        </Button>
+      </div>
+    )
   );
 }

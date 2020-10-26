@@ -436,7 +436,8 @@ export default function Train({ match, albums }) {
             </Form>
           </div>
 
-          <div>Choose the imaging modalities used for training the model</div>
+          {/* Hide this for now, we will just use the collections */}
+          {/*<div>Choose the imaging modalities used for training the model</div>
           <CheckboxGroup
             name="modalities"
             value={usedModalities}
@@ -463,7 +464,7 @@ export default function Train({ match, albums }) {
                 ))}
               </>
             )}
-          </CheckboxGroup>
+          </CheckboxGroup>*/}
         </>
       )}
       {dataPoints ? (
