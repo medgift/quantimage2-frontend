@@ -9,6 +9,8 @@ import { useKeycloak } from 'react-keycloak';
 
 import Backend from '../services/backend';
 
+import _ from 'lodash';
+
 // Generate indeterminate checkbox renderer
 const IndeterminateCheckbox = React.forwardRef(
   ({ indeterminate, ...rest }, ref) => {
@@ -148,7 +150,8 @@ export default function FeatureTable({
       keycloak.token,
       featureExtractionID,
       collectionName,
-      selectedRows
+      selectedRows,
+      Object.keys(_.pickBy(selectedFeatures))
     );
     setIsSaving(false);
     setCollections((c) => [...c, newCollection]);

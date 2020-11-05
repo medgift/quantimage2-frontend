@@ -1,0 +1,59 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v4.json",
+  "vconcat": [
+    {
+      "data": {
+        "name": "features"
+      },
+      "mark": "rect",
+      "height": 600,
+      "width": 800,
+      "encoding": {
+        "x": {
+          "field": "PatientID",
+          "type": "nominal",
+          "title": null,
+          "axis": {
+            "labels": false
+          },
+          "sort": { "field": "Outcome" }
+        },
+        "color": {
+          "field": "feature_value",
+          "type": "quantitative",
+          "title": "Features"
+        },
+        "y": {
+          "field": "feature_id",
+          "type": "nominal",
+          "title": "Features",
+          "axis": {
+            "labels": false
+          }
+        }
+      }
+    },
+    {
+      "data": {
+        "name": "status"
+      },
+      "mark": "rect",
+      "height": 20,
+      "width": 800,
+      "encoding": {
+        "x": {
+          "field": "PatientID",
+          "type": "nominal",
+          "title": "Patients",
+          "sort": { "field": "Outcome" }
+        },
+        "color": {
+          "field": "Outcome",
+          "scale": {
+            "range": ["#59c26e", "#f25a38"]
+          }
+        }
+      }
+    }
+  ]
+}

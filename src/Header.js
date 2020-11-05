@@ -8,7 +8,7 @@ import {
   NavbarBrand,
   NavbarToggler,
   NavItem,
-  NavLink
+  NavLink,
 } from 'reactstrap';
 import UserContext from './context/UserContext';
 import { useKeycloak } from 'react-keycloak';
@@ -57,11 +57,11 @@ function Header({ location, onLogout }) {
                     Home
                   </NavLink>
                 </NavItem>
-                <NavItem>
+                {/*<NavItem>
                   <NavLink tag={RouterNavLink} to="/features">
                     Features
                   </NavLink>
-                </NavItem>
+                </NavItem>*/}
                 <NavItem>
                   <NavLink tag={RouterNavLink} to="/profile">
                     Profile

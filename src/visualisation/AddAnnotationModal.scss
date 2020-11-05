@@ -1,0 +1,14 @@
+#annotModal {
+    max-width: none;    
+    width: 80%;
+
+    .all-canvas {
+        .canvas-drawing {
+            border-top: 1px solid #484848;
+        }
+
+        .canvas-drawing:nth-of-type(1) {
+            border: none;
+        }
+    }
+}

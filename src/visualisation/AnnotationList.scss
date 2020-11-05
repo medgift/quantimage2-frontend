@@ -1,0 +1,18 @@
+.open .parent-small {
+    color: white;
+}
+
+.deleted {
+    font-weight: bold; 
+}
+
+.small-btn {
+    margin: 0 1px;
+    border-radius: 40px !important;
+    padding: 4px 8px !important;
+    font-size: 0.8em !important;
+
+    svg {
+        margin-bottom: 3px;
+    }
+}

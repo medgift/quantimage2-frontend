@@ -1,0 +1,102 @@
+$sidebar-bg-color: #efefef;
+$sidebar-color: #2b2b2b;
+$sidebar-width: 700px !default;
+$sidebar-collapsed-width: 60px;
+$highlight-color: #191919;
+$submenu-bg-color: #efefef;
+$submenu-bg-color-collapsed: #2b2b2b !default;
+$icon-bg-color: #dcdcdc;
+$icon-size: 35px !default;
+$breakpoint-xs: 480px !default;
+$breakpoint-sm: 576px !default;
+$breakpoint-md: 768px !default;
+$breakpoint-lg: 992px !default;
+$breakpoint-xl: 1200px !default;
+
+@import '~react-pro-sidebar/dist/scss/styles.scss';
+
+.AnnotationPanel {
+    position: fixed;
+    direction: rtl;
+    right: 0;
+    min-height: calc(94vh - 50px) !important;
+    max-height: calc(94vh - 50px) !important;
+    background-color: $sidebar-bg-color;
+    box-shadow: #CCCCCC -2px 0px 15px;
+    z-index: 1048 !important;
+
+    .SidePanelHeader {
+        direction: ltr;
+        color: $sidebar-bg-color;
+        background-color: $sidebar-color;
+        padding: 1em;
+        font-size: 18px;
+    }
+
+    .SidePanelItem {
+        direction: ltr;
+        border-bottom: 2px solid $icon-bg-color;
+    }
+
+    .SidePanelContent {
+        direction: ltr;
+    } 
+
+    .SidePanelSubMenu {
+        direction: ltr;   
+        border-bottom: 1px solid $icon-bg-color;
+    }
+
+    .pro-inner-item {
+        padding: 8px 15px !important;
+    }
+
+    .pro-inner-item::before {
+        display: none !important;
+    }
+
+    .pro-inner-list-item {
+        padding: 0 !important;
+    }
+
+    .open {
+        background: #ababab;    
+        
+        > .pro-inner-item {
+            font-weight: bold;
+        }
+
+        .pro-icon-wrapper {
+            background-color: #efefef !important;
+        }
+
+        .open {
+            background: #e0e0e0;
+            border-bottom: 1px solid #efefef;  
+        }
+    }
+    
+    ul {
+        padding: 0 !important;
+    }
+    
+    /* width */
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 200, 240, .1);
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        background: lightskyblue;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: dodgerblue;
+    }
+}

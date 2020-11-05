@@ -13,9 +13,19 @@ const endpoints = {
   models: `${baseEndpoint}/models`,
   labels: `${baseEndpoint}/labels`,
   tasks: `${baseEndpoint}/tasks`,
+  charts: `${baseEndpoint}/charts`,
 };
 
 class Backend {
+  async lasagna(token, albumId) {
+    try {
+      const url = `${endpoints.charts}/${albumId}/lasagna`;
+      return await request(url, { token: token }); // Add token management
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extractions(token, albumID, studyUID) {
     try {
       const url = albumID
@@ -240,7 +250,7 @@ class Backend {
     }
   }
 
-  async saveCollection(token, featureExtractionID, name, rows) {
+  async saveCollection(token, featureExtractionID, name, rows, features) {
     try {
       const url = `${endpoints.collections}`;
 
@@ -250,6 +260,7 @@ class Backend {
           featureExtractionID: featureExtractionID,
           name: name,
           rows: rows,
+          features: features,
         },
         token: token,
       });

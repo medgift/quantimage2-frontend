@@ -13,6 +13,8 @@ import {
   faExternalLinkAlt,
   faExclamationCircle,
   faInfoCircle,
+  faCheck,
+  faCheckDouble,
   faCheckCircle,
   faChartBar,
   faGraduationCap,
@@ -27,6 +29,19 @@ import {
   faAngleDoubleRight,
   faAngleLeft,
   faAngleDoubleLeft,
+  faBan,
+  faFlask,
+  faComments,
+  faEye,
+  faEyeSlash,
+  faTimes,
+  faUser,
+  faReply,
+  faTrashAlt,
+  faRecycle,
+  faSave,
+  faHighlighter,
+  faUndo,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -44,6 +59,8 @@ export default function registerIcons() {
   library.add(faExternalLinkAlt);
   library.add(faExclamationCircle);
   library.add(faInfoCircle);
+  library.add(faCheck);
+  library.add(faCheckDouble);
   library.add(faCheckCircle);
   library.add(faChartBar);
   library.add(faGraduationCap);
@@ -58,4 +75,17 @@ export default function registerIcons() {
   library.add(faAngleDoubleRight);
   library.add(faAngleLeft);
   library.add(faAngleDoubleLeft);
+  library.add(faBan);
+  library.add(faFlask);
+  library.add(faComments);
+  library.add(faEye);
+  library.add(faEyeSlash);
+  library.add(faTimes);
+  library.add(faUser);
+  library.add(faReply);
+  library.add(faTrashAlt);
+  library.add(faRecycle);
+  library.add(faSave);
+  library.add(faHighlighter);
+  library.add(faUndo);
 }

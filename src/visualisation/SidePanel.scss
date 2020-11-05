@@ -1,0 +1,87 @@
+$sidebar-bg-color: #efefef;
+$sidebar-color: #2b2b2b;
+$sidebar-width: 270px !default;
+$sidebar-collapsed-width: 60px;
+$highlight-color: #191919;
+$submenu-bg-color: #efefef;
+$submenu-bg-color-collapsed: #2b2b2b !default;
+$icon-bg-color: #dcdcdc;
+$icon-size: 35px !default;
+$breakpoint-xs: 480px !default;
+$breakpoint-sm: 576px !default;
+$breakpoint-md: 768px !default;
+$breakpoint-lg: 992px !default;
+$breakpoint-xl: 1200px !default;
+
+@import '~react-pro-sidebar/dist/scss/styles.scss';
+
+.SidePanel.pro-sidebar {
+    width: 270px !important;
+    min-width: 270px !important;
+    z-index: 1048 !important;
+}
+
+.SidePanel {
+    //position: fixed !important;
+    left: 0;
+    //min-height: calc(94vh - 50px) !important;
+    //max-height: calc(94vh - 50px) !important;
+    background-color: $sidebar-bg-color;
+
+    .SidePanelHeader {
+        color: $sidebar-bg-color;
+        background-color: $sidebar-color;
+        padding: 1em;
+        font-size: 18px;
+    }
+
+    .SidePanelItem:hover {
+        background-color: rgba(0, 200, 240, .1);;
+    }
+
+    .SidePanelSubMenu {
+        border-top: 1px solid #ededed;
+    }
+
+    .SidePanelSubMenu.open > .pro-inner-item:first-child {
+        // border-bottom: 1px solid #ededed;
+    }
+
+    .pro-inner-item {
+        padding: 8px 15px !important;
+    }
+
+    .pro-inner-item::before {
+        display: none !important;
+    }
+
+    .open {
+        background-color: #dadada;
+    }
+
+    ul {
+        list-style-type: none !important;
+    }
+
+    /* width */
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    /* Track */
+    ::-webkit-scrollbar-track {
+        background: rgba(0, 200, 240, .1);
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        background: lightskyblue;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: dodgerblue;
+    }
+}
+
+

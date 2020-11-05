@@ -57,6 +57,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
     history.push(`/features/${album.album_id}`);
   };
 
+  let handleVisualizeAlbumClick = async (album) => {
+    // Redirect to visualization page here
+    history.push(`/visualize/${album.album_id}`);
+  };
+
   let toggleModal = () => {
     setModal(!modal);
   };
@@ -109,6 +114,12 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
       </Button>
     );
 
+    let visualizeButton = (
+      <Button color="link" onClick={() => handleVisualizeAlbumClick(album)}>
+        <FontAwesomeIcon icon="chart-bar" /> <span>Visualize Features</span>
+      </Button>
+    );
+
     let downloadButton = (
       <Button color="link" onClick={() => handleDownloadAlbumClick(album)}>
         <FontAwesomeIcon icon="download" /> <span>Download Features</span>
@@ -153,6 +164,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           <div>
             {extractionButton}
             {editButton}
+            {visualizeButton}
             {downloadButton}
             {analyzeButton(album, albumModels)}
           </div>
