@@ -15,7 +15,8 @@ table {
   font-size: smaller;
 }
 
-table thead tr:first-child th {
+table thead tr:first-child th,
+table thead tr:nth-child(2) th {
   text-align: left;
 }
 

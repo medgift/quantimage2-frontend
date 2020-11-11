@@ -15,7 +15,6 @@ import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
 import { cloneDeep } from 'lodash';
-import Kheops from '../services/kheops';
 
 export default function FeaturesList({
   albumID,

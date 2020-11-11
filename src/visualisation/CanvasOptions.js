@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 const CanvasOptions = (props) => {
   useEffect(() => {
     props.handleSubmit();
-  }, []);
+  }, [props]);
 
   const handleChange = (e) => {
     props.handleChange(e);

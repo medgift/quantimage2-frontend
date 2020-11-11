@@ -8,7 +8,6 @@ import Kheops from './services/kheops';
 
 import './Study.css';
 import { useKeycloak } from 'react-keycloak';
-import FeaturesList from './components/FeaturesList';
 
 function Study({ match, kheopsError }) {
   let {
