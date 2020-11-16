@@ -202,7 +202,7 @@ export default function FeatureTable({
       featureExtractionID,
       collectionName,
       selectedRows,
-      Object.keys(_.pickBy(selectedFeatures))
+      Object.keys(_.pickBy(selectedFeatures.current))
     );
     setIsSaving(false);
     setCollections((c) => [...c, newCollection]);
@@ -278,6 +278,7 @@ export default function FeatureTable({
       {
         Header: COLUMN_GROUP_METADATA,
         columns: NON_FEATURE_FIELDS.map((field) => ({
+          Header: field,
           accessor: field,
           Filter: SelectColumnFilter,
           filter: 'equals',
