@@ -57,16 +57,21 @@ function Header({ location, onLogout }) {
                     Home
                   </NavLink>
                 </NavItem>
+                <NavItem>
+                  <NavLink tag={RouterNavLink} to="/dashboard">
+                    Dashboard
+                  </NavLink>
+                </NavItem>
                 {/*<NavItem>
                   <NavLink tag={RouterNavLink} to="/features">
                     Features
                   </NavLink>
                 </NavItem>*/}
-                <NavItem>
+                {/*<NavItem>
                   <NavLink tag={RouterNavLink} to="/profile">
                     Profile
                   </NavLink>
-                </NavItem>
+                </NavItem>*/}
                 {isAdmin && (
                   <>
                     <NavItem className="divider"></NavItem>

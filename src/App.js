@@ -23,6 +23,7 @@ import { PrivateRoute } from './utils/PrivateRoute';
 import kheops from './services/kheops';
 import Train from './Train';
 import Visualisation from './Visualisation';
+import Dashboard from './Dashboard';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -98,10 +99,10 @@ function App({ setUser, setIsAdmin }) {
           <Header onLogout={handleLogout} />
           <main className="App-content">
             <Switch>
+              <PropsRoute exact path="/" component={Home} />
               <PropsRoute
-                exact
-                path="/"
-                component={Home}
+                path="/dashboard"
+                component={Dashboard}
                 dataFetched={dataFetched}
                 kheopsError={kheopsError}
                 albums={albums}
