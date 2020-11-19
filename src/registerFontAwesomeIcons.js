@@ -17,6 +17,7 @@ import {
   faCheckDouble,
   faCheckCircle,
   faChartBar,
+  faComment,
   faGraduationCap,
   faPlus,
   faArrowLeft,
@@ -88,4 +89,5 @@ export default function registerIcons() {
   library.add(faSave);
   library.add(faHighlighter);
   library.add(faUndo);
+  library.add(faComment);
 }

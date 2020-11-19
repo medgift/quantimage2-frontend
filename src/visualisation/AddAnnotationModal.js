@@ -23,7 +23,7 @@ const AddAnnotationModal = (props) => {
   const [getRef, setRef] = useDynamicRefs();
   const [images, setImages] = useState([]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (props.annotation) {
       props.setFieldValue('title', props.annotation.title);
       props.setFieldValue('text', props.annotation.text);
@@ -36,9 +36,9 @@ const AddAnnotationModal = (props) => {
         }, 200);
       }
     }
-  }, [props.annotation]);
+  }, [props.annotation]);*/
 
-  useEffect(() => {
+  /*useEffect(() => {
     const tImages = [];
     props.chartsImg.map((i) => {
       convertURIToImageData(i.img).then((img) => {
@@ -51,7 +51,7 @@ const AddAnnotationModal = (props) => {
       });
     });
     console.log(images);
-  }, [props.show]);
+  }, [props.show]);*/
 
   const submit = () => {
     getLines();

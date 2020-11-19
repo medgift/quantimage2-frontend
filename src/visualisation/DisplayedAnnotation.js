@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardBody,
@@ -15,6 +15,23 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const DisplayedAnnotation = (props) => {
   const [getRef, setRef] = useDynamicRefs();
+
+  const [imageDimensions, setImageDimensions] = useState(null);
+
+  useEffect(() => {
+    async function getImagesDimensions() {
+      let imageDimensions = [];
+      for (let image of props.images) {
+        let imageSize = await getImageDimensions(image.img);
+        console.log('image size', imageSize);
+        imageDimensions.push(imageSize);
+      }
+
+      setImageDimensions(imageDimensions);
+    }
+
+    getImagesDimensions();
+  }, [props.images]);
 
   useEffect(() => {
     if (props.annotation && props.annotation.lines) {
@@ -46,7 +63,7 @@ const DisplayedAnnotation = (props) => {
 
   return (
     <>
-      <div className="w-100 text-left displayed-annotation">
+      <div className="text-left displayed-annotation">
         <Card className="mb-4">
           <CardHeader>
             <div className="d-flex justify-content-between">
@@ -107,15 +124,19 @@ const DisplayedAnnotation = (props) => {
           </CardBody>
         </Card>
         {props.images.length > 0 &&
+          imageDimensions &&
           props.images.map((image, index) => {
             return (
               <CanvasDraw
                 key={index}
                 ref={setRef(image.id + '-canvas')}
-                imgSrc={image.raw}
+                imgSrc={image.img}
                 disabled
                 className="mx-auto"
-                style={{ width: image.width, height: image.height }}
+                style={{
+                  width: imageDimensions[index].w,
+                  height: imageDimensions[index].h,
+                }}
               />
             );
           })}
@@ -123,5 +144,15 @@ const DisplayedAnnotation = (props) => {
     </>
   );
 };
+
+async function getImageDimensions(imageData) {
+  return new Promise(function (resolved, rejected) {
+    var i = new Image();
+    i.onload = function () {
+      resolved({ w: i.width, h: i.height });
+    };
+    i.src = imageData;
+  });
+}
 
 export default DisplayedAnnotation;

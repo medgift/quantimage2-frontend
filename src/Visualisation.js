@@ -34,9 +34,9 @@ export default function Visualisation(props) {
 
   // Charts
   const [pcaChart, setPcaChart] = useState(null);
-  const [pcaImg, setPcaImg] = useState(null);
   const [lasagnaData, setLasagnaData] = useState(null);
   const [lasagnaChart, setLasagnaChart] = useState(null);
+  const [pcaImg, setPcaImg] = useState(null);
   const [lasagnaImg, setLasagnaImg] = useState(null);
 
   // Get features & annotations
@@ -71,7 +71,7 @@ export default function Visualisation(props) {
       const annots = [
         {
           id: 50,
-          parentId: 0,
+          parentId: null,
           user: 12,
           title: 'My long title',
           text:
@@ -80,7 +80,7 @@ export default function Visualisation(props) {
         },
         {
           id: 1,
-          parentId: 0,
+          parentId: null,
           user: 1,
           title: 'My other long title',
           text:
@@ -105,7 +105,7 @@ export default function Visualisation(props) {
         },
         {
           id: 4,
-          parentId: 0,
+          parentId: null,
           user: 2,
           title: 'My Title',
           text: 'New comment !',
@@ -116,7 +116,7 @@ export default function Visualisation(props) {
     }
 
     loadLasagnaChartData();
-    //loadAnnotations();
+    loadAnnotations();
   }, []);
 
   // Refresh charts on feature changes
@@ -128,30 +128,14 @@ export default function Visualisation(props) {
   useEffect(() => {
     if (pcaChart && lasagnaChart) {
       setLoading(false);
-      loadImages();
+      console.log('charts loaded');
     }
   }, [lasagnaChart, pcaChart]);
 
-  const loadImages = () => {
-    const waitingMain = setInterval(() => {
-      if (main.current) {
-        clearInterval(waitingMain);
-        let pca = null;
-        let lasagna = null;
-        const waitingCharts = setInterval(() => {
-          try {
-            pca = main.current.getChart('pca');
-            lasagna = main.current.getChart('lasagna');
-            if (pca !== null && lasagna !== null) {
-              clearInterval(waitingCharts);
-              setPcaImg(pca);
-              setLasagnaImg(lasagna);
-            }
-          } catch {}
-        }, 1000);
-      }
-    }, 1000);
-  };
+  // React to image setting
+  useEffect(() => {
+    console.log('loaded image it seems', pcaImg, lasagnaImg);
+  }, [pcaImg, lasagnaImg]);
 
   const displayAnnotation = (annotation) => {
     main.current.displayAnnotation(annotation);
@@ -326,8 +310,11 @@ export default function Visualisation(props) {
         askDelete={askDelete}
         askEdit={askEdit}
         askAnswer={askAnswer}
+        setLasagnaImg={setLasagnaImg}
+        setPcaImg={setPcaImg}
       />
-      {/*<AnnotationPanel
+      {lasagnaImg && pcaImg && (
+        <AnnotationPanel
           ref={annotationPanel}
           annotations={annotations}
           displayAnnotation={displayAnnotation}
@@ -344,7 +331,8 @@ export default function Visualisation(props) {
               img: lasagnaImg,
             },
           ]}
-        />*/}
+        />
+      )}
     </div>
   );
 }

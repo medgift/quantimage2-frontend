@@ -15,7 +15,6 @@ const Main = (props, ref) => {
   const [getRef, setRef] = useDynamicRefs();
 
   const [displayAnnotation, setDisplayedAnnotation] = useState(null);
-  const [images, setImages] = useState(null);
 
   /*useEffect(() => {
     const temp = [];
@@ -29,17 +28,17 @@ const Main = (props, ref) => {
     setImages(temp);
   }, [props.images]);*/
 
-  /*useImperativeHandle(ref, () => ({
-    getChart(type) {
+  useImperativeHandle(ref, () => ({
+    /*getChart(type) {
       return getRef(type + '-chart').current.getChart(type);
-    },
+    },*/
     displayAnnotation(annotation) {
       setDisplayedAnnotation(annotation);
     },
     closeAnnotation() {
       closeAnnotation();
     },
-  }));*/
+  }));
 
   const closeAnnotation = () => {
     setDisplayedAnnotation(null);
@@ -60,26 +59,6 @@ const Main = (props, ref) => {
     props.askAnswer(displayAnnotation);
   };
 
-  const convertURIToImageData = (URI) => {
-    return new Promise((resolve, reject) => {
-      if (URI == null) return reject();
-      const canvas = document.createElement('canvas'),
-        context = canvas.getContext('2d'),
-        image = new Image();
-      image.addEventListener(
-        'load',
-        () => {
-          canvas.width = image.width;
-          canvas.height = image.height;
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          resolve(context.getImageData(0, 0, canvas.width, canvas.height));
-        },
-        false
-      );
-      image.src = URI;
-    });
-  };
-
   return (
     <>
       <div className="Main">
@@ -91,7 +70,7 @@ const Main = (props, ref) => {
               delete={deleteAnnotation}
               edit={editAnnotation}
               answer={answerAnnotation}
-              images={images}
+              images={props.images}
             />
           </>
         ) : props.loading ? (
@@ -108,6 +87,9 @@ const Main = (props, ref) => {
                     title={c.title}
                     chart={c.chart}
                     type={c.type}
+                    setImage={
+                      c.id === 'lasagna' ? props.setLasagnaImg : props.setPcaImg
+                    }
                   />
                 </div>
               );
