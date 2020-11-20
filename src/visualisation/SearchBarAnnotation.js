@@ -24,7 +24,7 @@ const SearchBarAnnotation = (props) => {
           </Button>
         </InputGroupAddon>
         <Input
-          placeholder="Rechercher une annotation..."
+          placeholder="Search for an annotation..."
           type="text"
           name="search"
           id="search"

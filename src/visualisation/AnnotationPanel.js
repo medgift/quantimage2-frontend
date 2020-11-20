@@ -56,14 +56,14 @@ const AnnotationPanel = (props, ref) => {
 
   const askEditAnnotation = (a) => {
     setEditingAnnotation(a);
-    setParentId(a.parentId);
+    setParentId(a.parent_id);
     setShowSaveModal(true);
   };
 
-  const saveAnnotation = (title, text, lines) => {
+  const saveAnnotation = async (title, text, lines) => {
     setShowSaveModal(false);
     setEditingAnnotation(null);
-    props.saveAnnotation(title, text, lines, parentId, editingAnnotation);
+    await props.saveAnnotation(title, text, lines, parentId, editingAnnotation);
   };
 
   const askDeleteAnnotation = (a, willBeDeleted) => {
@@ -119,7 +119,7 @@ const AnnotationPanel = (props, ref) => {
             <Col xs="7">
               <h5>
                 <FontAwesomeIcon icon="comments" className="mr-2" />
-                {!collapsed && 'Discussions'}
+                {!collapsed && 'Discussion'}
               </h5>
             </Col>
             {!collapsed && (
@@ -131,7 +131,7 @@ const AnnotationPanel = (props, ref) => {
                     disabled={!imgLoaded}
                   >
                     <FontAwesomeIcon icon="plus" className="mr-2" />
-                    Commenter
+                    Comment
                   </Button>
                 </Col>
                 <Col className="text-right">

@@ -63,56 +63,8 @@ export default function Visualisation(props) {
     }
 
     async function loadAnnotations() {
-      /*
-       ** Temporary solution, should be done through the API
-       ** albumId should be added
-       ** JSON.parse(lines) !!
-       */
-      const annots = [
-        {
-          id: 50,
-          parentId: null,
-          user: 12,
-          title: 'My long title',
-          text:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vel libero ipsum. Etiam fermentum dui nisl, quis porttitor velit porttitor quis. Nullam et enim tristique, commodo turpis ac, hendrerit sem. Nulla hendrerit tincidunt felis a euismod. Nam eros libero, suscipit vehicula mi a, elementum efficitur tellus. Sed non bibendum arcu, sed placerat massa. Proin suscipit, arcu sit amet iaculis finibus, eros ante mattis mi, vel finibus diam dui convallis lectus. Etiam aliquam aliquet massa, a aliquet augue eleifend eget.',
-          date: new Date(2020, 3, 1, 12, 30, 22),
-        },
-        {
-          id: 1,
-          parentId: null,
-          user: 1,
-          title: 'My other long title',
-          text:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vel libero ipsum. Etiam fermentum dui nisl, quis porttitor velit porttitor quis. Nullam et enim tristique, commodo turpis ac, hendrerit sem. Nulla hendrerit tincidunt felis a euismod. Nam eros libero, suscipit vehicula mi a, elementum efficitur tellus. Sed non bibendum arcu, sed placerat massa. Proin suscipit, arcu sit amet iaculis finibus, eros ante mattis mi, vel finibus diam dui convallis lectus. Etiam aliquam aliquet massa, a aliquet augue eleifend eget.',
-          date: new Date(2020, 3, 1, 12, 0, 0),
-        },
-        {
-          id: 2,
-          parentId: 1,
-          user: 2,
-          title: 'My Answer',
-          text: 'This is a search',
-          date: new Date(2020, 3, 1, 13, 0, 0),
-        },
-        {
-          id: 3,
-          parentId: 1,
-          user: 1,
-          title: 'My Other Answer',
-          text: 'This is another answer',
-          date: new Date(2020, 3, 1, 13, 30, 0),
-        },
-        {
-          id: 4,
-          parentId: null,
-          user: 2,
-          title: 'My Title',
-          text: 'New comment !',
-          date: new Date(2020, 3, 10, 12, 0, 0),
-        },
-      ];
-      setAnnotations(annots);
+      let annotations = await backend.annotations(keycloak.token, albumID);
+      setAnnotations(annotations);
     }
 
     loadLasagnaChartData();
@@ -153,34 +105,54 @@ export default function Visualisation(props) {
     annotationPanel.current.askAnswer(annotation);
   };
 
-  const saveAnnotation = (title, text, lines, parentId, currentAnnot) => {
+  const saveAnnotation = async (title, text, lines, parentId, currentAnnot) => {
     let newAnnotations = [...annotations];
     const newAnnot = {
-      id: 100, // Should be managed by the ORM
-      parentId: 0,
       title,
       text,
       lines,
-      user: 5, // Get current user ID
-      date: new Date(),
+      //user: 5, // User is defined on the backend based on token
     };
     if (currentAnnot) {
       newAnnot.id = currentAnnot.id;
       // Remove old annotation
       newAnnotations = newAnnotations.filter((a) => a.id !== currentAnnot.id);
     }
-    if (parentId) newAnnot.parentId = parentId;
-    // Refresh the list
-    newAnnotations.push(newAnnot);
-    setAnnotations(newAnnotations);
+    if (parentId) newAnnot.parent_id = parentId;
+
+    // Save annotation in DB (create or update)
     // TODO: Save in Database -> STRINGIFY LINES !
+    let savedAnnotation;
+
+    // Existing annotation -> update
+    if (currentAnnot) {
+      savedAnnotation = await backend.updateAnnotation(
+        keycloak.token,
+        newAnnot
+      );
+    } else {
+      savedAnnotation = await backend.createAnnotation(
+        keycloak.token,
+        albumID,
+        newAnnot
+      );
+    }
+
+    // Refresh the list
+    newAnnotations.push(savedAnnotation);
+    setAnnotations(newAnnotations);
   };
 
-  const deleteAnnotation = (id, willBeDeleted = true) => {
+  const deleteAnnotation = async (id, willBeDeleted = true) => {
     let deletedAnnot = annotations.find((a) => a.id === id);
     deletedAnnot.deleted = willBeDeleted;
     setAnnotations([...annotations]);
     // TODO: Delete in Database
+
+    let deletedAnnotation = await backend.updateAnnotation(
+      keycloak.token,
+      deletedAnnot
+    );
   };
 
   const loadCharts = (features) => {

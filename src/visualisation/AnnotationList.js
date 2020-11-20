@@ -12,7 +12,7 @@ const AnnotationList = (props) => {
   // Prepare annotations
   useEffect(() => {
     let sortedAnnots = [...props.annotations].sort((a, b) => {
-      return a.parentId - b.parentId;
+      return a.parent_id - b.parent_id;
     });
     let annots = [];
     sortedAnnots.map((a) => {
@@ -29,12 +29,12 @@ const AnnotationList = (props) => {
           a.text.toLowerCase().includes(props.search.toLowerCase()) ||
           props.search === '',
       };
-      if (!a.parentId) {
+      if (!a.parent_id) {
         annot.answers = [];
         annots.push(annot);
       } else {
-        annot.parentId = a.parentId;
-        annots.find((x) => x.id === a.parentId).answers.push(annot);
+        annot.parent_id = a.parent_id;
+        annots.find((x) => x.id === a.parent_id).answers.push(annot);
       }
     });
     annots = sortByDate(annots);
@@ -67,7 +67,7 @@ const AnnotationList = (props) => {
   };
 
   const annotationTitle = (annot) => {
-    const date = moment(annot.date).format('D.MM.YYYY à hh:mm:ss');
+    const date = moment(annot.date).format('D.MM.YYYY [at] hh:mm:ss');
     return (
       <div className="py-2">
         <Row>
@@ -126,7 +126,7 @@ const AnnotationList = (props) => {
         </Row>
         <Row className="text-muted">
           <Col xs="5">
-            <small className={annot.answers && 'parent-small'}>le {date}</small>
+            <small className={annot.answers && 'parent-small'}>on {date}</small>
           </Col>
           <Col>
             <small className={annot.answers && 'parent-small'}>
@@ -155,9 +155,7 @@ const AnnotationList = (props) => {
   const deleted = (annot) => {
     return (
       <small className="text-muted deleted">
-        <em>
-          {annot.answers ? 'Annotation' : 'Réponse'} supprimée par son auteur
-        </em>
+        <em>{annot.answers ? 'Annotation' : 'Answer'} deleted by the author</em>
       </small>
     );
   };
