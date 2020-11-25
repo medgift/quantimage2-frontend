@@ -5,7 +5,7 @@ body {
 .App {
   text-align: center;
   margin: 0em;
-  padding: 1em;
+  padding: 0 1em;
   display: flex;
   min-height: 100vh;
   flex-direction: column;
