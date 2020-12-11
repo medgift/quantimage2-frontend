@@ -4,6 +4,7 @@ import {
   Button,
   ButtonGroup,
   Collapse,
+  CustomInput,
   ListGroupItem,
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
@@ -338,26 +339,22 @@ export default function FeaturesList({
             >
               <div className="d-flex flex-column">
                 <div className="feature-summary d-flex align-items-center">
-                  <div className={`custom-control custom-checkbox flex-grow-1`}>
-                    <input
-                      type="checkbox"
-                      className="custom-control-input"
-                      checked={selectedFamilies[featureFamily.id]}
-                      onChange={(e) => {
-                        handleFamilyCheck(e, featureFamily.id);
-                      }}
-                      id={`${featureFamily.id}-${featureFamily.name}`}
-                      aria-label={`Extract ${featureFamily.name} features`}
-                      disabled={extraction && !extraction.status.ready}
-                    />
-                    <label
-                      className="custom-control-label d-block text-left"
-                      htmlFor={`${featureFamily.id}-${featureFamily.name}`}
-                    >
-                      <span>{featureFamily.name} </span>
-                      {getFeatureTaskStatus(featureFamily.id)}
-                    </label>
-                  </div>
+                  <CustomInput
+                    type="checkbox"
+                    checked={selectedFamilies[featureFamily.id]}
+                    className={'text-left flex-grow-1'}
+                    onChange={(e) => {
+                      handleFamilyCheck(e, featureFamily.id);
+                    }}
+                    id={`${featureFamily.id}-${featureFamily.name}`}
+                    label={
+                      <>
+                        <span>{featureFamily.name}</span>{' '}
+                        {getFeatureTaskStatus(featureFamily.id)}
+                      </>
+                    }
+                    disabled={extraction && !extraction.status.ready}
+                  />
                   <ButtonGroup className="ml-1">
                     <Button
                       color="primary"
@@ -401,38 +398,28 @@ export default function FeaturesList({
                         (featureName) => (
                           <ListGroupItem
                             className="text-left"
-                            key={`${featureName}`}
+                            key={`${featureFamily.id}-${featureName}`}
                           >
-                            <div className="custom-control custom-checkbox">
-                              <input
-                                type="checkbox"
-                                className="custom-control-input"
-                                checked={featureConfigs[
-                                  featureFamily.id
-                                ].backends[backend].features.includes(
+                            <CustomInput
+                              type="checkbox"
+                              id={`${featureFamily.id}-${featureName}`}
+                              checked={featureConfigs[
+                                featureFamily.id
+                              ].backends[backend].features.includes(
+                                featureName
+                              )}
+                              onChange={(e) =>
+                                updateFeatureConfig(
+                                  e,
+                                  featureFamily.id,
+                                  featureConfigs[featureFamily.id],
+                                  backend,
                                   featureName
-                                )}
-                                onChange={(e) =>
-                                  updateFeatureConfig(
-                                    e,
-                                    featureFamily.id,
-                                    featureConfigs[featureFamily.id],
-                                    backend,
-                                    featureName
-                                  )
-                                }
-                                id={`${featureName}`}
-                                disabled={
-                                  extraction && !extraction.status.ready
-                                }
-                              />
-                              <label
-                                className="custom-control-label d-block"
-                                htmlFor={`${featureName}`}
-                              >
-                                {featureName.toLowerCase()}
-                              </label>
-                            </div>
+                                )
+                              }
+                              disabled={extraction && !extraction.status.ready}
+                              label={featureName.toLowerCase()}
+                            />
                           </ListGroupItem>
                         )
                       )}

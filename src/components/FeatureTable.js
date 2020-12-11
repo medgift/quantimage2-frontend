@@ -103,7 +103,7 @@ function SelectColumnFilter({
 }
 
 const CheckableColumnHeader = React.forwardRef(
-  ({ updateSelectedFeature, column }, ref) => {
+  ({ updateSelectedFeature, column, inline }, ref) => {
     return (
       <div>
         <input
@@ -114,7 +114,7 @@ const CheckableColumnHeader = React.forwardRef(
           onChange={(e) => updateSelectedFeature(column, e.target.checked)}
           //onChange={(e) => updateSelectedFeature(column, e.target.checked)}
         />
-        <br />
+        {inline ? <br /> : ' '}
         <label htmlFor={`feature-column-${column}`}>{column}</label>
       </div>
     );
@@ -201,7 +201,7 @@ export default function FeatureTable({
       keycloak.token,
       featureExtractionID,
       collectionName,
-      selectedRows,
+      //selectedRows,
       Object.keys(_.pickBy(selectedFeatures.current))
     );
     setIsSaving(false);
@@ -228,7 +228,7 @@ export default function FeatureTable({
     for (let featureName of header.filter(
       (c) => !NON_FEATURE_FIELDS.includes(c)
     )) {
-      // TODO - Make this more elegant, maybe a convention for feature names is neede
+      // TODO - Make this more elegant, maybe a convention for feature names is needed
       // Group PyRadiomics features by the second level,
       // first level for other backens so far
       let featureGroupName;
@@ -250,23 +250,26 @@ export default function FeatureTable({
     console.log('feature groups', featureGroups);
 
     let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
-      Header: () => (
+      /*Header: () => (
         <CheckableColumnHeader
           updateSelectedFeature={updateSelectedFeatureGroups}
           column={featureGroup}
         />
-      ),
+      ),*/
+      Header: featureGroup,
       id: featureGroup,
       columns: featureGroups[featureGroup].map((featureName) => ({
-        Header: () => (
+        /*Header: () => (
           <CheckableColumnHeader
             updateSelectedFeature={updateSelectedFeature}
             column={featureName}
             ref={(ref) => {
               featureCheckboxRefs.current[featureName] = ref;
             }}
+            inline
           />
-        ),
+        ),*/
+        Header: featureName,
         accessor: featureName,
         disableFilters: true,
       })),
@@ -312,15 +315,15 @@ export default function FeatureTable({
       columns,
       data,
       initialState: {
-        pageSize: 15,
+        pageSize: 20,
       },
       //autoResetSelectedRows: false,
     },
     useFilters,
     usePagination,
-    useRowSelect,
+    //useRowSelect,
     (hooks) => {
-      hooks.visibleColumns.push((columns) => [
+      /*hooks.visibleColumns.push((columns) => [
         // Let's make a column for selection
         {
           id: 'selection',
@@ -340,7 +343,7 @@ export default function FeatureTable({
           ),
         },
         ...columns,
-      ]);
+      ]);*/
     }
   );
 
@@ -375,7 +378,7 @@ export default function FeatureTable({
     previousPage,
     setPageSize,
     selectedFlatRows,
-    state: { pageIndex, pageSize, selectedRowIds },
+    state: { pageIndex, pageSize /*selectedRowIds*/ },
   } = tableInstance;
 
   /*const selectedRows = selectedFlatRows.map((r) => {
@@ -386,7 +389,7 @@ export default function FeatureTable({
     return currentRow;
   });*/
 
-  const selectedRows = data
+  /*const selectedRows = data
     .filter((row, i) => selectedRowIds[i] === true)
     .map((row) => {
       let currentRow = {};
@@ -394,7 +397,7 @@ export default function FeatureTable({
         currentRow[field] = row[field];
       }
       return currentRow;
-    });
+    });*/
 
   return (
     <div>
@@ -514,7 +517,7 @@ export default function FeatureTable({
               setPageSize(Number(e.target.value));
             }}
           >
-            {[5, 15, 30, 45, 60].map((pageSize) => (
+            {[10, 20, 50, 100].map((pageSize) => (
               <option key={pageSize} value={pageSize}>
                 Show {pageSize}
               </option>
@@ -522,47 +525,6 @@ export default function FeatureTable({
           </select>
         </div>
       </div>
-      {selectedFeatures.current && (
-        <Alert color="success">
-          {JSON.stringify(Object.keys(selectedRowIds).length)}
-          {'/'}
-          {data.length} {selectedRowIds.length == 1 ? 'row' : 'rows'} selected,{' '}
-          {selectedFeaturesLabel}
-          features selected
-        </Alert>
-      )}
-      <FormGroup>
-        {/*<Label for="collectionName">Collection Name</Label>*/}
-        <Input
-          type="text"
-          name="collectionName"
-          id="collectionName"
-          placeholder="Name of your collection"
-          value={collectionName}
-          onChange={handleCollectionNameChange}
-          disabled={
-            Object.keys(selectedRowIds).length === 0 ||
-            Object.values(selectedFeatures.current).filter((v) => v).length ===
-              0
-          }
-        />
-      </FormGroup>
-      <Button
-        color="primary"
-        onClick={saveFeatures}
-        disabled={
-          Object.keys(selectedRowIds).length === 0 ||
-          Object.values(selectedFeatures.current).filter((v) => v).length === 0
-        }
-      >
-        {isSaving ? (
-          <>
-            <FontAwesomeIcon icon="spinner" spin /> Saving Custom Features
-          </>
-        ) : (
-          'Save Custom Features'
-        )}
-      </Button>
     </div>
   );
 }

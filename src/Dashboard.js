@@ -110,7 +110,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
     );
 
     let editButton = (
-      <Button color="link" onClick={() => handleEditAlbumClick(album)}>
+      <Button color="link success" onClick={() => handleEditAlbumClick(album)}>
         <FontAwesomeIcon icon="table" /> <span>Manage Features</span>
       </Button>
     );
@@ -163,11 +163,11 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
       } else if (albumExtraction.status.successful) {
         return (
           <div>
-            {extractionButton}
             {editButton}
-            {visualizeButton}
             {downloadButton}
-            {analyzeButton(album, albumModels)}
+            {extractionButton}
+            {/*visualizeButton*/}
+            {/*analyzeButton(album, albumModels)*/}
           </div>
         );
       } else {

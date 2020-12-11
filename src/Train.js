@@ -18,9 +18,6 @@ import './Train.css';
 import Backend from './services/backend';
 import { useKeycloak } from 'react-keycloak';
 
-import * as parse from 'csv-parse/lib/sync';
-import * as csvString from 'csv-string';
-
 import _ from 'lodash';
 import Kheops from './services/kheops';
 import { trainModel } from './utils/feature-utils';
@@ -30,16 +27,12 @@ import MyModal from './components/MyModal';
 import FeaturesConfig from './components/FeaturesConfig';
 import FeatureNames from './components/FeatureNames';
 import DataLabels from './components/DataLabels';
+import { MODEL_TYPES } from './Features';
 
-const PATIENT_ID_FIELD = 'PatientID';
-const ROI_FIELD = 'ROI';
-const MODALITY_FIELD = 'Modality';
+export const PATIENT_ID_FIELD = 'PatientID';
+export const ROI_FIELD = 'ROI';
+export const MODALITY_FIELD = 'Modality';
 export const NON_FEATURE_FIELDS = [PATIENT_ID_FIELD, MODALITY_FIELD, ROI_FIELD];
-
-const MODEL_TYPES = {
-  CLASSIFICATION: 'Classification',
-  SURVIVAL: 'Survival',
-};
 
 const CLASSIFICATION_ALGORITHMS = {
   LOGISTIC_REGRESSION: 'logistic_regression',
@@ -49,52 +42,20 @@ const CLASSIFICATION_ALGORITHMS = {
   SVM: 'svm',
 };
 
-const CLASSIFICATION_OUTCOMES = ['Outcome'];
-
-const SURVIVAL_OUTCOMES = ['Time', 'Event'];
-
-async function getFormattedLabels(
-  token,
-  albumID,
-  dataPoints,
-  labelType,
-  outcomeColumns
-) {
-  let labels = await Backend.labels(token, albumID, labelType);
-
-  let formattedLabels = labels.reduce((acc, label) => {
-    acc[label.patient_id] = label.label_content;
-    return acc;
-  }, {});
-
-  // Add potentially missing labels
-  for (let patientID of dataPoints) {
-    // Go through all outcome columns
-    if (!Object.keys(formattedLabels).includes(patientID)) {
-      formattedLabels[patientID] = {};
-      for (let outcomeColumn of outcomeColumns) {
-        formattedLabels[patientID][outcomeColumn] = '';
-      }
-    } else {
-      for (let outcomeColumn of outcomeColumns) {
-        if (!Object.keys(formattedLabels[patientID]).includes(outcomeColumn))
-          formattedLabels[patientID][outcomeColumn] = '';
-      }
-    }
-  }
-
-  return formattedLabels;
-}
-
-export default function Train({ match, albums }) {
-  let {
-    params: { albumID },
-  } = match;
-
+export default function Train({
+  album,
+  collection,
+  tabularClassificationLabels,
+  tabularSurvivalLabels,
+  featureExtractionID,
+  unlabelledDataPoints,
+}) {
   let [keycloak] = useKeycloak();
 
   let [models, setModels] = useState([]);
+
   let [modelType, setModelType] = useState(MODEL_TYPES.CLASSIFICATION);
+
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
@@ -105,7 +66,6 @@ export default function Train({ match, albums }) {
   let [usedModalities, setUsedModalities] = useState([]);
   let [usedROIs, setUsedROIs] = useState([]);
   let [albumExtraction, setAlbumExtraction] = useState(null);
-  let [dataPoints, setDataPoints] = useState(null);
 
   let [featuresConfigFamilies, setFeaturesConfigFamilies] = useState(null);
   let [featureConfigOpen, setFeatureConfigOpen] = useState(false);
@@ -116,9 +76,6 @@ export default function Train({ match, albums }) {
   let [isTraining, setIsTraining] = useState(false);
 
   let [showNewModel, setShowNewModel] = useState(false);
-
-  let [classificationLabels, setClassificationLabels] = useState({});
-  let [survivalLabels, setSurvivalLabels] = useState({});
 
   let [ciTooltipOpen, setCITooltipOpen] = useState(false);
 
@@ -133,7 +90,7 @@ export default function Train({ match, albums }) {
   // Get Models & Extraction
   useEffect(() => {
     async function getModels() {
-      let models = await Backend.models(keycloak.token, albumID);
+      let models = await Backend.models(keycloak.token, album.album_id);
       let sortedModels = models.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
       );
@@ -141,7 +98,10 @@ export default function Train({ match, albums }) {
     }
 
     async function getExtraction() {
-      let extraction = await Backend.extractions(keycloak.token, albumID);
+      let extraction = await Backend.extractions(
+        keycloak.token,
+        album.album_id
+      );
       setAlbumExtraction(extraction);
     }
 
@@ -162,31 +122,6 @@ export default function Train({ match, albums }) {
 
     if (albumExtraction) getCollections();
   }, [albumExtraction]);
-
-  // Get Data Points for Labelling
-  useEffect(() => {
-    async function getDataPoints() {
-      let response = await Backend.extractionDataPoints(
-        keycloak.token,
-        albumExtraction.id
-      );
-      setDataPoints(response['data-points']);
-    }
-
-    async function getCollectionDataPoints() {
-      let response = await Backend.extractionCollectionDataPoints(
-        keycloak.token,
-        albumExtraction.id,
-        +activeCollection
-      );
-      setDataPoints(response['data-points']);
-    }
-
-    if (albumExtraction) {
-      if (activeCollection) getCollectionDataPoints();
-      else getDataPoints();
-    }
-  }, [albumExtraction, activeCollection]);
 
   let availableModalities = albumExtraction
     ? activeCollection
@@ -235,30 +170,6 @@ export default function Train({ match, albums }) {
     setActiveCollection(e.target.value);
   };
 
-  const tabularClassificationLabels = useMemo(() => {
-    let formattedLabels = [];
-    for (let patientID in classificationLabels) {
-      formattedLabels.push([
-        patientID,
-        classificationLabels[patientID].Outcome,
-      ]);
-    }
-
-    return formattedLabels;
-  }, [classificationLabels]);
-
-  const tabularSurvivalLabels = useMemo(() => {
-    let formattedLabels = [];
-    for (let patientID in survivalLabels) {
-      formattedLabels.push([
-        patientID,
-        survivalLabels[patientID].Time,
-        survivalLabels[patientID].Event,
-      ]);
-    }
-    return formattedLabels;
-  });
-
   const toggleFeatureConfig = () => {
     setFeatureConfigOpen((open) => !open);
   };
@@ -267,42 +178,7 @@ export default function Train({ match, albums }) {
     setFeatureNamesOpen((open) => !open);
   };
 
-  // Get classification labels
-  useEffect(() => {
-    if (!dataPoints) return;
-
-    async function getLabels() {
-      let formattedLabels = await getFormattedLabels(
-        keycloak.token,
-        albumID,
-        dataPoints,
-        MODEL_TYPES.CLASSIFICATION,
-        CLASSIFICATION_OUTCOMES
-      );
-      setClassificationLabels(formattedLabels);
-    }
-
-    getLabels();
-  }, [dataPoints]);
-
-  // Get survival labels
-  useEffect(() => {
-    if (!dataPoints) return;
-
-    async function getLabels() {
-      let formattedLabels = await getFormattedLabels(
-        keycloak.token,
-        albumID,
-        dataPoints,
-        MODEL_TYPES.SURVIVAL,
-        SURVIVAL_OUTCOMES
-      );
-      setSurvivalLabels(formattedLabels);
-    }
-
-    getLabels();
-  }, [dataPoints]);
-
+  // Handle model train click
   const handleTrainModelClick = async () => {
     setIsTraining(true);
 
@@ -314,7 +190,7 @@ export default function Train({ match, albums }) {
         : tabularSurvivalLabels;
 
     let model = await trainModel(
-      albumExtraction,
+      featureExtractionID,
       activeCollection ? +activeCollection : null,
       albumStudies,
       album,
@@ -354,13 +230,18 @@ export default function Train({ match, albums }) {
     toggleFeatureNames();
   };
 
-  if (albums.length === 0) return <span>Loading...</span>;
+  if (!album) return <span>Loading...</span>;
 
-  let album = albums.find((a) => a.album_id === albumID);
+  //let album = albums.find((a) => a.album_id === albumID);
 
   let newModelForm = (
     <div>
-      <h2>Train a new model on album "{album.name}"</h2>
+      <h2>
+        Train a new model on album "{album.name}"
+        {collection ? (
+          <span>, collection "{collection.collection.name}"</span>
+        ) : null}
+      </h2>
 
       {albumExtraction && (
         <div className="extractions-container">
@@ -436,6 +317,26 @@ export default function Train({ match, albums }) {
             </Form>
           </div>
 
+          <h3>Train Model</h3>
+          {unlabelledDataPoints > 0 ? (
+            <p>
+              There are still {unlabelledDataPoints} unlabelled PatientIDs,
+              assign an outcome to them first!
+              {/*/ROI pairs, assign an outcome to them first!*/}
+            </p>
+          ) : (
+            <Button color="info" onClick={handleTrainModelClick}>
+              {isTraining ? (
+                <>
+                  <FontAwesomeIcon icon="spinner" spin />{' '}
+                  <span>Training Model...</span>
+                </>
+              ) : (
+                <span>Train Model</span>
+              )}
+            </Button>
+          )}
+
           {/* Hide this for now, we will just use the collections */}
           {/*<div>Choose the imaging modalities used for training the model</div>
           <CheckboxGroup
@@ -466,57 +367,6 @@ export default function Train({ match, albums }) {
             )}
           </CheckboxGroup>*/}
         </>
-      )}
-      {dataPoints ? (
-        <>
-          <h3>Data Labelling</h3>
-          <p>
-            There are <strong>{dataPoints.length} data points</strong>
-            (PatientID)
-          </p>
-          {modelType === MODEL_TYPES.CLASSIFICATION && (
-            <DataLabels
-              albumID={albumID}
-              dataPoints={dataPoints}
-              isTraining={isTraining}
-              handleTrainModelClick={handleTrainModelClick}
-              dataLabels={classificationLabels}
-              setDataLabels={setClassificationLabels}
-              labelType={MODEL_TYPES.CLASSIFICATION}
-              outcomeColumns={CLASSIFICATION_OUTCOMES}
-              validateLabelFile={(file, dataPoints, setDataLabels) =>
-                validateLabelFile(
-                  file,
-                  dataPoints,
-                  setDataLabels,
-                  CLASSIFICATION_OUTCOMES
-                )
-              }
-            />
-          )}
-          {modelType === MODEL_TYPES.SURVIVAL && (
-            <DataLabels
-              albumID={albumID}
-              dataPoints={dataPoints}
-              isTraining={isTraining}
-              handleTrainModelClick={handleTrainModelClick}
-              dataLabels={survivalLabels}
-              setDataLabels={setSurvivalLabels}
-              labelType={MODEL_TYPES.SURVIVAL}
-              outcomeColumns={SURVIVAL_OUTCOMES}
-              validateLabelFile={(file, dataPoints, setDataLabels) =>
-                validateLabelFile(
-                  file,
-                  dataPoints,
-                  setDataLabels,
-                  SURVIVAL_OUTCOMES
-                )
-              }
-            />
-          )}
-        </>
-      ) : (
-        <span>Loading...</span>
       )}
     </div>
   );
@@ -781,119 +631,4 @@ export default function Train({ match, albums }) {
         </>
       );
   }
-}
-
-function validateFileType(file) {
-  /* Validate metadata - file type */
-  if (
-    ![
-      'text/csv',
-      'text/comma-separated-values',
-      'text/tab-separated-values',
-      'application/csv',
-      'application/x-csv',
-    ].includes(file.type)
-  ) {
-    if (
-      file.type === 'application/vnd.ms-excel' &&
-      file.name.endsWith('.csv')
-    ) {
-      // Ok, Windows sends strange MIME type
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-async function validateLabelFile(
-  file,
-  dataPoints,
-  setDataLabels,
-  headerFieldNames
-) {
-  console.log(file);
-  let valid = false;
-  let error = null;
-
-  /* Validate file type */
-  let fileTypeIsValid = validateFileType(file);
-
-  if (!fileTypeIsValid) {
-    error = 'The file is not a CSV file!';
-    return [valid, error];
-  }
-
-  /* Validate file content */
-  const content = await file.text();
-
-  try {
-    /* Add PatientID to the header field names (should always exist) */
-    let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
-    console.log('full header field names', fullHeaderFieldNames);
-
-    let firstLine = content.split('\n')[0];
-
-    let separator = csvString.detect(firstLine);
-
-    let headerFields = firstLine.split(separator);
-
-    let hasHeader =
-      headerFields.length === fullHeaderFieldNames.length &&
-      fullHeaderFieldNames.every((fieldName) =>
-        headerFields.includes(fieldName)
-      );
-
-    let columns = hasHeader ? true : fullHeaderFieldNames;
-
-    const records = parse(content, {
-      columns: columns,
-      skip_empty_lines: true,
-    });
-
-    // Check number of rows
-    if (records.length !== dataPoints.length) {
-      error = `The CSV file has ${records.length} entries, should have ${dataPoints.length}!`;
-      return [valid, error];
-    }
-
-    // Match rows to data points
-    console.log(dataPoints);
-
-    let allMatched = true;
-    let nbMatches = 0;
-
-    let labels = {};
-
-    for (let patientID of dataPoints) {
-      let matchingRecord = records.find(
-        (record) => record.PatientID === patientID
-      );
-
-      if (!matchingRecord) {
-        allMatched = false;
-      } else {
-        nbMatches++;
-
-        // Fill labels
-        const { PatientID, ...recordContent } = matchingRecord;
-        labels[PatientID] = recordContent;
-      }
-    }
-
-    if (!allMatched) {
-      error = `The CSV file matched only ${nbMatches}/${dataPoints.length} Patient/ROI pairs!`;
-      return [valid, error];
-    } else {
-      setDataLabels(labels);
-    }
-  } catch (e) {
-    error = 'The CSV file could not be parsed, check its format!';
-    return [valid, error];
-  }
-
-  valid = true;
-  return [valid, error];
 }

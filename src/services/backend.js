@@ -162,7 +162,7 @@ class Backend {
 
   async trainModel(
     token,
-    extraction,
+    extractionID,
     collection,
     studies,
     album,
@@ -177,7 +177,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: {
-          'extraction-id': extraction.id,
+          'extraction-id': extractionID,
           'collection-id': collection,
           studies: studies,
           album: album,
@@ -251,7 +251,15 @@ class Backend {
     }
   }
 
-  async saveCollection(token, featureExtractionID, name, rows, features) {
+  async saveCollection(
+    token,
+    featureExtractionID,
+    name,
+    modalities,
+    rois,
+    patients,
+    features
+  ) {
     try {
       const url = `${endpoints.collections}`;
 
@@ -260,7 +268,9 @@ class Backend {
         data: {
           featureExtractionID: featureExtractionID,
           name: name,
-          rows: rows,
+          modalities: modalities,
+          rois: rois,
+          patients: patients,
           features: features,
         },
         token: token,

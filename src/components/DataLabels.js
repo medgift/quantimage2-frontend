@@ -7,13 +7,11 @@ import { useKeycloak } from 'react-keycloak';
 export default function DataLabels({
   albumID,
   dataPoints,
-  isTraining,
-  handleTrainModelClick,
   dataLabels,
   labelType,
   setDataLabels,
   outcomeColumns,
-  validateLabelFile
+  validateLabelFile,
 }) {
   let [keycloak] = useKeycloak();
 
@@ -23,15 +21,17 @@ export default function DataLabels({
   let [isLabelFileValid, setIsLabelFileValid] = useState(null);
   let [labelFileError, setLabelFileError] = useState(null);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
-    setIsManualLabellingOpen(open => !open);
+    setIsManualLabellingOpen((open) => !open);
     setIsAutoLabellingOpen(false);
   };
 
   const toggleAutoLabelling = () => {
-    setIsAutoLabellingOpen(open => !open);
+    setIsAutoLabellingOpen((open) => !open);
     setIsManualLabellingOpen(false);
   };
 
@@ -43,8 +43,10 @@ export default function DataLabels({
     setDataLabels(updatedLabels);
   };
 
-  const handleSaveLabelsClick = async e => {
+  const handleSaveLabelsClick = async (e) => {
+    setIsSaving(true);
     await Backend.saveLabels(keycloak.token, albumID, labelType, dataLabels);
+    setIsSaving(false);
   };
 
   const handleFileInputChange = async () => {
@@ -56,21 +58,6 @@ export default function DataLabels({
     setIsLabelFileValid(isValid);
     setLabelFileError(error);
   };
-
-  const unlabelledDataPoints = useMemo(() => {
-    let unlabelled = 0;
-    for (let patientID in dataLabels) {
-      if (
-        !dataLabels[patientID] ||
-        Object.keys(dataLabels[patientID]).every(
-          outcomeColumn => dataLabels[patientID][outcomeColumn] === ''
-        )
-      )
-        unlabelled++;
-    }
-
-    return unlabelled;
-  }, [dataLabels]);
 
   return (
     <>
@@ -88,16 +75,16 @@ export default function DataLabels({
             <tr>
               <th>PatientID</th>
               {/*<th>ROI</th>*/}
-              {outcomeColumns.map(outcomeColumn => (
+              {outcomeColumns.map((outcomeColumn) => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>
           </thead>
           <tbody className="data-points">
-            {dataPoints.map(dataPoint => (
+            {dataPoints.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {outcomeColumns.map(outcomeColumn => (
+                {outcomeColumns.map((outcomeColumn) => (
                   <td key={outcomeColumn} className="data-label">
                     <Input
                       type="text"
@@ -108,7 +95,7 @@ export default function DataLabels({
                           ? dataLabels[dataPoint][outcomeColumn]
                           : ''
                       }
-                      onChange={e => {
+                      onChange={(e) => {
                         handleLabelInputChange(e, dataPoint, outcomeColumn);
                       }}
                     />
@@ -138,8 +125,18 @@ export default function DataLabels({
           </tbody>
         </Table>
 
-        <Button color="success" onClick={handleSaveLabelsClick}>
-          Save Labels
+        <Button
+          color="success"
+          onClick={handleSaveLabelsClick}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <>
+              <FontAwesomeIcon icon="spinner" spin /> Saving Labels
+            </>
+          ) : (
+            'Save Labels'
+          )}
         </Button>
       </Collapse>
 
@@ -154,7 +151,7 @@ export default function DataLabels({
           <thead>
             <tr>
               <th>PatientID</th>
-              {outcomeColumns.map(outcomeColumn => (
+              {outcomeColumns.map((outcomeColumn) => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>
@@ -186,26 +183,6 @@ export default function DataLabels({
           </>
         )}
       </Collapse>
-      <br />
-      <h3>Train Model</h3>
-      {unlabelledDataPoints > 0 ? (
-        <p>
-          There are still {unlabelledDataPoints} unlabelled PatientIDs, assign
-          an outcome to them first!
-          {/*/ROI pairs, assign an outcome to them first!*/}
-        </p>
-      ) : (
-        <Button color="info" onClick={handleTrainModelClick}>
-          {isTraining ? (
-            <>
-              <FontAwesomeIcon icon="spinner" spin />{' '}
-              <span>Training Model...</span>
-            </>
-          ) : (
-            <span>Train Model</span>
-          )}
-        </Button>
-      )}
     </>
   );
 }

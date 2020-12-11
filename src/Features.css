@@ -8,5 +8,47 @@
 }
 
 .features-table {
-  width: calc(100% - 250px);
+  /*width: calc(100% - 250px);*/
+}
+
+.feature-tabs {
+  overflow-x: hidden;
+  flex-grow: 1;
+}
+
+.tab-content {
+  border: 1px solid #dee2e6;
+  border-top: 0;
+  padding: 1em 0.5em;
+  background-color: white;
+}
+
+.data-filters {
+  display: flex;
+}
+
+.data-filter {
+  flex: 1;
+}
+
+.data-filter .btn {
+  border: 0;
+}
+
+.data-filter .btn.btn-primary.active {
+  /*background-color: #75b8ff;*/
+}
+
+.nav-link {
+  cursor: pointer;
+}
+
+.info-container {
+  display: flex;
+}
+
+.info-container div {
+  flex: 1;
+  margin: 1em 0.5em;
+  text-align: center;
 }

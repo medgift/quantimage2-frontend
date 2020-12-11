@@ -97,7 +97,7 @@ function assembleCSVData(allFeatures, fields) {
 }
 
 export async function trainModel(
-  extraction,
+  extractionID,
   collection,
   studies,
   album,
@@ -110,7 +110,7 @@ export async function trainModel(
 ) {
   let createdModel = await Backend.trainModel(
     token,
-    extraction,
+    extractionID,
     collection,
     studies,
     album,
