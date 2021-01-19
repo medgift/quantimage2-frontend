@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext, useRef, useMemo } from 'react';
 import UserContext from './context/UserContext';
 import SidePanel from './visualisation/SidePanel';
 import Main from './visualisation/Main';
 import AnnotationPanel from './visualisation/AnnotationPanel';
 import './Visualisation.css';
-import backend from './services/backend';
+import Backend from './services/backend';
 // Chart Specs
 import PCA from './assets/charts/PCA.json';
 import Lasagna from './assets/charts/Lasagna.json';
@@ -24,9 +24,10 @@ export default function Visualisation(props) {
   const [loading, setLoading] = useState(true);
 
   // Features
-  const [features, setFeatures] = useState([]);
+  const [featureNames, setFeatureNames] = useState([]);
   const [regions, setRegions] = useState([]);
   const [modalities, setModalities] = useState([]);
+  const [patients, setPatients] = useState([]);
 
   // Annotations
   const annotationPanel = useRef(null);
@@ -39,42 +40,95 @@ export default function Visualisation(props) {
   const [pcaImg, setPcaImg] = useState(null);
   const [lasagnaImg, setLasagnaImg] = useState(null);
 
+  // Collection information
+  const { collectionInfos } = props;
+
   // Get features & annotations
   useEffect(() => {
     async function loadLasagnaChartData() {
-      const newFeatures = [];
-      const data = await backend.lasagna(keycloak.token, albumID);
-      const featuresNames = [
-        ...new Set(data.features.map((f) => f.feature_id)),
-      ];
-      featuresNames.map((f) => {
-        const feature = {
-          key: f,
-          name: data.features.find((x) => x.feature_id === f).feature_name,
-          selected: true,
-        };
-        newFeatures.push(feature);
-      });
+      const data = await Backend.lasagna(
+        keycloak.token,
+        albumID,
+        collectionInfos ? collectionInfos.collection.id : null
+      );
 
-      setModalities([...new Set(data.features.map((m) => m.Modality))]);
-      setRegions([...new Set(data.features.map((r) => r.ROI))]);
+      setFeatureNames(
+        [...new Set(data.features.map((f) => f.feature_name))].map((f) => ({
+          name: f,
+          selected: true,
+        }))
+      );
+      setModalities(
+        [...new Set(data.features.map((f) => f.Modality))].map((m) => ({
+          name: m,
+          selected: true,
+        }))
+      );
+      setRegions(
+        [...new Set(data.features.map((f) => f.ROI))].map((r) => ({
+          name: r,
+          selected: true,
+        }))
+      );
+      setPatients(
+        [...new Set(data.features.map((f) => f.PatientID))].map((p) => ({
+          name: p,
+          selected: true,
+        }))
+      );
       setLasagnaData(data);
-      setFeatures(newFeatures);
     }
 
-    async function loadAnnotations() {
-      let annotations = await backend.annotations(keycloak.token, albumID);
+    /*async function loadAnnotations() {
+      let annotations = await Backend.annotations(keycloak.token, albumID);
       setAnnotations(annotations);
     }
 
-    loadLasagnaChartData();
     loadAnnotations();
+    */
+
+    loadLasagnaChartData();
   }, []);
+
+  // Calculate features to keep based on selections
+  const selectedFeatures = useMemo(() => {
+    if (!lasagnaData) return null;
+
+    let filteredFeatures = lasagnaData.features.filter((f) => {
+      return (
+        featureNames
+          .filter((f) => f.selected)
+          .map((f) => f.name)
+          .includes(f.feature_name) &&
+        modalities
+          .filter((m) => m.selected)
+          .map((m) => m.name)
+          .includes(f.Modality) &&
+        regions
+          .filter((r) => r.selected)
+          .map((r) => r.name)
+          .includes(f.ROI) &&
+        patients
+          .filter((p) => p.selected)
+          .map((p) => p.name)
+          .includes(f.PatientID)
+      );
+    });
+    console.log('filtered features', filteredFeatures);
+
+    return filteredFeatures;
+  }, [lasagnaData, featureNames, modalities, regions, patients]);
 
   // Refresh charts on feature changes
   useEffect(() => {
-    if (lasagnaData) loadCharts(features);
-  }, [features]);
+    if (selectedFeatures) {
+      console.log(
+        'going to load charts with the selected features',
+        selectedFeatures.length
+      );
+      loadCharts(selectedFeatures);
+    }
+  }, [selectedFeatures]);
 
   // Update Vega
   useEffect(() => {
@@ -126,12 +180,12 @@ export default function Visualisation(props) {
 
     // Existing annotation -> update
     if (currentAnnot) {
-      savedAnnotation = await backend.updateAnnotation(
+      savedAnnotation = await Backend.updateAnnotation(
         keycloak.token,
         newAnnot
       );
     } else {
-      savedAnnotation = await backend.createAnnotation(
+      savedAnnotation = await Backend.createAnnotation(
         keycloak.token,
         albumID,
         newAnnot
@@ -149,7 +203,7 @@ export default function Visualisation(props) {
     setAnnotations([...annotations]);
     // TODO: Delete in Database
 
-    let deletedAnnotation = await backend.updateAnnotation(
+    let deletedAnnotation = await Backend.updateAnnotation(
       keycloak.token,
       deletedAnnot
     );
@@ -162,19 +216,45 @@ export default function Visualisation(props) {
   };
 
   const setupLasagna = async (features) => {
-    let enrichedData = lasagnaData.features.map((f) => ({
+    let enrichedData = features.map((f) => ({
       ...f,
       Outcome: lasagnaData.outcomes.find((s) => s.PatientID === f.PatientID)
         .Outcome,
     }));
 
+    // Filter status data by selected patients also!
+    let filteredStatus = lasagnaData.outcomes.filter((o) =>
+      patients
+        .filter((p) => p.selected)
+        .map((p) => p.name)
+        .includes(o.PatientID)
+    );
+
     const properData = {
-      features: await filterFeatures(features, enrichedData),
-      status: lasagnaData.outcomes,
+      features: enrichedData,
+      status: filteredStatus,
     };
-    console.log(properData.features);
+
     const lasagnaSpec = { ...Lasagna };
     lasagnaSpec.data = { name: ['features', 'status'] };
+
+    // Custom sort of patients
+    let statusSorted = filteredStatus.sort((p1, p2) => {
+      if (p1.Outcome > p2.Outcome) {
+        return 1;
+      } else if (p1.Outcome < p2.Outcome) {
+        return -1;
+      } else {
+        return p1.PatientID > p2.PatientID;
+      }
+    });
+
+    let patientIDsSorted = statusSorted.map((p) => p.PatientID);
+
+    for (let chart of lasagnaSpec.vconcat) {
+      chart.encoding.x.sort = patientIDsSorted;
+    }
+
     setLasagnaChart({
       data: properData,
       spec: lasagnaSpec,
@@ -199,8 +279,8 @@ export default function Visualisation(props) {
         transform: PCA.data[2].transform,
       },
     ];
-    pcaSpec.height = 500;
-    pcaSpec.width = 500;
+    pcaSpec.height = 400;
+    pcaSpec.width = 400;
     setPcaChart({
       data: pcaData,
       spec: pcaSpec,
@@ -210,7 +290,7 @@ export default function Visualisation(props) {
   /*
    ** Only consider the features selected by the user
    */
-  const filterFeatures = async (features, data) => {
+  /*const filterFeatures = async (features, data) => {
     const selectedFeatures = await features.filter((f) => f.selected);
     const filteredData = [];
     await data.map((d) => {
@@ -221,37 +301,10 @@ export default function Visualisation(props) {
       });
     });
     return filteredData;
-  };
-
-  const change = (feature, force = null) => {
-    if (force !== null) {
-      features.find((f) => f.key === feature.key).selected = force;
-    } else {
-      features.find((f) => f.key === feature.key).selected = !feature.selected;
-    }
-    setFeatures([...features]);
-  };
-
-  // Bulk select / deselect
-  const selectAll = (all) => {
-    features.map((f) => {
-      f.selected = all;
-    });
-    setFeatures([...features]);
-  };
+  };*/
 
   return (
     <div className="Visualisation">
-      <SidePanel
-        features={features}
-        selectedCpt={features.filter((f) => f.selected).length}
-        regions={regions}
-        modalities={modalities}
-        change={change}
-        forceChange={change}
-        all={selectAll}
-      />
-
       <Main
         ref={main}
         charts={[
@@ -263,7 +316,7 @@ export default function Visualisation(props) {
           },
           {
             id: 'pca',
-            title: 'Principle Component Analysis',
+            title: 'Principal Component Analysis (coming soon)',
             chart: pcaChart,
             type: 'vega',
           },
@@ -284,8 +337,25 @@ export default function Visualisation(props) {
         askAnswer={askAnswer}
         setLasagnaImg={setLasagnaImg}
         setPcaImg={setPcaImg}
+        featureNames={featureNames}
+        setFeatureNames={setFeatureNames}
+        modalities={modalities}
+        setModalities={setModalities}
+        regions={regions}
+        setRegions={setRegions}
+        patients={patients}
+        setPatients={setPatients}
       />
-      {lasagnaImg && pcaImg && (
+      {/*<SidePanel
+        features={features}
+        selectedCpt={features.filter((f) => f.selected).length}
+        regions={regions}
+        modalities={modalities}
+        change={change}
+        forceChange={change}
+        all={selectAll}
+      />*/}
+      {/*lasagnaImg && pcaImg && (
         <AnnotationPanel
           ref={annotationPanel}
           annotations={annotations}
@@ -304,7 +374,7 @@ export default function Visualisation(props) {
             },
           ]}
         />
-      )}
+      )*/}
     </div>
   );
 }

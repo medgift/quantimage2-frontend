@@ -2,6 +2,10 @@ body {
   background-color: #f5f5f5;
 }
 
+h2 {
+  font-size: 1.8rem;
+}
+
 .App {
   text-align: center;
   margin: 0em;

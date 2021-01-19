@@ -1,11 +1,35 @@
 @import './SidePanel.scss';
 
-.Main {
-    /*margin: 3em 0;
-    margin-left: $sidebar-width;
-    margin-right: $sidebar-width;*/
+.Main-Visualization {
+  /*margin: 3em 0;
+  margin-left: $sidebar-width;
+  margin-right: $sidebar-width;*/
+  flex-grow: 1;
+  flex-direction: column;
+  display: flex;
 }
 
 .charts {
-    flex-direction: column;
+  flex-direction: column;
+}
+
+.tab-content {
+  border: 0;
+}
+
+.filters-visualization {
+  display: flex;
+  margin-top: 1em;
+}
+
+.filter-visualization {
+  flex: 1;
+}
+
+.filter-visualization ul {
+  padding: 0;
+  list-style-type: none;
+  max-height: 100px;
+  overflow-y: auto;
+  text-align: left;
 }

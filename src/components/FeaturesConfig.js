@@ -7,7 +7,7 @@ import {
   ListGroup,
   ListGroupItem,
   ListGroupItemHeading,
-  ListGroupItemText
+  ListGroupItemText,
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
 
@@ -22,12 +22,12 @@ import Kheops from '../services/kheops';
 export default function FeaturesConfig({ families }) {
   return (
     <>
-      {families.map(family => (
+      {families.map((family) => (
         <div key={family.feature_family.id}>
           <h3>{family.feature_family.name}</h3>
           <ListGroup>
             {Object.keys(family.config.backends).map(
-              backendName =>
+              (backendName) =>
                 family.config.backends[backendName].features.length > 0 && (
                   <ListGroupItem
                     key={`${family.feature_family.name}-${backendName}`}
@@ -36,15 +36,16 @@ export default function FeaturesConfig({ families }) {
                       <h5>{backendName}</h5>
                       <div>
                         <ListGroup>
-                          {family.config.backends[backendName].features.map(
-                            featureGroup => (
-                              <ListGroupItem
-                                key={`${family.feature_family.name}-${backendName}-${featureGroup}`}
-                              >
-                                {featureGroup}
-                              </ListGroupItem>
-                            )
-                          )}
+                          ]
+                          {Object.keys(
+                            family.config.backends[backendName].features
+                          ).map((featureGroup) => (
+                            <ListGroupItem
+                              key={`${family.feature_family.name}-${backendName}-${featureGroup}`}
+                            >
+                              {featureGroup}
+                            </ListGroupItem>
+                          ))}
                         </ListGroup>
                       </div>
                     </>

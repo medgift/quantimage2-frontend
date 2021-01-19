@@ -17,7 +17,7 @@ import Backend from '../services/backend';
 
 import _ from 'lodash';
 
-const PYRADIOMICS_PREFIX = 'orig';
+const PYRADIOMICS_PREFIX = 'original';
 
 // Generate indeterminate checkbox renderer
 const IndeterminateCheckbox = React.forwardRef(
@@ -230,7 +230,7 @@ export default function FeatureTable({
     )) {
       // TODO - Make this more elegant, maybe a convention for feature names is needed
       // Group PyRadiomics features by the second level,
-      // first level for other backens so far
+      // first level for other backends so far
       let featureGroupName;
       if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
         featureGroupName = featureName.split('_')[1];

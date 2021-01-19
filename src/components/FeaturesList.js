@@ -15,7 +15,7 @@ import Backend from '../services/backend';
 import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
-import { cloneDeep } from 'lodash';
+import _ from 'lodash';
 
 export default function FeaturesList({
   albumID,
@@ -28,7 +28,7 @@ export default function FeaturesList({
   let [keycloak] = useKeycloak();
 
   // Data
-  let [featureFamiles, setFeatureFamilies] = useState([]);
+  let [featureFamilies, setFeatureFamilies] = useState([]);
   let [featureConfigs, setFeatureConfigs] = useState({});
   let [extraction, setExtraction] = useState(null);
   let [tasks, setTasks] = useState([]);
@@ -128,7 +128,7 @@ export default function FeaturesList({
         // Select all families by default if there is no extraction, otherwise restore config of previous extraction
         if (!latestExtraction) {
           selectedFamilies[featureFamily.id] = true;
-          featureConfigs[featureFamily.id] = cloneDeep(featureFamily.config);
+          featureConfigs[featureFamily.id] = _.cloneDeep(featureFamily.config);
         } else {
           let familyInExtraction = latestExtraction.families.find(
             (family) => family.feature_family.id === featureFamily.id
@@ -137,11 +137,13 @@ export default function FeaturesList({
           selectedFamilies[featureFamily.id] = familyInExtraction !== undefined;
 
           if (familyInExtraction) {
-            featureConfigs[featureFamily.id] = cloneDeep(
+            featureConfigs[featureFamily.id] = _.cloneDeep(
               familyInExtraction.config
             );
           } else {
-            featureConfigs[featureFamily.id] = cloneDeep(featureFamily.config);
+            featureConfigs[featureFamily.id] = _.cloneDeep(
+              featureFamily.config
+            );
           }
         }
       }
@@ -273,22 +275,28 @@ export default function FeaturesList({
   ) => {
     const checked = e.target.checked;
 
-    let updatedFeatureConfigs = { ...featureConfigs };
+    let updatedFeatureConfigs = _.cloneDeep(featureConfigs);
 
     if (!checked) {
       let currentFeatures = featureConfig.backends[backend].features;
 
-      let newFeatures = currentFeatures.filter(
-        (fName) => fName !== featureName
-      );
+      // Filter out the unchecked feature name
+      let { [featureName]: _, ...newFeatures } = currentFeatures;
 
       featureConfig.backends[backend].features = newFeatures;
     } else {
-      featureConfig.backends[backend].features = [
+      featureConfig.backends[backend].features = {
         ...featureConfig.backends[backend].features,
-        featureName,
-      ];
+        ..._.pick(
+          featureFamilies.find((f) => f.id === featureFamilyID).config.backends[
+            backend
+          ].features,
+          featureName
+        ),
+      };
     }
+
+    updatedFeatureConfigs[featureFamilyID] = featureConfig;
 
     handleFeatureFamilyStatusAfterConfigUpdate(featureConfig, featureFamilyID);
 
@@ -330,9 +338,9 @@ export default function FeaturesList({
         <ListGroupItem>
           <span>Feature Configuration</span>
         </ListGroupItem>
-        {featureFamiles.length > 0 &&
+        {featureFamilies.length > 0 &&
           Object.keys(featureConfigs).length > 0 &&
-          featureFamiles.map((featureFamily) => (
+          featureFamilies.map((featureFamily) => (
             <ListGroupItem
               key={featureFamily.id}
               disabled={extraction && !extraction.status.ready}
@@ -373,8 +381,10 @@ export default function FeaturesList({
                     .reduce(
                       (featureNames, backend) => [
                         ...featureNames,
-                        ...featureConfigs[featureFamily.id].backends[backend]
-                          .features,
+                        ...Object.keys(
+                          featureConfigs[featureFamily.id].backends[backend]
+                            .features
+                        ),
                       ],
                       []
                     )
@@ -394,35 +404,34 @@ export default function FeaturesList({
                   <div key={backend}>
                     <div>{backend}</div>
                     <ListGroup>
-                      {featureFamily.config.backends[backend].features.map(
-                        (featureName) => (
-                          <ListGroupItem
-                            className="text-left"
-                            key={`${featureFamily.id}-${featureName}`}
-                          >
-                            <CustomInput
-                              type="checkbox"
-                              id={`${featureFamily.id}-${featureName}`}
-                              checked={featureConfigs[
-                                featureFamily.id
-                              ].backends[backend].features.includes(
+                      {Object.keys(
+                        featureFamily.config.backends[backend].features
+                      ).map((featureName) => (
+                        <ListGroupItem
+                          className="text-left"
+                          key={`${featureFamily.id}-${featureName}`}
+                        >
+                          <CustomInput
+                            type="checkbox"
+                            id={`${featureFamily.id}-${featureName}`}
+                            checked={Object.keys(
+                              featureConfigs[featureFamily.id].backends[backend]
+                                .features
+                            ).includes(featureName)}
+                            onChange={(e) =>
+                              updateFeatureConfig(
+                                e,
+                                featureFamily.id,
+                                _.cloneDeep(featureConfigs[featureFamily.id]),
+                                backend,
                                 featureName
-                              )}
-                              onChange={(e) =>
-                                updateFeatureConfig(
-                                  e,
-                                  featureFamily.id,
-                                  featureConfigs[featureFamily.id],
-                                  backend,
-                                  featureName
-                                )
-                              }
-                              disabled={extraction && !extraction.status.ready}
-                              label={featureName.toLowerCase()}
-                            />
-                          </ListGroupItem>
-                        )
-                      )}
+                              )
+                            }
+                            disabled={extraction && !extraction.status.ready}
+                            label={featureName.toLowerCase()}
+                          />
+                        </ListGroupItem>
+                      ))}
                     </ListGroup>
                   </div>
                 ))}

@@ -60,6 +60,7 @@ import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
 import _ from 'lodash';
 import DataLabels from './components/DataLabels';
+import Visualisation from './Visualisation';
 
 const tableIcons = {
   Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
@@ -85,7 +86,7 @@ const tableIcons = {
   ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />),
 };
 
-const PYRADIOMICS_PREFIX = 'orig';
+const PYRADIOMICS_PREFIX = 'original';
 
 export const MODEL_TYPES = {
   CLASSIFICATION: 'Classification',
@@ -480,7 +481,7 @@ function Features({ history, match, kheopsError }) {
   return (
     <>
       <h2>Feature Manager</h2>
-      {!isLoading && album ? (
+      {!isLoading && album && collections !== null ? (
         <div style={{ textAlign: 'center' }}>
           {features.length > 0 && (
             <div className="features-wrapper">
@@ -534,6 +535,18 @@ function Features({ history, match, kheopsError }) {
                       }}
                     >
                       Model Training
+                    </NavLink>
+                  </NavItem>
+                  <NavItem>
+                    <NavLink
+                      className={classnames({
+                        active: activeTab === 'visualize',
+                      })}
+                      onClick={() => {
+                        toggle('visualize');
+                      }}
+                    >
+                      Visualization
                     </NavLink>
                   </NavItem>
                 </Nav>
@@ -724,17 +737,29 @@ function Features({ history, match, kheopsError }) {
                   <TabPane tabId="train">
                     <Train
                       album={album}
-                      collection={
+                      collectionInfos={
                         activeCollection !== ''
                           ? collections.find(
                               (c) => c.collection.id === +activeCollection
                             )
                           : null
                       }
+                      dataPoints={dataPoints}
                       tabularClassificationLabels={tabularClassificationLabels}
                       tabularSurvivalLabels={tabularSurvivalLabels}
                       featureExtractionID={featureExtractionID}
                       unlabelledDataPoints={unlabelledDataPoints}
+                    />
+                  </TabPane>
+                  <TabPane tabId="visualize">
+                    <Visualisation
+                      collectionInfos={
+                        activeCollection !== ''
+                          ? collections.find(
+                              (c) => c.collection.id === +activeCollection
+                            )
+                          : null
+                      }
                     />
                   </TabPane>
                 </TabContent>

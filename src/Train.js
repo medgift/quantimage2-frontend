@@ -8,6 +8,7 @@ import {
   Collapse,
   Label,
   FormText,
+  FormGroup,
   ListGroup,
   ListGroupItem,
   Badge,
@@ -44,11 +45,12 @@ const CLASSIFICATION_ALGORITHMS = {
 
 export default function Train({
   album,
-  collection,
+  collectionInfos,
   tabularClassificationLabels,
   tabularSurvivalLabels,
   featureExtractionID,
   unlabelledDataPoints,
+  dataPoints,
 }) {
   let [keycloak] = useKeycloak();
 
@@ -59,9 +61,6 @@ export default function Train({
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
-
-  let [collections, setCollections] = useState([]);
-  let [activeCollection, setActiveCollection] = useState('');
 
   let [usedModalities, setUsedModalities] = useState([]);
   let [usedROIs, setUsedROIs] = useState([]);
@@ -79,19 +78,38 @@ export default function Train({
 
   let [ciTooltipOpen, setCITooltipOpen] = useState(false);
 
+  let [isAdvancedConfigOpen, setIsAdvancedConfigOpen] = useState(true);
+
+  // Advanced configuration parameters
+  let [dataNormalization, setDataNormalization] = useState('none');
+  let [featureSelection, setFeatureSelection] = useState('none');
+
   // Initialize all modalities & ROIs to be checked
   useEffect(() => {
     if (albumExtraction) {
-      setUsedModalities(albumExtraction['extraction-modalities']);
-      setUsedROIs(albumExtraction['extraction-rois']);
+      if (collectionInfos) {
+        setUsedModalities(collectionInfos.modalities);
+        setUsedROIs(collectionInfos.rois);
+      } else {
+        setUsedModalities(albumExtraction['extraction-modalities']);
+        setUsedROIs(albumExtraction['extraction-rois']);
+      }
     }
-  }, [albumExtraction]);
+  }, [albumExtraction, collectionInfos]);
 
   // Get Models & Extraction
   useEffect(() => {
     async function getModels() {
       let models = await Backend.models(keycloak.token, album.album_id);
-      let sortedModels = models.sort(
+
+      // Filter out models that are not for this collection / original feature set
+      let filteredModels = collectionInfos
+        ? models.filter(
+            (m) => m.feature_collection_id === collectionInfos.collection.id
+          )
+        : models.filter((m) => m.feature_collection_id === null);
+
+      let sortedModels = filteredModels.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
       );
       setModels(sortedModels);
@@ -109,21 +127,7 @@ export default function Train({
     getExtraction();
   }, [keycloak.token]);
 
-  // Get Collections
-  useEffect(() => {
-    async function getCollections() {
-      let collectionObjects = await Backend.collectionsByExtraction(
-        keycloak.token,
-        albumExtraction.id
-      );
-
-      setCollections(collectionObjects);
-    }
-
-    if (albumExtraction) getCollections();
-  }, [albumExtraction]);
-
-  let availableModalities = albumExtraction
+  /*let availableModalities = albumExtraction
     ? activeCollection
       ? collections.find((c) => c.collection.id === +activeCollection)
           .modalities
@@ -134,10 +138,10 @@ export default function Train({
     ? activeCollection
       ? collections.find((c) => c.collection.id === +activeCollection).rois
       : albumExtraction['extraction-rois']
-    : [];
+    : [];*/
 
   // Update used modalities
-  useEffect(() => {
+  /*useEffect(() => {
     if (usedModalities.length > 0 && availableModalities.length > 0) {
       let newUsed = usedModalities.filter((m) =>
         availableModalities.includes(m)
@@ -154,9 +158,21 @@ export default function Train({
 
       setUsedROIs(newUsed);
     }
-  }, [availableROIs]);
+  }, [availableROIs]);*/
 
   const toggleCITooltip = () => setCITooltipOpen((open) => !open);
+
+  const toggleAdvancedConfig = () => {
+    setIsAdvancedConfigOpen((o) => !o);
+  };
+
+  const handleNormalizationChange = (e) => {
+    setDataNormalization(e.target.value);
+  };
+
+  const handleFeatureSelectionChange = (e) => {
+    setFeatureSelection(e.target.value);
+  };
 
   const handleModelTypeChange = (e) => {
     setModelType(e.target.value);
@@ -164,10 +180,6 @@ export default function Train({
 
   const handleAlgorithmTypeChange = (e) => {
     setAlgorithmType(e.target.value);
-  };
-
-  const handleCollectionChange = (e) => {
-    setActiveCollection(e.target.value);
   };
 
   const toggleFeatureConfig = () => {
@@ -191,12 +203,13 @@ export default function Train({
 
     let model = await trainModel(
       featureExtractionID,
-      activeCollection ? +activeCollection : null,
+      collectionInfos ? collectionInfos.collection.id : null,
       albumStudies,
       album,
       labels,
       modelType,
       algorithmType,
+      dataNormalization,
       usedModalities,
       usedROIs,
       keycloak.token
@@ -238,19 +251,10 @@ export default function Train({
     <div>
       <h2>
         Train a new model on album "{album.name}"
-        {collection ? (
-          <span>, collection "{collection.collection.name}"</span>
+        {collectionInfos ? (
+          <span>, collection "{collectionInfos.collection.name}"</span>
         ) : null}
       </h2>
-
-      {albumExtraction && (
-        <div className="extractions-container">
-          <p>
-            Train model based on the latest extraction for this album, initiated
-            at <strong>{albumExtraction.created_at}</strong>
-          </p>
-        </div>
-      )}
 
       <h3>Model configuration</h3>
       <div>Choose the type of model to train</div>
@@ -293,35 +297,102 @@ export default function Train({
               </Input>
             </Form>
           </div>
+          <div>
+            <Button color="link" onClick={toggleAdvancedConfig}>
+              {isAdvancedConfigOpen ? '-' : '+'} Advanced Parameters
+            </Button>
+            <Collapse isOpen={isAdvancedConfigOpen}>
+              <Form>
+                <h4>Data normalization</h4>
+                <FormGroup tag="fieldset">
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="data-normalization"
+                        value="none"
+                        checked={dataNormalization === 'none'}
+                        onChange={handleNormalizationChange}
+                      />{' '}
+                      None
+                    </Label>
+                  </FormGroup>
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="data-normalization"
+                        value="l2norm"
+                        checked={dataNormalization === 'l2norm'}
+                        onChange={handleNormalizationChange}
+                      />{' '}
+                      L2 Normalization
+                    </Label>
+                  </FormGroup>
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="data-normalization"
+                        value="standardization"
+                        checked={dataNormalization === 'standardization'}
+                        onChange={handleNormalizationChange}
+                      />{' '}
+                      Standardization
+                    </Label>
+                  </FormGroup>
+                </FormGroup>
+                <h4>Feature selection</h4>
+                <FormGroup tag="fieldset">
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="feature-selection"
+                        value="none"
+                        checked={featureSelection === 'none'}
+                        onChange={handleFeatureSelectionChange}
+                      />{' '}
+                      None
+                    </Label>
+                  </FormGroup>
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="feature-selection"
+                        value="drop-correlated"
+                        checked={featureSelection === 'drop-correlated'}
+                        onChange={handleFeatureSelectionChange}
+                      />{' '}
+                      Drop highly correlated features
+                    </Label>
+                  </FormGroup>
+                  <FormGroup check inline>
+                    <Label check>
+                      <Input
+                        type="radio"
+                        name="feature-selection"
+                        value="rfe"
+                        checked={featureSelection === 'rfe'}
+                        onChange={handleFeatureSelectionChange}
+                      />{' '}
+                      Recusrive Feature Elimination (RFE)
+                    </Label>
+                  </FormGroup>
+                </FormGroup>
+              </Form>
+            </Collapse>
+          </div>
         </>
       )}
       {albumExtraction && (
         <>
-          <div>Choose the Collection used for training the model</div>
-          <div className="form-container">
-            <Form>
-              <Input
-                type="select"
-                id="collection"
-                name="collection"
-                value={activeCollection}
-                onChange={handleCollectionChange}
-              >
-                <option value="">{'<original>'}</option>
-                {collections.map((c) => (
-                  <option key={c.collection.id} value={c.collection.id}>
-                    {c.collection.name}
-                  </option>
-                ))}
-              </Input>
-            </Form>
-          </div>
-
           <h3>Train Model</h3>
           {unlabelledDataPoints > 0 ? (
             <p>
               There are still {unlabelledDataPoints} unlabelled PatientIDs,
-              assign an outcome to them first!
+              assign an outcome to them first in the "Outcomes" tab!
               {/*/ROI pairs, assign an outcome to them first!*/}
             </p>
           ) : (
@@ -487,6 +558,14 @@ export default function Train({
                       </td>
                     </tr>
                     <tr>
+                      <td>Data Normalization</td>
+                      <td>
+                        {model.data_normalization
+                          ? model.data_normalization
+                          : 'None'}
+                      </td>
+                    </tr>
+                    <tr>
                       <td>Feature Selection</td>
                       <td>
                         {model.feature_selection
@@ -545,13 +624,19 @@ export default function Train({
                     <tr>
                       <td>Number of Features</td>
                       <td>
-                        {model['feature-number']}
+                        {collectionInfos
+                          ? collectionInfos.features.length
+                          : model['feature-number']}
                         {' - '}
                         <a
                           href="#"
                           onClick={(event) => {
                             event.preventDefault();
-                            handleShowFeatureNames(model['feature-names']);
+                            handleShowFeatureNames(
+                              collectionInfos
+                                ? collectionInfos.features
+                                : model['feature-names']
+                            );
                           }}
                         >
                           Show details
@@ -560,7 +645,9 @@ export default function Train({
                     </tr>
                     <tr>
                       <td>Number of Observations</td>
-                      <td>{model.observations}</td>
+                      <td>
+                        {isNaN(dataPoints) ? dataPoints.length : dataPoints}
+                      </td>
                     </tr>
                   </tbody>
                 </Table>
@@ -619,7 +706,12 @@ export default function Train({
     else
       return (
         <>
-          <h2>Existing models for album {album.name}</h2>
+          <h2>
+            Existing models for album {album.name}{' '}
+            {collectionInfos ? (
+              <span>, collection "{collectionInfos.collection.name}"</span>
+            ) : null}
+          </h2>
           <div>
             <br />
             <Button color="primary" onClick={handleShowNewModelClick}>

@@ -18,9 +18,11 @@ const endpoints = {
 };
 
 class Backend {
-  async lasagna(token, albumId) {
+  async lasagna(token, albumId, collectionId) {
     try {
-      const url = `${endpoints.charts}/${albumId}/lasagna`;
+      const url = collectionId
+        ? `${endpoints.charts}/${albumId}/${collectionId}/lasagna`
+        : `${endpoints.charts}/${albumId}/lasagna`;
       return await request(url, { token: token }); // Add token management
     } catch (err) {
       throw err; // Just throw it for now
@@ -169,6 +171,7 @@ class Backend {
     labels,
     modelType,
     algorithmType,
+    dataNormalization,
     usedModalities,
     usedROIs
   ) {
@@ -184,6 +187,7 @@ class Backend {
           labels: labels,
           'model-type': modelType,
           'algorithm-type': algorithmType,
+          'data-normalization': dataNormalization,
           modalities: usedModalities,
           rois: usedROIs,
         },
