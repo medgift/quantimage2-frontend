@@ -166,6 +166,7 @@ function Features({ history, match, kheopsError }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
+  const [isSavingLabels, setIsSavingLabels] = useState(false);
 
   // Get album
   useEffect(() => {
@@ -427,6 +428,10 @@ function Features({ history, match, kheopsError }) {
       outcomeType === MODEL_TYPES.CLASSIFICATION
         ? classificationLabels
         : survivalLabels;
+
+    // Nothing loaded yet
+    if (Object.keys(dataLabels).length === 0) return null;
+
     for (let patientID in dataLabels) {
       if (
         !dataLabels[patientID] ||
@@ -694,6 +699,8 @@ function Features({ history, match, kheopsError }) {
                           albumID={albumID}
                           dataPoints={dataPoints}
                           isTraining={isTraining}
+                          isSavingLabels={isSavingLabels}
+                          setIsSavingLabels={setIsSavingLabels}
                           dataLabels={
                             outcomeType === MODEL_TYPES.CLASSIFICATION
                               ? classificationLabels
@@ -752,15 +759,34 @@ function Features({ history, match, kheopsError }) {
                     />
                   </TabPane>
                   <TabPane tabId="visualize">
-                    <Visualisation
-                      collectionInfos={
-                        activeCollection !== ''
-                          ? collections.find(
-                              (c) => c.collection.id === +activeCollection
-                            )
-                          : null
-                      }
-                    />
+                    {dataPoints ? (
+                      unlabelledDataPoints === 0 ? (
+                        !isSavingLabels ? (
+                          <Visualisation
+                            collectionInfos={
+                              activeCollection !== ''
+                                ? collections.find(
+                                    (c) => c.collection.id === +activeCollection
+                                  )
+                                : null
+                            }
+                          />
+                        ) : (
+                          <p className="p-5">
+                            Labels are being saved on the server, please wait
+                            for a moment...
+                          </p>
+                        )
+                      ) : (
+                        <p className="p-5">
+                          There are still {unlabelledDataPoints} unlabelled
+                          PatientIDs, assign an outcome to them first in the
+                          "Outcomes" tab!
+                        </p>
+                      )
+                    ) : (
+                      <span>Loading...</span>
+                    )}
                   </TabPane>
                 </TabContent>
               </div>

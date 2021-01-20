@@ -12,6 +12,8 @@ export default function DataLabels({
   setDataLabels,
   outcomeColumns,
   validateLabelFile,
+  isSavingLabels,
+  setIsSavingLabels,
 }) {
   let [keycloak] = useKeycloak();
 
@@ -20,9 +22,6 @@ export default function DataLabels({
 
   let [isLabelFileValid, setIsLabelFileValid] = useState(null);
   let [labelFileError, setLabelFileError] = useState(null);
-
-  const [isSaving, setIsSaving] = useState(false);
-
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
@@ -44,9 +43,9 @@ export default function DataLabels({
   };
 
   const handleSaveLabelsClick = async (e) => {
-    setIsSaving(true);
+    setIsSavingLabels(true);
     await Backend.saveLabels(keycloak.token, albumID, labelType, dataLabels);
-    setIsSaving(false);
+    setIsSavingLabels(false);
   };
 
   const handleFileInputChange = async () => {
@@ -128,9 +127,9 @@ export default function DataLabels({
         <Button
           color="success"
           onClick={handleSaveLabelsClick}
-          disabled={isSaving}
+          disabled={isSavingLabels}
         >
-          {isSaving ? (
+          {isSavingLabels ? (
             <>
               <FontAwesomeIcon icon="spinner" spin /> Saving Labels
             </>
@@ -177,8 +176,18 @@ export default function DataLabels({
         {fileInput.current && fileInput.current.files[0] && isLabelFileValid && (
           <>
             <Alert color="success">The selected file is valid!</Alert>
-            <Button color="success" onClick={handleSaveLabelsClick}>
-              Save Labels
+            <Button
+              color="success"
+              onClick={handleSaveLabelsClick}
+              disabled={isSavingLabels}
+            >
+              {isSavingLabels ? (
+                <>
+                  <FontAwesomeIcon icon="spinner" spin /> Saving Labels
+                </>
+              ) : (
+                'Save Labels'
+              )}
             </Button>
           </>
         )}
