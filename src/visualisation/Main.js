@@ -132,7 +132,7 @@ const Main = (props, ref) => {
                 </NavItem>
               ))}
             </Nav>
-            {activeTab === 'lasanga' && (
+            {activeTab === 'lasagna' && (
               <div className="filters-visualization">
                 <div className="filter-visualization">
                   <div>Modalities</div>

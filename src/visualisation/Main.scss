@@ -7,6 +7,10 @@
   flex-grow: 1;
   flex-direction: column;
   display: flex;
+
+  .nav{
+    padding: 0.5em;
+  }
 }
 
 .charts {
