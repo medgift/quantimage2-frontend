@@ -512,6 +512,24 @@ function Features({ history, match, kheopsError }) {
                   </NavItem>
                   <NavItem>
                     <NavLink
+                      className={classnames({
+                        active: activeTab === 'outcome',
+                        'text-danger': unlabelledDataPoints > 0,
+                      })}
+                      onClick={() => {
+                        toggle('outcome');
+                      }}
+                    >
+                      {unlabelledDataPoints > 0 && (
+                        <>
+                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                        </>
+                      )}
+                      Outcomes
+                    </NavLink>
+                  </NavItem>
+                  <NavItem>
+                    <NavLink
                       className={classnames({ active: activeTab === 'create' })}
                       onClick={() => {
                         toggle('create');
@@ -523,35 +541,37 @@ function Features({ history, match, kheopsError }) {
                   <NavItem>
                     <NavLink
                       className={classnames({
-                        active: activeTab === 'outcome',
-                      })}
-                      onClick={() => {
-                        toggle('outcome');
-                      }}
-                    >
-                      Outcomes
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({ active: activeTab === 'train' })}
-                      onClick={() => {
-                        toggle('train');
-                      }}
-                    >
-                      Model Training
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({
                         active: activeTab === 'visualize',
+                        'text-danger': unlabelledDataPoints > 0,
                       })}
                       onClick={() => {
                         toggle('visualize');
                       }}
                     >
+                      {unlabelledDataPoints > 0 && (
+                        <>
+                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                        </>
+                      )}
                       Visualization
+                    </NavLink>
+                  </NavItem>
+                  <NavItem>
+                    <NavLink
+                      className={classnames({
+                        active: activeTab === 'train',
+                        'text-danger': unlabelledDataPoints > 0,
+                      })}
+                      onClick={() => {
+                        toggle('train');
+                      }}
+                    >
+                      {unlabelledDataPoints > 0 && (
+                        <>
+                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                        </>
+                      )}
+                      Model Training
                     </NavLink>
                   </NavItem>
                 </Nav>
@@ -566,6 +586,86 @@ function Features({ history, match, kheopsError }) {
                         setActiveCollection={setActiveCollection}
                       />
                     </div>
+                  </TabPane>
+                  <TabPane tabId="outcome">
+                    {dataPoints ? (
+                      <>
+                        <h3>Patient Outcomes</h3>
+                        <div>Choose the type of outcomes to input</div>
+                        <div className="form-container">
+                          <Form>
+                            <Input
+                              type="select"
+                              id="outcome-type"
+                              name="outcome-type"
+                              value={outcomeType}
+                              onChange={handleOutcomeTypeChange}
+                            >
+                              {Object.keys(MODEL_TYPES).map((key) => (
+                                <option key={key} value={MODEL_TYPES[key]}>
+                                  {MODEL_TYPES[key]}
+                                </option>
+                              ))}
+                            </Input>
+                          </Form>
+                        </div>
+                        {unlabelledDataPoints > 0 && (
+                          <p className="text-danger">
+                            {unlabelledDataPoints > 1
+                              ? 'There are '
+                              : 'There is '}
+                            <strong>
+                              {unlabelledDataPoints} data{' '}
+                              {unlabelledDataPoints > 1 ? 'points' : 'point'}
+                            </strong>{' '}
+                            missing an outcome!
+                          </p>
+                        )}
+                        <DataLabels
+                          albumID={albumID}
+                          dataPoints={dataPoints}
+                          isTraining={isTraining}
+                          isSavingLabels={isSavingLabels}
+                          setIsSavingLabels={setIsSavingLabels}
+                          dataLabels={
+                            outcomeType === MODEL_TYPES.CLASSIFICATION
+                              ? classificationLabels
+                              : survivalLabels
+                          }
+                          setDataLabels={
+                            outcomeType === MODEL_TYPES.CLASSIFICATION
+                              ? setClassificationLabels
+                              : setSurvivalLabels
+                          }
+                          labelType={
+                            outcomeType === MODEL_TYPES.CLASSIFICATION
+                              ? MODEL_TYPES.CLASSIFICATION
+                              : MODEL_TYPES.SURVIVAL
+                          }
+                          outcomeColumns={
+                            outcomeType === MODEL_TYPES.CLASSIFICATION
+                              ? CLASSIFICATION_OUTCOMES
+                              : SURVIVAL_OUTCOMES
+                          }
+                          validateLabelFile={(
+                            file,
+                            dataPoints,
+                            setDataLabels
+                          ) =>
+                            validateLabelFile(
+                              file,
+                              dataPoints,
+                              setDataLabels,
+                              outcomeType === MODEL_TYPES.CLASSIFICATION
+                                ? CLASSIFICATION_OUTCOMES
+                                : SURVIVAL_OUTCOMES
+                            )
+                          }
+                        />
+                      </>
+                    ) : (
+                      <span>Loading...</span>
+                    )}
                   </TabPane>
                   <TabPane tabId="create">
                     <div>Filter data & features</div>
@@ -667,97 +767,6 @@ function Features({ history, match, kheopsError }) {
                       )}
                     </Button>
                   </TabPane>
-                  <TabPane tabId="outcome">
-                    {dataPoints ? (
-                      <>
-                        <h3>Patient Outcomes</h3>
-                        <div>Choose the type of outcomes to input</div>
-                        <div className="form-container">
-                          <Form>
-                            <Input
-                              type="select"
-                              id="outcome-type"
-                              name="outcome-type"
-                              value={outcomeType}
-                              onChange={handleOutcomeTypeChange}
-                            >
-                              {Object.keys(MODEL_TYPES).map((key) => (
-                                <option key={key} value={MODEL_TYPES[key]}>
-                                  {MODEL_TYPES[key]}
-                                </option>
-                              ))}
-                            </Input>
-                          </Form>
-                        </div>
-                        <p>
-                          There are{' '}
-                          <strong>{dataPoints.length} data points</strong>{' '}
-                          (PatientID), {unlabelledDataPoints} without an
-                          outcome.
-                        </p>
-                        <DataLabels
-                          albumID={albumID}
-                          dataPoints={dataPoints}
-                          isTraining={isTraining}
-                          isSavingLabels={isSavingLabels}
-                          setIsSavingLabels={setIsSavingLabels}
-                          dataLabels={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? classificationLabels
-                              : survivalLabels
-                          }
-                          setDataLabels={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? setClassificationLabels
-                              : setSurvivalLabels
-                          }
-                          labelType={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? MODEL_TYPES.CLASSIFICATION
-                              : MODEL_TYPES.SURVIVAL
-                          }
-                          outcomeColumns={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? CLASSIFICATION_OUTCOMES
-                              : SURVIVAL_OUTCOMES
-                          }
-                          validateLabelFile={(
-                            file,
-                            dataPoints,
-                            setDataLabels
-                          ) =>
-                            validateLabelFile(
-                              file,
-                              dataPoints,
-                              setDataLabels,
-                              outcomeType === MODEL_TYPES.CLASSIFICATION
-                                ? CLASSIFICATION_OUTCOMES
-                                : SURVIVAL_OUTCOMES
-                            )
-                          }
-                        />
-                      </>
-                    ) : (
-                      <span>Loading...</span>
-                    )}
-                  </TabPane>
-                  <TabPane tabId="train">
-                    <Train
-                      album={album}
-                      collectionInfos={
-                        activeCollection !== ''
-                          ? collections.find(
-                              (c) => c.collection.id === +activeCollection
-                            )
-                          : null
-                      }
-                      dataPoints={dataPoints}
-                      tabularClassificationLabels={tabularClassificationLabels}
-                      tabularSurvivalLabels={tabularSurvivalLabels}
-                      featureExtractionID={featureExtractionID}
-                      unlabelledDataPoints={unlabelledDataPoints}
-                    />
-                  </TabPane>
                   <TabPane tabId="visualize">
                     {dataPoints ? (
                       unlabelledDataPoints === 0 ? (
@@ -770,6 +779,45 @@ function Features({ history, match, kheopsError }) {
                                   )
                                 : null
                             }
+                          />
+                        ) : (
+                          <p className="p-5">
+                            Labels are being saved on the server, please wait
+                            for a moment...
+                          </p>
+                        )
+                      ) : (
+                        <p className="p-5">
+                          There are still {unlabelledDataPoints} unlabelled
+                          PatientIDs, assign an outcome to them first in the
+                          "Outcomes" tab!
+                        </p>
+                      )
+                    ) : (
+                      <span>Loading...</span>
+                    )}
+                  </TabPane>
+
+                  <TabPane tabId="train">
+                    {dataPoints ? (
+                      unlabelledDataPoints === 0 ? (
+                        !isSavingLabels ? (
+                          <Train
+                            album={album}
+                            collectionInfos={
+                              activeCollection !== ''
+                                ? collections.find(
+                                    (c) => c.collection.id === +activeCollection
+                                  )
+                                : null
+                            }
+                            dataPoints={dataPoints}
+                            tabularClassificationLabels={
+                              tabularClassificationLabels
+                            }
+                            tabularSurvivalLabels={tabularSurvivalLabels}
+                            featureExtractionID={featureExtractionID}
+                            unlabelledDataPoints={unlabelledDataPoints}
                           />
                         ) : (
                           <p className="p-5">
