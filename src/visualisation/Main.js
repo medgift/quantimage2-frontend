@@ -98,6 +98,22 @@ const Main = (props, ref) => {
     setFeatureGroups(getFeatureGroups(props.featureNames));
   }, [props.featureNames]);
 
+  const handleCreateCollectionClick = () => {
+    props.setSelectedModalities(
+      props.modalities.filter((m) => m.selected).map((m) => m.name)
+    );
+    props.setSelectedROIs(
+      props.regions.filter((r) => r.selected).map((r) => r.name)
+    );
+    props.setSelectedPatients(
+      props.patients.filter((p) => p.selected).map((p) => p.name)
+    );
+    props.setSelectedFeatureGroups(
+      featureGroups.filter((g) => g.selected).map((g) => g.name)
+    );
+    props.toggleTab('create');
+  };
+
   return (
     <>
       <div className="Main-Visualization">
@@ -133,40 +149,52 @@ const Main = (props, ref) => {
               ))}
             </Nav>
             {activeTab === 'lasagna' && (
-              <div className="filters-visualization">
-                <div className="filter-visualization">
-                  <div>Modalities</div>
-                  <FilterList
-                    label="modality"
-                    values={props.modalities}
-                    setter={props.setModalities}
-                  />
+              <>
+                <div className="filters-visualization">
+                  <div className="filter-visualization">
+                    <div>Modalities</div>
+                    <FilterList
+                      label="modality"
+                      values={props.modalities}
+                      setter={props.setModalities}
+                    />
+                  </div>
+                  <div className="filter-visualization">
+                    <div>ROIs</div>
+                    <FilterList
+                      label="roi"
+                      values={props.regions}
+                      setter={props.setRegions}
+                    />
+                  </div>
+                  <div className="filter-visualization">
+                    <div>Patients</div>
+                    <FilterList
+                      label="patient"
+                      values={props.patients}
+                      setter={props.setPatients}
+                    />
+                  </div>
+                  <div className="filter-visualization">
+                    <div>Feature Groups</div>
+                    <FilterList
+                      label="featureGroup"
+                      values={featureGroups}
+                      setter={updateFeatureGroups}
+                    />
+                  </div>
                 </div>
-                <div className="filter-visualization">
-                  <div>ROIs</div>
-                  <FilterList
-                    label="roi"
-                    values={props.regions}
-                    setter={props.setRegions}
-                  />
-                </div>
-                <div className="filter-visualization">
-                  <div>Patients</div>
-                  <FilterList
-                    label="patient"
-                    values={props.patients}
-                    setter={props.setPatients}
-                  />
-                </div>
-                <div className="filter-visualization">
-                  <div>Feature Groups</div>
-                  <FilterList
-                    label="featureGroup"
-                    values={featureGroups}
-                    setter={updateFeatureGroups}
-                  />
-                </div>
-              </div>
+                {(props.modalities.filter((m) => !m.selected).length > 0 ||
+                  props.regions.filter((r) => !r.selected).length > 0 ||
+                  props.patients.filter((p) => !p.selected).length > 0 ||
+                  featureGroups.filter((g) => !g.selected).length > 0) && (
+                  <div>
+                    <Button color="link" onClick={handleCreateCollectionClick}>
+                      + Create collection with these settings
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
             {activeTab === 'pca' && <h2>Coming soon...</h2>}
             <div className="charts">

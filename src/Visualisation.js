@@ -345,6 +345,11 @@ export default function Visualisation(props) {
         setRegions={setRegions}
         patients={patients}
         setPatients={setPatients}
+        setSelectedModalities={props.setSelectedModalities}
+        setSelectedROIs={props.setSelectedROIs}
+        setSelectedPatients={props.setSelectedPatients}
+        setSelectedFeatureGroups={props.setSelectedFeatureGroups}
+        toggleTab={props.toggleTab}
       />
       {/*<SidePanel
         features={features}

@@ -146,9 +146,6 @@ function Features({ history, match, kheopsError }) {
   const [activeCollection, setActiveCollection] = useState(null);
   const [collectionName, setCollectionName] = useState('');
 
-  // Navigation state
-  const [activeTab, setActiveTab] = useState(tab ? tab : 'table');
-
   // Filter management
   const [selectedModalities, setSelectedModalities] = useState([]);
   const [selectedROIs, setSelectedROIs] = useState([]);
@@ -308,9 +305,8 @@ function Features({ history, match, kheopsError }) {
   }, [albumID, activeCollection]);
 
   // Toggle active
-  const toggle = (tab) => {
-    if (activeTab !== tab) setActiveTab(tab);
-    history.push(`/features/${albumID}/${tab}`);
+  const toggle = (newTab) => {
+    if (newTab !== tab) history.push(`/features/${albumID}/${newTab}`);
   };
 
   // Determine available Modalities, ROIs & Patients (for filtering)
@@ -502,7 +498,7 @@ function Features({ history, match, kheopsError }) {
                 <Nav tabs>
                   <NavItem>
                     <NavLink
-                      className={classnames({ active: activeTab === 'table' })}
+                      className={classnames({ active: tab === 'table' })}
                       onClick={() => {
                         toggle('table');
                       }}
@@ -513,7 +509,7 @@ function Features({ history, match, kheopsError }) {
                   <NavItem>
                     <NavLink
                       className={classnames({
-                        active: activeTab === 'outcome',
+                        active: tab === 'outcome',
                         'text-danger': unlabelledDataPoints > 0,
                       })}
                       onClick={() => {
@@ -530,7 +526,7 @@ function Features({ history, match, kheopsError }) {
                   </NavItem>
                   <NavItem>
                     <NavLink
-                      className={classnames({ active: activeTab === 'create' })}
+                      className={classnames({ active: tab === 'create' })}
                       onClick={() => {
                         toggle('create');
                       }}
@@ -541,7 +537,7 @@ function Features({ history, match, kheopsError }) {
                   <NavItem>
                     <NavLink
                       className={classnames({
-                        active: activeTab === 'visualize',
+                        active: tab === 'visualize',
                         'text-danger': unlabelledDataPoints > 0,
                       })}
                       onClick={() => {
@@ -559,7 +555,7 @@ function Features({ history, match, kheopsError }) {
                   <NavItem>
                     <NavLink
                       className={classnames({
-                        active: activeTab === 'train',
+                        active: tab === 'train',
                         'text-danger': unlabelledDataPoints > 0,
                       })}
                       onClick={() => {
@@ -575,7 +571,7 @@ function Features({ history, match, kheopsError }) {
                     </NavLink>
                   </NavItem>
                 </Nav>
-                <TabContent activeTab={activeTab}>
+                <TabContent activeTab={tab}>
                   <TabPane tabId="table">
                     <div className="features-table">
                       <FeatureTable
@@ -779,6 +775,11 @@ function Features({ history, match, kheopsError }) {
                                   )
                                 : null
                             }
+                            setSelectedModalities={setSelectedModalities}
+                            setSelectedROIs={setSelectedROIs}
+                            setSelectedPatients={setSelectedPatients}
+                            setSelectedFeatureGroups={setSelectedFeatureGroups}
+                            toggleTab={toggle}
                           />
                         ) : (
                           <p className="p-5">
