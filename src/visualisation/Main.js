@@ -136,7 +136,7 @@ const Main = (props, ref) => {
           <>
             <Nav pills>
               {props.charts.map((c) => (
-                <NavItem>
+                <NavItem key={c.id}>
                   <NavLink
                     className={classnames({ active: activeTab === c.id })}
                     onClick={() => {
@@ -201,7 +201,7 @@ const Main = (props, ref) => {
               <TabContent activeTab={activeTab}>
                 {props.charts.map((c) => {
                   return (
-                    <TabPane tabId={c.id}>
+                    <TabPane key={c.id} tabId={c.id}>
                       <div id={c.id} key={c.id}>
                         <VegaChart
                           ref={setRef(c.id + '-chart')}
