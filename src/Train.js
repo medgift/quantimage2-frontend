@@ -377,7 +377,7 @@ export default function Train({
                         checked={featureSelection === 'rfe'}
                         onChange={handleFeatureSelectionChange}
                       />{' '}
-                      Recusrive Feature Elimination (RFE)
+                      Recursive Feature Elimination (RFE)
                     </Label>
                   </FormGroup>
                 </FormGroup>
