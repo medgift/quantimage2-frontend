@@ -6,15 +6,27 @@ import React, {
   createRef,
   useMemo,
 } from 'react';
-import { Button, Nav, NavItem, NavLink, TabContent, TabPane } from 'reactstrap';
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Nav,
+  NavItem,
+  NavLink,
+  TabContent,
+  TabPane,
+} from 'reactstrap';
 import VegaChart from './VegaChart';
 import Loading from './Loading';
 import DisplayedAnnotation from './DisplayedAnnotation';
 import useDynamicRefs from 'use-dynamic-refs';
 import classnames from 'classnames';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import './Main.scss';
 import { NON_FEATURE_FIELDS } from '../Train';
+import Checkbox from '../components/Checkbox';
 
 const PYRADIOMICS_PREFIX = 'original';
 
@@ -23,8 +35,16 @@ const Main = (props, ref) => {
 
   const [activeTab, setActiveTab] = useState(props.charts[0].id);
 
+  const [isFeatureGroupModalOpen, setIsFeatureGroupModalOpen] = useState(false);
+
+  const [currentFeatureGroup, setCurrentFeatureGroup] = useState(null);
+
   const toggle = (tab) => {
     if (activeTab !== tab) setActiveTab(tab);
+  };
+
+  const toggleModal = () => {
+    setIsFeatureGroupModalOpen((o) => !o);
   };
 
   const [displayAnnotation, setDisplayedAnnotation] = useState(null);
@@ -114,6 +134,20 @@ const Main = (props, ref) => {
     props.toggleTab('create');
   };
 
+  const handleFeatureSubgroupClick = (e, featureGroup) => {
+    setCurrentFeatureGroup(featureGroup);
+    toggleModal();
+  };
+
+  const toggleFeature = (featureName) => {
+    let updatedFeatures = [...props.featureNames];
+
+    let featureToToggle = updatedFeatures.find((f) => f.name === featureName);
+    featureToToggle.selected = !featureToToggle.selected;
+
+    props.setFeatureNames(updatedFeatures);
+  };
+
   return (
     <>
       <div className="Main-Visualization">
@@ -181,6 +215,8 @@ const Main = (props, ref) => {
                       label="featureGroup"
                       values={featureGroups}
                       setter={updateFeatureGroups}
+                      subgroups={true}
+                      subgroupClick={handleFeatureSubgroupClick}
                     />
                   </div>
                 </div>
@@ -220,6 +256,39 @@ const Main = (props, ref) => {
                 })}
               </TabContent>
             </div>
+            <Modal isOpen={isFeatureGroupModalOpen} toggle={toggleModal}>
+              <ModalHeader toggle={toggleModal}>
+                Select features in "{currentFeatureGroup}"
+              </ModalHeader>
+              <ModalBody>
+                <div className="feature-selection">
+                  <ul>
+                    {props.featureNames
+                      .filter(
+                        (f) =>
+                          f.name.startsWith(currentFeatureGroup) ||
+                          f.name.startsWith(
+                            `${PYRADIOMICS_PREFIX}_${currentFeatureGroup}`
+                          )
+                      )
+                      .map((f) => (
+                        <li>
+                          <input
+                            key={f.name}
+                            id={`select-feature-${f.name}`}
+                            type="checkbox"
+                            checked={f.selected}
+                            onChange={() => toggleFeature(f.name)}
+                          />{' '}
+                          <label for={`select-feature-${f.name}`}>
+                            {f.name}
+                          </label>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              </ModalBody>
+            </Modal>
           </>
         )}
       </div>
@@ -255,12 +324,20 @@ function getFeatureGroups(featureNames) {
 
   return Object.keys(featureGroups).map((fg) => ({
     name: fg,
-    selected: featureNames.find((fn) => fn.name === featureGroups[fg][0])
-      .selected,
+    selected: featureNames
+      .filter((f) => featureGroups[fg].includes(f.name))
+      .every((f) => f.selected),
+    isIndeterminate:
+      featureNames
+        .filter((f) => featureGroups[fg].includes(f.name))
+        .every((f) => f.selected) === false &&
+      featureNames
+        .filter((f) => featureGroups[fg].includes(f.name))
+        .every((f) => !f.selected) === false,
   }));
 }
 
-function FilterList({ label, values, setter }) {
+function FilterList({ label, values, setter, subgroups, subgroupClick }) {
   const toggleValue = (name, checked, values, setter) => {
     let newValues = [...values];
 
@@ -293,15 +370,20 @@ function FilterList({ label, values, setter }) {
       <ul>
         {values.map((v) => (
           <li key={`${label}-${v.name}`}>
-            <input
+            <Checkbox
               id={`${label}-${v.name}`}
-              type="checkbox"
-              checked={v.selected}
+              checked={v.selected === true}
               onChange={(e) => {
                 toggleValue(v.name, e.target.checked, values, setter);
               }}
+              isIndeterminate={v.isIndeterminate ? v.isIndeterminate : false}
             />{' '}
             <label htmlFor={`${label}-${v.name}`}>{v.name}</label>
+            {subgroups && (
+              <Button color="link" onClick={(e) => subgroupClick(e, v.name)}>
+                +
+              </Button>
+            )}
           </li>
         ))}
       </ul>
