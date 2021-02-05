@@ -109,7 +109,11 @@ function App({ setUser, setIsAdmin }) {
                 studies={studies}
               />
               <PropsRoute
-                path="/features/:albumID/:tab?"
+                path={[
+                  '/features/:albumID/:tab',
+                  '/features/:albumID/collection/:collectionID/:tab',
+                ]}
+                exact
                 component={Features}
                 kheopsError={kheopsError}
               />

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, forwardRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
+import fileDownload from 'js-file-download';
 import Backend from './services/backend';
 import {
   Alert,
+  Badge,
   Button,
   ButtonGroup,
   Card,
@@ -12,6 +14,10 @@ import {
   Form,
   FormGroup,
   Input,
+  InputGroup,
+  InputGroupText,
+  InputGroupAddon,
+  Label,
   ListGroup,
   ListGroupItem,
   Nav,
@@ -19,6 +25,7 @@ import {
   NavLink,
   Spinner,
   TabContent,
+  Table,
   TabPane,
 } from 'reactstrap';
 import { Link } from 'react-router-dom';
@@ -133,18 +140,19 @@ async function getFormattedLabels(
 function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
 
-  const { albumID, tab } = useParams();
+  const { albumID, collectionID, tab } = useParams();
 
   // Album & extraction
   const [album, setAlbum] = useState(null);
   const [featureExtractionID, setFeatureExtractionID] = useState(null);
+  const [featureExtraction, setFeatureExtraction] = useState(null);
   const [header, setHeader] = useState(null);
   const [features, setFeatures] = useState(null);
 
   // Collection management
   const [collections, setCollections] = useState(null);
-  const [activeCollection, setActiveCollection] = useState(null);
   const [collectionName, setCollectionName] = useState('');
+  const [activeCollectionName, setActiveCollectionName] = useState('');
 
   // Filter management
   const [selectedModalities, setSelectedModalities] = useState([]);
@@ -164,6 +172,9 @@ function Features({ history, match, kheopsError }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [isSavingLabels, setIsSavingLabels] = useState(false);
+  const [isSavingCollectionName, setIsSavingCollectionName] = useState(false);
+  const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Get album
   useEffect(() => {
@@ -193,6 +204,13 @@ function Features({ history, match, kheopsError }) {
     if (featureExtractionID) getCollections();
   }, [featureExtractionID]);
 
+  // Set active collection name
+  useEffect(() => {
+    if (collections && collectionID && currentCollection) {
+      setActiveCollectionName(currentCollection.collection.name);
+    }
+  }, [collectionID, collections]);
+
   // Get Data Points for Labelling
   useEffect(() => {
     async function getDataPoints() {
@@ -207,16 +225,16 @@ function Features({ history, match, kheopsError }) {
       let response = await Backend.extractionCollectionDataPoints(
         keycloak.token,
         featureExtractionID,
-        +activeCollection
+        +collectionID
       );
       setDataPoints(response['data-points']);
     }
 
     if (featureExtractionID) {
-      if (activeCollection) getCollectionDataPoints();
+      if (collectionID) getCollectionDataPoints();
       else getDataPoints();
     }
-  }, [featureExtractionID, activeCollection]);
+  }, [featureExtractionID, collectionID]);
 
   // Get classification labels
   useEffect(() => {
@@ -267,10 +285,11 @@ function Features({ history, match, kheopsError }) {
       );
 
       setFeatureExtractionID(latestExtraction.id);
+      setFeatureExtraction(latestExtraction);
 
       let features;
       let header;
-      if (!activeCollection) {
+      if (!collectionID) {
         const {
           features: allFeatures,
           header: allHeader,
@@ -288,7 +307,7 @@ function Features({ history, match, kheopsError }) {
         } = await Backend.extractionCollectionFeatureDetails(
           keycloak.token,
           latestExtraction.id,
-          +activeCollection
+          +collectionID
         );
 
         features = collectionFeatures;
@@ -302,11 +321,17 @@ function Features({ history, match, kheopsError }) {
     }
 
     getFeatures();
-  }, [albumID, activeCollection]);
+  }, [albumID, collectionID]);
 
   // Toggle active
   const toggle = (newTab) => {
-    if (newTab !== tab) history.push(`/features/${albumID}/${newTab}`);
+    if (newTab !== tab) {
+      if (!collectionID) history.push(`/features/${albumID}/${newTab}`);
+      else
+        history.push(
+          `/features/${albumID}/collection/${collectionID}/${newTab}`
+        );
+    }
   };
 
   // Determine available Modalities, ROIs & Patients (for filtering)
@@ -417,6 +442,12 @@ function Features({ history, match, kheopsError }) {
     );
   }, [selectedFeatureGroups]);
 
+  // Get current collection
+  const currentCollection =
+    collections && collectionID
+      ? collections.find((c) => c.collection.id === +collectionID)
+      : null;
+
   // Compute unlabelled data points
   const unlabelledDataPoints = useMemo(() => {
     let unlabelled = 0;
@@ -452,9 +483,98 @@ function Features({ history, match, kheopsError }) {
     setField([...field]);
   };
 
+  // Handle download click
+  const handleDownloadClick = async (e) => {
+    e.preventDefault();
+    setIsDownloading(true);
+
+    let url = collectionID
+      ? Backend.downloadCollectionURL(
+          +collectionID,
+          null,
+          null,
+          null,
+          keycloak.tokenParsed.sub
+        )
+      : Backend.downloadExtractionURL(
+          featureExtractionID,
+          null,
+          null,
+          null,
+          keycloak.tokenParsed.sub
+        );
+
+    let response = await fetch(url);
+
+    let contentDisposition = response.headers.get('Content-Disposition');
+    let filename = contentDisposition.split('=')[1];
+    let responseContent = await response.blob();
+
+    fileDownload(responseContent, filename);
+
+    //window.location.href = url;
+
+    setIsDownloading(false);
+  };
+
   // Handle change of collection name
   const handleCollectionNameChange = (e) => {
     setCollectionName(e.target.value);
+  };
+
+  // Handle change of active collection name
+  const handleActiveCollectionNameChange = (e) => {
+    setActiveCollectionName(e.target.value);
+  };
+
+  // Handle renaming of existing collection
+  const handleSaveCollectionNameClick = async (e) => {
+    e.preventDefault();
+    setIsSavingCollectionName(true);
+    let updatedCollection = await Backend.updateCollection(
+      keycloak.token,
+      collectionID,
+      { name: activeCollectionName }
+    );
+
+    // Update collections with new name
+    setCollections((c) => {
+      let collections = [...c];
+
+      let collectionToUpdate = collections.find(
+        (c) => c.collection.id === +collectionID
+      );
+      collectionToUpdate.collection.name = updatedCollection.name;
+
+      return collections;
+    });
+
+    setIsSavingCollectionName(false);
+  };
+
+  // Handle deleting collection
+  const handleDeleteCollectionClick = async (e) => {
+    e.preventDefault();
+    setIsDeletingCollection(true);
+    let deletedCollection = await Backend.deleteCollection(
+      keycloak.token,
+      collectionID
+    );
+    setIsDeletingCollection(false);
+
+    // Remove deleted collection and redirect to original feature set
+    setCollections((c) => {
+      let collections = [...c];
+
+      let collectionToDeleteIndex = collections.findIndex(
+        (c) => c.collection.id === +collectionID
+      );
+      collections.splice(collectionToDeleteIndex, 1);
+
+      return collections;
+    });
+
+    history.push(`/features/${albumID}/overview`);
   };
 
   // Handle save collection click
@@ -470,13 +590,65 @@ function Features({ history, match, kheopsError }) {
       selectedFeatures
     );
     setIsSaving(false);
+    setCollectionName('');
     setCollections((c) => [...c, newCollection]);
-    setActiveCollection(newCollection.collection.id);
+
+    history.push(
+      `/features/${albumID}/collection/${newCollection.collection.id}/overview`
+    );
   };
 
   // Handle outcome type change
   const handleOutcomeTypeChange = (e) => {
     setOutcomeType(e.target.value);
+  };
+
+  // Handle back to overview click
+  const handleBackToOverviewClick = (e) => {
+    history.push(`/features/${albumID}/overview`);
+  };
+
+  // Print modalities
+  const printModalities = () => {
+    let modalities =
+      collectionID && currentCollection
+        ? currentCollection.modalities
+        : featureExtraction['extraction-modalities'];
+
+    return modalities.map((modality) => (
+      <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
+        {modality}
+      </Badge>
+    ));
+  };
+
+  // Print ROIs
+  const printROIs = () => {
+    let rois =
+      collectionID && currentCollection
+        ? currentCollection.rois
+        : featureExtraction['extraction-rois'];
+
+    return rois.map((roi) => (
+      <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
+        {roi}
+      </Badge>
+    ));
+  };
+
+  // Print data points
+  const printDataPoints = () => {
+    return dataPoints ? dataPoints.length : '';
+  };
+
+  // Print Features
+  const printFeatures = () => {
+    let features =
+      collectionID && currentCollection
+        ? currentCollection.features
+        : featureExtraction['feature-names'];
+
+    return features.length;
   };
 
   return (
@@ -486,359 +658,478 @@ function Features({ history, match, kheopsError }) {
         <div style={{ textAlign: 'center' }}>
           {features.length > 0 && (
             <div className="features-wrapper">
-              <div className="collections-list">
-                <CollectionSelection
-                  album={album.name}
-                  collections={collections}
-                  activeCollection={activeCollection}
-                  setActiveCollection={setActiveCollection}
-                />
-              </div>
-              <div className="feature-tabs">
-                <Nav tabs>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({ active: tab === 'table' })}
-                      onClick={() => {
-                        toggle('table');
-                      }}
-                    >
-                      Feature Table
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({
-                        active: tab === 'outcome',
-                        'text-danger': unlabelledDataPoints > 0,
-                      })}
-                      onClick={() => {
-                        toggle('outcome');
-                      }}
-                    >
-                      {unlabelledDataPoints > 0 && (
-                        <>
-                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                        </>
-                      )}
-                      Outcomes
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({ active: tab === 'create' })}
-                      onClick={() => {
-                        toggle('create');
-                      }}
-                    >
-                      Collection Creation
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({
-                        active: tab === 'visualize',
-                        'text-danger': unlabelledDataPoints > 0,
-                      })}
-                      onClick={() => {
-                        toggle('visualize');
-                      }}
-                    >
-                      {unlabelledDataPoints > 0 && (
-                        <>
-                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                        </>
-                      )}
-                      Visualization
-                    </NavLink>
-                  </NavItem>
-                  <NavItem>
-                    <NavLink
-                      className={classnames({
-                        active: tab === 'train',
-                        'text-danger': unlabelledDataPoints > 0,
-                      })}
-                      onClick={() => {
-                        toggle('train');
-                      }}
-                    >
-                      {unlabelledDataPoints > 0 && (
-                        <>
-                          <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                        </>
-                      )}
-                      Model Training
-                    </NavLink>
-                  </NavItem>
-                </Nav>
-                <TabContent activeTab={tab}>
-                  <TabPane tabId="table">
-                    <div className="features-table">
-                      <FeatureTable
-                        features={features}
-                        header={header}
-                        featureExtractionID={featureExtractionID}
-                        setCollections={setCollections}
-                        setActiveCollection={setActiveCollection}
+              {tab !== 'create' && (
+                <div className="collections-list">
+                  <CollectionSelection
+                    albumID={album.album_id}
+                    album={album.name}
+                    collections={collections}
+                    collectionID={collectionID}
+                  />
+                </div>
+              )}
+              {tab === 'create' ? (
+                <div className="flex-grow-1 collection-container">
+                  <div className="align-left">
+                    <Button color="link" onClick={handleBackToOverviewClick}>
+                      <FontAwesomeIcon icon="arrow-left" /> Back to overview
+                    </Button>
+                  </div>
+                  <h3>Create a new collection for album "{album.name}"</h3>
+                  <h5>Filter modalities, ROIs, patients & features</h5>
+                  <div className="data-filters">
+                    <div className="data-filter modality-filter">
+                      <div>Modality</div>
+                      <FilterButtonGroup
+                        values={metadataColumns[MODALITY_FIELD]}
+                        selectedValues={selectedModalities}
+                        setSelectedValues={setSelectedModalities}
+                        handleClick={handleFilterClick}
                       />
                     </div>
-                  </TabPane>
-                  <TabPane tabId="outcome">
-                    {dataPoints ? (
+                    <div className="data-filter roi-filter">
+                      <div>ROIs</div>
+                      <FilterButtonGroup
+                        values={metadataColumns[ROI_FIELD]}
+                        selectedValues={selectedROIs}
+                        setSelectedValues={setSelectedROIs}
+                        handleClick={handleFilterClick}
+                      />
+                    </div>
+                    <div className="data-filter patient-filter">
+                      <div>Patients</div>
+                      <FilterButtonGroup
+                        values={metadataColumns[PATIENT_ID_FIELD]}
+                        selectedValues={selectedPatients}
+                        setSelectedValues={setSelectedPatients}
+                        handleClick={handleFilterClick}
+                      />
+                    </div>
+                    <div className="data-filter feature-filter">
+                      <div>Features</div>
+                      <FilterButtonGroup
+                        values={Object.keys(featureGroups)}
+                        selectedValues={selectedFeatureGroups}
+                        setSelectedValues={setSelectedFeatureGroups}
+                        handleClick={handleFilterClick}
+                      />
+                    </div>
+                  </div>
+                  <div className="info-container">
+                    <MetadataAlert
+                      values={metadataColumns[MODALITY_FIELD]}
+                      selectedValues={selectedModalities}
+                      title="Modalities"
+                    />
+                    <MetadataAlert
+                      values={metadataColumns[ROI_FIELD]}
+                      selectedValues={selectedROIs}
+                      title="ROIs"
+                    />
+                    <MetadataAlert
+                      values={metadataColumns[PATIENT_ID_FIELD]}
+                      selectedValues={selectedPatients}
+                      title="Patients"
+                    />
+                    <MetadataAlert
+                      values={header.filter(
+                        (c) => !NON_FEATURE_FIELDS.includes(c)
+                      )}
+                      selectedValues={selectedFeatures}
+                      title="Features"
+                    />
+                  </div>
+                  <Input
+                    type="text"
+                    name="collectionName"
+                    id="collectionName"
+                    placeholder="Name of your collection"
+                    value={collectionName}
+                    onChange={handleCollectionNameChange}
+                    disabled={
+                      selectedModalities.length == 0 ||
+                      selectedROIs.length === 0 ||
+                      selectedPatients.length === 0 ||
+                      selectedFeatures.length === 0
+                    }
+                  />
+                  <Button
+                    color="success"
+                    onClick={saveFeatures}
+                    className="mt-2"
+                    disabled={
+                      selectedModalities.length == 0 ||
+                      selectedROIs.length === 0 ||
+                      selectedPatients.length === 0 ||
+                      selectedFeatures.length === 0 ||
+                      collectionName === ''
+                    }
+                  >
+                    {isSaving ? (
                       <>
-                        <h3>Patient Outcomes</h3>
-                        <div>Choose the type of outcomes to input</div>
-                        <div className="form-container">
-                          <Form>
-                            <Input
-                              type="select"
-                              id="outcome-type"
-                              name="outcome-type"
-                              value={outcomeType}
-                              onChange={handleOutcomeTypeChange}
-                            >
-                              {Object.keys(MODEL_TYPES).map((key) => (
-                                <option key={key} value={MODEL_TYPES[key]}>
-                                  {MODEL_TYPES[key]}
-                                </option>
-                              ))}
-                            </Input>
-                          </Form>
-                        </div>
+                        <FontAwesomeIcon icon="spinner" spin /> Saving Custom
+                        Features
+                      </>
+                    ) : (
+                      'Save Custom Features'
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="feature-tabs">
+                  <Nav tabs>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({ active: tab === 'overview' })}
+                        onClick={() => {
+                          toggle('overview');
+                        }}
+                      >
+                        Overview
+                      </NavLink>
+                    </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({ active: tab === 'table' })}
+                        onClick={() => {
+                          toggle('table');
+                        }}
+                      >
+                        Feature Table
+                      </NavLink>
+                    </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({
+                          active: tab === 'outcome',
+                          'text-danger': unlabelledDataPoints > 0,
+                        })}
+                        onClick={() => {
+                          toggle('outcome');
+                        }}
+                      >
                         {unlabelledDataPoints > 0 && (
-                          <p className="text-danger">
-                            {unlabelledDataPoints > 1
-                              ? 'There are '
-                              : 'There is '}
-                            <strong>
-                              {unlabelledDataPoints} data{' '}
-                              {unlabelledDataPoints > 1 ? 'points' : 'point'}
-                            </strong>{' '}
-                            missing an outcome!
-                          </p>
+                          <>
+                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                          </>
                         )}
-                        <DataLabels
-                          albumID={albumID}
-                          dataPoints={dataPoints}
-                          isTraining={isTraining}
-                          isSavingLabels={isSavingLabels}
-                          setIsSavingLabels={setIsSavingLabels}
-                          dataLabels={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? classificationLabels
-                              : survivalLabels
-                          }
-                          setDataLabels={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? setClassificationLabels
-                              : setSurvivalLabels
-                          }
-                          labelType={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? MODEL_TYPES.CLASSIFICATION
-                              : MODEL_TYPES.SURVIVAL
-                          }
-                          outcomeColumns={
-                            outcomeType === MODEL_TYPES.CLASSIFICATION
-                              ? CLASSIFICATION_OUTCOMES
-                              : SURVIVAL_OUTCOMES
-                          }
-                          validateLabelFile={(
-                            file,
-                            dataPoints,
-                            setDataLabels
-                          ) =>
-                            validateLabelFile(
-                              file,
-                              dataPoints,
-                              setDataLabels,
+                        Outcomes
+                      </NavLink>
+                    </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({
+                          active: tab === 'visualize',
+                          'text-danger': unlabelledDataPoints > 0,
+                        })}
+                        onClick={() => {
+                          toggle('visualize');
+                        }}
+                      >
+                        {unlabelledDataPoints > 0 && (
+                          <>
+                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                          </>
+                        )}
+                        Visualization
+                      </NavLink>
+                    </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({
+                          active: tab === 'train',
+                          'text-danger': unlabelledDataPoints > 0,
+                        })}
+                        onClick={() => {
+                          toggle('train');
+                        }}
+                      >
+                        {unlabelledDataPoints > 0 && (
+                          <>
+                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                          </>
+                        )}
+                        Model Training
+                      </NavLink>
+                    </NavItem>
+                  </Nav>
+                  <TabContent activeTab={tab}>
+                    <TabPane tabId="overview">
+                      <div className="collection-overview p-2">
+                        <h3>Overview</h3>
+                        <Table bordered className="model-details-table mx-auto">
+                          <tbody>
+                            <tr>
+                              <td>
+                                {collectionID
+                                  ? 'Collection created on'
+                                  : 'Features extracted on'}
+                              </td>
+                              <td>
+                                {collectionID && currentCollection
+                                  ? currentCollection.collection.created_at
+                                  : featureExtraction.created_at}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                Modalities in{' '}
+                                {collectionID ? 'collection' : 'extraction'}
+                              </td>
+                              <td>{printModalities()}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                ROIs in{' '}
+                                {collectionID ? 'collection' : 'extraction'}
+                              </td>
+                              <td>{printROIs()}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                Number of data points in{' '}
+                                {collectionID ? 'collection' : 'extraction'}
+                              </td>
+                              <td>{printDataPoints()}</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                Number of feature types in{' '}
+                                {collectionID ? 'collection' : 'extraction'}
+                              </td>
+                              <td>{printFeatures()}</td>
+                            </tr>
+                          </tbody>
+                        </Table>
+                        <FormGroup>
+                          <Label for="selected-collection-name">
+                            <strong>
+                              <FontAwesomeIcon icon="download" /> Download
+                              features
+                            </strong>
+                          </Label>
+                          <br />
+                          <Button color="success" onClick={handleDownloadClick}>
+                            {isDownloading
+                              ? 'Downloading features...'
+                              : 'Download features'}
+                          </Button>
+                        </FormGroup>
+                        {collectionID && (
+                          <Form onSubmit={handleSaveCollectionNameClick}>
+                            <FormGroup>
+                              <Label for="selected-collection-name">
+                                <strong>
+                                  <FontAwesomeIcon icon="edit" /> Edit
+                                  Collection Name
+                                </strong>
+                              </Label>
+                              <InputGroup>
+                                <Input
+                                  id="selected-collection-name"
+                                  type="text"
+                                  placeholder="Collection Name"
+                                  value={activeCollectionName}
+                                  onChange={handleActiveCollectionNameChange}
+                                />
+                                <InputGroupAddon addonType="append">
+                                  <Button
+                                    color="primary"
+                                    onClick={handleSaveCollectionNameClick}
+                                  >
+                                    {isSavingCollectionName
+                                      ? 'Saving...'
+                                      : 'Save'}
+                                  </Button>
+                                </InputGroupAddon>
+                              </InputGroup>
+                            </FormGroup>
+                            <FormGroup>
+                              <Label for="selected-collection-name">
+                                <strong>
+                                  <FontAwesomeIcon icon="trash-alt" /> Delete
+                                  Collection (WARNING: Cannot be undone!)
+                                </strong>
+                              </Label>
+                              <br />
+                              <Button
+                                color="danger"
+                                onClick={handleDeleteCollectionClick}
+                              >
+                                {isDeletingCollection
+                                  ? 'Deleting Collection & All associated models...'
+                                  : 'Delete Collection & All associated models'}
+                              </Button>
+                            </FormGroup>
+                          </Form>
+                        )}
+                      </div>
+                    </TabPane>
+                    <TabPane tabId="table">
+                      <div className="features-table">
+                        <FeatureTable
+                          features={features}
+                          header={header}
+                          featureExtractionID={featureExtractionID}
+                          setCollections={setCollections}
+                        />
+                      </div>
+                    </TabPane>
+                    <TabPane tabId="outcome">
+                      {dataPoints ? (
+                        <>
+                          <h3>Patient Outcomes</h3>
+                          <div>Choose the type of outcomes to input</div>
+                          <div className="form-container">
+                            <Form>
+                              <Input
+                                type="select"
+                                id="outcome-type"
+                                name="outcome-type"
+                                value={outcomeType}
+                                onChange={handleOutcomeTypeChange}
+                              >
+                                {Object.keys(MODEL_TYPES).map((key) => (
+                                  <option key={key} value={MODEL_TYPES[key]}>
+                                    {MODEL_TYPES[key]}
+                                  </option>
+                                ))}
+                              </Input>
+                            </Form>
+                          </div>
+                          {unlabelledDataPoints > 0 && (
+                            <p className="text-danger">
+                              {unlabelledDataPoints > 1
+                                ? 'There are '
+                                : 'There is '}
+                              <strong>
+                                {unlabelledDataPoints} data{' '}
+                                {unlabelledDataPoints > 1 ? 'points' : 'point'}
+                              </strong>{' '}
+                              missing an outcome!
+                            </p>
+                          )}
+                          <DataLabels
+                            albumID={albumID}
+                            dataPoints={dataPoints}
+                            isTraining={isTraining}
+                            isSavingLabels={isSavingLabels}
+                            setIsSavingLabels={setIsSavingLabels}
+                            dataLabels={
+                              outcomeType === MODEL_TYPES.CLASSIFICATION
+                                ? classificationLabels
+                                : survivalLabels
+                            }
+                            setDataLabels={
+                              outcomeType === MODEL_TYPES.CLASSIFICATION
+                                ? setClassificationLabels
+                                : setSurvivalLabels
+                            }
+                            labelType={
+                              outcomeType === MODEL_TYPES.CLASSIFICATION
+                                ? MODEL_TYPES.CLASSIFICATION
+                                : MODEL_TYPES.SURVIVAL
+                            }
+                            outcomeColumns={
                               outcomeType === MODEL_TYPES.CLASSIFICATION
                                 ? CLASSIFICATION_OUTCOMES
                                 : SURVIVAL_OUTCOMES
-                            )
-                          }
-                        />
-                      </>
-                    ) : (
-                      <span>Loading...</span>
-                    )}
-                  </TabPane>
-                  <TabPane tabId="create">
-                    <div>Filter data & features</div>
-                    <div className="data-filters">
-                      <div className="data-filter modality-filter">
-                        <div>Modality</div>
-                        <FilterButtonGroup
-                          values={metadataColumns[MODALITY_FIELD]}
-                          selectedValues={selectedModalities}
-                          setSelectedValues={setSelectedModalities}
-                          handleClick={handleFilterClick}
-                        />
-                      </div>
-                      <div className="data-filter roi-filter">
-                        <div>ROIs</div>
-                        <FilterButtonGroup
-                          values={metadataColumns[ROI_FIELD]}
-                          selectedValues={selectedROIs}
-                          setSelectedValues={setSelectedROIs}
-                          handleClick={handleFilterClick}
-                        />
-                      </div>
-                      <div className="data-filter patient-filter">
-                        <div>Patients</div>
-                        <FilterButtonGroup
-                          values={metadataColumns[PATIENT_ID_FIELD]}
-                          selectedValues={selectedPatients}
-                          setSelectedValues={setSelectedPatients}
-                          handleClick={handleFilterClick}
-                        />
-                      </div>
-                      <div className="data-filter feature-filter">
-                        <div>Features</div>
-                        <FilterButtonGroup
-                          values={Object.keys(featureGroups)}
-                          selectedValues={selectedFeatureGroups}
-                          setSelectedValues={setSelectedFeatureGroups}
-                          handleClick={handleFilterClick}
-                        />
-                      </div>
-                    </div>
-                    <div className="info-container">
-                      <MetadataAlert
-                        values={metadataColumns[MODALITY_FIELD]}
-                        selectedValues={selectedModalities}
-                        title="Modalities"
-                      />
-                      <MetadataAlert
-                        values={metadataColumns[ROI_FIELD]}
-                        selectedValues={selectedROIs}
-                        title="ROIs"
-                      />
-                      <MetadataAlert
-                        values={metadataColumns[PATIENT_ID_FIELD]}
-                        selectedValues={selectedPatients}
-                        title="Patients"
-                      />
-                      <MetadataAlert
-                        values={header.filter(
-                          (c) => !NON_FEATURE_FIELDS.includes(c)
-                        )}
-                        selectedValues={selectedFeatures}
-                        title="Features"
-                      />
-                    </div>
-                    <Input
-                      type="text"
-                      name="collectionName"
-                      id="collectionName"
-                      placeholder="Name of your collection"
-                      value={collectionName}
-                      onChange={handleCollectionNameChange}
-                      disabled={
-                        selectedModalities.length == 0 ||
-                        selectedROIs.length === 0 ||
-                        selectedPatients.length === 0 ||
-                        selectedFeatures.length === 0
-                      }
-                    />
-                    <Button
-                      color="success"
-                      onClick={saveFeatures}
-                      className="mt-2"
-                      disabled={
-                        selectedModalities.length == 0 ||
-                        selectedROIs.length === 0 ||
-                        selectedPatients.length === 0 ||
-                        selectedFeatures.length === 0 ||
-                        collectionName === ''
-                      }
-                    >
-                      {isSaving ? (
-                        <>
-                          <FontAwesomeIcon icon="spinner" spin /> Saving Custom
-                          Features
+                            }
+                            validateLabelFile={(
+                              file,
+                              dataPoints,
+                              setDataLabels
+                            ) =>
+                              validateLabelFile(
+                                file,
+                                dataPoints,
+                                setDataLabels,
+                                outcomeType === MODEL_TYPES.CLASSIFICATION
+                                  ? CLASSIFICATION_OUTCOMES
+                                  : SURVIVAL_OUTCOMES
+                              )
+                            }
+                          />
                         </>
                       ) : (
-                        'Save Custom Features'
+                        <span>Loading...</span>
                       )}
-                    </Button>
-                  </TabPane>
-                  <TabPane tabId="visualize">
-                    {dataPoints ? (
-                      unlabelledDataPoints === 0 ? (
-                        !isSavingLabels ? (
-                          <Visualisation
-                            collectionInfos={
-                              activeCollection !== ''
-                                ? collections.find(
-                                    (c) => c.collection.id === +activeCollection
-                                  )
-                                : null
-                            }
-                            setSelectedModalities={setSelectedModalities}
-                            setSelectedROIs={setSelectedROIs}
-                            setSelectedPatients={setSelectedPatients}
-                            setSelectedFeatureGroups={setSelectedFeatureGroups}
-                            toggleTab={toggle}
-                          />
+                    </TabPane>
+                    <TabPane tabId="visualize">
+                      {dataPoints ? (
+                        unlabelledDataPoints === 0 ? (
+                          !isSavingLabels ? (
+                            <Visualisation
+                              collectionInfos={
+                                collectionID && currentCollection
+                                  ? currentCollection
+                                  : null
+                              }
+                              setSelectedModalities={setSelectedModalities}
+                              setSelectedROIs={setSelectedROIs}
+                              setSelectedPatients={setSelectedPatients}
+                              setSelectedFeatureGroups={
+                                setSelectedFeatureGroups
+                              }
+                              toggleTab={toggle}
+                            />
+                          ) : (
+                            <p className="p-5">
+                              Labels are being saved on the server, please wait
+                              for a moment...
+                            </p>
+                          )
                         ) : (
                           <p className="p-5">
-                            Labels are being saved on the server, please wait
-                            for a moment...
+                            There are still {unlabelledDataPoints} unlabelled
+                            PatientIDs, assign an outcome to them first in the
+                            "Outcomes" tab!
                           </p>
                         )
                       ) : (
-                        <p className="p-5">
-                          There are still {unlabelledDataPoints} unlabelled
-                          PatientIDs, assign an outcome to them first in the
-                          "Outcomes" tab!
-                        </p>
-                      )
-                    ) : (
-                      <span>Loading...</span>
-                    )}
-                  </TabPane>
+                        <span>Loading...</span>
+                      )}
+                    </TabPane>
 
-                  <TabPane tabId="train">
-                    {dataPoints ? (
-                      unlabelledDataPoints === 0 ? (
-                        !isSavingLabels ? (
-                          <Train
-                            album={album}
-                            collectionInfos={
-                              activeCollection !== ''
-                                ? collections.find(
-                                    (c) => c.collection.id === +activeCollection
-                                  )
-                                : null
-                            }
-                            dataPoints={dataPoints}
-                            tabularClassificationLabels={
-                              tabularClassificationLabels
-                            }
-                            tabularSurvivalLabels={tabularSurvivalLabels}
-                            featureExtractionID={featureExtractionID}
-                            unlabelledDataPoints={unlabelledDataPoints}
-                          />
+                    <TabPane tabId="train">
+                      {dataPoints ? (
+                        unlabelledDataPoints === 0 ? (
+                          !isSavingLabels ? (
+                            <Train
+                              album={album}
+                              collectionInfos={
+                                collectionID && currentCollection
+                                  ? currentCollection
+                                  : null
+                              }
+                              dataPoints={dataPoints}
+                              tabularClassificationLabels={
+                                tabularClassificationLabels
+                              }
+                              tabularSurvivalLabels={tabularSurvivalLabels}
+                              featureExtractionID={featureExtractionID}
+                              unlabelledDataPoints={unlabelledDataPoints}
+                            />
+                          ) : (
+                            <p className="p-5">
+                              Labels are being saved on the server, please wait
+                              for a moment...
+                            </p>
+                          )
                         ) : (
                           <p className="p-5">
-                            Labels are being saved on the server, please wait
-                            for a moment...
+                            There are still {unlabelledDataPoints} unlabelled
+                            PatientIDs, assign an outcome to them first in the
+                            "Outcomes" tab!
                           </p>
                         )
                       ) : (
-                        <p className="p-5">
-                          There are still {unlabelledDataPoints} unlabelled
-                          PatientIDs, assign an outcome to them first in the
-                          "Outcomes" tab!
-                        </p>
-                      )
-                    ) : (
-                      <span>Loading...</span>
-                    )}
-                  </TabPane>
-                </TabContent>
-              </div>
+                        <span>Loading...</span>
+                      )}
+                    </TabPane>
+                  </TabContent>
+                </div>
+              )}
             </div>
           )}
         </div>

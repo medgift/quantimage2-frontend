@@ -7,6 +7,13 @@
   flex-shrink: 0;
 }
 
+.collection-container {
+  background: white;
+  border: 1px solid #cccccc;
+  border-radius: 5px;
+  padding: 1em;
+}
+
 .features-table {
   /*width: calc(100% - 250px);*/
 }

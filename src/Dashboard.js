@@ -55,7 +55,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
 
   let handleEditAlbumClick = async (album) => {
     // Redirect to feature table route here
-    history.push(`/features/${album.album_id}/table`);
+    history.push(`/features/${album.album_id}/overview`);
   };
 
   let handleVisualizeAlbumClick = async (album) => {
@@ -164,7 +164,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
         return (
           <div>
             {editButton}
-            {downloadButton}
+            {/*downloadButton*/}
             {extractionButton}
             {/*visualizeButton*/}
             {/*analyzeButton(album, albumModels)*/}

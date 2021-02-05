@@ -147,6 +147,19 @@ class Backend {
     }
   }
 
+  downloadCollectionURL(collectionID, patientID, studyDate, studyUID, userID) {
+    try {
+      let url = `${endpoints.collections}/${collectionID}/download`;
+      if (patientID && studyDate && studyUID)
+        url += `?patientID=${patientID}&studyDate=${studyDate}&studyUID=${studyUID}`;
+      else if (userID) url += `?userID=${userID}`;
+      return url;
+      //return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extract(token, album_id, feature_families_map, study_uid) {
     try {
       const url = album_id
@@ -279,6 +292,29 @@ class Backend {
         },
         token: token,
       });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async updateCollection(token, featureCollectionID, fields) {
+    try {
+      const url = `${endpoints.collections}/${featureCollectionID}`;
+
+      return await request(url, {
+        method: 'PATCH',
+        data: fields,
+        token: token,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async deleteCollection(token, featureCollectionID) {
+    try {
+      const url = `${endpoints.collections}/${featureCollectionID}`;
+      return await request(url, { method: 'DELETE', token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }

@@ -126,7 +126,6 @@ export default function FeatureTable({
   header,
   featureExtractionID,
   setCollections,
-  setActiveCollection,
 }) {
   const [keycloak] = useKeycloak();
   const data = useMemo(() => features, []);
@@ -194,7 +193,7 @@ export default function FeatureTable({
     setCollectionName(e.target.value);
   };
 
-  const saveFeatures = async () => {
+  /*const saveFeatures = async () => {
     setIsSaving(true);
     //console.log('going to save', { rows: selectedRows });
     let newCollection = await Backend.saveCollection(
@@ -206,8 +205,11 @@ export default function FeatureTable({
     );
     setIsSaving(false);
     setCollections((c) => [...c, newCollection]);
-    setActiveCollection(newCollection.collection.id);
-  };
+
+    history.push(
+      `/features/${albumID}/collection/${newCollection.collection.id}/table`
+    );
+  };*/
 
   const getColumnClassName = (column) => {
     if (NON_FEATURE_FIELDS.includes(column)) {

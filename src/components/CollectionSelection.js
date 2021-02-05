@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
 import { ListGroup, ListGroupItem, Button } from 'reactstrap';
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useHistory } from 'react-router-dom';
+
 export default function CollectionSelection({
+  albumID,
   album,
   collections,
-  activeCollection,
-  setActiveCollection,
+  collectionID,
 }) {
+  const history = useHistory();
+
   const handleCollectionClick = (e) => {
     e.preventDefault();
-    setActiveCollection(e.target.id ? e.target.id : null);
+    if (e.target.id)
+      history.push(`/features/${albumID}/collection/${e.target.id}/overview`);
+    else history.push(`/features/${albumID}/overview`);
+  };
+
+  const handleCreateCollectionClick = (e) => {
+    e.preventDefault();
+    history.push(`/features/${albumID}/create`);
   };
 
   return collections ? (
@@ -22,7 +34,7 @@ export default function CollectionSelection({
           key="original"
           tag="a"
           href="#"
-          active={activeCollection === null ? true : null}
+          active={!collectionID ? true : null}
           onClick={handleCollectionClick}
         >
           {'<original>'}
@@ -33,13 +45,17 @@ export default function CollectionSelection({
             key={c.collection.id}
             tag="a"
             href="#"
-            active={+activeCollection === c.collection.id ? true : null}
+            active={+collectionID === c.collection.id ? true : null}
             onClick={handleCollectionClick}
           >
             {c.collection.name}
           </ListGroupItem>
         ))}
       </ListGroup>
+
+      <Button color="link" onClick={handleCreateCollectionClick}>
+        <FontAwesomeIcon icon="plus" /> Create a new collection
+      </Button>
     </div>
   ) : null;
 }
