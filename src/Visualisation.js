@@ -140,7 +140,7 @@ export default function Visualisation(props) {
 
   // React to image setting
   useEffect(() => {
-    console.log('loaded image it seems', pcaImg, lasagnaImg);
+    //console.log('loaded image it seems', pcaImg, lasagnaImg);
   }, [pcaImg, lasagnaImg]);
 
   const displayAnnotation = (annotation) => {

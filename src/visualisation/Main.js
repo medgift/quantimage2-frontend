@@ -24,6 +24,8 @@ import useDynamicRefs from 'use-dynamic-refs';
 import classnames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
+import * as ss from 'simple-statistics';
+
 import './Main.scss';
 import { NON_FEATURE_FIELDS } from '../Train';
 import Checkbox from '../components/Checkbox';
@@ -38,6 +40,101 @@ const Main = (props, ref) => {
   const [isFeatureGroupModalOpen, setIsFeatureGroupModalOpen] = useState(false);
 
   const [currentFeatureGroup, setCurrentFeatureGroup] = useState(null);
+
+  // Feature selection
+  const [corrThreshold, setCorrThreshold] = useState(0.5);
+  const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
+
+  // React to "drop correlated features" change
+  useEffect(() => {
+    if (
+      !props.loading &&
+      props.featureNames.length > 0 &&
+      props.charts.length > 0 &&
+      props.charts[0].chart &&
+      props.charts[0].chart.data.features.length > 0
+    ) {
+      const features = props.charts[0].chart.data.features.reduce(
+        (acc, curr) => {
+          if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
+
+          acc[curr.feature_name].push(curr.feature_value);
+
+          return acc;
+        },
+        {}
+      );
+
+      if (
+        dropCorrelatedFeatures &&
+        Object.keys(features).length === props.featureNames.length
+      ) {
+        // We want to have all features before filtering
+        if (Object.keys(features).length < props.featureNames.length) return [];
+
+        // We need at least 2 samples!!!
+        if (
+          Object.keys(features).length > 0 &&
+          features[Object.keys(features)[0]].length < 2
+        ) {
+          return [];
+        }
+
+        // Build correlation matrix
+        let corrMatrix = [];
+        for (let i = 0; i < Object.keys(features).length; i++) {
+          let corrArray = [];
+          for (let j = 0; j < Object.keys(features).length; j++) {
+            corrArray.push(
+              Math.abs(
+                +ss
+                  .sampleCorrelation(
+                    features[Object.keys(features)[i]],
+                    features[Object.keys(features)[j]]
+                  )
+                  .toFixed(4)
+              )
+            );
+          }
+
+          corrMatrix.push(corrArray);
+        }
+
+        let featuresIndexDropList = [];
+
+        // Select features to drop
+        for (let i = 0; i < corrMatrix.length; i++) {
+          for (let j = i + 1; j < corrMatrix[i].length; j++) {
+            if (
+              corrMatrix[i][j] >= corrThreshold &&
+              !featuresIndexDropList.includes(i) &&
+              !featuresIndexDropList.includes(j)
+            ) {
+              if (corrMatrix[i] >= corrMatrix[j]) {
+                featuresIndexDropList.push(i);
+              } else {
+                featuresIndexDropList.push(j);
+              }
+            }
+          }
+        }
+
+        let featuresToDrop = featuresIndexDropList.map(
+          (i) => Object.keys(features)[i]
+        );
+
+        console.log('features to drop', featuresToDrop);
+
+        disableFeatures(featuresToDrop);
+      }
+    }
+  }, [
+    dropCorrelatedFeatures,
+    corrThreshold,
+    props.charts,
+    props.loading,
+    props.featureNames,
+  ]);
 
   const toggle = (tab) => {
     if (activeTab !== tab) setActiveTab(tab);
@@ -148,6 +245,16 @@ const Main = (props, ref) => {
     props.setFeatureNames(updatedFeatures);
   };
 
+  const disableFeatures = (featuresToDrop) => {
+    let updatedFeatures = [...props.featureNames];
+
+    for (let feature of updatedFeatures) {
+      feature.selected = featuresToDrop.includes(feature.name) ? false : true;
+    }
+
+    props.setFeatureNames(updatedFeatures);
+  };
+
   return (
     <>
       <div className="Main-Visualization">
@@ -217,19 +324,21 @@ const Main = (props, ref) => {
                       setter={updateFeatureGroups}
                       subgroups={true}
                       subgroupClick={handleFeatureSubgroupClick}
+                      disabled={dropCorrelatedFeatures}
                     />
                   </div>
                 </div>
-                {(props.modalities.filter((m) => !m.selected).length > 0 ||
+                {
+                  /*(props.modalities.filter((m) => !m.selected).length > 0 ||
                   props.regions.filter((r) => !r.selected).length > 0 ||
                   props.patients.filter((p) => !p.selected).length > 0 ||
-                  featureGroups.filter((g) => !g.selected).length > 0) && (
+                  featureGroups.filter((g) => !g.selected).length > 0) &&*/
                   <div>
                     <Button color="link" onClick={handleCreateCollectionClick}>
                       + Create collection with these settings
                     </Button>
                   </div>
-                )}
+                }
               </>
             )}
             {activeTab === 'pca' && <h2>Coming soon...</h2>}
@@ -238,7 +347,7 @@ const Main = (props, ref) => {
                 {props.charts.map((c) => {
                   return (
                     <TabPane key={c.id} tabId={c.id}>
-                      <div id={c.id} key={c.id}>
+                      <div id={c.id} key={c.id} className="d-flex">
                         <VegaChart
                           ref={setRef(c.id + '-chart')}
                           title={c.title}
@@ -250,6 +359,47 @@ const Main = (props, ref) => {
                               : props.setPcaImg
                           }
                         />
+                        <div className="tools flex-grow-1">
+                          <p className="mt-4">
+                            <strong>Feature selection</strong>
+                          </p>
+                          <div>
+                            <input
+                              id="drop-corr"
+                              type="checkbox"
+                              value={dropCorrelatedFeatures}
+                              onChange={(e) => {
+                                if (e.target.checked) disableFeatures([]);
+                                setDropCorrelatedFeatures(e.target.checked);
+                              }}
+                            />{' '}
+                            <label htmlFor="drop-corr">
+                              Drop correlated features
+                            </label>
+                          </div>
+                          <hr />
+                          <div>
+                            <label htmlFor="corr-threshold">
+                              Correlation Threshold
+                            </label>
+                            <input
+                              id="corr-threshold"
+                              type="range"
+                              min={0.1}
+                              max={0.9}
+                              step={0.1}
+                              onChange={(e) => {
+                                setCorrThreshold(+e.target.value);
+                              }}
+                              onMouseUp={(e) => {
+                                disableFeatures([]);
+                              }}
+                              value={corrThreshold}
+                              className="slider"
+                            />
+                            <span>{corrThreshold}</span>
+                          </div>
+                        </div>
                       </div>
                     </TabPane>
                   );
@@ -337,7 +487,14 @@ function getFeatureGroups(featureNames) {
   }));
 }
 
-function FilterList({ label, values, setter, subgroups, subgroupClick }) {
+function FilterList({
+  label,
+  values,
+  setter,
+  subgroups,
+  subgroupClick,
+  disabled,
+}) {
   const toggleValue = (name, checked, values, setter) => {
     let newValues = [...values];
 
@@ -359,11 +516,19 @@ function FilterList({ label, values, setter, subgroups, subgroupClick }) {
   return (
     <>
       <div>
-        <Button color="link" onClick={() => handleAllClick(true)}>
+        <Button
+          color="link"
+          onClick={() => handleAllClick(true)}
+          disabled={disabled}
+        >
           All
         </Button>{' '}
         |{' '}
-        <Button color="link" onClick={() => handleAllClick(false)}>
+        <Button
+          color="link"
+          onClick={() => handleAllClick(false)}
+          disabled={disabled}
+        >
           None
         </Button>{' '}
       </div>
@@ -377,10 +542,17 @@ function FilterList({ label, values, setter, subgroups, subgroupClick }) {
                 toggleValue(v.name, e.target.checked, values, setter);
               }}
               isIndeterminate={v.isIndeterminate ? v.isIndeterminate : false}
+              disabled={disabled}
             />{' '}
-            <label htmlFor={`${label}-${v.name}`}>{v.name}</label>
+            <label htmlFor={`${label}-${v.name}`} disabled={disabled}>
+              {v.name}
+            </label>
             {subgroups && (
-              <Button color="link" onClick={(e) => subgroupClick(e, v.name)}>
+              <Button
+                color="link"
+                onClick={(e) => subgroupClick(e, v.name)}
+                disabled={disabled}
+              >
                 +
               </Button>
             )}
