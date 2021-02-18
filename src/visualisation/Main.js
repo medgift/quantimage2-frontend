@@ -225,8 +225,8 @@ const Main = (props, ref) => {
     props.setSelectedPatients(
       props.patients.filter((p) => p.selected).map((p) => p.name)
     );
-    props.setSelectedFeatureGroups(
-      featureGroups.filter((g) => g.selected).map((g) => g.name)
+    props.setSelectedFeatures(
+      props.featureNames.filter((f) => f.selected).map((f) => f.name)
     );
     props.toggleTab('create');
   };

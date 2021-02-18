@@ -27,6 +27,8 @@ import {
   TabContent,
   Table,
   TabPane,
+  ButtonDropdown,
+  Collapse,
 } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import FeaturesModal from './FeaturesModal';
@@ -158,7 +160,6 @@ function Features({ history, match, kheopsError }) {
   const [selectedModalities, setSelectedModalities] = useState([]);
   const [selectedROIs, setSelectedROIs] = useState([]);
   const [selectedPatients, setSelectedPatients] = useState([]);
-  const [selectedFeatureGroups, setSelectedFeatureGroups] = useState([]);
   const [selectedFeatures, setSelectedFeatures] = useState([]);
 
   // Outcomes management
@@ -391,15 +392,29 @@ function Features({ history, match, kheopsError }) {
     }
   }, [metadataColumns]);
 
+  // Handle feature names
+  let featureNames = useMemo(() => {
+    if (header) {
+      return header.filter((c) => !NON_FEATURE_FIELDS.includes(c));
+    }
+
+    return null;
+  }, [header]);
+
+  // Reset selected features when features change
+  useEffect(() => {
+    if (featureNames) {
+      setSelectedFeatures([...featureNames]);
+    }
+  }, [featureNames]);
+
   // Handle feature groups
   let featureGroups = useMemo(() => {
-    if (header) {
+    if (featureNames) {
       let currentFeatureGroup = '';
       let groups = {};
 
-      for (let featureName of header.filter(
-        (c) => !NON_FEATURE_FIELDS.includes(c)
-      )) {
+      for (let featureName of featureNames) {
         // TODO - Make this more elegant, maybe a convention for feature names is needed
         // Group PyRadiomics features by the second level,
         // first level for other backens so far
@@ -423,24 +438,7 @@ function Features({ history, match, kheopsError }) {
     }
 
     return null;
-  }, [header]);
-
-  // Reset feature groups when features are updated (collection click for example)
-  useEffect(() => {
-    if (featureGroups) {
-      setSelectedFeatureGroups(Object.keys(featureGroups));
-    }
-  }, [featureGroups]);
-
-  // Update selected features based on selected feature groups
-  useEffect(() => {
-    setSelectedFeatures(
-      selectedFeatureGroups.reduce((acc, group) => {
-        acc.push(...featureGroups[group]);
-        return acc;
-      }, [])
-    );
-  }, [selectedFeatureGroups]);
+  }, [featureNames]);
 
   // Get current collection
   const currentCollection =
@@ -707,10 +705,11 @@ function Features({ history, match, kheopsError }) {
                     </div>
                     <div className="data-filter feature-filter">
                       <div>Features</div>
-                      <FilterButtonGroup
-                        values={Object.keys(featureGroups)}
-                        selectedValues={selectedFeatureGroups}
-                        setSelectedValues={setSelectedFeatureGroups}
+                      <FeatureFilterButtonGroup
+                        groups={featureGroups}
+                        values={featureNames}
+                        selectedValues={selectedFeatures}
+                        setSelectedValues={setSelectedFeatures}
                         handleClick={handleFilterClick}
                       />
                     </div>
@@ -1068,9 +1067,7 @@ function Features({ history, match, kheopsError }) {
                               setSelectedModalities={setSelectedModalities}
                               setSelectedROIs={setSelectedROIs}
                               setSelectedPatients={setSelectedPatients}
-                              setSelectedFeatureGroups={
-                                setSelectedFeatureGroups
-                              }
+                              setSelectedFeatures={setSelectedFeatures}
                               toggleTab={toggle}
                             />
                           ) : (
@@ -1184,7 +1181,126 @@ function FilterButtonGroup({
           ))}
         </ButtonGroup>
       </div>
-      {/*<code>{JSON.stringify(value)}</code>*/}
+    </>
+  );
+}
+
+function FeatureFilterButtonGroup({
+  groups,
+  values,
+  selectedValues,
+  setSelectedValues,
+  handleClick,
+}) {
+  const [groupsOpen, setGroupsOpen] = useState({});
+
+  const toggleGroupOpen = (group) => {
+    let wasOpen = groupsOpen[group];
+    setGroupsOpen((g) => ({ ...g, [group]: !wasOpen }));
+  };
+
+  const toggleGroupSelected = (g) => {
+    let wasSelected = groups[g].some((f) => selectedValues.includes(f));
+
+    let groupFeatures = groups[g];
+
+    let newValues = [...values];
+
+    let updatedSelectedValues = [...selectedValues];
+
+    // Remove the group's features or keep them?
+    if (wasSelected) {
+      // Remove the features
+      for (let f of groupFeatures) {
+        let featureIndex = updatedSelectedValues.findIndex(
+          (feature) => feature === f
+        );
+
+        if (featureIndex > -1) updatedSelectedValues.splice(featureIndex, 1);
+      }
+    } else {
+      updatedSelectedValues = [...updatedSelectedValues, ...groupFeatures];
+    }
+
+    setSelectedValues(updatedSelectedValues);
+  };
+
+  return (
+    <>
+      <div>
+        <ButtonGroup>
+          <Button
+            size="sm"
+            color="primary"
+            onClick={() => setSelectedValues(values)}
+          >
+            All
+          </Button>
+          <Button
+            size="sm"
+            color="secondary"
+            onClick={() => setSelectedValues([])}
+          >
+            None
+          </Button>
+        </ButtonGroup>
+      </div>
+      <div className="pre-scrollable mt-2">
+        <ListGroup vertical flush>
+          {Object.keys(groups).map((g) => (
+            <>
+              <ListGroupItem key={g} className="p-0">
+                <div className="d-flex">
+                  <Button
+                    className="flex-grow-1"
+                    color={
+                      groups[g].every((f) => selectedValues.includes(f))
+                        ? 'primary'
+                        : groups[g].some((f) => selectedValues.includes(f))
+                        ? 'info'
+                        : 'secondary'
+                    }
+                    onClick={() => {
+                      toggleGroupSelected(g);
+                    }}
+                  >
+                    {g}
+                  </Button>
+                  <Button
+                    color="link"
+                    onClick={() => toggleGroupOpen(g)}
+                    style={{ boxSizing: 'border-box', width: '36px' }}
+                  >
+                    {groupsOpen[g] === true ? '-' : '+'}
+                  </Button>
+                </div>
+
+                <Collapse isOpen={groupsOpen[g] === true} className="text-left">
+                  <ButtonGroup
+                    vertical
+                    style={{ width: 'calc(100% - 36px)' }}
+                    className="mt-2 mb-2"
+                  >
+                    {groups[g].map((f) => (
+                      <Button
+                        key={f}
+                        color={
+                          selectedValues.includes(f) ? 'primary' : 'secondary'
+                        }
+                        onClick={() =>
+                          handleClick(f, selectedValues, setSelectedValues)
+                        }
+                      >
+                        {f}
+                      </Button>
+                    ))}
+                  </ButtonGroup>
+                </Collapse>
+              </ListGroupItem>
+            </>
+          ))}
+        </ListGroup>
+      </div>
     </>
   );
 }
