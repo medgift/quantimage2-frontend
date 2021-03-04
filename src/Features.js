@@ -655,7 +655,7 @@ function Features({ history, match, kheopsError }) {
 
   return (
     <>
-      <h2>Feature Manager</h2>
+      <h2>Feature Explorer</h2>
       {!isLoading && album && collections !== null ? (
         <div style={{ textAlign: 'center' }}>
           {features.length > 0 && (
