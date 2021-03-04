@@ -6,7 +6,7 @@ export async function request(
     let headers = new Headers();
     let options = {
       headers: headers,
-      method: method
+      method: method,
     };
 
     // Authentication
@@ -36,6 +36,7 @@ export async function request(
         let body = await response.json();
         return body;
       } catch (e) {
+        console.error(e);
         return null;
       }
     }

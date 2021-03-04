@@ -458,7 +458,10 @@ function getFeatureGroups(featureNames) {
 
     let { name, selected } = featureName;
 
-    if (name.startsWith(PYRADIOMICS_PREFIX)) {
+    // PET - Special case
+    if (name.startsWith('PET')) {
+      featureGroupName = 'PET';
+    } else if (name.startsWith(PYRADIOMICS_PREFIX)) {
       featureGroupName = name.split('_')[1];
     } else {
       featureGroupName = name.split('_')[0] + '_' + name.split('_')[1];

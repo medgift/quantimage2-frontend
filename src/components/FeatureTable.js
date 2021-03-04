@@ -234,7 +234,11 @@ export default function FeatureTable({
       // Group PyRadiomics features by the second level,
       // first level for other backends so far
       let featureGroupName;
-      if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
+
+      // PET - Special case
+      if (featureName.startsWith('PET')) {
+        featureGroupName = 'PET';
+      } else if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
         featureGroupName = featureName.split('_')[1];
       } else {
         featureGroupName =

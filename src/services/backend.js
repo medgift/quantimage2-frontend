@@ -54,7 +54,10 @@ class Backend {
   async extractionFeatureDetails(token, extractionID) {
     try {
       const url = `${endpoints.extractions}/${extractionID}/feature-details`;
-      return await request(url, { token: token });
+
+      let response = await request(url, { token: token });
+
+      return response;
     } catch (err) {
       throw err; // Just throw it for now
     }
