@@ -111,7 +111,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
 
     let editButton = (
       <Button color="link success" onClick={() => handleEditAlbumClick(album)}>
-        <FontAwesomeIcon icon="table" /> <span>Explore Features</span>
+        <FontAwesomeIcon icon="search-plus" /> <span>Explore Features</span>
       </Button>
     );
 

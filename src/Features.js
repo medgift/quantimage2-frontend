@@ -856,9 +856,9 @@ function Features({ history, match, kheopsError }) {
                       </NavLink>
                     </NavItem>
                   </Nav>
-                  <TabContent activeTab={tab}>
+                  <TabContent activeTab={tab} className="p-3">
                     <TabPane tabId="overview">
-                      <div className="collection-overview p-2">
+                      <div className="collection-overview">
                         <h3>Overview</h3>
                         <Table bordered className="model-details-table mx-auto">
                           <tbody>
