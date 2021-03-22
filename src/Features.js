@@ -168,6 +168,9 @@ function Features({ history, match, kheopsError }) {
   const [classificationLabels, setClassificationLabels] = useState({});
   const [survivalLabels, setSurvivalLabels] = useState({});
 
+  // Models management
+  const [models, setModels] = useState([]);
+
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -323,6 +326,25 @@ function Features({ history, match, kheopsError }) {
 
     getFeatures();
   }, [albumID, collectionID]);
+
+  // Get models
+  useEffect(() => {
+    async function getModels() {
+      let models = await Backend.models(keycloak.token, albumID);
+
+      // Filter out models that are not for this collection / original feature set
+      let filteredModels = collectionID
+        ? models.filter((m) => m.feature_collection_id === +collectionID)
+        : models.filter((m) => m.feature_collection_id === null);
+
+      let sortedModels = filteredModels.sort(
+        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+      );
+      setModels(sortedModels);
+    }
+
+    if (albumID) getModels();
+  }, [keycloak.token, albumID, collectionID]);
 
   // Toggle active
   const toggle = (newTab) => {
@@ -852,7 +874,8 @@ function Features({ history, match, kheopsError }) {
                             <FontAwesomeIcon icon="exclamation-circle" />{' '}
                           </>
                         )}
-                        Model Training
+                        Model Training{' '}
+                        {models.length > 0 && <Badge>{models.length}</Badge>}
                       </NavLink>
                     </NavItem>
                   </Nav>
@@ -1099,6 +1122,8 @@ function Features({ history, match, kheopsError }) {
                             <Train
                               album={album}
                               albumExtraction={featureExtraction}
+                              models={models}
+                              setModels={setModels}
                               collectionInfos={
                                 collectionID && currentCollection
                                   ? currentCollection

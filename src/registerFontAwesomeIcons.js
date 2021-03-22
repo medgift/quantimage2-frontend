@@ -20,6 +20,8 @@ import {
   faComment,
   faGraduationCap,
   faPlus,
+  faPlusCircle,
+  faMinusCircle,
   faArrowLeft,
   faSpinner,
   faQuestionCircle,
@@ -71,6 +73,8 @@ export default function registerIcons() {
   library.add(faChartBar);
   library.add(faGraduationCap);
   library.add(faPlus);
+  library.add(faPlusCircle);
+  library.add(faMinusCircle);
   library.add(faArrowLeft);
   library.add(faSpinner);
   library.add(faQuestionCircle);

@@ -47,7 +47,16 @@ const CLASSIFICATION_ALGORITHMS = {
   SVM: 'svm',
 };
 
-function ModelsTable({ columns, data }) {
+function ModelsTable({
+  columns,
+  data,
+  dataPoints,
+  collectionInfos,
+  handleDeleteModelClick,
+  handleShowFeatureNames,
+  formatMetrics,
+  maxAUCModel,
+}) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -62,16 +71,19 @@ function ModelsTable({ columns, data }) {
     useSortBy
   );
 
-  // We don't want to render all 2000 rows for this example, so cap
-  // it at 20 for this use case
-  const firstPageRows = rows.slice(0, 20);
+  const [openModelID, setOpenModelID] = useState(-1);
+
+  const toggleModel = (modelID) => {
+    setOpenModelID((m) => (m !== modelID ? modelID : -1));
+  };
 
   return (
     <>
-      <Table {...getTableProps()}>
+      <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
+              <th> </th>
               {headerGroup.headers.map((column) => (
                 // Add the sorting props to control sorting. For this example
                 // we can add them into the header props
@@ -122,13 +134,156 @@ function ModelsTable({ columns, data }) {
           {rows.map((row, i) => {
             prepareRow(row);
             return (
-              <tr {...row.getRowProps()}>
-                {row.cells.map((cell) => {
-                  return (
-                    <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
-                  );
-                })}
-              </tr>
+              <React.Fragment key={row.getRowProps().key}>
+                <tr
+                  {...row.getRowProps()}
+                  className={`model-row ${
+                    row.original.id == maxAUCModel.id && 'text-success'
+                  }`}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => toggleModel(row.original.id)}
+                >
+                  <td style={{ width: '40px' }} className="model-row-icon">
+                    <FontAwesomeIcon
+                      icon={
+                        openModelID === row.original.id
+                          ? 'minus-circle'
+                          : 'plus-circle'
+                      }
+                    />
+                  </td>
+                  {row.cells.map((cell) => {
+                    return (
+                      <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                    );
+                  })}
+                </tr>
+                <tr>
+                  <td colSpan={columns.length + 1} style={{ padding: 0 }}>
+                    <Collapse isOpen={openModelID === row.original.id}>
+                      <div key={row.original.id} className="model-entry">
+                        <h3>{row.name}</h3>
+                        <div className="model-details-container">
+                          <Table bordered className="model-details-table">
+                            <tbody>
+                              <tr>
+                                <td>Created at</td>
+                                <td>{row.original.created_at}</td>
+                              </tr>
+                              <tr>
+                                <td>Model type</td>
+                                <td>{row.original.type}</td>
+                              </tr>
+                              <tr>
+                                <td>Algorithm Used</td>
+                                <td>{row.original.algorithm}</td>
+                              </tr>
+                              <tr>
+                                <td>Validation Strategy</td>
+                                <td>
+                                  {row.validation_strategy
+                                    ? row.validation_strategy
+                                    : 'None'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Data Normalization</td>
+                                <td>
+                                  {row.data_normalization
+                                    ? row.data_normalization
+                                    : 'None'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Feature Selection</td>
+                                <td>
+                                  {row.feature_selection
+                                    ? row.feature_selection
+                                    : 'None'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Modalities Used</td>
+                                <td>
+                                  {row.original.modalities.map((modality) => (
+                                    <Badge
+                                      style={{ marginRight: '0.5em' }}
+                                      color="primary"
+                                      key={modality}
+                                    >
+                                      {modality}
+                                    </Badge>
+                                  ))}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>ROIs Used</td>
+                                <td>
+                                  {row.original.rois.map((roi) => (
+                                    <Badge
+                                      style={{ marginRight: '0.5em' }}
+                                      color="primary"
+                                      key={roi}
+                                    >
+                                      {roi}
+                                    </Badge>
+                                  ))}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Number of Features</td>
+                                <td>
+                                  {collectionInfos
+                                    ? collectionInfos.features.length
+                                    : row.original['feature-number']}
+                                  {' - '}
+                                  <a
+                                    href="#"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      handleShowFeatureNames(
+                                        collectionInfos
+                                          ? collectionInfos.features
+                                          : row.original['feature-names']
+                                      );
+                                    }}
+                                  >
+                                    Show details
+                                  </a>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Number of Observations</td>
+                                <td>
+                                  {isNaN(dataPoints)
+                                    ? dataPoints.length
+                                    : dataPoints}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </Table>
+                        </div>
+                        <hr />
+                        <div>
+                          <strong>Model Metrics</strong>
+                          {formatMetrics(row.original.metrics)}
+                        </div>
+                        <br />
+                        <p>
+                          <Button
+                            color="danger"
+                            onClick={() =>
+                              handleDeleteModelClick(row.original.id)
+                            }
+                          >
+                            Delete Model
+                          </Button>
+                        </p>
+                      </div>
+                    </Collapse>
+                  </td>
+                </tr>
+              </React.Fragment>
             );
           })}
         </tbody>
@@ -147,12 +302,14 @@ export default function Train({
   featureExtractionID,
   unlabelledDataPoints,
   dataPoints,
+  models,
+  setModels,
 }) {
   let [keycloak] = useKeycloak();
 
-  let [models, setModels] = useState([]);
-
   let [modelType, setModelType] = useState(MODEL_TYPES.CLASSIFICATION);
+
+  const maxAUCModel = _.maxBy(models, 'metrics.auc.mean');
 
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
@@ -185,33 +342,14 @@ export default function Train({
           DateTime.fromJSDate(new Date(r.created_at)).toFormat(
             'yyyy-MM-dd HH:mm:ss'
           ),
+        sortDescFirst: true,
       },
-      { Header: 'Model Type', accessor: 'type' },
       { Header: 'Algorithm', accessor: 'algorithm' },
+      { Header: 'Data Normalization', accessor: 'data_normalization' },
+      { Header: 'Mean AUC', accessor: 'metrics.auc.mean', sortDescFirst: true },
     ],
     []
   );
-
-  // Get Models & Extraction
-  useEffect(() => {
-    async function getModels() {
-      let models = await Backend.models(keycloak.token, album.album_id);
-
-      // Filter out models that are not for this collection / original feature set
-      let filteredModels = collectionInfos
-        ? models.filter(
-            (m) => m.feature_collection_id === collectionInfos.collection.id
-          )
-        : models.filter((m) => m.feature_collection_id === null);
-
-      let sortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-      setModels(sortedModels);
-    }
-
-    getModels();
-  }, [keycloak.token]);
 
   const toggleCITooltip = () => setCITooltipOpen((open) => !open);
 
@@ -552,129 +690,18 @@ export default function Train({
 
   const modelsList = (
     <>
-      <ModelsTable columns={columns} data={models} />
+      <h4 className="mt-3">Classification Models</h4>
       {albumExtraction && (
-        <ListGroup>
-          {models.map((model) => (
-            <ListGroupItem key={model.id} className="model-entry">
-              <h3>{model.name}</h3>
-              <div className="model-details-container">
-                <Table bordered className="model-details-table">
-                  <tbody>
-                    <tr>
-                      <td>Created at</td>
-                      <td>{model.created_at}</td>
-                    </tr>
-                    <tr>
-                      <td>Model type</td>
-                      <td>{model.type}</td>
-                    </tr>
-                    <tr>
-                      <td>Algorithm Used</td>
-                      <td>{model.algorithm}</td>
-                    </tr>
-                    <tr>
-                      <td>Validation Strategy</td>
-                      <td>
-                        {model.validation_strategy
-                          ? model.validation_strategy
-                          : 'None'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Data Normalization</td>
-                      <td>
-                        {model.data_normalization
-                          ? model.data_normalization
-                          : 'None'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Feature Selection</td>
-                      <td>
-                        {model.feature_selection
-                          ? model.feature_selection
-                          : 'None'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Modalities Used</td>
-                      <td>
-                        {model.modalities.map((modality) => (
-                          <Badge
-                            style={{ marginRight: '0.5em' }}
-                            color="primary"
-                            key={modality}
-                          >
-                            {modality}
-                          </Badge>
-                        ))}
-                      </td>
-                      {/*TODO - Get this dynamically or based on user input*/}
-                    </tr>
-                    <tr>
-                      <td>ROIs Used</td>
-                      <td>
-                        {model.rois.map((roi) => (
-                          <Badge
-                            style={{ marginRight: '0.5em' }}
-                            color="primary"
-                            key={roi}
-                          >
-                            {roi}
-                          </Badge>
-                        ))}
-                      </td>
-                      {/*TODO - Get this dynamically or based on user input*/}
-                    </tr>
-                    <tr>
-                      <td>Number of Features</td>
-                      <td>
-                        {collectionInfos
-                          ? collectionInfos.features.length
-                          : model['feature-number']}
-                        {' - '}
-                        <a
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            handleShowFeatureNames(
-                              collectionInfos
-                                ? collectionInfos.features
-                                : model['feature-names']
-                            );
-                          }}
-                        >
-                          Show details
-                        </a>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Number of Observations</td>
-                      <td>
-                        {isNaN(dataPoints) ? dataPoints.length : dataPoints}
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </div>
-              <hr />
-              <div>
-                <strong>Model Metrics</strong>
-                {formatMetrics(model.metrics)}
-              </div>
-              <br />
-              <p>
-                <Button
-                  color="danger"
-                  onClick={() => handleDeleteModelClick(model.id)}
-                >
-                  Delete Model
-                </Button>
-              </p>
-            </ListGroupItem>
-          ))}
-        </ListGroup>
+        <ModelsTable
+          columns={columns}
+          data={models}
+          dataPoints={dataPoints}
+          collectionInfos={collectionInfos}
+          handleDeleteModelClick={handleDeleteModelClick}
+          handleShowFeatureNames={handleShowFeatureNames}
+          formatMetrics={formatMetrics}
+          maxAUCModel={maxAUCModel}
+        />
       )}
       <MyModal
         isOpen={featureConfigOpen}
@@ -719,7 +746,6 @@ export default function Train({
             ) : null}
           </h2>
           <div>
-            <br />
             <Button color="primary" onClick={handleShowNewModelClick}>
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
               <span>Train a new model</span>

@@ -2,21 +2,23 @@ import React, { useState } from 'react';
 import { ListGroup, ListGroupItem, Button } from 'reactstrap';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 
-export default function CollectionSelection({
-  albumID,
-  album,
-  collections,
-  collectionID,
-}) {
+export default function CollectionSelection({ album, collections }) {
   const history = useHistory();
+
+  const { albumID, collectionID, tab } = useParams();
 
   const handleCollectionClick = (e) => {
     e.preventDefault();
+
+    let tabToShow = tab ? tab : 'overview';
+
     if (e.target.id)
-      history.push(`/features/${albumID}/collection/${e.target.id}/overview`);
-    else history.push(`/features/${albumID}/overview`);
+      history.push(
+        `/features/${albumID}/collection/${e.target.id}/${tabToShow}`
+      );
+    else history.push(`/features/${albumID}/${tabToShow}`);
   };
 
   const handleCreateCollectionClick = (e) => {
