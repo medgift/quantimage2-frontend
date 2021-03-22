@@ -15,6 +15,10 @@ import {
   Tooltip,
 } from 'reactstrap';
 
+import { useTable, useSortBy } from 'react-table';
+
+import { DateTime } from 'luxon';
+
 import './Train.css';
 import Backend from './services/backend';
 import { useKeycloak } from 'react-keycloak';
@@ -43,9 +47,101 @@ const CLASSIFICATION_ALGORITHMS = {
   SVM: 'svm',
 };
 
+function ModelsTable({ columns, data }) {
+  const {
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+  } = useTable(
+    {
+      columns,
+      data,
+    },
+    useSortBy
+  );
+
+  // We don't want to render all 2000 rows for this example, so cap
+  // it at 20 for this use case
+  const firstPageRows = rows.slice(0, 20);
+
+  return (
+    <>
+      <Table {...getTableProps()}>
+        <thead>
+          {headerGroups.map((headerGroup) => (
+            <tr {...headerGroup.getHeaderGroupProps()}>
+              {headerGroup.headers.map((column) => (
+                // Add the sorting props to control sorting. For this example
+                // we can add them into the header props
+                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
+                  {column.render('Header')}
+                  {/* Add a sort direction indicator */}
+                  <span>
+                    {column.isSorted ? (
+                      column.isSortedDesc ? (
+                        <>
+                          {' '}
+                          <FontAwesomeIcon
+                            style={{ color: 'grey' }}
+                            icon="caret-up"
+                          />
+                          <FontAwesomeIcon icon="caret-down" />
+                        </>
+                      ) : (
+                        <>
+                          {' '}
+                          <FontAwesomeIcon icon="caret-up" />
+                          <FontAwesomeIcon
+                            style={{ color: 'grey' }}
+                            icon="caret-down"
+                          />
+                        </>
+                      )
+                    ) : (
+                      <>
+                        {' '}
+                        <FontAwesomeIcon
+                          style={{ color: 'grey' }}
+                          icon="caret-up"
+                        />
+                        <FontAwesomeIcon
+                          style={{ color: 'grey' }}
+                          icon="caret-down"
+                        />
+                      </>
+                    )}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody {...getTableBodyProps()}>
+          {rows.map((row, i) => {
+            prepareRow(row);
+            return (
+              <tr {...row.getRowProps()}>
+                {row.cells.map((cell) => {
+                  return (
+                    <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    </>
+  );
+}
+
 export default function Train({
   album,
+  albumExtraction,
   collectionInfos,
+  metadataColumns,
   tabularClassificationLabels,
   tabularSurvivalLabels,
   featureExtractionID,
@@ -61,10 +157,6 @@ export default function Train({
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
-
-  let [usedModalities, setUsedModalities] = useState([]);
-  let [usedROIs, setUsedROIs] = useState([]);
-  let [albumExtraction, setAlbumExtraction] = useState(null);
 
   let [featuresConfigFamilies, setFeaturesConfigFamilies] = useState(null);
   let [featureConfigOpen, setFeatureConfigOpen] = useState(false);
@@ -84,18 +176,21 @@ export default function Train({
   let [dataNormalization, setDataNormalization] = useState('none');
   let [featureSelection, setFeatureSelection] = useState('none');
 
-  // Initialize all modalities & ROIs to be checked
-  useEffect(() => {
-    if (albumExtraction) {
-      if (collectionInfos) {
-        setUsedModalities(collectionInfos.modalities);
-        setUsedROIs(collectionInfos.rois);
-      } else {
-        setUsedModalities(albumExtraction['extraction-modalities']);
-        setUsedROIs(albumExtraction['extraction-rois']);
-      }
-    }
-  }, [albumExtraction, collectionInfos]);
+  // Model table header
+  const columns = React.useMemo(
+    () => [
+      {
+        Header: 'Date created',
+        accessor: (r) =>
+          DateTime.fromJSDate(new Date(r.created_at)).toFormat(
+            'yyyy-MM-dd HH:mm:ss'
+          ),
+      },
+      { Header: 'Model Type', accessor: 'type' },
+      { Header: 'Algorithm', accessor: 'algorithm' },
+    ],
+    []
+  );
 
   // Get Models & Extraction
   useEffect(() => {
@@ -115,50 +210,8 @@ export default function Train({
       setModels(sortedModels);
     }
 
-    async function getExtraction() {
-      let extraction = await Backend.extractions(
-        keycloak.token,
-        album.album_id
-      );
-      setAlbumExtraction(extraction);
-    }
-
     getModels();
-    getExtraction();
   }, [keycloak.token]);
-
-  /*let availableModalities = albumExtraction
-    ? activeCollection
-      ? collections.find((c) => c.collection.id === +activeCollection)
-          .modalities
-      : albumExtraction['extraction-modalities']
-    : [];
-
-  let availableROIs = albumExtraction
-    ? activeCollection
-      ? collections.find((c) => c.collection.id === +activeCollection).rois
-      : albumExtraction['extraction-rois']
-    : [];*/
-
-  // Update used modalities
-  /*useEffect(() => {
-    if (usedModalities.length > 0 && availableModalities.length > 0) {
-      let newUsed = usedModalities.filter((m) =>
-        availableModalities.includes(m)
-      );
-
-      setUsedModalities(newUsed);
-    }
-  }, [availableModalities]);
-
-  // Update used ROIs
-  useEffect(() => {
-    if (usedROIs.length > 0 && availableROIs.length > 0) {
-      let newUsed = usedROIs.filter((m) => availableROIs.includes(m));
-
-      setUsedROIs(newUsed);
-    }
-  }, [availableROIs]);*/
 
   const toggleCITooltip = () => setCITooltipOpen((open) => !open);
 
@@ -210,8 +263,8 @@ export default function Train({
       modelType,
       algorithmType,
       dataNormalization,
-      usedModalities,
-      usedROIs,
+      metadataColumns[MODALITY_FIELD],
+      metadataColumns[ROI_FIELD],
       keycloak.token
     );
 
@@ -407,36 +460,6 @@ export default function Train({
               )}
             </Button>
           )}
-
-          {/* Hide this for now, we will just use the collections */}
-          {/*<div>Choose the imaging modalities used for training the model</div>
-          <CheckboxGroup
-            name="modalities"
-            value={usedModalities}
-            onChange={setUsedModalities}
-          >
-            {(Checkbox) => (
-              <>
-                {availableModalities.sort().map((modality) => (
-                  <label key={modality} style={{ margin: '0.5em' }}>
-                    <Checkbox value={modality} /> {modality}
-                  </label>
-                ))}
-              </>
-            )}
-          </CheckboxGroup>
-          <div>Choose the ROIs used for training the model</div>
-          <CheckboxGroup name="rois" value={usedROIs} onChange={setUsedROIs}>
-            {(Checkbox) => (
-              <>
-                {availableROIs.sort().map((roi) => (
-                  <label key={roi} style={{ margin: '0.5em' }}>
-                    <Checkbox value={roi} /> {roi}
-                  </label>
-                ))}
-              </>
-            )}
-          </CheckboxGroup>*/}
         </>
       )}
     </div>
@@ -529,6 +552,7 @@ export default function Train({
 
   const modelsList = (
     <>
+      <ModelsTable columns={columns} data={models} />
       {albumExtraction && (
         <ListGroup>
           {models.map((model) => (
@@ -602,24 +626,6 @@ export default function Train({
                         ))}
                       </td>
                       {/*TODO - Get this dynamically or based on user input*/}
-                    </tr>
-                    <tr>
-                      <td>Feature Families Used</td>
-                      <td>
-                        {model.extraction.families
-                          .map((family) => family.feature_family.name)
-                          .join(', ')}
-                        {' - '}
-                        <a
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            handleShowFeaturesConfig(model.extraction.families);
-                          }}
-                        >
-                          Show details
-                        </a>
-                      </td>
                     </tr>
                     <tr>
                       <td>Number of Features</td>

@@ -399,6 +399,22 @@ const Main = (props, ref) => {
                             />
                             <span>{corrThreshold}</span>
                           </div>
+                          <p className="mt-4">
+                            <strong>Feature ranking</strong>
+                          </p>
+                          <div>
+                            <input
+                              id="rank-feats"
+                              type="checkbox"
+                              value={props.rankFeatures}
+                              onChange={(e) => {
+                                props.setRankFeatures(e.target.checked);
+                              }}
+                            />{' '}
+                            <label htmlFor="rank-feats">
+                              Rank features by F-value
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </TabPane>

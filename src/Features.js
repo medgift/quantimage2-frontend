@@ -1098,11 +1098,13 @@ function Features({ history, match, kheopsError }) {
                           !isSavingLabels ? (
                             <Train
                               album={album}
+                              albumExtraction={featureExtraction}
                               collectionInfos={
                                 collectionID && currentCollection
                                   ? currentCollection
                                   : null
                               }
+                              metadataColumns={metadataColumns}
                               dataPoints={dataPoints}
                               tabularClassificationLabels={
                                 tabularClassificationLabels

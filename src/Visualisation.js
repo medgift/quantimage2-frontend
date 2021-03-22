@@ -11,6 +11,8 @@ import Lasagna from './assets/charts/Lasagna.json';
 import { useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
+import _ from 'lodash';
+
 export default function Visualisation(props) {
   // Route
   const { albumID } = useParams();
@@ -28,6 +30,9 @@ export default function Visualisation(props) {
   const [regions, setRegions] = useState([]);
   const [modalities, setModalities] = useState([]);
   const [patients, setPatients] = useState([]);
+
+  // Feature ranking
+  const [rankFeatures, setRankFeatures] = useState(false);
 
   // Annotations
   const annotationPanel = useRef(null);
@@ -137,6 +142,20 @@ export default function Visualisation(props) {
       console.log('charts loaded');
     }
   }, [lasagnaChart, pcaChart]);
+
+  // Update Lasagna plot (feature ranking)
+  useEffect(() => {
+    if (lasagnaChart) {
+      setLasagnaChart((c) => {
+        let newChart = _.cloneDeep(c);
+        if (rankFeatures)
+          newChart.spec.vconcat[0].encoding.y.sort = { field: 'feature_rank' };
+        else delete newChart.spec.vconcat[0].encoding.y.sort;
+
+        return newChart;
+      });
+    }
+  }, [rankFeatures]);
 
   // React to image setting
   useEffect(() => {
@@ -314,12 +333,12 @@ export default function Visualisation(props) {
             chart: lasagnaChart,
             type: 'vega-lite',
           },
-          {
+          /*{
             id: 'pca',
             title: 'Principal Component Analysis (coming soon)',
             chart: pcaChart,
             type: 'vega',
-          },
+          },*/
         ]}
         images={[
           {
@@ -350,6 +369,8 @@ export default function Visualisation(props) {
         setSelectedPatients={props.setSelectedPatients}
         setSelectedFeatures={props.setSelectedFeatures}
         toggleTab={props.toggleTab}
+        rankFeatures={rankFeatures}
+        setRankFeatures={setRankFeatures}
       />
       {/*<SidePanel
         features={features}

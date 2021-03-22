@@ -44,6 +44,10 @@ import {
   faHighlighter,
   faUndo,
   faSearchPlus,
+  faSortUp,
+  faSortDown,
+  faCaretUp,
+  faCaretDown,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -92,4 +96,8 @@ export default function registerIcons() {
   library.add(faUndo);
   library.add(faComment);
   library.add(faSearchPlus);
+  library.add(faSortUp);
+  library.add(faSortDown);
+  library.add(faCaretUp);
+  library.add(faCaretDown);
 }
