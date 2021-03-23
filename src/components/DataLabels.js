@@ -157,14 +157,16 @@ export default function DataLabels({
           </thead>
         </Table>
         <Label for="label-file">Upload CSV File</Label>
-        <Input
-          type="file"
-          name="file"
-          id="label-file"
-          innerRef={fileInput}
-          style={{ textAlign: 'center' }}
-          onChange={handleFileInputChange}
-        />
+        <div style={{ textAlign: 'center' }}>
+          <Input
+            type="file"
+            name="file"
+            id="label-file"
+            innerRef={fileInput}
+            onChange={handleFileInputChange}
+            style={{ width: 'inherit', display: 'inline' }}
+          />
+        </div>
         <br />
         {fileInput.current &&
           fileInput.current.files[0] &&
