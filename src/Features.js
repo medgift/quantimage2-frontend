@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  forwardRef,
+  useCallback,
+} from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
@@ -141,6 +147,22 @@ async function getFormattedLabels(
 
 function Features({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
+
+  const isAlternativeUser = useMemo(() => {
+    if (keycloak.idTokenParsed) {
+      let matches = keycloak.idTokenParsed.email.match(
+        /user(?<user>\d+)@chuv\.ch/
+      );
+      console.log('matches', matches);
+      if (matches && matches.groups.user && +matches.groups.user % 2 === 1) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return null;
+    }
+  }, [keycloak.idTokenParsed]);
 
   const { albumID, collectionID, tab } = useParams();
 
@@ -841,24 +863,26 @@ function Features({ history, match, kheopsError }) {
                         Outcomes
                       </NavLink>
                     </NavItem>
-                    <NavItem>
-                      <NavLink
-                        className={classnames({
-                          active: tab === 'visualize',
-                          'text-danger': unlabelledDataPoints > 0,
-                        })}
-                        onClick={() => {
-                          toggle('visualize');
-                        }}
-                      >
-                        {unlabelledDataPoints > 0 && (
-                          <>
-                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                          </>
-                        )}
-                        Visualization
-                      </NavLink>
-                    </NavItem>
+                    {isAlternativeUser !== true && (
+                      <NavItem>
+                        <NavLink
+                          className={classnames({
+                            active: tab === 'visualize',
+                            'text-danger': unlabelledDataPoints > 0,
+                          })}
+                          onClick={() => {
+                            toggle('visualize');
+                          }}
+                        >
+                          {unlabelledDataPoints > 0 && (
+                            <>
+                              <FontAwesomeIcon icon="exclamation-circle" />{' '}
+                            </>
+                          )}
+                          Visualization
+                        </NavLink>
+                      </NavItem>
+                    )}
                     <NavItem>
                       <NavLink
                         className={classnames({
@@ -1082,7 +1106,7 @@ function Features({ history, match, kheopsError }) {
                       )}
                     </TabPane>
                     <TabPane tabId="visualize">
-                      {dataPoints ? (
+                      {isAlternativeUser !== true && dataPoints ? (
                         unlabelledDataPoints === 0 ? (
                           !isSavingLabels ? (
                             <Visualisation
