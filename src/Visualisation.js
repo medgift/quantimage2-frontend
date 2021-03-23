@@ -148,9 +148,10 @@ export default function Visualisation(props) {
     if (lasagnaChart) {
       setLasagnaChart((c) => {
         let newChart = _.cloneDeep(c);
+
         if (rankFeatures)
-          newChart.spec.vconcat[0].encoding.y.sort = { field: 'feature_rank' };
-        else delete newChart.spec.vconcat[0].encoding.y.sort;
+          newChart.spec.vconcat[0].encoding.y.field = 'feature_rank';
+        else newChart.spec.vconcat[0].encoding.y.field = 'feature_id';
 
         return newChart;
       });
@@ -273,6 +274,10 @@ export default function Visualisation(props) {
     for (let chart of lasagnaSpec.vconcat) {
       chart.encoding.x.sort = patientIDsSorted;
     }
+
+    // If we are sorting by rank
+    if (rankFeatures) lasagnaSpec.vconcat[0].encoding.y.field = 'feature_rank';
+    else lasagnaSpec.vconcat[0].encoding.y.field = 'feature_id';
 
     setLasagnaChart({
       data: properData,
