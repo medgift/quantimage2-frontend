@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { Switch, Route, withRouter } from 'react-router-dom';
+import { Switch, Route, withRouter, useLocation } from 'react-router-dom';
 import Home from './Home';
 import NoMatch from './NoMatch';
 import { PropsRoute } from './utils/PropsRoute';
@@ -24,6 +24,7 @@ import kheops from './services/kheops';
 import Train from './Train';
 import Visualisation from './Visualisation';
 import Dashboard from './Dashboard';
+import { usePrevious } from './utils/usePrevious';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -36,6 +37,16 @@ function App({ setUser, setIsAdmin }) {
 
   const [keycloak, initialized] = useKeycloak();
 
+  const location = useLocation();
+  const prevLocation = usePrevious(location.pathname);
+
+  // Log location changes
+  useEffect(() => {
+    if (location.pathname !== prevLocation)
+      console.log(new Date(), `visited ${JSON.stringify(location.pathname)}`);
+  }, [location]);
+
+  // Manage admin status
   useEffect(() => {
     if (keycloak && initialized) {
       keycloak.loadUserProfile().success((profile) => {
