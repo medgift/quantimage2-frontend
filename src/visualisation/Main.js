@@ -16,6 +16,7 @@ import {
   NavLink,
   TabContent,
   TabPane,
+  UncontrolledTooltip,
 } from 'reactstrap';
 import VegaChart from './VegaChart';
 import Loading from './Loading';
@@ -44,6 +45,9 @@ const Main = (props, ref) => {
   // Feature selection
   const [corrThreshold, setCorrThreshold] = useState(0.5);
   const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
+
+  // Feature ranking
+  const [nRankedFeatures, setNRankedFeatures] = useState(null);
 
   // React to "drop correlated features" change
   useEffect(() => {
@@ -135,6 +139,18 @@ const Main = (props, ref) => {
     props.loading,
     props.featureNames,
   ]);
+
+  // TODO - We can filter once the feature selection is more comprehensive (e.g. hierarchical)
+  // React to "keep n ranked features" change
+  /*useEffect(() => {
+    if (props.featureNames.length > 0 && nRankedFeatures === null)
+      setNRankedFeatures(Math.ceil(props.featureNames.length / 2));
+
+    let selectedFeatures = props.featureNames.filter((f) => f.selected);
+
+    if (nRankedFeatures > selectedFeatures.length)
+      setNRankedFeatures(selectedFeatures.length);
+  }, [props.featureNames, props.rankFeatures]);*/
 
   const toggle = (tab) => {
     if (activeTab !== tab) setActiveTab(tab);
@@ -348,17 +364,26 @@ const Main = (props, ref) => {
                   return (
                     <TabPane key={c.id} tabId={c.id}>
                       <div id={c.id} key={c.id} className="d-flex">
-                        <VegaChart
-                          ref={setRef(c.id + '-chart')}
-                          title={c.title}
-                          chart={c.chart}
-                          type={c.type}
-                          setImage={
-                            c.id === 'lasagna'
-                              ? props.setLasagnaImg
-                              : props.setPcaImg
-                          }
-                        />
+                        <div>
+                          <VegaChart
+                            ref={setRef(c.id + '-chart')}
+                            title={c.title}
+                            chart={c.chart}
+                            type={c.type}
+                            setImage={
+                              c.id === 'lasagna'
+                                ? props.setLasagnaImg
+                                : props.setPcaImg
+                            }
+                          />
+                          <div>
+                            <small>
+                              * Feature values are standardized and the scale is
+                              clipped to [-2, 2]. Outliers will appear either in
+                              white ({'<-2'}) or black (>2).
+                            </small>
+                          </div>
+                        </div>
                         <div className="tools flex-grow-1">
                           <p className="mt-4">
                             <strong>Feature selection</strong>
@@ -374,14 +399,39 @@ const Main = (props, ref) => {
                               }}
                             />{' '}
                             <label htmlFor="drop-corr">
-                              Drop correlated features
+                              Drop correlated features{' '}
+                              <FontAwesomeIcon
+                                icon="info-circle"
+                                id="corr-explanation"
+                              />
+                              <UncontrolledTooltip
+                                placement="right"
+                                target="corr-explanation"
+                              >
+                                Allows to deselect highly correlated features
+                                (with redundant information).
+                              </UncontrolledTooltip>
                             </label>
                           </div>
-                          <hr />
                           <div>
                             <label htmlFor="corr-threshold">
-                              Correlation Threshold
+                              Correlation Threshold{' '}
+                              <FontAwesomeIcon
+                                icon="info-circle"
+                                id="thresh-explanation"
+                              />
+                              <UncontrolledTooltip
+                                placement="right"
+                                target="thresh-explanation"
+                              >
+                                With a lower threshold, fewer features will be
+                                kept.
+                                <br />
+                                With a higher threshold, more features will be
+                                kept.
+                              </UncontrolledTooltip>
                             </label>
+                            <br />
                             <input
                               id="corr-threshold"
                               type="range"
@@ -399,6 +449,7 @@ const Main = (props, ref) => {
                             />
                             <span>{corrThreshold}</span>
                           </div>
+                          <hr />
                           <p className="mt-4">
                             <strong>Feature ranking</strong>
                           </p>
@@ -412,9 +463,50 @@ const Main = (props, ref) => {
                               }}
                             />{' '}
                             <label htmlFor="rank-feats">
-                              Rank features by F-value
+                              Rank features by F-value{' '}
+                              <FontAwesomeIcon
+                                icon="info-circle"
+                                id="ranking-explanation"
+                              />
+                              <UncontrolledTooltip
+                                placement="right"
+                                target="ranking-explanation"
+                              >
+                                Sort the features (lines of the chart) so that
+                                more predictive features (when taken
+                                individually) will appear at the top and less
+                                predictive features will appear at the bottom.
+                              </UncontrolledTooltip>
                             </label>
                           </div>
+                          {/* TODO - Put this back once it's possible to select specific features for a given modality/ROI*/}
+                          {/*
+                          <div>
+                            <label htmlFor="n-features">
+                              Number of features to keep
+                            </label>
+                            <br />
+                            <input
+                              id="n-features"
+                              type="range"
+                              min={1}
+                              max={
+                                props.featureNames.filter((f) => f.selected)
+                                  .length
+                              }
+                              step={1}
+                              onChange={(e) => {
+                                setNRankedFeatures(+e.target.value);
+                              }}
+                              onMouseUp={(e) => {
+                                disableFeatures([]);
+                              }}
+                              value={nRankedFeatures}
+                              className="slider"
+                            />
+                            <span>{nRankedFeatures}</span>
+                          </div>
+                          */}
                         </div>
                       </div>
                     </TabPane>

@@ -21,7 +21,11 @@
         "color": {
           "field": "feature_value",
           "type": "quantitative",
-          "title": "Features"
+          "title": "Feature Value*",
+          "scale": {
+            "domain": [-2, 2],
+            "clamp": false
+          }
         },
         "y": {
           "field": "feature_id",

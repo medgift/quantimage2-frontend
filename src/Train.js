@@ -67,6 +67,9 @@ function ModelsTable({
     {
       columns,
       data,
+      initialState: {
+        sortBy: [{ id: 'created_at', desc: true }],
+      },
     },
     useSortBy
   );
@@ -194,6 +197,8 @@ function ModelsTable({
                                     : 'None'}
                                 </td>
                               </tr>
+                              {/* TODO - Put this back once it's implemented */}
+                              {/*
                               <tr>
                                 <td>Feature Selection</td>
                                 <td>
@@ -202,6 +207,7 @@ function ModelsTable({
                                     : 'None'}
                                 </td>
                               </tr>
+                              */}
                               <tr>
                                 <td>Modalities Used</td>
                                 <td>
@@ -343,10 +349,15 @@ export default function Train({
             'yyyy-MM-dd HH:mm:ss'
           ),
         sortDescFirst: true,
+        id: 'created_at',
       },
       { Header: 'Algorithm', accessor: 'algorithm' },
       { Header: 'Data Normalization', accessor: 'data_normalization' },
-      { Header: 'Mean AUC', accessor: 'metrics.auc.mean', sortDescFirst: true },
+      {
+        Header: 'Mean AUC (green is highest)',
+        accessor: 'metrics.auc.mean',
+        sortDescFirst: true,
+      },
     ],
     []
   );
@@ -533,7 +544,8 @@ export default function Train({
                     </Label>
                   </FormGroup>
                 </FormGroup>
-                <h4>Feature selection</h4>
+                {/* TODO - Put this back once it's implemented */}
+                {/*<h4>Feature selection</h4>
                 <FormGroup tag="fieldset">
                   <FormGroup check inline>
                     <Label check>
@@ -571,7 +583,7 @@ export default function Train({
                       Recursive Feature Elimination (RFE)
                     </Label>
                   </FormGroup>
-                </FormGroup>
+                </FormGroup>*/}
               </Form>
             </Collapse>
           </div>
