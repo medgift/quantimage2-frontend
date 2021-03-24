@@ -15,6 +15,7 @@ const endpoints = {
   tasks: `${baseEndpoint}/tasks`,
   charts: `${baseEndpoint}/charts`,
   annotations: `${baseEndpoint}/annotations`,
+  navigation: `${baseEndpoint}/navigation`,
 };
 
 class Backend {
@@ -367,6 +368,20 @@ class Backend {
         token: token,
         method: 'PATCH',
         data: annotation,
+      });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async saveNavigation(token, path) {
+    try {
+      const url = endpoints.navigation;
+
+      return await request(url, {
+        token: token,
+        method: 'POST',
+        data: { path: path },
       });
     } catch (err) {
       throw err;

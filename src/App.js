@@ -26,6 +26,8 @@ import Visualisation from './Visualisation';
 import Dashboard from './Dashboard';
 import { usePrevious } from './utils/usePrevious';
 
+import Backend from './services/backend';
+
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
 
@@ -38,13 +40,13 @@ function App({ setUser, setIsAdmin }) {
   const [keycloak, initialized] = useKeycloak();
 
   const location = useLocation();
-  const prevLocation = usePrevious(location.pathname);
 
   // Log location changes
   useEffect(() => {
-    if (location.pathname !== prevLocation)
-      console.log(new Date(), `visited ${JSON.stringify(location.pathname)}`);
-  }, [location]);
+    if (initialized) {
+      Backend.saveNavigation(keycloak.token, location.pathname);
+    }
+  }, [initialized, location]);
 
   // Manage admin status
   useEffect(() => {
