@@ -463,7 +463,7 @@ const Main = (props, ref) => {
                               }}
                             />{' '}
                             <label htmlFor="rank-feats">
-                              Rank features by F-value{' '}
+                              Rank by F-value{' '}
                               <FontAwesomeIcon
                                 icon="info-circle"
                                 id="ranking-explanation"
