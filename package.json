@@ -12,6 +12,7 @@
     "classnames": "^2.2.6",
     "csv-parse": "^4.10.1",
     "csv-string": "^4.0.1",
+    "detect-newline": "^3.1.0",
     "formik": "^1.5.8",
     "js-file-download": "^0.4.12",
     "json2csv": "^4.5.3",

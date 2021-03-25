@@ -69,6 +69,7 @@ import classnames from 'classnames';
 
 import * as parse from 'csv-parse/lib/sync';
 import * as csvString from 'csv-string';
+import * as detectNewline from 'detect-newline';
 
 import './Features.css';
 import CollectionSelection from './components/CollectionSelection';
@@ -1429,7 +1430,9 @@ async function validateLabelFile(
     let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
     console.log('full header field names', fullHeaderFieldNames);
 
-    let firstLine = content.split('\n')[0];
+    let lineEnding = detectNewline(content);
+
+    let firstLine = content.split(lineEnding)[0];
 
     let separator = csvString.detect(firstLine);
 
