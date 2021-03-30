@@ -43,9 +43,7 @@ export async function downloadFeatureSet(token, tasks) {
     type: 'text/csv',
   });
 
-  const title = assembleFeatureTitles([tasks[0]], '_').toLowerCase();
-
-  const filename = `features_${title}.csv`;
+  const filename = `features.csv`;
 
   downloadContent(fileContent, filename);
 }
@@ -124,14 +122,6 @@ export async function trainModel(
   );
 
   return createdModel;
-}
-
-export function assembleFeatureTitles(families, separator = ', ') {
-  return families
-    .map((family) => {
-      return family.feature_family.name;
-    })
-    .join(separator);
 }
 
 export function assembleFeatures(extraction, studies, album) {

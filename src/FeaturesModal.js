@@ -11,16 +11,9 @@ export default function FeaturesModal({
   isOpen,
   toggle,
   extractionID,
-  studyUID
+  studyUID,
 }) {
   let [keycloak] = useKeycloak();
-
-  let getFeaturesTitle = () => {
-    if (extraction) return assembleFeatureTitles(extraction.families);
-    else return '';
-  };
-
-  let [extraction, setExtraction] = useState(null);
 
   let [features, setFeatures] = useState(null);
 
@@ -28,8 +21,6 @@ export default function FeaturesModal({
     async function getFeatures() {
       let extraction = await Backend.extraction(keycloak.token, extractionID);
       let study = await Kheops.study(keycloak.token, studyUID);
-
-      setExtraction(extraction);
       setFeatures(assembleFeatures(extraction, study));
     }
 
@@ -38,9 +29,7 @@ export default function FeaturesModal({
 
   return (
     <Modal isOpen={isOpen} toggle={toggle} size="lg" className="feature-modal">
-      <ModalHeader toggle={toggle}>
-        Extracted Features : {getFeaturesTitle()}
-      </ModalHeader>
+      <ModalHeader toggle={toggle}>Extracted Features</ModalHeader>
       <ModalBody>
         {features && (
           <ListGroup className="m-1">

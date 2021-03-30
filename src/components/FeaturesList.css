@@ -1,0 +1,6 @@
+.FeatureConfig-tree
+  > .MuiTreeItem-root
+  > .MuiTreeItem-content
+  > .MuiTypography-root {
+  text-align: center;
+}

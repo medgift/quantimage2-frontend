@@ -29,7 +29,6 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import CheckboxGroup from 'react-checkbox-group';
 import MyModal from './components/MyModal';
-import FeaturesConfig from './components/FeaturesConfig';
 import FeatureNames from './components/FeatureNames';
 import DataLabels from './components/DataLabels';
 import { MODEL_TYPES } from './Features';
@@ -321,9 +320,6 @@ export default function Train({
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
   );
 
-  let [featuresConfigFamilies, setFeaturesConfigFamilies] = useState(null);
-  let [featureConfigOpen, setFeatureConfigOpen] = useState(false);
-
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
@@ -384,10 +380,6 @@ export default function Train({
     setAlgorithmType(e.target.value);
   };
 
-  const toggleFeatureConfig = () => {
-    setFeatureConfigOpen((open) => !open);
-  };
-
   const toggleFeatureNames = () => {
     setFeatureNamesOpen((open) => !open);
   };
@@ -433,11 +425,6 @@ export default function Train({
 
   const handleBackToModelsClick = () => {
     setShowNewModel(false);
-  };
-
-  const handleShowFeaturesConfig = (families) => {
-    setFeaturesConfigFamilies(families);
-    toggleFeatureConfig();
   };
 
   const handleShowFeatureNames = (names) => {
@@ -715,13 +702,6 @@ export default function Train({
           maxAUCModel={maxAUCModel}
         />
       )}
-      <MyModal
-        isOpen={featureConfigOpen}
-        toggle={toggleFeatureConfig}
-        title={<span>Feature Groups</span>}
-      >
-        <FeaturesConfig families={featuresConfigFamilies} />
-      </MyModal>
       <MyModal
         isOpen={featureNamesOpen}
         toggle={toggleFeatureNames}

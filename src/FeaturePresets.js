@@ -4,50 +4,50 @@ import { ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
-function FeatureFamilies({ history, match, kheopsError }) {
+function FeaturePresets({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
 
-  const [featureFamilies, setFeatureFamilies] = useState([]);
+  const [featurePresets, setFeaturePresets] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
 
   useEffect(() => {
-    async function getFeatureFamilies() {
-      const featureFamilies = await Backend.families(keycloak.token);
+    async function getFeaturePresets() {
+      const featurePresets = await Backend.presets(keycloak.token);
 
-      setFeatureFamilies(featureFamilies);
+      setFeaturePresets(featurePresets);
 
       setDataFetched(true);
     }
 
-    getFeatureFamilies();
+    getFeaturePresets();
   }, [keycloak.token]);
 
   return (
     <div>
-      <h1>Feature Families</h1>
+      <h1>Feature Presets</h1>
       {dataFetched ? (
         <div>
-          {featureFamilies.length ? (
+          {featurePresets.length ? (
             <div>
               <ListGroup>
-                {featureFamilies.map(family => (
-                  <ListGroupItem key={family.id}>
-                    <Link to={`/feature-families/edit/${family.id}`}>
-                      {family.name}
+                {featurePresets.map((preset) => (
+                  <ListGroupItem key={preset.id}>
+                    <Link to={`/feature-presets/edit/${preset.id}`}>
+                      {preset.name}
                     </Link>
                   </ListGroupItem>
                 ))}
               </ListGroup>
               <div className="m-2">
-                <Link to="/feature-families/create">
-                  Create a new Feature Family
+                <Link to="/feature-presets/create">
+                  Create a new Feature Preset
                 </Link>
               </div>
             </div>
           ) : (
             <h3>
-              You haven't defined any Feature Families yet.{' '}
-              <Link to="/feature-families/create">Create one now</Link>.
+              You haven't defined any Feature Presets yet.{' '}
+              <Link to="/feature-presets/create">Create one now</Link>.
             </h3>
           )}
         </div>
@@ -58,4 +58,4 @@ function FeatureFamilies({ history, match, kheopsError }) {
   );
 }
 
-export default FeatureFamilies;
+export default FeaturePresets;

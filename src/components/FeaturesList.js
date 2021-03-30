@@ -5,9 +5,16 @@ import {
   ButtonGroup,
   Collapse,
   CustomInput,
+  FormGroup,
+  Input,
+  Label,
   ListGroupItem,
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
+
+import YAML from 'yaml';
+
+import { v4 as uuidv4 } from 'uuid';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
@@ -15,7 +22,14 @@ import Backend from '../services/backend';
 import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
+
+import TreeView from '@material-ui/lab/TreeView';
+import TreeItem from '@material-ui/lab/TreeItem';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import _ from 'lodash';
+
+import './FeaturesList.css';
 
 export default function FeaturesList({
   albumID,
@@ -28,14 +42,11 @@ export default function FeaturesList({
   let [keycloak] = useKeycloak();
 
   // Data
-  let [featureFamilies, setFeatureFamilies] = useState([]);
-  let [featureConfigs, setFeatureConfigs] = useState({});
+  let [featurePresets, setFeaturePresets] = useState([]);
   let [extraction, setExtraction] = useState(null);
-  let [tasks, setTasks] = useState([]);
 
   // Selections
-  let [selectedFamilies, setSelectedFamilies] = useState({});
-  let [settingsCollapse, setSettingsCollapse] = useState({});
+  let [selectedPreset, setSelectedPreset] = useState(null);
 
   // Errors
   let [backendError, setBackendError] = useState(null);
@@ -53,20 +64,6 @@ export default function FeaturesList({
       setBackendError(featureStatus.status_message);
       setBackendErrorVisible(true);
     }
-
-    setTasks((tasks) =>
-      tasks.map((task) => {
-        if (task.id === featureStatus.feature_extraction_task_id) {
-          return {
-            ...task,
-            status: featureStatus.status,
-            status_message: featureStatus.status_message,
-          };
-        }
-
-        return task;
-      })
-    );
   };
 
   const handleExtractionStatus = (extractionStatus) => {
@@ -97,7 +94,7 @@ export default function FeaturesList({
 
   /* Fetch initial data */
   useEffect(() => {
-    async function getFeatureFamiliesAndConfigs() {
+    async function getFeaturePresets() {
       const latestExtraction = await Backend.extractions(
         keycloak.token,
         albumID,
@@ -106,53 +103,15 @@ export default function FeaturesList({
 
       if (latestExtraction) {
         setExtraction(latestExtraction);
-        setTasks(latestExtraction.tasks);
       }
 
-      const featureFamilies = await Backend.families(keycloak.token);
+      const featurePresets = await Backend.presets(keycloak.token);
+      setFeaturePresets(featurePresets);
 
-      setFeatureFamilies(featureFamilies);
-
-      let settingsCollapse = {};
-
-      for (let featureFamily of featureFamilies) {
-        settingsCollapse[featureFamily.id] = false;
-      }
-
-      setSettingsCollapse(settingsCollapse);
-
-      let selectedFamilies = {};
-      let featureConfigs = {};
-
-      for (let featureFamily of featureFamilies) {
-        // Select all families by default if there is no extraction, otherwise restore config of previous extraction
-        if (!latestExtraction) {
-          selectedFamilies[featureFamily.id] = true;
-          featureConfigs[featureFamily.id] = _.cloneDeep(featureFamily.config);
-        } else {
-          let familyInExtraction = latestExtraction.families.find(
-            (family) => family.feature_family.id === featureFamily.id
-          );
-
-          selectedFamilies[featureFamily.id] = familyInExtraction !== undefined;
-
-          if (familyInExtraction) {
-            featureConfigs[featureFamily.id] = _.cloneDeep(
-              familyInExtraction.config
-            );
-          } else {
-            featureConfigs[featureFamily.id] = _.cloneDeep(
-              featureFamily.config
-            );
-          }
-        }
-      }
-
-      setSelectedFamilies(selectedFamilies);
-      setFeatureConfigs(featureConfigs);
+      setSelectedPreset(featurePresets[0]);
     }
 
-    getFeatureFamiliesAndConfigs();
+    getFeaturePresets();
   }, [albumID, studyUID, keycloak]);
 
   /* Manage Socket.IO events */
@@ -178,15 +137,10 @@ export default function FeaturesList({
 
   let handleExtractFeaturesClick = async () => {
     try {
-      let featureFamiliesMap = makeFeatureFamiliesMap(
-        selectedFamilies,
-        featureConfigs
-      );
-
       let featureExtraction = await Backend.extract(
         keycloak.token,
         albumID,
-        featureFamiliesMap,
+        selectedPreset.config,
         studyUID
       );
 
@@ -196,7 +150,6 @@ export default function FeaturesList({
           ' tasks!'
       );
       setExtraction(featureExtraction);
-      setTasks(featureExtraction.tasks);
 
       if (extractionCallback) {
         extractionCallback(featureExtraction);
@@ -207,17 +160,8 @@ export default function FeaturesList({
     }
   };
 
-  let makeFeatureFamiliesMap = (selectedFamilies, featureConfigs) => {
-    let featureFamiliesMap = {};
-
-    for (let selectedFamilyID in selectedFamilies) {
-      if (selectedFamilies[selectedFamilyID] === true) {
-        featureFamiliesMap[selectedFamilyID] =
-          featureConfigs[+selectedFamilyID];
-      }
-    }
-
-    return featureFamiliesMap;
+  const handlePresetClick = (e) => {
+    setSelectedPreset(featurePresets.find((p) => p.id === +e.target.value));
   };
 
   let handleViewFeaturesClick = () => {
@@ -233,211 +177,35 @@ export default function FeaturesList({
     );
   };
 
-  let handleToggleSettingsClick = (familyID) => {
-    setSettingsCollapse((prevState) => ({
-      ...prevState,
-      [familyID]: !prevState[familyID],
-    }));
-  };
-
-  let countActiveFeaturesInFamily = (featureConfig) => {
-    let activeFeatures = 0;
-
-    for (let backend in featureConfig['backends']) {
-      activeFeatures += featureConfig['backends'][backend]['features'].length;
-    }
-
-    return activeFeatures;
-  };
-
-  let handleFeatureFamilyStatusAfterConfigUpdate = (
-    featureConfig,
-    featureFamilyID
-  ) => {
-    let activeFeatures = countActiveFeaturesInFamily(featureConfig);
-
-    // If we're disabling the last feature of a family, uncheck the family
-    if (selectedFamilies[featureFamilyID] && activeFeatures === 0) {
-      console.log('disable!');
-      setSelectedFamilies({ ...selectedFamilies, [featureFamilyID]: false });
-    } else if (!selectedFamilies[featureFamilyID] && activeFeatures !== 0) {
-      console.log('enable!');
-      setSelectedFamilies({ ...selectedFamilies, [featureFamilyID]: true });
-    }
-  };
-
-  let updateFeatureConfig = (
-    e,
-    featureFamilyID,
-    featureConfig,
-    backend,
-    featureName
-  ) => {
-    const checked = e.target.checked;
-
-    let updatedFeatureConfigs = _.cloneDeep(featureConfigs);
-
-    if (!checked) {
-      let currentFeatures = featureConfig.backends[backend].features;
-
-      // Filter out the unchecked feature name
-      let { [featureName]: _, ...newFeatures } = currentFeatures;
-
-      featureConfig.backends[backend].features = newFeatures;
-    } else {
-      featureConfig.backends[backend].features = {
-        ...featureConfig.backends[backend].features,
-        ..._.pick(
-          featureFamilies.find((f) => f.id === featureFamilyID).config.backends[
-            backend
-          ].features,
-          featureName
-        ),
-      };
-    }
-
-    updatedFeatureConfigs[featureFamilyID] = featureConfig;
-
-    handleFeatureFamilyStatusAfterConfigUpdate(featureConfig, featureFamilyID);
-
-    setFeatureConfigs(updatedFeatureConfigs);
-  };
-
-  let handleFamilyCheck = (e, featureFamilyId) => {
-    let checked = e.target.checked;
-
-    setSelectedFamilies((selectedFamilies) => ({
-      ...selectedFamilies,
-      [featureFamilyId]: checked,
-    }));
-  };
-
-  let getFeatureTaskStatus = (featureFamilyID) => {
-    let task = tasks.find((task) => task.feature_family_id === featureFamilyID);
-
-    return (
-      task &&
-      task.status !== FEATURE_STATUS.COMPLETE &&
-      (task.status !== FEATURE_STATUS.FAILURE ? (
-        <span>
-          <small>{task ? task.status_message : ''}...</small>
-        </span>
-      ) : (
-        <span className="text-danger">
-          <small>ERROR - {task ? task.status_message : ''}...</small>
-        </span>
-      ))
-    );
-  };
-
   return (
     <>
       <ListGroup
         className={`features-list ${setMinWidth ? 'min-width-510' : ''}`}
       >
         <ListGroupItem>
-          <span>Feature Configuration</span>
+          <span>Select Configuration Preset</span>
         </ListGroupItem>
-        {featureFamilies.length > 0 &&
-          Object.keys(featureConfigs).length > 0 &&
-          featureFamilies.map((featureFamily) => (
-            <ListGroupItem
-              key={featureFamily.id}
-              disabled={extraction && !extraction.status.ready}
-            >
-              <div className="d-flex flex-column">
-                <div className="feature-summary d-flex align-items-center">
-                  <CustomInput
-                    type="checkbox"
-                    checked={selectedFamilies[featureFamily.id]}
-                    className={'text-left flex-grow-1'}
-                    onChange={(e) => {
-                      handleFamilyCheck(e, featureFamily.id);
-                    }}
-                    id={`${featureFamily.id}-${featureFamily.name}`}
-                    label={
-                      <>
-                        <span>{featureFamily.name}</span>{' '}
-                        {getFeatureTaskStatus(featureFamily.id)}
-                      </>
-                    }
-                    disabled={extraction && !extraction.status.ready}
-                  />
-                  <ButtonGroup className="ml-1">
-                    <Button
-                      color="primary"
-                      title="Configure feature extraction"
-                      onClick={() => {
-                        handleToggleSettingsClick(featureFamily.id);
-                      }}
-                      disabled={extraction && !extraction.status.ready}
-                    >
-                      <FontAwesomeIcon icon="tasks"></FontAwesomeIcon>
-                    </Button>
-                  </ButtonGroup>
-                </div>
-                <div className="feature-description text-left">
-                  {Object.keys(featureConfigs[featureFamily.id].backends)
-                    .reduce(
-                      (featureNames, backend) => [
-                        ...featureNames,
-                        ...Object.keys(
-                          featureConfigs[featureFamily.id].backends[backend]
-                            .features
-                        ),
-                      ],
-                      []
-                    )
-                    .sort((f1, f2) =>
-                      f1.localeCompare(f2, undefined, { sensitivity: 'base' })
-                    )
-                    .join(', ')
-                    .toLowerCase()}
-                </div>
-              </div>
-              <Collapse
-                isOpen={settingsCollapse[featureFamily.id]}
-                className="mt-2"
-                id={`settings-${featureFamily.id}`}
-              >
-                {Object.keys(featureFamily.config.backends).map((backend) => (
-                  <div key={backend}>
-                    <div>{backend}</div>
-                    <ListGroup>
-                      {Object.keys(
-                        featureFamily.config.backends[backend].features
-                      ).map((featureName) => (
-                        <ListGroupItem
-                          className="text-left"
-                          key={`${featureFamily.id}-${featureName}`}
-                        >
-                          <CustomInput
-                            type="checkbox"
-                            id={`${featureFamily.id}-${featureName}`}
-                            checked={Object.keys(
-                              featureConfigs[featureFamily.id].backends[backend]
-                                .features
-                            ).includes(featureName)}
-                            onChange={(e) =>
-                              updateFeatureConfig(
-                                e,
-                                featureFamily.id,
-                                _.cloneDeep(featureConfigs[featureFamily.id]),
-                                backend,
-                                featureName
-                              )
-                            }
-                            disabled={extraction && !extraction.status.ready}
-                            label={featureName.toLowerCase()}
-                          />
-                        </ListGroupItem>
-                      ))}
-                    </ListGroup>
-                  </div>
-                ))}
-              </Collapse>
-            </ListGroupItem>
-          ))}
+        {featurePresets && selectedPreset && (
+          <ListGroupItem>
+            {featurePresets.map((preset) => (
+              <FormGroup check inline key={preset.id}>
+                <Label check>
+                  <Input
+                    type="radio"
+                    name="selectedPreset"
+                    checked={selectedPreset.id === preset.id}
+                    value={preset.id}
+                    onChange={handlePresetClick}
+                  />{' '}
+                  {preset.name}
+                </Label>
+              </FormGroup>
+            ))}
+            <RecursiveTreeView
+              data={{ 'Show configuration options': selectedPreset.config }}
+            />
+          </ListGroupItem>
+        )}
         {(!extraction ||
           (extraction &&
             (extraction.status.successful || extraction.status.failed))) && (
@@ -448,39 +216,10 @@ export default function FeaturesList({
 
             <ListGroupItem>
               <ButtonGroup>
-                <Button
-                  color="success"
-                  onClick={handleExtractFeaturesClick}
-                  disabled={
-                    Object.values(selectedFamilies).filter((value) => value)
-                      .length === 0
-                  }
-                >
+                <Button color="success" onClick={handleExtractFeaturesClick}>
                   <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
                   <span>Extract Features</span>
                 </Button>
-                {extraction && !albumID && (
-                  <>
-                    <Button
-                      color="info"
-                      disabled={false}
-                      onClick={handleViewFeaturesClick}
-                      title="View Features"
-                    >
-                      <FontAwesomeIcon icon="search"></FontAwesomeIcon>{' '}
-                      <span>View Features</span>
-                    </Button>
-                    <Button
-                      color="secondary"
-                      disabled={false}
-                      onClick={handleDownloadFeaturesClick}
-                      title="Download Features"
-                    >
-                      <FontAwesomeIcon icon="download"></FontAwesomeIcon>{' '}
-                      <span>Download Features</span>
-                    </Button>
-                  </>
-                )}
               </ButtonGroup>
             </ListGroupItem>
           </>
@@ -515,5 +254,55 @@ export default function FeaturesList({
         />
       )}
     </>
+  );
+}
+
+function formatTreeData(object) {
+  return Object.entries(object).map(([key, value]) =>
+    value && _.isPlainObject(value)
+      ? {
+          id: uuidv4(),
+          name: isNaN(key) ? key : `Item #${key}`,
+          children: formatTreeData(value),
+        }
+      : value && _.isArray(value) && !_.isObject(value[0])
+      ? {
+          id: uuidv4(),
+          name: key,
+          children: value.map((v, i) => ({ id: `${v}-${i}`, name: v })),
+        }
+      : value && _.isArray(value) && _.isObject(value[0])
+      ? {
+          id: uuidv4(),
+          name: key,
+          children: formatTreeData(value),
+        }
+      : {
+          id: uuidv4(),
+          name: value !== null ? `${key} : ${value}` : `${key}`,
+        }
+  );
+}
+
+function RecursiveTreeView({ data }) {
+  const renderTree = (nodes) => {
+    return (
+      <TreeItem key={nodes.id} nodeId={nodes.id} label={nodes.name}>
+        {Array.isArray(nodes.children)
+          ? nodes.children.map((node) => renderTree(node))
+          : null}
+      </TreeItem>
+    );
+  };
+
+  return (
+    <TreeView
+      defaultCollapseIcon={<ExpandMoreIcon />}
+      defaultExpanded={['root']}
+      defaultExpandIcon={<ChevronRightIcon />}
+      className="text-left m-2 FeatureConfig-tree"
+    >
+      {renderTree(formatTreeData(data)[0])}
+    </TreeView>
   );
 }

@@ -17,8 +17,8 @@ import {
   KEYCLOAK_FRONTEND_CLIENT_ID,
   KEYCLOAK_RESOURCE_ACCESS,
 } from './config/constants';
-import FeatureFamilies from './FeatureFamilies';
-import FeatureFamilyCreate from './FeatureFamilyCreate';
+import FeaturePresets from './FeaturePresets';
+import FeaturePresetCreate from './FeaturePresetCreate';
 import { PrivateRoute } from './utils/PrivateRoute';
 import kheops from './services/kheops';
 import Train from './Train';
@@ -148,19 +148,19 @@ function App({ setUser, setIsAdmin }) {
               />
               <PropsRoute path="/profile" component={Profile} />
               <PrivateRoute
-                path="/feature-families"
+                path="/feature-presets"
                 exact
-                component={FeatureFamilies}
+                component={FeaturePresets}
               />
               <PrivateRoute
-                path="/feature-families/create"
+                path="/feature-presets/create"
                 exact
-                component={FeatureFamilyCreate}
+                component={FeaturePresetCreate}
               />
               <PrivateRoute
-                path="/feature-families/edit/:featureFamilyID"
+                path="/feature-presets/edit/:featurePresetID"
                 exact
-                component={FeatureFamilyCreate}
+                component={FeaturePresetCreate}
               />
               <Route component={NoMatch} />
             </Switch>

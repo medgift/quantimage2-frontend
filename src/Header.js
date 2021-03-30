@@ -79,8 +79,8 @@ function Header({ location, onLogout }) {
                       <FontAwesomeIcon icon="lock"></FontAwesomeIcon>
                     </NavbarBrand>
                     <NavItem>
-                      <NavLink tag={RouterNavLink} exact to="/feature-families">
-                        Feature Families
+                      <NavLink tag={RouterNavLink} exact to="/feature-presets">
+                        Feature Presets
                       </NavLink>
                     </NavItem>
                   </>

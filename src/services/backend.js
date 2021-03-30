@@ -9,7 +9,7 @@ const endpoints = {
   extract: `${baseEndpoint}/extract`,
   extractions: `${baseEndpoint}/extractions`,
   collections: `${baseEndpoint}/feature-collections`,
-  families: `${baseEndpoint}/feature-families`,
+  presets: `${baseEndpoint}/feature-presets`,
   models: `${baseEndpoint}/models`,
   labels: `${baseEndpoint}/labels`,
   tasks: `${baseEndpoint}/tasks`,
@@ -164,14 +164,12 @@ class Backend {
     }
   }
 
-  async extract(token, album_id, feature_families_map, study_uid) {
+  async extract(token, album_id, featureExtractionConfig) {
     try {
-      const url = album_id
-        ? `${endpoints.extract}/album/${album_id}`
-        : `${endpoints.extract}/study/${study_uid}`;
+      const url = `${endpoints.extract}/album/${album_id}`;
       return await request(url, {
         method: 'POST',
-        data: feature_families_map,
+        data: featureExtractionConfig,
         token: token,
       });
     } catch (err) {
@@ -215,18 +213,18 @@ class Backend {
     }
   }
 
-  async families(token) {
+  async presets(token) {
     try {
-      const url = `${endpoints.families}`;
+      const url = `${endpoints.presets}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async family(token, featureFamilyID) {
+  async preset(token, featurePresetID) {
     try {
-      const url = `${endpoints.families}/${featureFamilyID}`;
+      const url = `${endpoints.presets}/${featurePresetID}`;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -242,9 +240,9 @@ class Backend {
     }
   }
 
-  async createFamily(token, formData) {
+  async createPreset(token, formData) {
     try {
-      const url = endpoints.families;
+      const url = endpoints.presets;
 
       return await request(url, {
         method: 'POST',
@@ -257,9 +255,9 @@ class Backend {
     }
   }
 
-  async updateFamily(token, featureFamilyID, formData) {
+  async updatePreset(token, featurePresetID, formData) {
     try {
-      const url = `${endpoints.families}/${featureFamilyID}`;
+      const url = `${endpoints.presets}/${featurePresetID}`;
 
       return await request(url, {
         method: 'PATCH',

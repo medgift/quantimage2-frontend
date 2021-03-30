@@ -4,29 +4,29 @@ import { ErrorMessage, Field, Form, Formik } from 'formik';
 import { Button, FormGroup, FormText, Label, Spinner } from 'reactstrap';
 import Backend from './services/backend';
 import * as Yup from 'yup';
-import './FeatureFamilyCreate.css';
+import './FeaturePresetCreate.css';
 import { useAlert } from 'react-alert';
 //import { Debug } from './utils/Debug';
 
 const modes = {
   CREATE: 'Create',
-  UPDATE: 'Update'
+  UPDATE: 'Update',
 };
 
-function FeatureFamilyCreate({ history, match, kheopsError }) {
+function FeaturePresetCreate({ history, match, kheopsError }) {
   const [keycloak] = useKeycloak();
   const alert = useAlert();
 
   const [dataFetched, setDataFetched] = useState(false);
 
   let {
-    params: { featureFamilyID }
+    params: { featurePresetID },
   } = match;
 
-  const [featureFamily, setFeatureFamily] = useState({ name: '', file: '' });
+  const [featurePreset, setFeaturePreset] = useState({ name: '', file: '' });
 
   let handleFormSubmit = async (values, { setSubmitting }) => {
-    let mode = !featureFamilyID ? modes.CREATE : modes.UPDATE;
+    let mode = !featurePresetID ? modes.CREATE : modes.UPDATE;
     console.log(mode);
 
     const data = new FormData();
@@ -38,15 +38,15 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
 
     try {
       if (mode === modes.CREATE) {
-        let createdFeatureFamily = await Backend.createFamily(
+        let createdFeaturePreset = await Backend.createPreset(
           keycloak.token,
           data
         );
-        history.push(`/feature-families/edit/${createdFeatureFamily.id}`);
-        alert.success('Feature Family Created!');
+        history.push(`/feature-presets/edit/${createdFeaturePreset.id}`);
+        alert.success('Feature Preset Created!');
       } else {
-        await Backend.updateFamily(keycloak.token, featureFamilyID, data);
-        alert.success('Feature Family Updated!');
+        await Backend.updatePreset(keycloak.token, featurePresetID, data);
+        alert.success('Feature Preset Updated!');
       }
     } catch (err) {
       console.log(err);
@@ -56,37 +56,37 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
   };
 
   useEffect(() => {
-    async function getFeatureFamily() {
-      if (featureFamilyID) {
-        let featureFamilyResponse = await Backend.family(
+    async function getFeaturePreset() {
+      if (featurePresetID) {
+        let featurePresetResponse = await Backend.preset(
           keycloak.token,
-          featureFamilyID
+          featurePresetID
         );
 
-        setFeatureFamily(prevFamily => ({
-          ...prevFamily,
-          name: featureFamilyResponse.name,
-          file: featureFamilyResponse.config_path.substr(
-            featureFamilyResponse.config_path.lastIndexOf('/') + 1
-          )
+        setFeaturePreset((prevPreset) => ({
+          ...prevPreset,
+          name: featurePresetResponse.name,
+          file: featurePresetResponse.config_path.substr(
+            featurePresetResponse.config_path.lastIndexOf('/') + 1
+          ),
         }));
       }
 
       setDataFetched(true);
     }
 
-    getFeatureFamily();
-  }, [featureFamilyID, keycloak.token]);
+    getFeaturePreset();
+  }, [featurePresetID, keycloak.token]);
 
   return (
     <div>
-      <h1>Feature Family</h1>
+      <h1>Feature Preset</h1>
       {dataFetched ? (
         <Formik
-          initialValues={featureFamily}
+          initialValues={featurePreset}
           validationSchema={Yup.object().shape({
             name: Yup.string().required('Name is required'),
-            file: Yup.mixed().required('File is required')
+            file: Yup.mixed().required('File is required'),
           })}
           onSubmit={handleFormSubmit}
         >
@@ -97,16 +97,16 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
             setFieldValue,
             setFieldTouched,
             validateField,
-            values
+            values,
           }) => (
             <Form>
               <FormGroup>
-                <Label htmlFor="feature-family-name">Feature Family Name</Label>
+                <Label htmlFor="feature-preset-name">Feature Preset Name</Label>
                 <Field
-                  id="feature-family-name"
+                  id="feature-preset-name"
                   type="text"
                   name="name"
-                  placeholder="Type the name of the feature family (e.g. Intensity, Texture)"
+                  placeholder="Type the name of the feature preset (e.g. Intensity, Texture)"
                   className={`form-control ${
                     touched.name && errors.name ? 'is-invalid' : ''
                   }`}
@@ -121,14 +121,14 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
                 <Field name="file">
                   {() => (
                     <>
-                      <Label htmlFor="feature-family-config-file">
-                        Feature Family Configuration File
+                      <Label htmlFor="file">
+                        Feature Preset Configuration File
                       </Label>
                       <div className="custom-file">
                         <input
                           type="file"
                           id="file"
-                          onChange={event => {
+                          onChange={(event) => {
                             setFieldValue('file', event.currentTarget.files[0]);
                           }}
                           className={`custom-file-input ${
@@ -147,7 +147,7 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
                         </label>
                       </div>
                       <FormText color="muted">
-                        Select a YAML file that specifies the feature family's
+                        Select a YAML file that specifies the feature preset's
                         available fields and parameters
                       </FormText>
                     </>
@@ -160,7 +160,7 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
                 />
               </FormGroup>
               <Button type="submit" color="primary" disabled={isSubmitting}>
-                {featureFamilyID ? 'Save' : 'Create'}
+                {featurePresetID ? 'Save' : 'Create'}
               </Button>
               {/*<Debug />*/}
             </Form>
@@ -173,4 +173,4 @@ function FeatureFamilyCreate({ history, match, kheopsError }) {
   );
 }
 
-export default FeatureFamilyCreate;
+export default FeaturePresetCreate;
