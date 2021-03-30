@@ -183,8 +183,8 @@ function ModelsTable({
                               <tr>
                                 <td>Validation Strategy</td>
                                 <td>
-                                  {row.validation_strategy
-                                    ? row.validation_strategy
+                                  {row.original.validation_strategy
+                                    ? row.original.validation_strategy
                                     : 'None'}
                                 </td>
                               </tr>
