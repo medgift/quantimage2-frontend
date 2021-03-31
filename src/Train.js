@@ -50,6 +50,7 @@ function ModelsTable({
   columns,
   data,
   dataPoints,
+  albumExtraction,
   collectionInfos,
   handleDeleteModelClick,
   handleShowFeatureNames,
@@ -240,7 +241,8 @@ function ModelsTable({
                                 <td>
                                   {collectionInfos
                                     ? collectionInfos.features.length
-                                    : row.original['feature-number']}
+                                    : albumExtraction.feature_definitions
+                                        .length}
                                   {' - '}
                                   <a
                                     href="#"
@@ -249,7 +251,7 @@ function ModelsTable({
                                       handleShowFeatureNames(
                                         collectionInfos
                                           ? collectionInfos.features
-                                          : row.original['feature-names']
+                                          : albumExtraction.feature_definitions
                                       );
                                     }}
                                   >
@@ -695,6 +697,7 @@ export default function Train({
           columns={columns}
           data={models}
           dataPoints={dataPoints}
+          albumExtraction={albumExtraction}
           collectionInfos={collectionInfos}
           handleDeleteModelClick={handleDeleteModelClick}
           handleShowFeatureNames={handleShowFeatureNames}

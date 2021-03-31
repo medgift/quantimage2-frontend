@@ -660,7 +660,7 @@ function Features({ history, match, kheopsError }) {
     let modalities =
       collectionID && currentCollection
         ? currentCollection.modalities
-        : featureExtraction['extraction-modalities'];
+        : featureExtraction.modalities;
 
     return modalities.map((modality) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
@@ -674,7 +674,7 @@ function Features({ history, match, kheopsError }) {
     let rois =
       collectionID && currentCollection
         ? currentCollection.rois
-        : featureExtraction['extraction-rois'];
+        : featureExtraction.rois;
 
     return rois.map((roi) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
@@ -693,7 +693,7 @@ function Features({ history, match, kheopsError }) {
     let features =
       collectionID && currentCollection
         ? currentCollection.features
-        : featureExtraction['feature-names'];
+        : featureExtraction.feature_definitions;
 
     return features.length;
   };
