@@ -438,6 +438,7 @@ const Main = (props, ref) => {
                               min={0.1}
                               max={0.9}
                               step={0.1}
+                              disabled={!dropCorrelatedFeatures}
                               onChange={(e) => {
                                 setCorrThreshold(+e.target.value);
                               }}
