@@ -89,15 +89,18 @@ const Main = (props, ref) => {
         for (let i = 0; i < Object.keys(features).length; i++) {
           let corrArray = [];
           for (let j = 0; j < Object.keys(features).length; j++) {
+            let featuresI = [...features[Object.keys(features)[i]]];
+            let featuresJ = [...features[Object.keys(features)[j]]];
+
+            // Check if the array needs to be padded (e.g. PET features don't exist for CT)
+            if (featuresI.length > featuresJ.length) {
+              fillArray(NaN, featuresJ, featuresI.length);
+            } else if (featuresJ.length > featuresI.length) {
+              fillArray(NaN, featuresI, featuresJ.length);
+            }
+
             corrArray.push(
-              Math.abs(
-                +ss
-                  .sampleCorrelation(
-                    features[Object.keys(features)[i]],
-                    features[Object.keys(features)[j]]
-                  )
-                  .toFixed(4)
-              )
+              Math.abs(+ss.sampleCorrelation(featuresI, featuresJ).toFixed(4))
             );
           }
 
@@ -673,6 +676,13 @@ function FilterList({
       </ul>
     </>
   );
+}
+
+function fillArray(value, arr, targetLength) {
+  while (arr.length !== targetLength) {
+    arr.push(value);
+  }
+  return arr;
 }
 
 export default forwardRef(Main);
