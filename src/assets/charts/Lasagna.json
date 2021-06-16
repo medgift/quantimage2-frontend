@@ -7,7 +7,6 @@
       },
       "mark": "rect",
       "height": 300,
-      "width": 900,
       "encoding": {
         "x": {
           "field": "PatientID",
@@ -36,8 +35,16 @@
           }
         },
         "tooltip": [
-          { "field": "PatientID", "type": "ordinal", "title": "Patient" },
-          { "field": "feature_id", "type": "nominal", "title": "Feature" },
+          {
+            "field": "PatientID",
+            "type": "ordinal",
+            "title": "Patient"
+          },
+          {
+            "field": "feature_id",
+            "type": "nominal",
+            "title": "Feature"
+          },
           {
             "field": "feature_value",
             "type": "quantitative",
@@ -52,20 +59,29 @@
       },
       "mark": "rect",
       "height": 20,
-      "width": 900,
       "encoding": {
         "x": {
           "field": "PatientID",
           "type": "nominal",
           "title": "Patients",
-          "sort": "ascending"
+          "sort": "ascending",
+          "axis": {
+            "labels": false
+          }
         },
         "color": {
           "field": "Outcome",
           "scale": {
             "range": ["#59c26e", "#f25a38"]
           }
-        }
+        },
+        "tooltip": [
+          {
+            "field": "PatientID",
+            "type": "nominal",
+            "title": "Patient"
+          }
+        ]
       }
     }
   ]

@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
 import _ from 'lodash';
+import Measure from 'react-measure';
 
 export default function Visualisation(props) {
   // Route
@@ -30,6 +31,7 @@ export default function Visualisation(props) {
   const [regions, setRegions] = useState([]);
   const [modalities, setModalities] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [featureIDs, setFeatureIDs] = useState([]);
 
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
@@ -97,22 +99,11 @@ export default function Visualisation(props) {
 
   // Calculate features to keep based on selections
   const selectedFeatures = useMemo(() => {
-    if (!lasagnaData) return null;
+    if (!lasagnaData || !featureIDs) return null;
 
     let filteredFeatures = lasagnaData.features.filter((f) => {
       return (
-        featureNames
-          .filter((f) => f.selected)
-          .map((f) => f.name)
-          .includes(f.feature_name) &&
-        modalities
-          .filter((m) => m.selected)
-          .map((m) => m.name)
-          .includes(f.Modality) &&
-        regions
-          .filter((r) => r.selected)
-          .map((r) => r.name)
-          .includes(f.ROI) &&
+        featureIDs.includes(f.feature_id) &&
         patients
           .filter((p) => p.selected)
           .map((p) => p.name)
@@ -122,7 +113,7 @@ export default function Visualisation(props) {
     console.log('filtered features', filteredFeatures);
 
     return filteredFeatures;
-  }, [lasagnaData, featureNames, modalities, regions, patients]);
+  }, [lasagnaData, featureIDs, patients]);
 
   // Refresh charts on feature changes
   useEffect(() => {
@@ -163,9 +154,9 @@ export default function Visualisation(props) {
     //console.log('loaded image it seems', pcaImg, lasagnaImg);
   }, [pcaImg, lasagnaImg]);
 
-  const displayAnnotation = (annotation) => {
-    main.current.displayAnnotation(annotation);
-  };
+  // const displayAnnotation = (annotation) => {
+  //   main.current.displayAnnotation(annotation);
+  // };
 
   const askDelete = (annotation) => {
     annotationPanel.current.askDelete(annotation);
@@ -272,6 +263,7 @@ export default function Visualisation(props) {
     let patientIDsSorted = statusSorted.map((p) => p.PatientID);
 
     for (let chart of lasagnaSpec.vconcat) {
+      chart.width = 700; // TODO - Make this more dynamic
       chart.encoding.x.sort = patientIDsSorted;
     }
 
@@ -328,56 +320,65 @@ export default function Visualisation(props) {
   };*/
 
   return (
-    <div className="Visualisation">
-      <Main
-        ref={main}
-        charts={[
-          {
-            id: 'lasagna',
-            title: 'Radiomics Heatmap',
-            chart: lasagnaChart,
-            type: 'vega-lite',
-          },
-          /*{
+    <Measure
+      bounds
+      onResize={(contentRect) => {
+        console.log('Resize!');
+      }}
+    >
+      {({ measureRef }) => (
+        <div className="Visualisation" ref={measureRef}>
+          <Main
+            album={props.album}
+            albumID={albumID}
+            featureExtractionID={props.featureExtractionID}
+            //ref={main}
+            setCollections={props.setCollections}
+            charts={[
+              {
+                id: 'lasagna',
+                title: 'Radiomics Heatmap',
+                chart: lasagnaChart,
+                type: 'vega-lite',
+              },
+              /*{
             id: 'pca',
             title: 'Principal Component Analysis (coming soon)',
             chart: pcaChart,
             type: 'vega',
           },*/
-        ]}
-        images={[
-          {
-            id: 'pca',
-            img: pcaImg,
-          },
-          {
-            id: 'lasagna',
-            img: lasagnaImg,
-          },
-        ]}
-        loading={loading}
-        askDelete={askDelete}
-        askEdit={askEdit}
-        askAnswer={askAnswer}
-        setLasagnaImg={setLasagnaImg}
-        setPcaImg={setPcaImg}
-        featureNames={featureNames}
-        setFeatureNames={setFeatureNames}
-        modalities={modalities}
-        setModalities={setModalities}
-        regions={regions}
-        setRegions={setRegions}
-        patients={patients}
-        setPatients={setPatients}
-        setSelectedModalities={props.setSelectedModalities}
-        setSelectedROIs={props.setSelectedROIs}
-        setSelectedPatients={props.setSelectedPatients}
-        setSelectedFeatures={props.setSelectedFeatures}
-        toggleTab={props.toggleTab}
-        rankFeatures={rankFeatures}
-        setRankFeatures={setRankFeatures}
-      />
-      {/*<SidePanel
+            ]}
+            images={[
+              {
+                id: 'pca',
+                img: pcaImg,
+              },
+              {
+                id: 'lasagna',
+                img: lasagnaImg,
+              },
+            ]}
+            loading={loading}
+            askDelete={askDelete}
+            askEdit={askEdit}
+            askAnswer={askAnswer}
+            setLasagnaImg={setLasagnaImg}
+            setPcaImg={setPcaImg}
+            featureNames={featureNames}
+            setFeatureNames={setFeatureNames}
+            modalities={modalities}
+            setModalities={setModalities}
+            regions={regions}
+            setRegions={setRegions}
+            patients={patients}
+            setPatients={setPatients}
+            featureIDs={featureIDs}
+            setFeatureIDs={setFeatureIDs}
+            toggleTab={props.toggleTab}
+            rankFeatures={rankFeatures}
+            setRankFeatures={setRankFeatures}
+          />
+          {/*<SidePanel
         features={features}
         selectedCpt={features.filter((f) => f.selected).length}
         regions={regions}
@@ -386,7 +387,7 @@ export default function Visualisation(props) {
         forceChange={change}
         all={selectAll}
       />*/}
-      {/*lasagnaImg && pcaImg && (
+          {/*lasagnaImg && pcaImg && (
         <AnnotationPanel
           ref={annotationPanel}
           annotations={annotations}
@@ -406,6 +407,8 @@ export default function Visualisation(props) {
           ]}
         />
       )*/}
-    </div>
+        </div>
+      )}
+    </Measure>
   );
 }

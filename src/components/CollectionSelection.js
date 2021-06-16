@@ -4,7 +4,11 @@ import { ListGroup, ListGroupItem, Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useHistory, useParams } from 'react-router-dom';
 
-export default function CollectionSelection({ album, collections }) {
+export default function CollectionSelection({
+  album,
+  collections,
+  isAlternativeUser,
+}) {
   const history = useHistory();
 
   const { albumID, collectionID, tab } = useParams();
@@ -55,9 +59,11 @@ export default function CollectionSelection({ album, collections }) {
         ))}
       </ListGroup>
 
-      <Button color="link" onClick={handleCreateCollectionClick}>
-        <FontAwesomeIcon icon="plus" /> Create a new collection
-      </Button>
+      {isAlternativeUser && (
+        <Button color="link" onClick={handleCreateCollectionClick}>
+          <FontAwesomeIcon icon="plus" /> Create a new collection
+        </Button>
+      )}
     </div>
   ) : null;
 }

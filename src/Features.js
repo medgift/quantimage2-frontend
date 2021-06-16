@@ -712,6 +712,7 @@ function Features({ history, match, kheopsError }) {
                     album={album.name}
                     collections={collections}
                     collectionID={collectionID}
+                    isAlternativeUser={isAlternativeUser}
                   />
                 </div>
               )}
@@ -1116,11 +1117,14 @@ function Features({ history, match, kheopsError }) {
                                   ? currentCollection
                                   : null
                               }
+                              featureExtractionID={featureExtractionID}
                               setSelectedModalities={setSelectedModalities}
                               setSelectedROIs={setSelectedROIs}
                               setSelectedPatients={setSelectedPatients}
                               setSelectedFeatures={setSelectedFeatures}
+                              setCollections={setCollections}
                               toggleTab={toggle}
+                              album={album.name}
                             />
                           ) : (
                             <p className="p-5">

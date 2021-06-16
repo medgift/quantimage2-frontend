@@ -8,6 +8,10 @@ import React, {
 } from 'react';
 import {
   Button,
+  Form,
+  FormGroup,
+  Input,
+  Label,
   Modal,
   ModalBody,
   ModalHeader,
@@ -23,125 +27,121 @@ import Loading from './Loading';
 import DisplayedAnnotation from './DisplayedAnnotation';
 import useDynamicRefs from 'use-dynamic-refs';
 import classnames from 'classnames';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+import _ from 'lodash';
 
 import * as ss from 'simple-statistics';
 
 import './Main.scss';
 import { NON_FEATURE_FIELDS } from '../Train';
-import Checkbox from '../components/Checkbox';
+import MyCheckbox from '../components/MyCheckbox';
+import Measure from 'react-measure';
+import FilterTree from '../components/FilterTree';
+import {
+  groupFeatures,
+  MODALITIES,
+  MODALITIES_MAP,
+} from '../utils/feature-naming';
+import FeaturesList from '../components/FeaturesList';
+import MyModal from '../components/MyModal';
+
+import Backend from '../services/backend';
+import { useKeycloak } from 'react-keycloak';
+import { useHistory } from 'react-router-dom';
+import CorrelatedFeatures from '../components/CorrelatedFeatures';
+import { get } from 'local-storage';
+import {
+  CATEGORY_DEFINITIONS,
+  FEATURE_CATEGORY_ALIASES,
+} from '../utils/feature-mapping';
+import FeatureRanking from '../components/FeatureRanking';
 
 const PYRADIOMICS_PREFIX = 'original';
 
 const Main = (props, ref) => {
   const [getRef, setRef] = useDynamicRefs();
 
+  const history = useHistory();
+
+  const [keycloak, initialized] = useKeycloak();
+
   const [activeTab, setActiveTab] = useState(props.charts[0].id);
+
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+
+  const [isCollectionSaving, setIsCollectionSaving] = useState(false);
+
+  const [newCollectionName, setNewCollectionName] = useState('');
 
   const [isFeatureGroupModalOpen, setIsFeatureGroupModalOpen] = useState(false);
 
   const [currentFeatureGroup, setCurrentFeatureGroup] = useState(null);
 
-  // Feature selection
-  const [corrThreshold, setCorrThreshold] = useState(0.5);
+  const [selected, setSelected] = useState([]);
+
   const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
 
   // Feature ranking
   const [nRankedFeatures, setNRankedFeatures] = useState(null);
 
-  // React to "drop correlated features" change
-  useEffect(() => {
-    if (
-      !props.loading &&
-      props.featureNames.length > 0 &&
-      props.charts.length > 0 &&
-      props.charts[0].chart &&
-      props.charts[0].chart.data.features.length > 0
-    ) {
-      const features = props.charts[0].chart.data.features.reduce(
-        (acc, curr) => {
-          if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
+  const filteringItems = useMemo(() => {
+    // Create tree of items to check/uncheck
+    let tree = {};
 
-          acc[curr.feature_name].push(curr.feature_value);
+    let featureGroups = groupFeatures(props.featureNames);
 
-          return acc;
-        },
-        {}
-      );
+    // Go through modalities
+    for (let modality of props.modalities) {
+      if (!tree[modality.name]) tree[modality.name] = {};
 
-      if (
-        dropCorrelatedFeatures &&
-        Object.keys(features).length === props.featureNames.length
-      ) {
-        // We want to have all features before filtering
-        if (Object.keys(features).length < props.featureNames.length) return [];
+      // Go through ROIs
+      for (let region of props.regions) {
+        if (!tree[modality.name][region.name])
+          tree[modality.name][region.name] = {};
 
-        // We need at least 2 samples!!!
-        if (
-          Object.keys(features).length > 0 &&
-          features[Object.keys(features)[0]].length < 2
-        ) {
-          return [];
-        }
-
-        // Build correlation matrix
-        let corrMatrix = [];
-        for (let i = 0; i < Object.keys(features).length; i++) {
-          let corrArray = [];
-          for (let j = 0; j < Object.keys(features).length; j++) {
-            let featuresI = [...features[Object.keys(features)[i]]];
-            let featuresJ = [...features[Object.keys(features)[j]]];
-
-            // Check if the array needs to be padded (e.g. PET features don't exist for CT)
-            if (featuresI.length > featuresJ.length) {
-              fillArray(NaN, featuresJ, featuresI.length);
-            } else if (featuresJ.length > featuresI.length) {
-              fillArray(NaN, featuresI, featuresJ.length);
-            }
-
-            corrArray.push(
-              Math.abs(+ss.sampleCorrelation(featuresI, featuresJ).toFixed(4))
-            );
-          }
-
-          corrMatrix.push(corrArray);
-        }
-
-        let featuresIndexDropList = [];
-
-        // Select features to drop
-        for (let i = 0; i < corrMatrix.length; i++) {
-          for (let j = i + 1; j < corrMatrix[i].length; j++) {
-            if (
-              corrMatrix[i][j] >= corrThreshold &&
-              !featuresIndexDropList.includes(i) &&
-              !featuresIndexDropList.includes(j)
-            ) {
-              if (corrMatrix[i] >= corrMatrix[j]) {
-                featuresIndexDropList.push(i);
-              } else {
-                featuresIndexDropList.push(j);
-              }
-            }
-          }
-        }
-
-        let featuresToDrop = featuresIndexDropList.map(
-          (i) => Object.keys(features)[i]
+        // Filter out any modality-specific features that don't correspond to the current one
+        let filteredFeatureGroups = _.omitBy(
+          featureGroups,
+          (value, key) =>
+            MODALITIES.includes(key) && modality.name !== MODALITIES_MAP[key]
         );
+        console.log('lets filter');
 
-        console.log('features to drop', featuresToDrop);
-
-        disableFeatures(featuresToDrop);
+        // Spread feature groups into the current Modality/ROI
+        tree[modality.name][region.name] = { ...filteredFeatureGroups };
       }
     }
-  }, [
-    dropCorrelatedFeatures,
-    corrThreshold,
-    props.charts,
-    props.loading,
-    props.featureNames,
-  ]);
+
+    return tree;
+  }, [props.modalities, props.regions, props.featureNames]);
+
+  const treeData = useMemo(() => {
+    if (filteringItems) {
+      let formattedData = formatTreeData(filteringItems);
+
+      let allNodeIDs = [];
+      for (let topLevelElement of formattedData) {
+        let nodeAndChildrenIds = getNodeAndAllChildrenIDs(topLevelElement, []);
+        allNodeIDs.push(...nodeAndChildrenIds);
+      }
+
+      setSelected(allNodeIDs);
+
+      return formattedData;
+    }
+
+    return [];
+  }, [filteringItems]);
+
+  const leafItems = useMemo(() => {
+    if (treeData) {
+      let items = getAllLeafItems(treeData);
+      console.log('leaf items', items);
+      return items;
+    }
+
+    return {};
+  }, [treeData]);
 
   // TODO - We can filter once the feature selection is more comprehensive (e.g. hierarchical)
   // React to "keep n ranked features" change
@@ -161,6 +161,11 @@ const Main = (props, ref) => {
 
   const toggleModal = () => {
     setIsFeatureGroupModalOpen((o) => !o);
+  };
+
+  const toggleCollectionModal = () => {
+    setIsCollectionModalOpen((o) => !o);
+    setNewCollectionName('');
   };
 
   const [displayAnnotation, setDisplayedAnnotation] = useState(null);
@@ -208,70 +213,34 @@ const Main = (props, ref) => {
     props.askAnswer(displayAnnotation);
   };
 
-  const [featureGroups, setFeatureGroups] = useState([]);
-
-  const updateFeatureGroups = (newFeatureGroups) => {
-    setFeatureGroups(newFeatureGroups);
-    let featureNames = [...props.featureNames];
-
-    /* TODO - Improve this, it's far from optimal! */
-    for (let featureName of featureNames) {
-      for (let featureGroup of newFeatureGroups) {
-        if (
-          featureName.name.startsWith(featureGroup.name) ||
-          featureName.name.startsWith(
-            `${PYRADIOMICS_PREFIX}_${featureGroup.name}`
-          )
-        )
-          featureName.selected = featureGroup.selected;
-      }
-    }
-
-    props.setFeatureNames(featureNames);
-  };
-
-  useEffect(() => {
-    setFeatureGroups(getFeatureGroups(props.featureNames));
-  }, [props.featureNames]);
-
   const handleCreateCollectionClick = () => {
-    props.setSelectedModalities(
-      props.modalities.filter((m) => m.selected).map((m) => m.name)
+    //props.toggleTab('create');
+    console.log(
+      'Creating new collection using',
+      props.featureIDs.length,
+      'features'
     );
-    props.setSelectedROIs(
-      props.regions.filter((r) => r.selected).map((r) => r.name)
-    );
-    props.setSelectedPatients(
-      props.patients.filter((p) => p.selected).map((p) => p.name)
-    );
-    props.setSelectedFeatures(
-      props.featureNames.filter((f) => f.selected).map((f) => f.name)
-    );
-    props.toggleTab('create');
+    toggleCollectionModal();
   };
 
-  const handleFeatureSubgroupClick = (e, featureGroup) => {
-    setCurrentFeatureGroup(featureGroup);
-    toggleModal();
-  };
+  const handleSaveCollectionClick = async () => {
+    setIsCollectionSaving(true);
+    console.log('saving collection...');
+    let newCollection = await Backend.saveCollectionNew(
+      keycloak.token,
+      props.featureExtractionID,
+      newCollectionName,
+      props.featureIDs,
+      props.patients
+    );
+    toggleCollectionModal();
+    setIsCollectionSaving(false);
 
-  const toggleFeature = (featureName) => {
-    let updatedFeatures = [...props.featureNames];
+    props.setCollections((c) => [...c, newCollection]);
 
-    let featureToToggle = updatedFeatures.find((f) => f.name === featureName);
-    featureToToggle.selected = !featureToToggle.selected;
-
-    props.setFeatureNames(updatedFeatures);
-  };
-
-  const disableFeatures = (featuresToDrop) => {
-    let updatedFeatures = [...props.featureNames];
-
-    for (let feature of updatedFeatures) {
-      feature.selected = featuresToDrop.includes(feature.name) ? false : true;
-    }
-
-    props.setFeatureNames(updatedFeatures);
+    history.push(
+      `/features/${props.albumID}/collection/${newCollection.collection.id}/visualize`
+    );
   };
 
   return (
@@ -308,181 +277,182 @@ const Main = (props, ref) => {
                 </NavItem>
               ))}
             </Nav>
-            {activeTab === 'lasagna' && (
-              <>
-                <div className="filters-visualization">
-                  <div className="filter-visualization">
-                    <div>Modalities</div>
-                    <FilterList
-                      label="modality"
-                      values={props.modalities}
-                      setter={props.setModalities}
-                    />
-                  </div>
-                  <div className="filter-visualization">
-                    <div>ROIs</div>
-                    <FilterList
-                      label="roi"
-                      values={props.regions}
-                      setter={props.setRegions}
-                    />
-                  </div>
-                  <div className="filter-visualization">
-                    <div>Patients</div>
-                    <FilterList
-                      label="patient"
-                      values={props.patients}
-                      setter={props.setPatients}
-                    />
-                  </div>
-                  <div className="filter-visualization">
-                    <div>Feature Groups</div>
-                    <FilterList
-                      label="featureGroup"
-                      values={featureGroups}
-                      setter={updateFeatureGroups}
-                      subgroups={true}
-                      subgroupClick={handleFeatureSubgroupClick}
-                      disabled={dropCorrelatedFeatures}
-                    />
-                  </div>
-                </div>
-                {
-                  /*(props.modalities.filter((m) => !m.selected).length > 0 ||
-                  props.regions.filter((r) => !r.selected).length > 0 ||
-                  props.patients.filter((p) => !p.selected).length > 0 ||
-                  featureGroups.filter((g) => !g.selected).length > 0) &&*/
-                  <div>
-                    <Button color="link" onClick={handleCreateCollectionClick}>
-                      + Create collection with these settings
-                    </Button>
-                  </div>
-                }
-              </>
-            )}
-            {activeTab === 'pca' && <h2>Coming soon...</h2>}
-            <div className="charts">
-              <TabContent activeTab={activeTab}>
-                {props.charts.map((c) => {
-                  return (
-                    <TabPane key={c.id} tabId={c.id}>
-                      <div id={c.id} key={c.id} className="d-flex">
-                        <div>
-                          <VegaChart
-                            ref={setRef(c.id + '-chart')}
-                            title={c.title}
-                            chart={c.chart}
-                            type={c.type}
-                            setImage={
-                              c.id === 'lasagna'
-                                ? props.setLasagnaImg
-                                : props.setPcaImg
-                            }
-                          />
-                          <div>
-                            <small>
-                              * Feature values are standardized and the scale is
-                              clipped to [-2, 2]. Outliers will appear either in
-                              white ({'<-2'}) or black (>2).
-                            </small>
-                          </div>
-                        </div>
-                        <div className="tools flex-grow-1">
-                          <p className="mt-4">
-                            <strong>Feature selection</strong>
-                          </p>
-                          <div>
-                            <input
-                              id="drop-corr"
-                              type="checkbox"
-                              value={dropCorrelatedFeatures}
-                              onChange={(e) => {
-                                if (e.target.checked) disableFeatures([]);
-                                setDropCorrelatedFeatures(e.target.checked);
-                              }}
-                            />{' '}
-                            <label htmlFor="drop-corr">
-                              Drop correlated features{' '}
-                              <FontAwesomeIcon
-                                icon="info-circle"
-                                id="corr-explanation"
-                              />
-                              <UncontrolledTooltip
-                                placement="right"
-                                target="corr-explanation"
+            <div className="d-flex flex-column">
+              {activeTab === 'pca' && <h2>Coming soon...</h2>}
+              <div className="charts">
+                <TabContent activeTab={activeTab}>
+                  {props.charts.map((c) => {
+                    return (
+                      <TabPane key={c.id} tabId={c.id}>
+                        {/*{activeTab === 'lasagna' && (
+                          <div className="d-flex flex-column">
+                            <div className="filters-visualization">
+                              <div className="filter-visualization">
+                                <div>Modalities</div>
+                                <FilterList
+                                  label="modality"
+                                  values={props.modalities}
+                                  setter={props.setModalities}
+                                />
+                              </div>
+                              <div className="filter-visualization">
+                                <div>ROIs</div>
+                                <FilterList
+                                  label="roi"
+                                  values={props.regions}
+                                  setter={props.setRegions}
+                                />
+                              </div>
+                              <div className="filter-visualization">
+                                <div>Patients</div>
+                                <FilterList
+                                  label="patient"
+                                  values={props.patients}
+                                  setter={props.setPatients}
+                                />
+                              </div>
+                              <div className="filter-visualization">
+                                <div>Feature Groups</div>
+                                <FilterList
+                                  label="featureGroup"
+                                  values={featureGroups}
+                                  setter={updateFeatureGroups}
+                                  subgroups={true}
+                                  subgroupClick={handleFeatureSubgroupClick}
+                                  disabled={dropCorrelatedFeatures}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Button
+                                color="link"
+                                onClick={handleCreateCollectionClick}
                               >
-                                Allows to deselect highly correlated features
-                                (with redundant information).
-                              </UncontrolledTooltip>
-                            </label>
+                                + Create collection with these settings
+                              </Button>
+                            </div>
                           </div>
-                          <div>
-                            <label htmlFor="corr-threshold">
-                              Correlation Threshold{' '}
-                              <FontAwesomeIcon
-                                icon="info-circle"
-                                id="thresh-explanation"
-                              />
-                              <UncontrolledTooltip
-                                placement="right"
-                                target="thresh-explanation"
-                              >
-                                With a lower threshold, fewer features will be
-                                kept.
-                                <br />
-                                With a higher threshold, more features will be
-                                kept.
-                              </UncontrolledTooltip>
-                            </label>
-                            <br />
-                            <input
-                              id="corr-threshold"
-                              type="range"
-                              min={0.1}
-                              max={0.9}
-                              step={0.1}
-                              disabled={!dropCorrelatedFeatures}
-                              onChange={(e) => {
-                                setCorrThreshold(+e.target.value);
-                              }}
-                              onMouseUp={(e) => {
-                                disableFeatures([]);
-                              }}
-                              value={corrThreshold}
-                              className="slider"
-                            />
-                            <span>{corrThreshold}</span>
-                          </div>
-                          <hr />
-                          <p className="mt-4">
-                            <strong>Feature ranking</strong>
-                          </p>
-                          <div>
-                            <input
-                              id="rank-feats"
-                              type="checkbox"
-                              value={props.rankFeatures}
-                              onChange={(e) => {
-                                props.setRankFeatures(e.target.checked);
-                              }}
-                            />{' '}
-                            <label htmlFor="rank-feats">
-                              Rank by F-value{' '}
-                              <FontAwesomeIcon
-                                icon="info-circle"
-                                id="ranking-explanation"
-                              />
-                              <UncontrolledTooltip
-                                placement="right"
-                                target="ranking-explanation"
-                              >
-                                Sort the features (lines of the chart) so that
-                                more predictive features (when taken
-                                individually) will appear at the top and less
-                                predictive features will appear at the bottom.
-                              </UncontrolledTooltip>
-                            </label>
-                          </div>
+                        )}*/}
+                        <div id={c.id} key={c.id}>
+                          {/* TODO - Would be better NOT to use a table here*/}
+                          <table className="visualization-table">
+                            <tbody>
+                              <tr>
+                                <td className="filter-data">
+                                  <div>
+                                    <h6>Filter Features (Lines)</h6>
+                                    <FilterTree
+                                      filteringItems={filteringItems}
+                                      formatTreeData={formatTreeData}
+                                      treeData={treeData}
+                                      leafItems={leafItems}
+                                      getNodeAndAllChildrenIDs={
+                                        getNodeAndAllChildrenIDs
+                                      }
+                                      modalities={props.modalities}
+                                      regions={props.regions}
+                                      featureNames={props.featureNames}
+                                      featureIDs={props.featureIDs}
+                                      setFeatureIDs={props.setFeatureIDs}
+                                      selected={selected}
+                                      setSelected={setSelected}
+                                      disabled={dropCorrelatedFeatures}
+                                    />
+                                    <h6>Filter Patients (Columns)</h6>
+                                    <div className="filter-visualization">
+                                      <FilterList
+                                        label="patient"
+                                        values={props.patients}
+                                        setter={props.setPatients}
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="chart-cell">
+                                  <Button
+                                    color="success"
+                                    onClick={handleCreateCollectionClick}
+                                    disabled={props.featureIDs.length === 0}
+                                  >
+                                    + Create new collection with these settings
+                                    ({props.featureIDs.length} features)
+                                  </Button>
+                                  <VegaChart
+                                    ref={setRef(c.id + '-chart')}
+                                    title={c.title}
+                                    chart={c.chart}
+                                    type={c.type}
+                                    setImage={
+                                      c.id === 'lasagna'
+                                        ? props.setLasagnaImg
+                                        : props.setPcaImg
+                                    }
+                                  />
+                                  <div>
+                                    <small>
+                                      * Feature values are standardized and the
+                                      scale is clipped to [-2, 2]. Outliers will
+                                      appear either in white ({'<-2'}) or black
+                                      (>2).
+                                    </small>
+                                  </div>
+                                  <div className="d-flex justify-content-around">
+                                    <CorrelatedFeatures
+                                      filteringItems={filteringItems}
+                                      leafItems={leafItems}
+                                      charts={props.charts}
+                                      loading={props.loading}
+                                      featureIDs={props.featureIDs}
+                                      selected={selected}
+                                      setSelected={setSelected}
+                                      dropCorrelatedFeatures={
+                                        dropCorrelatedFeatures
+                                      }
+                                      setDropCorrelatedFeatures={
+                                        setDropCorrelatedFeatures
+                                      }
+                                    />
+                                    <FeatureRanking
+                                      rankFeatures={props.rankFeatures}
+                                      setRankFeatures={props.setRankFeatures}
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          {/*
+
+                            <hr />
+                            <p className="mt-4">
+                              <strong>Feature ranking</strong>
+                            </p>
+                            <div>
+                              <input
+                                id="rank-feats"
+                                type="checkbox"
+                                value={props.rankFeatures}
+                                onChange={(e) => {
+                                  props.setRankFeatures(e.target.checked);
+                                }}
+                              />{' '}
+                              <label htmlFor="rank-feats">
+                                Rank by F-value{' '}
+                                <FontAwesomeIcon
+                                  icon="info-circle"
+                                  id="ranking-explanation"
+                                />
+                                <UncontrolledTooltip
+                                  placement="right"
+                                  target="ranking-explanation"
+                                >
+                                  Sort the features (lines of the chart) so that
+                                  more predictive features (when taken
+                                  individually) will appear at the top and less
+                                  predictive features will appear at the bottom.
+                                </UncontrolledTooltip>
+                              </label>
+                            </div>*/}
                           {/* TODO - Put this back once it's possible to select specific features for a given modality/ROI*/}
                           {/*
                           <div>
@@ -512,48 +482,49 @@ const Main = (props, ref) => {
                           </div>
                           */}
                         </div>
-                      </div>
-                    </TabPane>
-                  );
-                })}
-              </TabContent>
+                      </TabPane>
+                    );
+                  })}
+                </TabContent>
+              </div>
             </div>
-            <Modal isOpen={isFeatureGroupModalOpen} toggle={toggleModal}>
-              <ModalHeader toggle={toggleModal}>
-                Select features in "{currentFeatureGroup}"
-              </ModalHeader>
-              <ModalBody>
-                <div className="feature-selection">
-                  <ul>
-                    {props.featureNames
-                      .filter(
-                        (f) =>
-                          f.name.startsWith(currentFeatureGroup) ||
-                          f.name.startsWith(
-                            `${PYRADIOMICS_PREFIX}_${currentFeatureGroup}`
-                          )
-                      )
-                      .map((f) => (
-                        <li>
-                          <input
-                            key={f.name}
-                            id={`select-feature-${f.name}`}
-                            type="checkbox"
-                            checked={f.selected}
-                            onChange={() => toggleFeature(f.name)}
-                          />{' '}
-                          <label for={`select-feature-${f.name}`}>
-                            {f.name}
-                          </label>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              </ModalBody>
-            </Modal>
           </>
         )}
       </div>
+      <MyModal
+        isOpen={isCollectionModalOpen}
+        toggle={toggleCollectionModal}
+        title={
+          <span>
+            Create new collection for Album <strong>{props.album}</strong>
+          </span>
+        }
+      >
+        <p>
+          The collection contains <strong>{props.featureIDs.length}</strong>{' '}
+          different features (combining modalities, ROIs & feature types)
+        </p>
+        <Form>
+          <FormGroup>
+            <Label for="exampleEmail">New Collection Name</Label>
+            <Input
+              type="text"
+              name="collectionName"
+              id="collectionNAme"
+              placeholder="New collection name..."
+              value={newCollectionName}
+              onChange={(e) => setNewCollectionName(e.target.value)}
+            />
+          </FormGroup>
+          <Button
+            color="primary"
+            onClick={handleSaveCollectionClick}
+            disabled={newCollectionName === '' || isCollectionSaving}
+          >
+            {isCollectionSaving ? 'Saving Collection...' : 'Save Collection'}
+          </Button>
+        </Form>
+      </MyModal>
     </>
   );
 };
@@ -650,7 +621,7 @@ function FilterList({
       <ul>
         {values.map((v) => (
           <li key={`${label}-${v.name}`}>
-            <Checkbox
+            <MyCheckbox
               id={`${label}-${v.name}`}
               checked={v.selected === true}
               onChange={(e) => {
@@ -678,11 +649,71 @@ function FilterList({
   );
 }
 
-function fillArray(value, arr, targetLength) {
-  while (arr.length !== targetLength) {
-    arr.push(value);
-  }
-  return arr;
+export default forwardRef(Main);
+
+function formatTreeData(object, prefix) {
+  if (!prefix) prefix = '';
+
+  let firstPrefixPart =
+    prefix.split('-').length > 1 ? prefix.split('-')[0] : null;
+
+  return Object.entries(object).map(([key, value]) => {
+    let alias =
+      firstPrefixPart && FEATURE_CATEGORY_ALIASES?.[firstPrefixPart]?.[key];
+
+    return value &&
+      _.isPlainObject(value) &&
+      !Object.keys(value).includes('shortName')
+      ? {
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          children: formatTreeData(value, `${prefix}${key}-`),
+          description: CATEGORY_DEFINITIONS[alias ? alias : key]
+            ? CATEGORY_DEFINITIONS[alias ? alias : key]
+            : null,
+        }
+      : {
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          value: value,
+        };
+  });
 }
 
-export default forwardRef(Main);
+function getNodeAndAllChildrenIDs(node, nodeIDs) {
+  nodeIDs.push(node.id);
+
+  if (node.children) {
+    for (let child of node.children) {
+      getNodeAndAllChildrenIDs(child, nodeIDs);
+    }
+  }
+
+  return nodeIDs;
+}
+
+function getAllLeafItems(obj) {
+  let leafItems = {};
+
+  for (let item of obj) {
+    getLeafItems(item, leafItems);
+  }
+
+  return leafItems;
+}
+
+const FULL_FEATURE_NAME_PATTERN = /(?<modality>.*?)-(?<region>.*?)-(?<name>.*)/;
+
+function getLeafItems(node, collector) {
+  if (Array.isArray(node)) {
+    for (let item of node) {
+      getLeafItems(item, collector);
+    }
+  } else if (node.children) {
+    getLeafItems(node.children, collector);
+  } else {
+    let nodeId = node.id;
+    let { modality, region } = nodeId.match(FULL_FEATURE_NAME_PATTERN).groups;
+    collector[node.id] = `${modality}-${region}-${node.value.id}`;
+  }
+}

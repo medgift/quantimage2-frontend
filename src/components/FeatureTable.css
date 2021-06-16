@@ -10,26 +10,26 @@
   overflow-x: auto;
 }
 
-table {
+.table-container table {
   border-spacing: 0;
   font-size: smaller;
 }
 
-table thead tr:first-child th,
-table thead tr:nth-child(2) th {
+.table-container table thead tr:first-child th,
+.table-container table thead tr:nth-child(2) th {
   text-align: left;
 }
 
-table tbody {
+.table-container table tbody {
   overflow-x: scroll;
 }
 
-table tr :last-child td {
+.table-container table tr :last-child td {
   border-bottom: 0;
 }
 
-table th,
-table td {
+.table-container table th,
+.table-container table td {
   margin: 0;
   padding: 0.25rem;
   border-bottom: 1px solid #eee;

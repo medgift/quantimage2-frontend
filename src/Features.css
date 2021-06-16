@@ -3,8 +3,9 @@
 }
 
 .collections-list {
-  flex-basis: 250px;
+  flex-basis: 200px;
   flex-shrink: 0;
+  font-size: smaller;
 }
 
 .collection-container {
@@ -19,7 +20,7 @@
 }
 
 .feature-tabs {
-  overflow-x: hidden;
+  /*overflow-x: hidden;*/
   flex-grow: 1;
 }
 

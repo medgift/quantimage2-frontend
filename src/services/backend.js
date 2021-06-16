@@ -270,6 +270,31 @@ class Backend {
     }
   }
 
+  async saveCollectionNew(
+    token,
+    featureExtractionID,
+    name,
+    featureIDs,
+    patients
+  ) {
+    try {
+      const url = `${endpoints.collections}/new`;
+
+      return await request(url, {
+        method: 'POST',
+        data: {
+          featureExtractionID: featureExtractionID,
+          name: name,
+          featureIDs: featureIDs,
+          patients: patients.filter((p) => p.selected).map((p) => p.name),
+        },
+        token: token,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async saveCollection(
     token,
     featureExtractionID,

@@ -15,7 +15,6 @@ const VegaChart = (props, ref) => {
   return (
     <>
       <div className="VegaChart">
-        <h4>{props.title}</h4>
         {props.type === 'vega' ? (
           <Vega
             spec={props.chart.spec}
@@ -26,6 +25,7 @@ const VegaChart = (props, ref) => {
                 props.setImage(image);
               }
             }}
+            width={props.width}
           />
         ) : props.type === 'vega-lite' ? (
           <VegaLite
