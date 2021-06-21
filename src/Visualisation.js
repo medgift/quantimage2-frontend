@@ -1,18 +1,32 @@
-import React, { useEffect, useState, useContext, useRef, useMemo } from 'react';
-import UserContext from './context/UserContext';
-import SidePanel from './visualisation/SidePanel';
+import React, { useEffect, useState, useMemo } from 'react';
 import Main from './visualisation/Main';
-import AnnotationPanel from './visualisation/AnnotationPanel';
 import './Visualisation.css';
 import Backend from './services/backend';
 // Chart Specs
-import PCA from './assets/charts/PCA.json';
 import Lasagna from './assets/charts/Lasagna.json';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
 import _ from 'lodash';
 import Measure from 'react-measure';
+import FilterTree from './components/FilterTree';
+import { Button, Form, FormGroup, Input, Label } from 'reactstrap';
+import VegaChart from './visualisation/VegaChart';
+import CorrelatedFeatures from './components/CorrelatedFeatures';
+import FeatureRanking from './components/FeatureRanking';
+import {
+  groupFeatures,
+  MODALITIES,
+  MODALITIES_MAP,
+} from './utils/feature-naming';
+import {
+  CATEGORY_DEFINITIONS,
+  FEATURE_CATEGORY_ALIASES,
+} from './utils/feature-mapping';
+import FilterList from './components/FilterList';
+import MyModal from './components/MyModal';
+import Loading from './visualisation/Loading';
+import { Vega } from 'react-vega';
 
 export default function Visualisation(props) {
   // Route
@@ -21,9 +35,10 @@ export default function Visualisation(props) {
   // Keycloak
   const [keycloak] = useKeycloak();
 
+  // History
+  const history = useHistory();
+
   // Init
-  const user = useContext(UserContext);
-  const main = useRef(null);
   const [loading, setLoading] = useState(true);
 
   // Features
@@ -36,16 +51,22 @@ export default function Visualisation(props) {
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
 
-  // Annotations
-  const annotationPanel = useRef(null);
-  const [annotations, setAnnotations] = useState([]);
+  // Drop correlated features
+  const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
+
+  // Manage feature selections
+  const [selected, setSelected] = useState([]);
 
   // Charts
-  const [pcaChart, setPcaChart] = useState(null);
   const [lasagnaData, setLasagnaData] = useState(null);
-  const [lasagnaChart, setLasagnaChart] = useState(null);
-  const [pcaImg, setPcaImg] = useState(null);
-  const [lasagnaImg, setLasagnaImg] = useState(null);
+
+  // Selected features
+  const [selectedFeatures, setSelectedFeatures] = useState([]);
+
+  // Collection creation
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [isCollectionSaving, setIsCollectionSaving] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState('');
 
   // Collection information
   const { collectionInfos } = props;
@@ -83,23 +104,19 @@ export default function Visualisation(props) {
           selected: true,
         }))
       );
+
+      // Set initial feature IDs (all) to show the chart in the right moment
+      setFeatureIDs([...new Set(data.features.map((f) => f.feature_id))]);
+
       setLasagnaData(data);
     }
-
-    /*async function loadAnnotations() {
-      let annotations = await Backend.annotations(keycloak.token, albumID);
-      setAnnotations(annotations);
-    }
-
-    loadAnnotations();
-    */
 
     loadLasagnaChartData();
   }, []);
 
   // Calculate features to keep based on selections
-  const selectedFeatures = useMemo(() => {
-    if (!lasagnaData || !featureIDs) return null;
+  useEffect(() => {
+    if (!lasagnaData) return undefined;
 
     let filteredFeatures = lasagnaData.features.filter((f) => {
       return (
@@ -112,142 +129,92 @@ export default function Visualisation(props) {
     });
     console.log('filtered features', filteredFeatures);
 
-    return filteredFeatures;
+    setSelectedFeatures(filteredFeatures);
   }, [lasagnaData, featureIDs, patients]);
 
-  // Refresh charts on feature changes
-  useEffect(() => {
-    if (selectedFeatures) {
-      console.log(
-        'going to load charts with the selected features',
-        selectedFeatures.length
-      );
-      loadCharts(selectedFeatures);
-    }
-  }, [selectedFeatures]);
+  const filteringItems = useMemo(() => {
+    // Create tree of items to check/uncheck
+    let tree = {};
 
-  // Update Vega
-  useEffect(() => {
-    if (pcaChart && lasagnaChart) {
-      setLoading(false);
-      console.log('charts loaded');
-    }
-  }, [lasagnaChart, pcaChart]);
+    let featureGroups = groupFeatures(featureNames);
 
-  // Update Lasagna plot (feature ranking)
-  useEffect(() => {
-    if (lasagnaChart) {
-      setLasagnaChart((c) => {
-        let newChart = _.cloneDeep(c);
+    // Go through modalities
+    for (let modality of modalities) {
+      if (!tree[modality.name]) tree[modality.name] = {};
 
-        if (rankFeatures)
-          newChart.spec.vconcat[0].encoding.y.field = 'feature_rank';
-        else newChart.spec.vconcat[0].encoding.y.field = 'feature_id';
+      // Go through ROIs
+      for (let region of regions) {
+        if (!tree[modality.name][region.name])
+          tree[modality.name][region.name] = {};
 
-        return newChart;
-      });
-    }
-  }, [rankFeatures]);
+        // Filter out any modality-specific features that don't correspond to the current one
+        let filteredFeatureGroups = _.omitBy(
+          featureGroups,
+          (value, key) =>
+            MODALITIES.includes(key) && modality.name !== MODALITIES_MAP[key]
+        );
 
-  // React to image setting
-  useEffect(() => {
-    //console.log('loaded image it seems', pcaImg, lasagnaImg);
-  }, [pcaImg, lasagnaImg]);
-
-  // const displayAnnotation = (annotation) => {
-  //   main.current.displayAnnotation(annotation);
-  // };
-
-  const askDelete = (annotation) => {
-    annotationPanel.current.askDelete(annotation);
-  };
-
-  const askEdit = (annotation) => {
-    annotationPanel.current.askEdit(annotation);
-  };
-
-  const askAnswer = (annotation) => {
-    annotationPanel.current.askAnswer(annotation);
-  };
-
-  const saveAnnotation = async (title, text, lines, parentId, currentAnnot) => {
-    let newAnnotations = [...annotations];
-    const newAnnot = {
-      title,
-      text,
-      lines,
-      //user: 5, // User is defined on the backend based on token
-    };
-    if (currentAnnot) {
-      newAnnot.id = currentAnnot.id;
-      // Remove old annotation
-      newAnnotations = newAnnotations.filter((a) => a.id !== currentAnnot.id);
-    }
-    if (parentId) newAnnot.parent_id = parentId;
-
-    // Save annotation in DB (create or update)
-    // TODO: Save in Database -> STRINGIFY LINES !
-    let savedAnnotation;
-
-    // Existing annotation -> update
-    if (currentAnnot) {
-      savedAnnotation = await Backend.updateAnnotation(
-        keycloak.token,
-        newAnnot
-      );
-    } else {
-      savedAnnotation = await Backend.createAnnotation(
-        keycloak.token,
-        albumID,
-        newAnnot
-      );
+        // Spread feature groups into the current Modality/ROI
+        tree[modality.name][region.name] = { ...filteredFeatureGroups };
+      }
     }
 
-    // Refresh the list
-    newAnnotations.push(savedAnnotation);
-    setAnnotations(newAnnotations);
-  };
+    return tree;
+  }, [modalities, regions, featureNames]);
 
-  const deleteAnnotation = async (id, willBeDeleted = true) => {
-    let deletedAnnot = annotations.find((a) => a.id === id);
-    deletedAnnot.deleted = willBeDeleted;
-    setAnnotations([...annotations]);
-    // TODO: Delete in Database
+  const treeData = useMemo(() => {
+    if (filteringItems) {
+      let formattedData = formatTreeData(filteringItems);
 
-    let deletedAnnotation = await Backend.updateAnnotation(
-      keycloak.token,
-      deletedAnnot
-    );
-  };
+      let allNodeIDs = [];
+      for (let topLevelElement of formattedData) {
+        let nodeAndChildrenIds = getNodeAndAllChildrenIDs(topLevelElement, []);
+        allNodeIDs.push(...nodeAndChildrenIds);
+      }
 
-  const loadCharts = (features) => {
-    setupLasagna(features);
-    setupPCA(features);
-    // Other charts ?
-  };
+      setSelected(allNodeIDs);
 
-  const setupLasagna = async (features) => {
-    let enrichedData = features.map((f) => ({
-      ...f,
-      Outcome: lasagnaData.outcomes.find((s) => s.PatientID === f.PatientID)
-        .Outcome,
-    }));
+      return formattedData;
+    }
 
-    // Filter status data by selected patients also!
-    let filteredStatus = lasagnaData.outcomes.filter((o) =>
+    return [];
+  }, [filteringItems]);
+
+  const leafItems = useMemo(() => {
+    if (treeData) {
+      let items = getAllLeafItems(treeData);
+      console.log('leaf items', items);
+      return items;
+    }
+
+    return {};
+  }, [treeData]);
+
+  // Get filtered status data
+  const filteredStatus = useMemo(() => {
+    if (!lasagnaData) return [];
+
+    return lasagnaData.outcomes.filter((o) =>
       patients
         .filter((p) => p.selected)
         .map((p) => p.name)
         .includes(o.PatientID)
     );
+  }, [lasagnaData, patients]);
 
-    const properData = {
-      features: enrichedData,
-      status: filteredStatus,
-    };
+  // Update Vega
+  useEffect(() => {
+    if (lasagnaData && loading === true) {
+      setLoading(false);
+      console.log('charts loaded');
+    }
+  }, [lasagnaData, loading]);
 
-    const lasagnaSpec = { ...Lasagna };
-    lasagnaSpec.data = { name: ['features', 'status'] };
+  // Define spec dynamically
+  const lasagnaSpec = useMemo(() => {
+    if (!filteredStatus) return Lasagna;
+
+    let finalSpec = _.cloneDeep(Lasagna);
 
     // Custom sort of patients
     let statusSorted = filteredStatus.sort((p1, p2) => {
@@ -262,153 +229,234 @@ export default function Visualisation(props) {
 
     let patientIDsSorted = statusSorted.map((p) => p.PatientID);
 
-    for (let chart of lasagnaSpec.vconcat) {
-      chart.width = 700; // TODO - Make this more dynamic
+    for (let chart of finalSpec.vconcat) {
       chart.encoding.x.sort = patientIDsSorted;
     }
 
-    // If we are sorting by rank
-    if (rankFeatures) lasagnaSpec.vconcat[0].encoding.y.field = 'feature_rank';
-    else lasagnaSpec.vconcat[0].encoding.y.field = 'feature_id';
+    if (rankFeatures) finalSpec.vconcat[0].encoding.y.field = 'feature_rank';
+    else finalSpec.vconcat[0].encoding.y.field = 'feature_id';
 
-    setLasagnaChart({
-      data: properData,
-      spec: lasagnaSpec,
-    });
+    return finalSpec;
+  }, [filteredStatus, rankFeatures]);
+
+  const handleCreateCollectionClick = () => {
+    console.log('Creating new collection using', featureIDs.length, 'features');
+    toggleCollectionModal();
   };
 
-  const setupPCA = (features) => {
-    const pcaData = {
-      source: PCA.data[0].values,
-    };
-    const pcaSpec = { ...PCA };
-    pcaSpec.data = [
-      { name: 'source' },
-      {
-        name: 'density',
-        source: PCA.data[1].source,
-        transform: PCA.data[1].transform,
-      },
-      {
-        name: 'contours',
-        source: PCA.data[2].source,
-        transform: PCA.data[2].transform,
-      },
-    ];
-    pcaSpec.height = 400;
-    pcaSpec.width = 400;
-    setPcaChart({
-      data: pcaData,
-      spec: pcaSpec,
-    });
+  const handleSaveCollectionClick = async () => {
+    setIsCollectionSaving(true);
+    console.log('saving collection...');
+    let newCollection = await Backend.saveCollectionNew(
+      keycloak.token,
+      props.featureExtractionID,
+      newCollectionName,
+      featureIDs,
+      patients
+    );
+    toggleCollectionModal();
+    setIsCollectionSaving(false);
+
+    props.setCollections((c) => [...c, newCollection]);
+
+    history.push(
+      `/features/${albumID}/collection/${newCollection.collection.id}/visualize`
+    );
   };
 
-  /*
-   ** Only consider the features selected by the user
-   */
-  /*const filterFeatures = async (features, data) => {
-    const selectedFeatures = await features.filter((f) => f.selected);
-    const filteredData = [];
-    await data.map((d) => {
-      selectedFeatures.map((f) => {
-        if (d.feature_id === f.key) {
-          filteredData.push(d);
-        }
-      });
-    });
-    return filteredData;
-  };*/
+  const toggleCollectionModal = () => {
+    setIsCollectionModalOpen((o) => !o);
+    setNewCollectionName('');
+  };
+
+  if (loading) {
+    return (
+      <div className="Visualisation">
+        <Loading color="dark" className="flex-grow-1">
+          <h3>Loading Charts...</h3>
+        </Loading>
+      </div>
+    );
+  }
 
   return (
-    <Measure
-      bounds
-      onResize={(contentRect) => {
-        console.log('Resize!');
-      }}
-    >
-      {({ measureRef }) => (
-        <div className="Visualisation" ref={measureRef}>
-          <Main
-            album={props.album}
-            albumID={albumID}
-            featureExtractionID={props.featureExtractionID}
-            //ref={main}
-            setCollections={props.setCollections}
-            charts={[
-              {
-                id: 'lasagna',
-                title: 'Radiomics Heatmap',
-                chart: lasagnaChart,
-                type: 'vega-lite',
-              },
-              /*{
-            id: 'pca',
-            title: 'Principal Component Analysis (coming soon)',
-            chart: pcaChart,
-            type: 'vega',
-          },*/
-            ]}
-            images={[
-              {
-                id: 'pca',
-                img: pcaImg,
-              },
-              {
-                id: 'lasagna',
-                img: lasagnaImg,
-              },
-            ]}
-            loading={loading}
-            askDelete={askDelete}
-            askEdit={askEdit}
-            askAnswer={askAnswer}
-            setLasagnaImg={setLasagnaImg}
-            setPcaImg={setPcaImg}
-            featureNames={featureNames}
-            setFeatureNames={setFeatureNames}
-            modalities={modalities}
-            setModalities={setModalities}
-            regions={regions}
-            setRegions={setRegions}
-            patients={patients}
-            setPatients={setPatients}
-            featureIDs={featureIDs}
-            setFeatureIDs={setFeatureIDs}
-            toggleTab={props.toggleTab}
-            rankFeatures={rankFeatures}
-            setRankFeatures={setRankFeatures}
-          />
-          {/*<SidePanel
-        features={features}
-        selectedCpt={features.filter((f) => f.selected).length}
-        regions={regions}
-        modalities={modalities}
-        change={change}
-        forceChange={change}
-        all={selectAll}
-      />*/}
-          {/*lasagnaImg && pcaImg && (
-        <AnnotationPanel
-          ref={annotationPanel}
-          annotations={annotations}
-          displayAnnotation={displayAnnotation}
-          saveAnnotation={saveAnnotation}
-          deleteAnnotation={deleteAnnotation}
-          user={user}
-          chartsImg={[
-            {
-              id: 'pca',
-              img: pcaImg,
-            },
-            {
-              id: 'lasagna',
-              img: lasagnaImg,
-            },
-          ]}
-        />
-      )*/}
-        </div>
-      )}
-    </Measure>
+    <div className="Visualisation">
+      {/* TODO - Would be better NOT to use a table here*/}
+      <table className="visualization-table">
+        <tbody>
+          <tr>
+            <td className="filter-data">
+              <div>
+                <h6>Filter Features (Lines)</h6>
+                <FilterTree
+                  filteringItems={filteringItems}
+                  formatTreeData={formatTreeData}
+                  treeData={treeData}
+                  leafItems={leafItems}
+                  getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
+                  modalities={modalities}
+                  regions={regions}
+                  featureNames={featureNames}
+                  featureIDs={featureIDs}
+                  setFeatureIDs={setFeatureIDs}
+                  selected={selected}
+                  setSelected={setSelected}
+                  disabled={dropCorrelatedFeatures}
+                />
+                <h6>Filter Patients (Columns)</h6>
+                <div className="filter-visualization">
+                  <FilterList
+                    label="patient"
+                    values={patients}
+                    setter={setPatients}
+                  />
+                </div>
+              </div>
+            </td>
+            <td className="chart-cell">
+              <Button
+                color="success"
+                onClick={handleCreateCollectionClick}
+                disabled={featureIDs.length === 0}
+              >
+                + Create new collection with these settings ({featureIDs.length}{' '}
+                features)
+              </Button>
+              <div>
+                <Vega
+                  spec={lasagnaSpec}
+                  data={{ features: selectedFeatures, status: filteredStatus }}
+                />
+              </div>
+              <div>
+                <small>
+                  * Feature values are standardized and the scale is clipped to
+                  [-2, 2]. Outliers will appear either in white ({'<-2'}) or
+                  black (>2).
+                </small>
+              </div>
+              <div className="d-flex justify-content-around">
+                <CorrelatedFeatures
+                  lasagnaData={lasagnaData}
+                  filteringItems={filteringItems}
+                  leafItems={leafItems}
+                  loading={loading}
+                  featureIDs={featureIDs}
+                  selected={selected}
+                  setSelected={setSelected}
+                  dropCorrelatedFeatures={dropCorrelatedFeatures}
+                  setDropCorrelatedFeatures={setDropCorrelatedFeatures}
+                />
+                <FeatureRanking
+                  rankFeatures={rankFeatures}
+                  setRankFeatures={setRankFeatures}
+                />
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <MyModal
+        isOpen={isCollectionModalOpen}
+        toggle={toggleCollectionModal}
+        title={
+          <span>
+            Create new collection for Album <strong>{props.album}</strong>
+          </span>
+        }
+      >
+        <p>
+          The collection contains <strong>{featureIDs.length}</strong> different
+          features (combining modalities, ROIs & feature types)
+        </p>
+        <Form>
+          <FormGroup>
+            <Label for="exampleEmail">New Collection Name</Label>
+            <Input
+              type="text"
+              name="collectionName"
+              id="collectionNAme"
+              placeholder="New collection name..."
+              value={newCollectionName}
+              onChange={(e) => setNewCollectionName(e.target.value)}
+            />
+          </FormGroup>
+          <Button
+            color="primary"
+            onClick={handleSaveCollectionClick}
+            disabled={newCollectionName === '' || isCollectionSaving}
+          >
+            {isCollectionSaving ? 'Saving Collection...' : 'Save Collection'}
+          </Button>
+        </Form>
+      </MyModal>
+    </div>
   );
+}
+
+function formatTreeData(object, prefix) {
+  if (!prefix) prefix = '';
+
+  let firstPrefixPart =
+    prefix.split('-').length > 1 ? prefix.split('-')[0] : null;
+
+  return Object.entries(object).map(([key, value]) => {
+    let alias =
+      firstPrefixPart && FEATURE_CATEGORY_ALIASES?.[firstPrefixPart]?.[key];
+
+    return value &&
+      _.isPlainObject(value) &&
+      !Object.keys(value).includes('shortName')
+      ? {
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          children: formatTreeData(value, `${prefix}${key}-`),
+          description: CATEGORY_DEFINITIONS[alias ? alias : key]
+            ? CATEGORY_DEFINITIONS[alias ? alias : key]
+            : null,
+        }
+      : {
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          value: value,
+        };
+  });
+}
+
+function getNodeAndAllChildrenIDs(node, nodeIDs) {
+  nodeIDs.push(node.id);
+
+  if (node.children) {
+    for (let child of node.children) {
+      getNodeAndAllChildrenIDs(child, nodeIDs);
+    }
+  }
+
+  return nodeIDs;
+}
+
+function getAllLeafItems(obj) {
+  let leafItems = {};
+
+  for (let item of obj) {
+    getLeafItems(item, leafItems);
+  }
+
+  return leafItems;
+}
+
+const FULL_FEATURE_NAME_PATTERN = /(?<modality>.*?)-(?<region>.*?)-(?<name>.*)/;
+
+function getLeafItems(node, collector) {
+  if (Array.isArray(node)) {
+    for (let item of node) {
+      getLeafItems(item, collector);
+    }
+  } else if (node.children) {
+    getLeafItems(node.children, collector);
+  } else {
+    let nodeId = node.id;
+    let { modality, region } = nodeId.match(FULL_FEATURE_NAME_PATTERN).groups;
+    collector[node.id] = `${modality}-${region}-${node.value.id}`;
+  }
 }

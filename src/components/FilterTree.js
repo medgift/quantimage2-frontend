@@ -63,7 +63,7 @@ export default function FilterTree({
         );
       } else {
         newSelections = newSelections.filter(
-          (s) => !s.includes(...nodeAndChildren)
+          (ns) => !nodeAndChildren.includes(ns)
         );
       }
 

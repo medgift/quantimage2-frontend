@@ -5,9 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UncontrolledTooltip } from 'reactstrap';
 
 export default function CorrelatedFeatures({
-  charts,
-  loading,
-  featureIDs,
+  lasagnaData,
   leafItems,
   selected,
   setSelected,
@@ -31,28 +29,17 @@ export default function CorrelatedFeatures({
   useEffect(() => {
     if (
       featuresValuesBeforeDropping.length === 0 &&
-      charts &&
-      charts[0] &&
-      charts[0].chart &&
-      charts[0].chart.data.features &&
-      charts[0].chart.data.features.length > 0
+      lasagnaData &&
+      lasagnaData.features.length > 0
     ) {
       let features = getFeatures();
       setFeatureValuesBeforeDropping(features);
     }
-  }, [charts]);
+  }, [lasagnaData]);
 
   const getFeatures = () => {
-    /*if (
-      !charts ||
-      !charts[0] ||
-      !charts[0].chart ||
-      !charts[0].chart.data.features
-    )
-      return [];*/
-
     // Get list of feature values for each feature name
-    const features = charts[0].chart.data.features.reduce((acc, curr) => {
+    const features = lasagnaData.features.reduce((acc, curr) => {
       if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
 
       acc[curr.feature_name].push(curr.feature_value);
@@ -174,45 +161,6 @@ export default function CorrelatedFeatures({
       selectedBeforeDropping.filter((s) => !nodesToDeselect.includes(s))
     );
   };
-
-  /*const featuresToDrop = useMemo(() => {
-    if (
-      !loading &&
-      featureIDs.length > 0 &&
-      charts.length > 0 &&
-      charts[0].chart &&
-      charts[0].chart.data.features.length > 0
-    ) {
-      let originalFeatureIDs = disableFeatures(featuresToDrop);
-      setFeatureIDsBeforeDropping(originalFeatureIDs);
-    } else {
-      if (featuresIDsBeforeDropping.length > 0)
-        setFeatureIDs(featuresIDsBeforeDropping);
-    }
-  }, []);*/
-
-  // React to "drop correlated features" change
-  /*useEffect(() => {
-    if (
-      !loading &&
-      featureIDs.length > 0 &&
-      charts.length > 0 &&
-      charts[0].chart &&
-      charts[0].chart.data.features.length > 0
-    ) {
-      if (!dropCorrelatedFeatures && featuresIDsBeforeDropping.length > 0) {
-        if (featuresIDsBeforeDropping.length > 0)
-          setFeatureIDs(featuresIDsBeforeDropping);
-      }
-    }
-  }, [
-    dropCorrelatedFeatures,
-    corrThreshold,
-    charts,
-    loading,
-    featureIDs,
-    setFeatureIDs,
-  ]);*/
 
   return (
     <div className="tools">
