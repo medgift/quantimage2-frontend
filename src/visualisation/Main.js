@@ -211,7 +211,7 @@ const Main = (props, ref) => {
     //props.toggleTab('create');
     console.log(
       'Creating new collection using',
-      props.featureIDs.length,
+      props.featureIDs.size,
       'features'
     );
     toggleCollectionModal();
@@ -294,7 +294,7 @@ const Main = (props, ref) => {
         }
       >
         <p>
-          The collection contains <strong>{props.featureIDs.length}</strong>{' '}
+          The collection contains <strong>{props.featureIDs.size}</strong>{' '}
           different features (combining modalities, ROIs & feature types)
         </p>
         <Form>

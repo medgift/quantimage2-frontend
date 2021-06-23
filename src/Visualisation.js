@@ -228,6 +228,16 @@ export default function Visualisation(props) {
       }
     });
 
+    // Custom color scheme (for UNKNOWN and then others)
+    finalSpec.vconcat[1].encoding.color.scale.domain = [
+      ...new Set(filteredStatus.map((p) => p.Outcome)),
+    ];
+    finalSpec.vconcat[1].encoding.color.scale.range = [
+      '#f25a38',
+      '#59c26e',
+      '#cccccc',
+    ];
+
     let patientIDsSorted = statusSorted.map((p) => p.PatientID);
 
     for (let chart of finalSpec.vconcat) {
@@ -241,7 +251,7 @@ export default function Visualisation(props) {
   }, [filteredStatus, rankFeatures]);
 
   const handleCreateCollectionClick = () => {
-    console.log('Creating new collection using', featureIDs.length, 'features');
+    console.log('Creating new collection using', featureIDs.size, 'features');
     toggleCollectionModal();
   };
 
@@ -252,7 +262,7 @@ export default function Visualisation(props) {
       keycloak.token,
       props.featureExtractionID,
       newCollectionName,
-      featureIDs,
+      [...featureIDs],
       patients
     );
     toggleCollectionModal();
@@ -318,9 +328,9 @@ export default function Visualisation(props) {
               <Button
                 color="success"
                 onClick={handleCreateCollectionClick}
-                disabled={featureIDs.length === 0}
+                disabled={featureIDs.size === 0}
               >
-                + Create new collection with these settings ({featureIDs.length}{' '}
+                + Create new collection with these settings ({featureIDs.size}{' '}
                 features)
               </Button>
               <div>
@@ -367,7 +377,7 @@ export default function Visualisation(props) {
         }
       >
         <p>
-          The collection contains <strong>{featureIDs.length}</strong> different
+          The collection contains <strong>{featureIDs.size}</strong> different
           features (combining modalities, ROIs & feature types)
         </p>
         <Form>

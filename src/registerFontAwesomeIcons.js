@@ -12,6 +12,7 @@ import {
   faSlidersH,
   faExternalLinkAlt,
   faExclamationCircle,
+  faExclamationTriangle,
   faInfoCircle,
   faCheck,
   faCheckDouble,
@@ -66,6 +67,7 @@ export default function registerIcons() {
   library.add(faSlidersH);
   library.add(faExternalLinkAlt);
   library.add(faExclamationCircle);
+  library.add(faExclamationTriangle);
   library.add(faInfoCircle);
   library.add(faCheck);
   library.add(faCheckDouble);

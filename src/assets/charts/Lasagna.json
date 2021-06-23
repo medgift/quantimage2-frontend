@@ -89,7 +89,7 @@
         "color": {
           "field": "Outcome",
           "scale": {
-            "range": ["#59c26e", "#f25a38"]
+            "range": ["#59c26e", "#f25a38", "#cccccc"]
           }
         },
         "tooltip": [

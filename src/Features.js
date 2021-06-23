@@ -203,6 +203,32 @@ function Features({ history, match, kheopsError }) {
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Get classes of a tab
+  const getTabClassName = (targetTab) => {
+    return classnames({
+      active: tab === targetTab,
+      'text-danger':
+        unlabelledDataPoints > 0 && unlabelledDataPoints === dataPoints.length,
+      'text-warning':
+        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length,
+    });
+  };
+
+  // Get symbol of a tab
+  const getTabSymbol = () => {
+    return unlabelledDataPoints > 0 ? (
+      unlabelledDataPoints === dataPoints.length ? (
+        <>
+          <FontAwesomeIcon icon="exclamation-circle" />{' '}
+        </>
+      ) : (
+        <>
+          <FontAwesomeIcon icon="exclamation-triangle" />{' '}
+        </>
+      )
+    ) : null;
+  };
+
   // Get album
   useEffect(() => {
     async function getAlbum() {
@@ -849,57 +875,36 @@ function Features({ history, match, kheopsError }) {
                     </NavItem>
                     <NavItem>
                       <NavLink
-                        className={classnames({
-                          active: tab === 'outcome',
-                          'text-danger': unlabelledDataPoints > 0,
-                        })}
+                        className={getTabClassName('outcome')}
                         onClick={() => {
                           toggle('outcome');
                         }}
                       >
-                        {unlabelledDataPoints > 0 && (
-                          <>
-                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                          </>
-                        )}
+                        {getTabSymbol()}
                         Outcomes
                       </NavLink>
                     </NavItem>
                     {isAlternativeUser !== true && (
                       <NavItem>
                         <NavLink
-                          className={classnames({
-                            active: tab === 'visualize',
-                            'text-danger': unlabelledDataPoints > 0,
-                          })}
+                          className={getTabClassName('visualize')}
                           onClick={() => {
                             toggle('visualize');
                           }}
                         >
-                          {unlabelledDataPoints > 0 && (
-                            <>
-                              <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                            </>
-                          )}
+                          {getTabSymbol()}
                           Visualization
                         </NavLink>
                       </NavItem>
                     )}
                     <NavItem>
                       <NavLink
-                        className={classnames({
-                          active: tab === 'train',
-                          'text-danger': unlabelledDataPoints > 0,
-                        })}
+                        className={getTabClassName('train')}
                         onClick={() => {
                           toggle('train');
                         }}
                       >
-                        {unlabelledDataPoints > 0 && (
-                          <>
-                            <FontAwesomeIcon icon="exclamation-circle" />{' '}
-                          </>
-                        )}
+                        {getTabSymbol()}
                         Model Training{' '}
                         {models.length > 0 && <Badge>{models.length}</Badge>}
                       </NavLink>
@@ -1050,15 +1055,16 @@ function Features({ history, match, kheopsError }) {
                             </Form>
                           </div>
                           {unlabelledDataPoints > 0 && (
-                            <p className="text-danger">
-                              {unlabelledDataPoints > 1
-                                ? 'There are '
-                                : 'There is '}
-                              <strong>
-                                {unlabelledDataPoints} data{' '}
-                                {unlabelledDataPoints > 1 ? 'points' : 'point'}
-                              </strong>{' '}
-                              missing an outcome!
+                            <p
+                              className={
+                                unlabelledDataPoints === dataPoints.length
+                                  ? 'text-danger'
+                                  : 'text-warning'
+                              }
+                            >
+                              {getFeatureTitleSingularOrPlural(
+                                unlabelledDataPoints
+                              )}
                             </p>
                           )}
                           <DataLabels
@@ -1109,8 +1115,14 @@ function Features({ history, match, kheopsError }) {
                     </TabPane>
                     <TabPane tabId="visualize">
                       {isAlternativeUser !== true && dataPoints ? (
-                        unlabelledDataPoints === 0 ? (
-                          !isSavingLabels ? (
+                        !isSavingLabels ? (
+                          <>
+                            {unlabelledDataPoints > 0 && (
+                              <p className="text-warning">
+                                There are still {unlabelledDataPoints}{' '}
+                                unlabelled PatientIDs!
+                              </p>
+                            )}
                             <Visualisation
                               collectionInfos={
                                 collectionID && currentCollection
@@ -1126,17 +1138,11 @@ function Features({ history, match, kheopsError }) {
                               toggleTab={toggle}
                               album={album.name}
                             />
-                          ) : (
-                            <p className="p-5">
-                              Labels are being saved on the server, please wait
-                              for a moment...
-                            </p>
-                          )
+                          </>
                         ) : (
                           <p className="p-5">
-                            There are still {unlabelledDataPoints} unlabelled
-                            PatientIDs, assign an outcome to them first in the
-                            "Outcomes" tab!
+                            Labels are being saved on the server, please wait
+                            for a moment...
                           </p>
                         )
                       ) : (
@@ -1196,6 +1202,19 @@ function Features({ history, match, kheopsError }) {
         </div>
       )}
     </>
+  );
+}
+
+function getFeatureTitleSingularOrPlural(unlabelledDataPoints) {
+  return (
+    <span>
+      {unlabelledDataPoints > 1 ? 'There are ' : 'There is '}
+      <strong>
+        {unlabelledDataPoints} data{' '}
+        {unlabelledDataPoints > 1 ? 'points' : 'point'}
+      </strong>{' '}
+      missing an outcome!
+    </span>
   );
 }
 
