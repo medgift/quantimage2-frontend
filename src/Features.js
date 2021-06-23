@@ -1451,6 +1451,8 @@ async function validateLabelFile(
   /* Validate file content */
   const content = await file.text();
 
+  let nbMatches = 0;
+
   try {
     /* Add PatientID to the header field names (should always exist) */
     let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
@@ -1477,17 +1479,8 @@ async function validateLabelFile(
       skip_empty_lines: true,
     });
 
-    // Check number of rows
-    if (records.length !== dataPoints.length) {
-      error = `The CSV file has ${records.length} entries, should have ${dataPoints.length}!`;
-      return [valid, error];
-    }
-
     // Match rows to data points
     console.log(dataPoints);
-
-    let allMatched = true;
-    let nbMatches = 0;
 
     let labels = {};
 
@@ -1496,9 +1489,7 @@ async function validateLabelFile(
         (record) => record.PatientID === patientID
       );
 
-      if (!matchingRecord) {
-        allMatched = false;
-      } else {
+      if (matchingRecord) {
         nbMatches++;
 
         // Fill labels
@@ -1507,8 +1498,8 @@ async function validateLabelFile(
       }
     }
 
-    if (!allMatched) {
-      error = `The CSV file matched only ${nbMatches}/${dataPoints.length} Patient/ROI pairs!`;
+    if (nbMatches === 0) {
+      error = `The CSV file matched none of the patients!`;
       return [valid, error];
     } else {
       setDataLabels(labels);
@@ -1519,5 +1510,5 @@ async function validateLabelFile(
   }
 
   valid = true;
-  return [valid, error];
+  return [valid, `The CSV matched ${nbMatches}/${dataPoints.length} patients.`];
 }

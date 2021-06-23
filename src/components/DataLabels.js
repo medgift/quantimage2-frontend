@@ -21,7 +21,7 @@ export default function DataLabels({
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
 
   let [isLabelFileValid, setIsLabelFileValid] = useState(null);
-  let [labelFileError, setLabelFileError] = useState(null);
+  let [labelFileMessage, setLabelFileMessage] = useState(null);
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
@@ -46,16 +46,18 @@ export default function DataLabels({
     setIsSavingLabels(true);
     await Backend.saveLabels(keycloak.token, albumID, labelType, dataLabels);
     setIsSavingLabels(false);
+    toggleAutoLabelling();
+    toggleManualLabelling();
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, error] = await validateLabelFile(
+    let [isValid, message] = await validateLabelFile(
       fileInput.current.files[0],
       dataPoints,
       setDataLabels
     );
     setIsLabelFileValid(isValid);
-    setLabelFileError(error);
+    setLabelFileMessage(message);
   };
 
   return (
@@ -141,9 +143,8 @@ export default function DataLabels({
 
       <Collapse isOpen={isAutoLabellingOpen}>
         <p>
-          Please upload a CSV file with{' '}
-          <strong>{dataPoints.length} rows</strong> (+optionnally a header row)
-          containing the following{' '}
+          Please upload a CSV file with one row per patient (+optionnally a
+          header row) containing the following{' '}
           <strong>{outcomeColumns.length + 1} columns</strong>:
         </p>
         <Table className="narrow-table">
@@ -172,12 +173,14 @@ export default function DataLabels({
           fileInput.current.files[0] &&
           !isLabelFileValid && (
             <Alert color="danger">
-              The selected file is not valid: {labelFileError}
+              The selected file is not valid: {labelFileMessage}
             </Alert>
           )}
         {fileInput.current && fileInput.current.files[0] && isLabelFileValid && (
           <>
-            <Alert color="success">The selected file is valid!</Alert>
+            <Alert color="success">
+              The selected file is valid: {labelFileMessage}
+            </Alert>
             <Button
               color="success"
               onClick={handleSaveLabelsClick}

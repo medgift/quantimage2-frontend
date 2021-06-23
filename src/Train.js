@@ -341,6 +341,8 @@ export default function Train({
 
   let [isTraining, setIsTraining] = useState(false);
 
+  let [trainingError, setTrainingError] = useState(null);
+
   let [showNewModel, setShowNewModel] = useState(false);
 
   let [ciTooltipOpen, setCITooltipOpen] = useState(false);
@@ -407,31 +409,37 @@ export default function Train({
   // Handle model train click
   const handleTrainModelClick = async () => {
     setIsTraining(true);
+    setTrainingError(null);
 
-    let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
+    try {
+      let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
-    let labels =
-      modelType === MODEL_TYPES.CLASSIFICATION
-        ? tabularClassificationLabels
-        : tabularSurvivalLabels;
+      let labels =
+        modelType === MODEL_TYPES.CLASSIFICATION
+          ? tabularClassificationLabels
+          : tabularSurvivalLabels;
 
-    let model = await trainModel(
-      featureExtractionID,
-      collectionInfos ? collectionInfos.collection.id : null,
-      albumStudies,
-      album,
-      labels,
-      modelType,
-      algorithmType,
-      dataNormalization,
-      metadataColumns[MODALITY_FIELD],
-      metadataColumns[ROI_FIELD],
-      keycloak.token
-    );
+      let model = await trainModel(
+        featureExtractionID,
+        collectionInfos ? collectionInfos.collection.id : null,
+        albumStudies,
+        album,
+        labels,
+        modelType,
+        algorithmType,
+        dataNormalization,
+        metadataColumns[MODALITY_FIELD],
+        metadataColumns[ROI_FIELD],
+        keycloak.token
+      );
 
-    setIsTraining(false);
-    setModels([model, ...models]);
-    setShowNewModel(false);
+      setIsTraining(false);
+      setModels([model, ...models]);
+      setShowNewModel(false);
+    } catch (e) {
+      setIsTraining(false);
+      setTrainingError(e.message);
+    }
   };
 
   const handleDeleteModelClick = async (id) => {
@@ -614,6 +622,14 @@ export default function Train({
               <span>Train Model</span>
             )}
           </Button>
+          {trainingError && (
+            <Alert color="danger" className="mt-3">
+              Model Training failed. Error message returned is :{' '}
+              <strong>
+                <code>{trainingError}</code>
+              </strong>
+            </Alert>
+          )}
         </>
       )}
     </div>
