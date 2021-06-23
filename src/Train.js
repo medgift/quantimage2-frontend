@@ -263,19 +263,27 @@ function ModelsTable({
                               <tr>
                                 <td>Number of Observations</td>
                                 <td>
-                                  {row.original.patient_ids.length}
-                                  {' - '}
-                                  <a
-                                    href="#"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      handleShowPatientIDs(
-                                        row.original.patient_ids
-                                      );
-                                    }}
-                                  >
-                                    Show details
-                                  </a>
+                                  {row.original.patient_ids ? (
+                                    <>
+                                      {row.original.patient_ids.length}
+                                      {' - '}
+                                      <a
+                                        href="#"
+                                        onClick={(event) => {
+                                          event.preventDefault();
+                                          handleShowPatientIDs(
+                                            row.original.patient_ids
+                                          );
+                                        }}
+                                      >
+                                        Show details
+                                      </a>
+                                    </>
+                                  ) : isNaN(dataPoints) ? (
+                                    dataPoints.length
+                                  ) : (
+                                    dataPoints
+                                  )}
                                 </td>
                               </tr>
                             </tbody>
@@ -727,6 +735,7 @@ export default function Train({
         <ModelsTable
           columns={columns}
           data={models}
+          dataPoints={dataPoints}
           albumExtraction={albumExtraction}
           collectionInfos={collectionInfos}
           handleDeleteModelClick={handleDeleteModelClick}
