@@ -1035,6 +1035,19 @@ function Features({ history, match, kheopsError }) {
                     <TabPane tabId="outcome">
                       {dataPoints ? (
                         <>
+                          {unlabelledDataPoints > 0 && (
+                            <Alert
+                              color={
+                                unlabelledDataPoints === dataPoints.length
+                                  ? 'danger'
+                                  : 'warning'
+                              }
+                            >
+                              {getFeatureTitleSingularOrPlural(
+                                unlabelledDataPoints
+                              )}
+                            </Alert>
+                          )}
                           <h3>Patient Outcomes</h3>
                           <div>Choose the type of outcomes to input</div>
                           <div className="form-container">
@@ -1054,19 +1067,7 @@ function Features({ history, match, kheopsError }) {
                               </Input>
                             </Form>
                           </div>
-                          {unlabelledDataPoints > 0 && (
-                            <p
-                              className={
-                                unlabelledDataPoints === dataPoints.length
-                                  ? 'text-danger'
-                                  : 'text-warning'
-                              }
-                            >
-                              {getFeatureTitleSingularOrPlural(
-                                unlabelledDataPoints
-                              )}
-                            </p>
-                          )}
+
                           <DataLabels
                             albumID={albumID}
                             dataPoints={dataPoints}
@@ -1118,10 +1119,10 @@ function Features({ history, match, kheopsError }) {
                         !isSavingLabels ? (
                           <>
                             {unlabelledDataPoints > 0 && (
-                              <p className="text-warning">
-                                There are still {unlabelledDataPoints}{' '}
-                                unlabelled PatientIDs!
-                              </p>
+                              <Alert color="warning">
+                                There are {unlabelledDataPoints} unlabelled
+                                PatientIDs!
+                              </Alert>
                             )}
                             <Visualisation
                               collectionInfos={
@@ -1152,8 +1153,16 @@ function Features({ history, match, kheopsError }) {
 
                     <TabPane tabId="train">
                       {dataPoints ? (
-                        unlabelledDataPoints === 0 ? (
-                          !isSavingLabels ? (
+                        !isSavingLabels ? (
+                          <>
+                            {unlabelledDataPoints > 0 && (
+                              <Alert color="warning">
+                                There are {unlabelledDataPoints} unlabelled
+                                PatientIDs, these will be ignored for training!
+                                To include them, assign an outcome to them in
+                                the "Outcomes" tab.
+                              </Alert>
+                            )}
                             <Train
                               album={album}
                               albumExtraction={featureExtraction}
@@ -1173,17 +1182,11 @@ function Features({ history, match, kheopsError }) {
                               featureExtractionID={featureExtractionID}
                               unlabelledDataPoints={unlabelledDataPoints}
                             />
-                          ) : (
-                            <p className="p-5">
-                              Labels are being saved on the server, please wait
-                              for a moment...
-                            </p>
-                          )
+                          </>
                         ) : (
                           <p className="p-5">
-                            There are still {unlabelledDataPoints} unlabelled
-                            PatientIDs, assign an outcome to them first in the
-                            "Outcomes" tab!
+                            Labels are being saved on the server, please wait
+                            for a moment...
                           </p>
                         )
                       ) : (

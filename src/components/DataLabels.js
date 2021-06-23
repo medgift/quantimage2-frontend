@@ -17,7 +17,7 @@ export default function DataLabels({
 }) {
   let [keycloak] = useKeycloak();
 
-  let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(false);
+  let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(true);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
 
   let [isLabelFileValid, setIsLabelFileValid] = useState(null);

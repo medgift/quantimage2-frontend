@@ -581,24 +581,16 @@ export default function Train({
       {albumExtraction && (
         <>
           <h3>Train Model</h3>
-          {unlabelledDataPoints > 0 ? (
-            <p>
-              There are still {unlabelledDataPoints} unlabelled PatientIDs,
-              assign an outcome to them first in the "Outcomes" tab!
-              {/*/ROI pairs, assign an outcome to them first!*/}
-            </p>
-          ) : (
-            <Button color="info" onClick={handleTrainModelClick}>
-              {isTraining ? (
-                <>
-                  <FontAwesomeIcon icon="spinner" spin />{' '}
-                  <span>Training Model...</span>
-                </>
-              ) : (
-                <span>Train Model</span>
-              )}
-            </Button>
-          )}
+          <Button color="info" onClick={handleTrainModelClick}>
+            {isTraining ? (
+              <>
+                <FontAwesomeIcon icon="spinner" spin />{' '}
+                <span>Training Model...</span>
+              </>
+            ) : (
+              <span>Train Model</span>
+            )}
+          </Button>
         </>
       )}
     </div>

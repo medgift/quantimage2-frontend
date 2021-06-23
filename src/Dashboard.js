@@ -53,7 +53,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
     );
   };
 
-  let handleEditAlbumClick = async (album) => {
+  let handleExploreAlbumClick = async (album) => {
     // Redirect to feature table route here
     history.push(`/features/${album.album_id}/overview`);
   };
@@ -109,8 +109,18 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
       </Button>
     );
 
-    let editButton = (
-      <Button color="link success" onClick={() => handleEditAlbumClick(album)}>
+    let updateButton = (
+      <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
+        <FontAwesomeIcon icon="cog" />{' '}
+        <span>Data Change Detected - Update Features</span>
+      </Button>
+    );
+
+    let exploreButton = (
+      <Button
+        color="link success"
+        onClick={() => handleExploreAlbumClick(album)}
+      >
         <FontAwesomeIcon icon="search-plus" /> <span>Explore Features</span>
       </Button>
     );
@@ -161,15 +171,22 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
           </div>
         );
       } else if (albumExtraction.status.successful) {
-        return (
-          <div>
-            {editButton}
-            {/*downloadButton*/}
-            {extractionButton}
-            {/*visualizeButton*/}
-            {/*analyzeButton(album, albumModels)*/}
-          </div>
-        );
+        if (
+          studies[albumExtraction.album_id].length ===
+          albumExtraction.tasks.length
+        ) {
+          return (
+            <div>
+              {exploreButton}
+              {/*downloadButton*/}
+              {extractionButton}
+              {/*visualizeButton*/}
+              {/*analyzeButton(album, albumModels)*/}
+            </div>
+          );
+        } else {
+          return <div>{updateButton}</div>;
+        }
       } else {
         return (
           <div>
