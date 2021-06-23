@@ -109,6 +109,12 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
       </Button>
     );
 
+    let reextractionButton = (
+      <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
+        <FontAwesomeIcon icon="cog" /> <span>Re-Extract Features</span>
+      </Button>
+    );
+
     let updateButton = (
       <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
         <FontAwesomeIcon icon="cog" />{' '}
@@ -179,7 +185,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
             <div>
               {exploreButton}
               {/*downloadButton*/}
-              {extractionButton}
+              {reextractionButton}
               {/*visualizeButton*/}
               {/*analyzeButton(album, albumModels)*/}
             </div>

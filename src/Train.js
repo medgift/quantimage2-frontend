@@ -29,7 +29,7 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import CheckboxGroup from 'react-checkbox-group';
 import MyModal from './components/MyModal';
-import FeatureNames from './components/FeatureNames';
+import ListValues from './components/ListValues';
 import DataLabels from './components/DataLabels';
 import { MODEL_TYPES } from './Features';
 
@@ -54,6 +54,7 @@ function ModelsTable({
   collectionInfos,
   handleDeleteModelClick,
   handleShowFeatureNames,
+  handleShowPatientIDs,
   formatMetrics,
   maxAUCModel,
 }) {
@@ -262,9 +263,19 @@ function ModelsTable({
                               <tr>
                                 <td>Number of Observations</td>
                                 <td>
-                                  {isNaN(dataPoints)
-                                    ? dataPoints.length
-                                    : dataPoints}
+                                  {row.original.patient_ids.length}
+                                  {' - '}
+                                  <a
+                                    href="#"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      handleShowPatientIDs(
+                                        row.original.patient_ids
+                                      );
+                                    }}
+                                  >
+                                    Show details
+                                  </a>
                                 </td>
                               </tr>
                             </tbody>
@@ -324,6 +335,9 @@ export default function Train({
 
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
+
+  let [patientIDs, setPatientIDs] = useState(null);
+  let [patientIDsOpen, setPatientIDsOpen] = useState(false);
 
   let [isTraining, setIsTraining] = useState(false);
 
@@ -386,6 +400,10 @@ export default function Train({
     setFeatureNamesOpen((open) => !open);
   };
 
+  const togglePatientIDs = () => {
+    setPatientIDsOpen((open) => !open);
+  };
+
   // Handle model train click
   const handleTrainModelClick = async () => {
     setIsTraining(true);
@@ -432,6 +450,11 @@ export default function Train({
   const handleShowFeatureNames = (names) => {
     setFeatureNames(names);
     toggleFeatureNames();
+  };
+
+  const handleShowPatientIDs = (ids) => {
+    setPatientIDs(ids);
+    togglePatientIDs();
   };
 
   if (!album) return <span>Loading...</span>;
@@ -688,11 +711,11 @@ export default function Train({
         <ModelsTable
           columns={columns}
           data={models}
-          dataPoints={dataPoints}
           albumExtraction={albumExtraction}
           collectionInfos={collectionInfos}
           handleDeleteModelClick={handleDeleteModelClick}
           handleShowFeatureNames={handleShowFeatureNames}
+          handleShowPatientIDs={handleShowPatientIDs}
           formatMetrics={formatMetrics}
           maxAUCModel={maxAUCModel}
         />
@@ -702,7 +725,14 @@ export default function Train({
         toggle={toggleFeatureNames}
         title={<span>Feature Names</span>}
       >
-        <FeatureNames names={featureNames} />
+        <ListValues values={featureNames} />
+      </MyModal>
+      <MyModal
+        isOpen={patientIDsOpen}
+        toggle={togglePatientIDs}
+        title={<span>Patient IDs</span>}
+      >
+        <ListValues values={patientIDs} />
       </MyModal>
     </>
   );
