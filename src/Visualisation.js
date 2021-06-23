@@ -106,7 +106,7 @@ export default function Visualisation(props) {
       );
 
       // Set initial feature IDs (all) to show the chart in the right moment
-      setFeatureIDs([...new Set(data.features.map((f) => f.feature_id))]);
+      setFeatureIDs(new Set(data.features.map((f) => f.feature_id)));
 
       setLasagnaData(data);
     }
@@ -114,23 +114,24 @@ export default function Visualisation(props) {
     loadLasagnaChartData();
   }, []);
 
+  // Filter selected patients
+  const selectedPatients = useMemo(() => {
+    return new Set(patients.filter((p) => p.selected).map((p) => p.name));
+  }, [patients]);
+
   // Calculate features to keep based on selections
   useEffect(() => {
     if (!lasagnaData) return undefined;
 
+    const start = Date.now();
     let filteredFeatures = lasagnaData.features.filter((f) => {
-      return (
-        featureIDs.includes(f.feature_id) &&
-        patients
-          .filter((p) => p.selected)
-          .map((p) => p.name)
-          .includes(f.PatientID)
-      );
+      return featureIDs.has(f.feature_id) && selectedPatients.has(f.PatientID);
     });
-    console.log('filtered features', filteredFeatures);
+    const end = Date.now();
+    console.log(`filtered features in ${end - start}ms `, filteredFeatures);
 
     setSelectedFeatures(filteredFeatures);
-  }, [lasagnaData, featureIDs, patients]);
+  }, [lasagnaData, featureIDs, selectedPatients]);
 
   const filteringItems = useMemo(() => {
     // Create tree of items to check/uncheck

@@ -243,11 +243,19 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
   };
 
   const getPatientNameForStudy = (study) => {
-    if (study[DicomFields.PATIENT_NAME][DicomFields.VALUE])
+    if (
+      study?.[DicomFields.PATIENT_NAME]?.[DicomFields.VALUE]?.[0]?.[
+        DicomFields.ALPHABETIC
+      ]
+    ) {
       return study[DicomFields.PATIENT_NAME][DicomFields.VALUE][0][
         DicomFields.ALPHABETIC
       ];
-    else return 'UNNAMED';
+    } else if (study?.[DicomFields.PATIENT_ID]?.[DicomFields.VALUE]?.[0]) {
+      return `(ID) ${study[DicomFields.PATIENT_ID][DicomFields.VALUE][0]}`;
+    } else {
+      return 'UNNAMED';
+    }
   };
 
   const [studyToggles, setStudyToggles] = useState({});

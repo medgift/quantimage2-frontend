@@ -32,9 +32,11 @@ export default function FilterTree({
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
 
-    return Object.keys(leafItems)
-      .filter((n) => selected.includes(n))
-      .map((n) => leafItems[n]);
+    return new Set(
+      Object.keys(leafItems)
+        .filter((n) => selected.includes(n))
+        .map((n) => leafItems[n])
+    );
   }, [leafItems, selected]);
 
   useEffect(() => {
