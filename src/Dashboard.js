@@ -165,24 +165,33 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
       );
 
       if (!albumExtraction) {
+        // No extraction available
         return <div>{extractionButton}</div>;
-      } else if (
-        !albumExtraction.status.successful &&
-        !albumExtraction.status.failed
-      ) {
+      } else if (!albumExtraction.status.ready) {
+        // Extraction in progress
         return (
-          <div className="text-muted">
+          <div
+            className={
+              albumExtraction.status.failed_tasks > 0
+                ? 'text-danger'
+                : 'text-muted'
+            }
+          >
             <FontAwesomeIcon icon="sync" spin />{' '}
             {featureExtractionStatusText(albumExtraction)}
           </div>
         );
-      } else if (albumExtraction.status.successful) {
+      } else if (albumExtraction.status.completed_tasks > 0) {
+        // Successful (or partially so?)
         if (
           studies[albumExtraction.album_id].length ===
           albumExtraction.tasks.length
         ) {
           return (
             <div>
+              <span className="text-danger">
+                {featureExtractionStatusText(albumExtraction)}
+              </span>
               {exploreButton}
               {/*downloadButton*/}
               {reextractionButton}
@@ -193,45 +202,31 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
         } else {
           return <div>{updateButton}</div>;
         }
-      } else {
-        return (
-          <div>
-            {albumExtraction.status.completed_tasks +
-              albumExtraction.status.failed_tasks <
-              albumExtraction.status.total_tasks && (
-              <>
-                <FontAwesomeIcon icon="sync" className="text-danger" spin />{' '}
-              </>
-            )}
-            <span className="text-danger">
-              {featureExtractionStatusText(albumExtraction)}
-            </span>
-            {albumExtraction.status.completed_tasks +
-              albumExtraction.status.failed_tasks ===
-              albumExtraction.status.total_tasks && extractionButton}
-          </div>
-        );
       }
     } else {
+      // Loading
       return <span>Loading...</span>;
     }
   };
 
   const featureExtractionStatusText = (albumExtraction) => {
+    // Completely successful extraction
+    if (albumExtraction.status.successful) return null;
+
+    // Partially failed extraction
     if (
-      albumExtraction.status.failed &&
-      albumExtraction.status.completed_tasks +
-        albumExtraction.status.failed_tasks ==
-        albumExtraction.status.total_tasks
+      albumExtraction.status.ready &&
+      albumExtraction.status.failed_tasks > 0
     ) {
       return (
         <span>
-          Failed! ({albumExtraction.status.completed_tasks}/
+          Partially Failed! ({albumExtraction.status.completed_tasks}/
           {albumExtraction.status.total_tasks} tasks successful)
         </span>
       );
     }
 
+    // Not started yet
     if (
       albumExtraction.status.pending_tasks ===
       albumExtraction.status.total_tasks
@@ -241,8 +236,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
 
     if (
       albumExtraction.status.total_tasks !== 0 &&
-      (albumExtraction.status.completed_tasks > 0 ||
-        albumExtraction.status.failed_tasks > 0)
+      !albumExtraction.status.ready
     ) {
       return (
         <span>
