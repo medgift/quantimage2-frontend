@@ -4,3 +4,13 @@
   > .MuiTypography-root {
   text-align: center;
 }
+
+.ROIList {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ROIList-Item {
+  flex: 1 1 30%;
+  font-size: smaller;
+}

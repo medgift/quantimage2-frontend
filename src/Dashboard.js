@@ -27,6 +27,7 @@ import { trainModel } from './utils/feature-utils';
 function Dashboard({ albums, studies, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
   let [currentAlbum, setCurrentAlbum] = useState(null);
+  let [forceUpdate, setForceUpdate] = useState(false);
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
   let [keycloak] = useKeycloak();
@@ -34,8 +35,9 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
 
   let socket = useContext(SocketContext);
 
-  let handleExtractAlbumClick = (album) => {
+  let handleExtractAlbumClick = (album, force) => {
     setModal(true);
+    if (force) setForceUpdate(true);
     setCurrentAlbum(album);
   };
 
@@ -116,7 +118,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
     );
 
     let updateButton = (
-      <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
+      <Button color="link" onClick={() => handleExtractAlbumClick(album, true)}>
         <FontAwesomeIcon icon="cog" />{' '}
         <span>Data Change Detected - Update Features</span>
       </Button>
@@ -592,6 +594,8 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
               toggleModal();
               replaceExtraction(newExtraction.album_id, newExtraction);
             }}
+            forceUpdate={forceUpdate}
+            nbStudies={studies[currentAlbum.album_id].length}
           />
         </MyModal>
       )}

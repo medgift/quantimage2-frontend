@@ -3,16 +3,12 @@ import {
   Alert,
   Button,
   ButtonGroup,
-  Collapse,
-  CustomInput,
   FormGroup,
   Input,
   Label,
   ListGroupItem,
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
-
-import YAML from 'yaml';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -33,20 +29,23 @@ import './FeaturesList.css';
 
 export default function FeaturesList({
   albumID,
-  studyUID,
   studyDate,
   patientID,
   setMinWidth,
   extractionCallback,
+  forceUpdate,
+  nbStudies,
 }) {
   let [keycloak] = useKeycloak();
 
   // Data
   let [featurePresets, setFeaturePresets] = useState([]);
   let [extraction, setExtraction] = useState(null);
+  let [albumROIs, setAlbumROIs] = useState(null);
 
   // Selections
   let [selectedPreset, setSelectedPreset] = useState(null);
+  let [selectedROIs, setSelectedROIs] = useState(null);
 
   // Errors
   let [backendError, setBackendError] = useState(null);
@@ -97,8 +96,7 @@ export default function FeaturesList({
     async function getFeaturePresets() {
       const latestExtraction = await Backend.extractions(
         keycloak.token,
-        albumID,
-        studyUID
+        albumID
       );
 
       if (latestExtraction) {
@@ -112,7 +110,25 @@ export default function FeaturesList({
     }
 
     getFeaturePresets();
-  }, [albumID, studyUID, keycloak]);
+  }, [albumID, keycloak]);
+
+  useEffect(() => {
+    async function getAlbumROIs() {
+      const albumROIs = await Backend.albumROIs(
+        keycloak.token,
+        albumID,
+        forceUpdate
+      );
+
+      setAlbumROIs(albumROIs);
+
+      setSelectedROIs(
+        Object.keys(albumROIs).filter((r) => albumROIs[r] === nbStudies)
+      );
+    }
+
+    getAlbumROIs();
+  }, [albumID, keycloak]);
 
   /* Manage Socket.IO events */
   useEffect(() => {
@@ -141,7 +157,7 @@ export default function FeaturesList({
         keycloak.token,
         albumID,
         selectedPreset.config,
-        studyUID
+        selectedROIs
       );
 
       console.log(
@@ -172,8 +188,7 @@ export default function FeaturesList({
     window.location.href = Backend.downloadExtractionURL(
       extraction.id,
       patientID,
-      studyDate,
-      studyUID
+      studyDate
     );
   };
 
@@ -206,6 +221,22 @@ export default function FeaturesList({
             />
           </ListGroupItem>
         )}
+        <ListGroupItem>Select ROIs to extract</ListGroupItem>
+        <ListGroupItem>
+          {albumROIs !== null && selectedROIs !== null ? (
+            <ROIsList
+              rois={albumROIs}
+              selectedROIs={selectedROIs}
+              setSelectedROIs={setSelectedROIs}
+              nbStudies={nbStudies}
+            />
+          ) : (
+            <span>
+              <FontAwesomeIcon icon="sync" spin className="mr-2" /> Loading
+              album ROIs...
+            </span>
+          )}
+        </ListGroupItem>
         {(!extraction ||
           (extraction &&
             (extraction.status.successful || extraction.status.failed))) && (
@@ -216,7 +247,11 @@ export default function FeaturesList({
 
             <ListGroupItem>
               <ButtonGroup>
-                <Button color="success" onClick={handleExtractFeaturesClick}>
+                <Button
+                  color="success"
+                  onClick={handleExtractFeaturesClick}
+                  disabled={albumROIs === null}
+                >
                   <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
                   <span>Extract Features</span>
                 </Button>
@@ -250,7 +285,6 @@ export default function FeaturesList({
           isOpen={modal}
           toggle={toggleModal}
           extractionID={extraction.id}
-          studyUID={studyUID}
         />
       )}
     </>
@@ -304,5 +338,59 @@ function RecursiveTreeView({ data }) {
     >
       {renderTree(formatTreeData(data)[0])}
     </TreeView>
+  );
+}
+
+function ROIsList({ rois, selectedROIs, setSelectedROIs, nbStudies }) {
+  const toggleValue = (roi, checked) => {
+    let newSelections = [...selectedROIs];
+
+    if (checked) {
+      newSelections.push(roi);
+    } else {
+      newSelections = newSelections.filter((r) => r !== roi);
+    }
+
+    setSelectedROIs(newSelections);
+  };
+
+  let sortedROIs = Object.keys(rois).sort((r1, r2) => {
+    if (rois[r1] === rois[r2]) return r1.localeCompare(r2);
+    else return rois[r2] - rois[r1];
+  });
+
+  const getStudiesLabel = (roi) => {
+    let color = rois[roi] === nbStudies ? 'text-success' : null;
+
+    return (
+      <span className={color}>
+        {roi} ({rois[roi]}/{nbStudies})
+      </span>
+    );
+  };
+
+  return (
+    <div className="d-flex justify-content-center flex-wrap ROIList">
+      {sortedROIs.map((roi) => (
+        <div key={roi} className="ROIList-Item text-left">
+          {/*<MyCheckbox
+            id={`roi-${roi}`}
+            checked={selectedROIs.includes(roi)}
+            onChange={(e) => {
+              toggleValue(roi, e.target.checked);
+            }}
+          />*/}
+          <input
+            type="checkbox"
+            id={`roi-${roi}`}
+            checked={selectedROIs.includes(roi)}
+            onChange={(e) => {
+              toggleValue(roi, e.target.checked);
+            }}
+          />{' '}
+          <label htmlFor={`roi-${roi}`}>{getStudiesLabel(roi)}</label>
+        </div>
+      ))}
+    </div>
   );
 }

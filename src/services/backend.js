@@ -16,6 +16,7 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   annotations: `${baseEndpoint}/annotations`,
   navigation: `${baseEndpoint}/navigation`,
+  albums: `${baseEndpoint}/albums`,
 };
 
 class Backend {
@@ -30,12 +31,10 @@ class Backend {
     }
   }
 
-  async extractions(token, albumID, studyUID) {
+  async extractions(token, albumID) {
     try {
       const url = albumID
         ? `${endpoints.extractions}/album/${albumID}`
-        : studyUID
-        ? `${endpoints.extractions}/study/${studyUID}`
         : endpoints.extractions;
       return await request(url, { token: token });
     } catch (err) {
@@ -138,12 +137,10 @@ class Backend {
     }
   }
 
-  downloadExtractionURL(extractionID, patientID, studyDate, studyUID, userID) {
+  downloadExtractionURL(extractionID, patientID, studyDate, userID) {
     try {
       let url = `${endpoints.extractions}/${extractionID}/download`;
-      if (patientID && studyDate && studyUID)
-        url += `?patientID=${patientID}&studyDate=${studyDate}&studyUID=${studyUID}`;
-      else if (userID) url += `?userID=${userID}`;
+      if (userID) url += `?userID=${userID}`;
       return url;
       //return await request(url, { token: token });
     } catch (err) {
@@ -151,12 +148,10 @@ class Backend {
     }
   }
 
-  downloadCollectionURL(collectionID, patientID, studyDate, studyUID, userID) {
+  downloadCollectionURL(collectionID, patientID, studyDate, userID) {
     try {
       let url = `${endpoints.collections}/${collectionID}/download`;
-      if (patientID && studyDate && studyUID)
-        url += `?patientID=${patientID}&studyDate=${studyDate}&studyUID=${studyUID}`;
-      else if (userID) url += `?userID=${userID}`;
+      if (userID) url += `?userID=${userID}`;
       return url;
       //return await request(url, { token: token });
     } catch (err) {
@@ -164,12 +159,12 @@ class Backend {
     }
   }
 
-  async extract(token, album_id, featureExtractionConfig) {
+  async extract(token, album_id, featureExtractionConfig, rois) {
     try {
       const url = `${endpoints.extract}/album/${album_id}`;
       return await request(url, {
         method: 'POST',
-        data: featureExtractionConfig,
+        data: { config: featureExtractionConfig, rois: rois },
         token: token,
       });
     } catch (err) {
@@ -406,6 +401,18 @@ class Backend {
         method: 'POST',
         data: { path: path },
       });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async albumROIs(token, albumID, force) {
+    try {
+      let url = `${endpoints.albums}/${albumID}`;
+
+      if (force) url += '/force';
+
+      return await request(url, { token: token, method: 'GET' });
     } catch (err) {
       throw err;
     }
