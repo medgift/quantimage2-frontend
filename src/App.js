@@ -72,27 +72,10 @@ function App({ setUser, setIsAdmin }) {
         let albums = await Kheops.albums(keycloak.token);
         albums = albums.sort((a1, a2) => a1.name.localeCompare(a2.name));
         setAlbums(albums);
-        getStudies(albums);
+        setDataFetched(true);
       } catch (err) {
         setKheopsError(true);
       }
-    }
-
-    async function getStudies(albums) {
-      const studies = {};
-      await Promise.all(
-        albums.map(async (album) => {
-          const albumStudies = await Kheops.studies(
-            keycloak.token,
-            album.album_id
-          );
-          studies[album.album_id] = albumStudies;
-        })
-      );
-
-      setStudies(studies);
-
-      setDataFetched(true);
     }
 
     if (keycloak && initialized) {
@@ -119,7 +102,6 @@ function App({ setUser, setIsAdmin }) {
                 dataFetched={dataFetched}
                 kheopsError={kheopsError}
                 albums={albums}
-                studies={studies}
               />
               <PropsRoute
                 path={[

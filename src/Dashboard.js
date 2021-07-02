@@ -24,8 +24,9 @@ import { useKeycloak } from 'react-keycloak';
 import SocketContext from './context/SocketContext';
 import { trainModel } from './utils/feature-utils';
 
-function Dashboard({ albums, studies, dataFetched, kheopsError }) {
+function Dashboard({ albums, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
+  let [studies, setStudies] = useState({});
   let [currentAlbum, setCurrentAlbum] = useState(null);
   let [forceUpdate, setForceUpdate] = useState(false);
   let [extractions, setExtractions] = useState(null);
@@ -185,10 +186,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
         );
       } else if (albumExtraction.status.completed_tasks > 0) {
         // Successful (or partially so?)
-        if (
-          studies[albumExtraction.album_id].length ===
-          albumExtraction.tasks.length
-        ) {
+        if (album.number_of_studies === albumExtraction.tasks.length) {
           return (
             <div>
               <span className="text-danger">
@@ -279,10 +277,16 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
 
   const [studyToggles, setStudyToggles] = useState({});
 
-  const handleStudyToggle = (albumID) => {
+  const fetchStudiesFromAlbum = async (albumID) => {
+    let albumStudies = await Kheops.studies(keycloak.token, albumID);
+    setStudies((s) => ({ ...s, [albumID]: albumStudies }));
+  };
+
+  const handleStudyToggle = async (albumID) => {
     const updatedStudyToggles = { ...studyToggles };
     updatedStudyToggles[albumID] = !updatedStudyToggles[albumID];
     setStudyToggles(updatedStudyToggles);
+    await fetchStudiesFromAlbum(albumID);
   };
 
   const handleExtractionStatus = useCallback((extractionStatus) => {
@@ -451,124 +455,120 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
                 <p className="lead"></p>
               </Jumbotron>
             ) : (
-              albums.length > 0 &&
-              Object.keys(studies).length > 0 && (
+              albums.length > 0 && (
                 <ListGroup className="albums">
                   {albums
-                    .filter(
-                      (album) =>
-                        studies[album.album_id] &&
-                        studies[album.album_id].length > 0
-                    )
+                    .filter((album) => album.number_of_studies > 0)
                     .map((album) => (
                       <ListGroupItem key={album.album_id}>
                         <div className="d-flex justify-content-between align-items-center">
                           <h5 style={{ margin: 0 }}>
                             {album.name}{' '}
                             <Badge pill>
-                              {studies[album.album_id].length} studies
+                              {album.number_of_studies} studies
                             </Badge>
                           </h5>
                           {showAlbumButtons(album)}
                         </div>
-                        {studies[album.album_id] && (
-                          <>
-                            <a
-                              href="#"
-                              onClick={() => {
-                                handleStudyToggle(album.album_id);
-                              }}
-                            >
-                              {studyToggles && studyToggles[album.album_id]
-                                ? 'Hide studies'
-                                : 'Show studies'}
-                            </a>
-                            <Collapse
-                              isOpen={
-                                studyToggles
-                                  ? studyToggles[album.album_id]
-                                  : false
-                              }
-                            >
-                              <ListGroup>
-                                {studies[album.album_id].map((study) => (
-                                  <ListGroupItem
-                                    key={
+
+                        <a
+                          href="#"
+                          onClick={() => {
+                            handleStudyToggle(album.album_id);
+                          }}
+                        >
+                          {studyToggles && studyToggles[album.album_id]
+                            ? 'Hide studies'
+                            : 'Show studies'}
+                        </a>
+                        <Collapse
+                          isOpen={
+                            studyToggles ? studyToggles[album.album_id] : false
+                          }
+                        >
+                          {album.album_id in studies ? (
+                            <ListGroup>
+                              {studies[album.album_id].map((study) => (
+                                <ListGroupItem
+                                  key={
+                                    study[DicomFields.STUDY_UID][
+                                      DicomFields.VALUE
+                                    ][0]
+                                  }
+                                  className="d-flex justify-content-between align-items-center"
+                                >
+                                  <Link
+                                    to={`/study/${
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    }`}
+                                    className={`btn btn-link ${getStudyStatusClass(
+                                      album.album_id,
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    )}`}
+                                    href="#"
+                                    title={
                                       study[DicomFields.STUDY_UID][
                                         DicomFields.VALUE
                                       ][0]
                                     }
-                                    className="d-flex justify-content-between align-items-center"
                                   >
-                                    <Link
-                                      to={`/study/${
-                                        study[DicomFields.STUDY_UID][
-                                          DicomFields.VALUE
-                                        ][0]
-                                      }`}
-                                      className={`btn btn-link ${getStudyStatusClass(
-                                        album.album_id,
-                                        study[DicomFields.STUDY_UID][
-                                          DicomFields.VALUE
-                                        ][0]
-                                      )}`}
-                                      href="#"
-                                      title={
-                                        study[DicomFields.STUDY_UID][
-                                          DicomFields.VALUE
-                                        ][0]
+                                    {getPatientNameForStudy(study)} (
+                                    {moment(
+                                      study[DicomFields.DATE][
+                                        DicomFields.VALUE
+                                      ][0],
+                                      DicomFields.DATE_FORMAT
+                                    ).format(DICOM_DATE_FORMAT)}
+                                    ){' '}
+                                    {getStudyErrors(
+                                      album.album_id,
+                                      study[DicomFields.STUDY_UID][
+                                        DicomFields.VALUE
+                                      ][0]
+                                    )}
+                                  </Link>
+                                  <div>
+                                    {(() => {
+                                      let modalities = [];
+
+                                      // Determine if the modality types field is already an array or needs to be split
+                                      let modalityArray = !study[
+                                        DicomFields.MODALITIES
+                                      ][DicomFields.VALUE][0].includes(',')
+                                        ? study[DicomFields.MODALITIES][
+                                            DicomFields.VALUE
+                                          ]
+                                        : study[DicomFields.MODALITIES][
+                                            DicomFields.VALUE
+                                          ][0].split(',');
+
+                                      for (let modality of modalityArray) {
+                                        modalities.push(
+                                          <Badge
+                                            color="primary"
+                                            className="mr-1"
+                                            key={modality}
+                                          >
+                                            {modality}
+                                          </Badge>
+                                        );
                                       }
-                                    >
-                                      {getPatientNameForStudy(study)} (
-                                      {moment(
-                                        study[DicomFields.DATE][
-                                          DicomFields.VALUE
-                                        ][0],
-                                        DicomFields.DATE_FORMAT
-                                      ).format(DICOM_DATE_FORMAT)}
-                                      ){' '}
-                                      {getStudyErrors(
-                                        album.album_id,
-                                        study[DicomFields.STUDY_UID][
-                                          DicomFields.VALUE
-                                        ][0]
-                                      )}
-                                    </Link>
-                                    <div>
-                                      {(() => {
-                                        let modalities = [];
-
-                                        // Determine if the modality types field is already an array or needs to be split
-                                        let modalityArray = !study[
-                                          DicomFields.MODALITIES
-                                        ][DicomFields.VALUE][0].includes(',')
-                                          ? study[DicomFields.MODALITIES][
-                                              DicomFields.VALUE
-                                            ]
-                                          : study[DicomFields.MODALITIES][
-                                              DicomFields.VALUE
-                                            ][0].split(',');
-
-                                        for (let modality of modalityArray) {
-                                          modalities.push(
-                                            <Badge
-                                              color="primary"
-                                              className="mr-1"
-                                              key={modality}
-                                            >
-                                              {modality}
-                                            </Badge>
-                                          );
-                                        }
-                                        return modalities;
-                                      })()}
-                                    </div>
-                                  </ListGroupItem>
-                                ))}
-                              </ListGroup>
-                            </Collapse>
-                          </>
-                        )}
+                                      return modalities;
+                                    })()}
+                                  </div>
+                                </ListGroupItem>
+                              ))}
+                            </ListGroup>
+                          ) : (
+                            <div className="text-center">
+                              <FontAwesomeIcon icon="sync" spin /> Loading...
+                            </div>
+                          )}
+                        </Collapse>
                       </ListGroupItem>
                     ))}
                 </ListGroup>
@@ -595,7 +595,7 @@ function Dashboard({ albums, studies, dataFetched, kheopsError }) {
               replaceExtraction(newExtraction.album_id, newExtraction);
             }}
             forceUpdate={forceUpdate}
-            nbStudies={studies[currentAlbum.album_id].length}
+            nbStudies={currentAlbum.number_of_studies}
           />
         </MyModal>
       )}
