@@ -473,7 +473,8 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
                         <a
                           href="#"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
                             handleStudyToggle(album.album_id);
                           }}
                         >
