@@ -174,6 +174,9 @@ function Features({ history, match, kheopsError }) {
   const [header, setHeader] = useState(null);
   const [features, setFeatures] = useState(null);
 
+  // Visualization
+  const [lasagnaData, setLasagnaData] = useState(null);
+
   // Collection management
   const [collections, setCollections] = useState(null);
   const [collectionName, setCollectionName] = useState('');
@@ -342,10 +345,12 @@ function Features({ history, match, kheopsError }) {
 
       let features;
       let header;
+      let lasagna;
       if (!collectionID) {
         const {
           features: allFeatures,
           header: allHeader,
+          visualization: lasagnaData,
         } = await Backend.extractionFeatureDetails(
           keycloak.token,
           latestExtraction.id
@@ -353,10 +358,12 @@ function Features({ history, match, kheopsError }) {
 
         features = allFeatures;
         header = allHeader;
+        lasagna = lasagnaData;
       } else {
         const {
           features: collectionFeatures,
           header: collectionHeader,
+          visualization: lasagnaData,
         } = await Backend.extractionCollectionFeatureDetails(
           keycloak.token,
           latestExtraction.id,
@@ -365,9 +372,11 @@ function Features({ history, match, kheopsError }) {
 
         features = collectionFeatures;
         header = collectionHeader;
+        lasagna = lasagnaData;
       }
 
       setFeatures(features.map((f) => ({ ...f, isSelected: true })));
+      setLasagnaData(lasagna);
       setHeader(header);
 
       setIsLoading(false);
@@ -566,12 +575,10 @@ function Features({ history, match, kheopsError }) {
           +collectionID,
           null,
           null,
-          null,
           keycloak.tokenParsed.sub
         )
       : Backend.downloadExtractionURL(
           featureExtractionID,
-          null,
           null,
           null,
           keycloak.tokenParsed.sub
@@ -1125,18 +1132,15 @@ function Features({ history, match, kheopsError }) {
                               </Alert>
                             )}
                             <Visualisation
+                              lasagnaData={lasagnaData}
+                              setLasagnaData={setLasagnaData}
                               collectionInfos={
                                 collectionID && currentCollection
                                   ? currentCollection
                                   : null
                               }
                               featureExtractionID={featureExtractionID}
-                              setSelectedModalities={setSelectedModalities}
-                              setSelectedROIs={setSelectedROIs}
-                              setSelectedPatients={setSelectedPatients}
-                              setSelectedFeatures={setSelectedFeatures}
                               setCollections={setCollections}
-                              toggleTab={toggle}
                               album={album.name}
                             />
                           </>

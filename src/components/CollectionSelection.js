@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ListGroup, ListGroupItem, Button } from 'reactstrap';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

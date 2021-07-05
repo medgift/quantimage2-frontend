@@ -22,13 +22,12 @@ export function getFeatureDescription(featureName) {
 
 export function groupFeatures(featureNames) {
   let featureGroups = {};
-  let currentFeatureGroup = '';
 
   for (let featureName of featureNames) {
     // TODO - Make this more elegant, maybe a convention for feature names is needed
     // Group PyRadiomics features by the second level,
     // first level for other backends so far
-    let { name, selected } = featureName;
+    let { name } = featureName;
 
     // Modality-specifc features (e.g. for PET)
     let featureModality = MODALITIES.find((m) => name.startsWith(m));

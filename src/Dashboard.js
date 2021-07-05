@@ -42,28 +42,9 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     setCurrentAlbum(album);
   };
 
-  let handleDownloadAlbumClick = async (album) => {
-    let albumExtraction = extractions.find(
-      (extraction) => extraction.album_id === album.album_id
-    );
-
-    window.location.href = Backend.downloadExtractionURL(
-      albumExtraction.id,
-      null,
-      null,
-      null,
-      keycloak.tokenParsed.sub
-    );
-  };
-
   let handleExploreAlbumClick = async (album) => {
     // Redirect to feature table route here
     history.push(`/features/${album.album_id}/overview`);
-  };
-
-  let handleVisualizeAlbumClick = async (album) => {
-    // Redirect to visualization page here
-    history.push(`/visualize/${album.album_id}`);
   };
 
   let toggleModal = () => {
@@ -132,30 +113,6 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
       >
         <FontAwesomeIcon icon="search-plus" /> <span>Explore Features</span>
       </Button>
-    );
-
-    let visualizeButton = (
-      <Button color="link" onClick={() => handleVisualizeAlbumClick(album)}>
-        <FontAwesomeIcon icon="chart-bar" /> <span>Visualize Features</span>
-      </Button>
-    );
-
-    let downloadButton = (
-      <Button color="link" onClick={() => handleDownloadAlbumClick(album)}>
-        <FontAwesomeIcon icon="download" /> <span>Download Features</span>
-      </Button>
-    );
-
-    let analyzeButton = (album, models) => (
-      <Link
-        to={`/models/${album.album_id}`}
-        className="btn btn-link"
-        href="#"
-        title={album.name}
-      >
-        <FontAwesomeIcon icon="graduation-cap" />{' '}
-        <span>{!models ? 'Train a Model' : 'Manage Models'}</span>
-      </Link>
     );
 
     if (extractions && models) {

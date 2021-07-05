@@ -1,19 +1,11 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from 'react';
-import { useTable, usePagination, useRowSelect, useFilters } from 'react-table';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useTable, usePagination, useFilters } from 'react-table';
 
 import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
-import { Alert, Button, FormGroup, Label, Input, Spinner } from 'reactstrap';
+import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useKeycloak } from 'react-keycloak';
-
-import Backend from '../services/backend';
 
 import _ from 'lodash';
 

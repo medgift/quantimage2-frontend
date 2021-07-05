@@ -2,3 +2,36 @@
   display: flex;
   /*min-height: 80vh;*/
 }
+
+.filter-visualization {
+  flex: 1;
+}
+
+.filter-visualization ul {
+  font-size: small;
+  padding: 0;
+  list-style-type: none;
+  max-height: 200px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.visualization-table {
+  width: 100%;
+}
+
+.visualization-table td {
+  white-space: nowrap;
+}
+
+.chart-cell {
+  vertical-align: top;
+}
+
+.filter-data {
+  vertical-align: top;
+  text-align: left;
+  width: 400px;
+  min-width: 400px;
+  max-width: 400px;
+}

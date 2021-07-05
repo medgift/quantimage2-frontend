@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import Main from './visualisation/Main';
 import './Visualisation.css';
 import Backend from './services/backend';
 // Chart Specs
@@ -8,10 +7,8 @@ import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 
 import _ from 'lodash';
-import Measure from 'react-measure';
 import FilterTree from './components/FilterTree';
 import { Button, Form, FormGroup, Input, Label } from 'reactstrap';
-import VegaChart from './visualisation/VegaChart';
 import CorrelatedFeatures from './components/CorrelatedFeatures';
 import FeatureRanking from './components/FeatureRanking';
 import {
@@ -28,7 +25,14 @@ import MyModal from './components/MyModal';
 import Loading from './visualisation/Loading';
 import { Vega } from 'react-vega';
 
-export default function Visualisation(props) {
+export default function Visualisation({
+  lasagnaData,
+  setLasagnaData,
+  album,
+  featureExtractionID,
+  collectionInfos,
+  setCollections,
+}) {
   // Route
   const { albumID } = useParams();
 
@@ -46,7 +50,7 @@ export default function Visualisation(props) {
   const [regions, setRegions] = useState([]);
   const [modalities, setModalities] = useState([]);
   const [patients, setPatients] = useState([]);
-  const [featureIDs, setFeatureIDs] = useState([]);
+  const [featureIDs, setFeatureIDs] = useState(null);
 
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
@@ -57,9 +61,6 @@ export default function Visualisation(props) {
   // Manage feature selections
   const [selected, setSelected] = useState([]);
 
-  // Charts
-  const [lasagnaData, setLasagnaData] = useState(null);
-
   // Selected features
   const [selectedFeatures, setSelectedFeatures] = useState([]);
 
@@ -68,51 +69,42 @@ export default function Visualisation(props) {
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
-  // Collection information
-  const { collectionInfos } = props;
-
   // Get features & annotations
   useEffect(() => {
-    async function loadLasagnaChartData() {
-      const data = await Backend.lasagna(
-        keycloak.token,
-        albumID,
-        collectionInfos ? collectionInfos.collection.id : null
-      );
-
+    async function initSelections() {
       setFeatureNames(
-        [...new Set(data.features.map((f) => f.feature_name))].map((f) => ({
-          name: f,
-          selected: true,
-        }))
+        [...new Set(lasagnaData.features.map((f) => f.feature_name))].map(
+          (f) => ({
+            name: f,
+            selected: true,
+          })
+        )
       );
       setModalities(
-        [...new Set(data.features.map((f) => f.Modality))].map((m) => ({
+        [...new Set(lasagnaData.features.map((f) => f.Modality))].map((m) => ({
           name: m,
           selected: true,
         }))
       );
       setRegions(
-        [...new Set(data.features.map((f) => f.ROI))].map((r) => ({
+        [...new Set(lasagnaData.features.map((f) => f.ROI))].map((r) => ({
           name: r,
           selected: true,
         }))
       );
       setPatients(
-        [...new Set(data.features.map((f) => f.PatientID))].map((p) => ({
+        [...new Set(lasagnaData.features.map((f) => f.PatientID))].map((p) => ({
           name: p,
           selected: true,
         }))
       );
 
       // Set initial feature IDs (all) to show the chart in the right moment
-      setFeatureIDs(new Set(data.features.map((f) => f.feature_id)));
-
-      setLasagnaData(data);
+      setFeatureIDs(new Set(lasagnaData.features.map((f) => f.feature_id)));
     }
 
-    loadLasagnaChartData();
-  }, []);
+    if (lasagnaData) initSelections();
+  }, [lasagnaData]);
 
   // Filter selected patients
   const selectedPatients = useMemo(() => {
@@ -121,7 +113,7 @@ export default function Visualisation(props) {
 
   // Calculate features to keep based on selections
   useEffect(() => {
-    if (!lasagnaData) return undefined;
+    if (!lasagnaData || featureIDs === null) return undefined;
 
     const start = Date.now();
     let filteredFeatures = lasagnaData.features.filter((f) => {
@@ -205,11 +197,11 @@ export default function Visualisation(props) {
 
   // Update Vega
   useEffect(() => {
-    if (lasagnaData && loading === true) {
+    if (lasagnaData && featureIDs && loading === true) {
       setLoading(false);
       console.log('charts loaded');
     }
-  }, [lasagnaData, loading]);
+  }, [lasagnaData, featureIDs, loading]);
 
   // Define spec dynamically
   const lasagnaSpec = useMemo(() => {
@@ -260,7 +252,7 @@ export default function Visualisation(props) {
     console.log('saving collection...');
     let newCollection = await Backend.saveCollectionNew(
       keycloak.token,
-      props.featureExtractionID,
+      featureExtractionID,
       newCollectionName,
       [...featureIDs],
       patients
@@ -268,7 +260,7 @@ export default function Visualisation(props) {
     toggleCollectionModal();
     setIsCollectionSaving(false);
 
-    props.setCollections((c) => [...c, newCollection]);
+    setCollections((c) => [...c, newCollection]);
 
     history.push(
       `/features/${albumID}/collection/${newCollection.collection.id}/visualize`
@@ -372,7 +364,7 @@ export default function Visualisation(props) {
         toggle={toggleCollectionModal}
         title={
           <span>
-            Create new collection for Album <strong>{props.album}</strong>
+            Create new collection for Album <strong>{album}</strong>
           </span>
         }
       >

@@ -1,9 +1,8 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React from 'react';
 import './Home.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { NavLink as RouterNavLink } from 'react-router-dom';
 
-function Home({ albums, studies, dataFetched, kheopsError }) {
+function Home() {
   return (
     <>
       <div>
@@ -30,7 +29,11 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
           </p>
           <p>
             The platform works together with the{' '}
-            <a href="https://kheops.online" target="_blank">
+            <a
+              href="https://kheops.online"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Kheops
             </a>{' '}
             platform, which allows uploading, managing and sharing collections
@@ -44,6 +47,7 @@ function Home({ albums, studies, dataFetched, kheopsError }) {
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            title="QuantImage v2 Demonstration Video"
           ></iframe>
           <h2>Get Started</h2>
           <p>

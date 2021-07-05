@@ -1,6 +1,6 @@
 import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from 'react-keycloak';
 

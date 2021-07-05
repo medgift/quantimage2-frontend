@@ -21,34 +21,9 @@
   border: 0;
 }
 
-.filter-data{
-  vertical-align: top;
-  text-align: left;
-  width: 400px;
-  min-width: 400px;
-  max-width: 400px;
-}
-
-.chart-cell{
-  vertical-align: top;
-}
-
 .filters-visualization {
   display: flex;
   margin-top: 1em;
-}
-
-.filter-visualization {
-  flex: 1;
-}
-
-.filter-visualization ul {
-  font-size: small;
-  padding: 0;
-  list-style-type: none;
-  max-height: 200px;
-  overflow-y: auto;
-  text-align: left;
 }
 
 .feature-selection ul {
@@ -61,12 +36,4 @@
 
 .vega-embed{
   width: 100% !important;
-}
-
-.visualization-table{
-  width: 100%;
-}
-
-.visualization-table td{
-  white-space: nowrap;
 }

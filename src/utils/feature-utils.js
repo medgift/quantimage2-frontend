@@ -1,10 +1,8 @@
 import { Parser } from 'json2csv';
 
 import DicomFields from '../dicom/fields';
-import slugify from 'slugify';
 import Backend from '../services/backend';
 import Kheops from '../services/kheops';
-import JSZip from 'jszip';
 
 const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';
@@ -68,8 +66,6 @@ function assembleCSVHeader(allFeatures) {
 
 function assembleCSVData(allFeatures, fields) {
   let dataLines = [];
-
-  let alwaysPresentFields = [PATIENT_ID_FIELD, MODALITY_FIELD, LABEL_FIELD];
 
   for (let features of allFeatures) {
     let patientID = features[PATIENT_ID_FIELD];

@@ -128,7 +128,7 @@ export default function FeaturesList({
     }
 
     getAlbumROIs();
-  }, [albumID, keycloak]);
+  }, [albumID, keycloak, forceUpdate, nbStudies]);
 
   /* Manage Socket.IO events */
   useEffect(() => {

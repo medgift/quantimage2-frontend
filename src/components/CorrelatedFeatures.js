@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { useEffect, useState } from 'react';
 import * as ss from 'simple-statistics';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -20,6 +20,19 @@ export default function CorrelatedFeatures({
     setFeatureValuesBeforeDropping,
   ] = useState([]);
 
+  const getFeatures = useCallback(() => {
+    // Get list of feature values for each feature name
+    const features = lasagnaData.features.reduce((acc, curr) => {
+      if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
+
+      acc[curr.feature_name].push(curr.feature_value);
+
+      return acc;
+    }, {});
+
+    return features;
+  }, [lasagnaData]);
+
   useEffect(() => {
     //if (selectedBeforeDropping.length === 0 && selected.length > 0)
     //  setSelectedBeforeDropping(selected);
@@ -35,20 +48,7 @@ export default function CorrelatedFeatures({
       let features = getFeatures();
       setFeatureValuesBeforeDropping(features);
     }
-  }, [lasagnaData]);
-
-  const getFeatures = () => {
-    // Get list of feature values for each feature name
-    const features = lasagnaData.features.reduce((acc, curr) => {
-      if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
-
-      acc[curr.feature_name].push(curr.feature_value);
-
-      return acc;
-    }, {});
-
-    return features;
-  };
+  }, [lasagnaData, featuresValuesBeforeDropping.length, getFeatures]);
 
   const getNodeIDsToDrop = (features) => {
     let start;

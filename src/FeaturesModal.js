@@ -3,7 +3,7 @@ import { ListGroupItem, Modal, ModalBody, ModalHeader } from 'reactstrap';
 import ListGroup from 'reactstrap/es/ListGroup';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
-import { assembleFeatures, assembleFeatureTitles } from './utils/feature-utils';
+import { assembleFeatures } from './utils/feature-utils';
 import { useKeycloak } from 'react-keycloak';
 import _ from 'lodash';
 

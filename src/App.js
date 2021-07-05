@@ -20,11 +20,9 @@ import {
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
 import { PrivateRoute } from './utils/PrivateRoute';
-import kheops from './services/kheops';
 import Train from './Train';
 import Visualisation from './Visualisation';
 import Dashboard from './Dashboard';
-import { usePrevious } from './utils/usePrevious';
 
 import Backend from './services/backend';
 
@@ -33,7 +31,6 @@ registerFontAwesomeIcons();
 
 function App({ setUser, setIsAdmin }) {
   const [albums, setAlbums] = useState([]);
-  const [studies, setStudies] = useState({});
   const [dataFetched, setDataFetched] = useState(false);
   const [kheopsError, setKheopsError] = useState(false);
 
@@ -46,7 +43,7 @@ function App({ setUser, setIsAdmin }) {
     if (initialized) {
       Backend.saveNavigation(keycloak.token, location.pathname);
     }
-  }, [initialized, location]);
+  }, [initialized, location, keycloak.token]);
 
   // Manage admin status
   useEffect(() => {

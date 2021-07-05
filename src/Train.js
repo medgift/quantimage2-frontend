@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Input,
@@ -7,10 +7,7 @@ import {
   Button,
   Collapse,
   Label,
-  FormText,
   FormGroup,
-  ListGroup,
-  ListGroupItem,
   Badge,
   Tooltip,
 } from 'reactstrap';
@@ -27,10 +24,8 @@ import _ from 'lodash';
 import Kheops from './services/kheops';
 import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import CheckboxGroup from 'react-checkbox-group';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
-import DataLabels from './components/DataLabels';
 import { MODEL_TYPES } from './Features';
 
 export const PATIENT_ID_FIELD = 'PatientID';
@@ -142,7 +137,7 @@ function ModelsTable({
                 <tr
                   {...row.getRowProps()}
                   className={`model-row ${
-                    row.original.id == maxAUCModel.id && 'text-success'
+                    row.original.id === maxAUCModel.id && 'text-success'
                   }`}
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
@@ -245,8 +240,8 @@ function ModelsTable({
                                     : albumExtraction.feature_definitions
                                         .length}
                                   {' - '}
-                                  <a
-                                    href="#"
+                                  <Button
+                                    color="link"
                                     onClick={(event) => {
                                       event.preventDefault();
                                       handleShowFeatureNames(
@@ -257,7 +252,7 @@ function ModelsTable({
                                     }}
                                   >
                                     Show details
-                                  </a>
+                                  </Button>
                                 </td>
                               </tr>
                               <tr>
@@ -267,8 +262,8 @@ function ModelsTable({
                                     <>
                                       {row.original.patient_ids.length}
                                       {' - '}
-                                      <a
-                                        href="#"
+                                      <Button
+                                        color="link"
                                         onClick={(event) => {
                                           event.preventDefault();
                                           handleShowPatientIDs(
@@ -277,7 +272,7 @@ function ModelsTable({
                                         }}
                                       >
                                         Show details
-                                      </a>
+                                      </Button>
                                     </>
                                   ) : isNaN(dataPoints) ? (
                                     dataPoints.length
@@ -359,7 +354,7 @@ export default function Train({
 
   // Advanced configuration parameters
   let [dataNormalization, setDataNormalization] = useState('none');
-  let [featureSelection, setFeatureSelection] = useState('none');
+  //let [featureSelection, setFeatureSelection] = useState('none');
 
   // Model table header
   const columns = React.useMemo(
@@ -392,10 +387,6 @@ export default function Train({
 
   const handleNormalizationChange = (e) => {
     setDataNormalization(e.target.value);
-  };
-
-  const handleFeatureSelectionChange = (e) => {
-    setFeatureSelection(e.target.value);
   };
 
   const handleModelTypeChange = (e) => {
@@ -451,7 +442,7 @@ export default function Train({
   };
 
   const handleDeleteModelClick = async (id) => {
-    const deletedModel = await Backend.deleteModel(keycloak.token, id);
+    await Backend.deleteModel(keycloak.token, id);
     setModels(models.filter((model) => model.id !== id));
   };
 
