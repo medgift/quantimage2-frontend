@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import './FilterTree.css';
 import { Checkbox, FormControlLabel } from '@material-ui/core';
+import MyCheckbox from './MyCheckbox';
 
 export default function FilterTree({
   formatTreeData,
@@ -49,9 +50,12 @@ export default function FilterTree({
 
   const selectNode = (event, node) => {
     let nodeAndChildren = getNodeAndAllChildrenIDs(node, []);
+    event.persist();
 
     setSelected((s) => {
       let newSelections = [...s];
+
+      console.log('event target is', event.target);
 
       if (event.target.checked) {
         newSelections.push(
@@ -155,8 +159,7 @@ function RecursiveTreeView({
         nodeId={n.id}
         label={
           <>
-            <Checkbox
-              color="primary"
+            <MyCheckbox
               indeterminate={
                 n.children &&
                 someChildrenSelected(n, selected, getNodeAndAllChildrenIDs)
@@ -174,6 +177,7 @@ function RecursiveTreeView({
               }
               onClick={(e) => e.stopPropagation()}
               disabled={disabled}
+              style={{ marginRight: '0.5em' }}
             />
             <span
               title={
