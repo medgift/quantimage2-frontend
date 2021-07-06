@@ -201,7 +201,25 @@ function Features({ history }) {
         featureExtractionID
       );
 
-      setCollections(collections);
+      // Get more details for current collection
+      let collectionDetails;
+      if (collectionID) {
+        collectionDetails = await Backend.collectionDetails(
+          keycloak.token,
+          collectionID
+        );
+      }
+
+      let finalCollections = [...collections];
+
+      if (collectionDetails) {
+        let collectionToReplaceIndex = finalCollections.findIndex(
+          (c) => c.collection.id === +collectionID
+        );
+        finalCollections.splice(collectionToReplaceIndex, 1, collectionDetails);
+      }
+
+      setCollections(finalCollections);
     }
     if (featureExtractionID) getCollections();
   }, [featureExtractionID]);

@@ -354,6 +354,16 @@ class Backend {
     }
   }
 
+  async collectionDetails(token, collectionID) {
+    try {
+      const url = `${endpoints.collections}/${collectionID}`;
+
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async annotations(token, albumID) {
     try {
       const url = `${endpoints.annotations}/${albumID}`;
