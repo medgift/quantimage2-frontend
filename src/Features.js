@@ -222,7 +222,7 @@ function Features({ history }) {
       setCollections(finalCollections);
     }
     if (featureExtractionID) getCollections();
-  }, [featureExtractionID]);
+  }, [featureExtractionID, collectionID]);
 
   // Set active collection name
   useEffect(() => {
@@ -710,6 +710,7 @@ function Features({ history }) {
                     collections={collections}
                     collectionID={collectionID}
                     isAlternativeUser={isAlternativeUser}
+                    setIsLoading={setIsLoading}
                   />
                 </div>
               )}

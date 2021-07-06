@@ -8,12 +8,15 @@ export default function CollectionSelection({
   album,
   collections,
   isAlternativeUser,
+  setIsLoading,
 }) {
   const history = useHistory();
 
   const { albumID, collectionID, tab } = useParams();
 
   const handleCollectionClick = (e) => {
+    setIsLoading(true);
+
     e.preventDefault();
 
     let tabToShow = tab ? tab : 'overview';
