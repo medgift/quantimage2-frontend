@@ -38,12 +38,6 @@ export default function FilterTree({
     setFeatureIDs(selectedFeatureIDs);
   }, [selectedFeatureIDs]);
 
-  useEffect(() => {
-    console.log('filtertree : feature ids changed', featureIDs);
-    console.log('filtertree : leaf items', leafItems);
-    console.log('filtertree : selected', selected);
-  }, [featureIDs, leafItems]);
-
   // const handleToggle = (event, nodeIds) => {
   //   setExpanded(nodeIds);
   // };

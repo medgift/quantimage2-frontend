@@ -174,7 +174,7 @@ export default function Visualisation({
   }, [filteringItems]);
 
   const leafItems = useMemo(() => {
-    if (treeData) {
+    if (treeData.length > 0) {
       let items = getAllLeafItems(treeData);
       console.log('leaf items', items);
       return items;

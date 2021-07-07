@@ -995,17 +995,19 @@ function Features({ history }) {
                       </div>
                     </TabPane>
                     <TabPane tabId="table">
-                      <div className="features-table">
-                        <FeatureTable
-                          features={features}
-                          header={header}
-                          featureExtractionID={featureExtractionID}
-                          setCollections={setCollections}
-                        />
-                      </div>
+                      {tab === 'table' && (
+                        <div className="features-table">
+                          <FeatureTable
+                            features={features}
+                            header={header}
+                            featureExtractionID={featureExtractionID}
+                            setCollections={setCollections}
+                          />
+                        </div>
+                      )}
                     </TabPane>
                     <TabPane tabId="outcome">
-                      {dataPoints ? (
+                      {tab === 'outcome' && dataPoints ? (
                         <>
                           {unlabelledDataPoints > 0 && (
                             <Alert
@@ -1119,9 +1121,8 @@ function Features({ history }) {
                         <span>Loading...</span>
                       )}
                     </TabPane>
-
                     <TabPane tabId="train">
-                      {dataPoints ? (
+                      {tab === 'train' && dataPoints ? (
                         !isSavingLabels ? (
                           <>
                             {unlabelledDataPoints > 0 && (
