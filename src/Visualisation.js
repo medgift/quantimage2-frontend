@@ -23,7 +23,7 @@ import {
 import FilterList from './components/FilterList';
 import MyModal from './components/MyModal';
 import Loading from './visualisation/Loading';
-import { Vega } from 'react-vega';
+import { VegaLite } from 'react-vega';
 
 export default function Visualisation({
   lasagnaData,
@@ -188,12 +188,9 @@ export default function Visualisation({
     if (!lasagnaData) return [];
 
     return lasagnaData.outcomes.filter((o) =>
-      patients
-        .filter((p) => p.selected)
-        .map((p) => p.name)
-        .includes(o.PatientID)
+      selectedPatients.has(o.PatientID)
     );
-  }, [lasagnaData, patients]);
+  }, [lasagnaData, selectedPatients]);
 
   // Update Vega
   useEffect(() => {
@@ -326,7 +323,7 @@ export default function Visualisation({
                 features)
               </Button>
               <div>
-                <Vega
+                <VegaLite
                   spec={lasagnaSpec}
                   data={{ features: selectedFeatures, status: filteredStatus }}
                 />
