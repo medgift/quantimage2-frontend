@@ -27,6 +27,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
 import { MODEL_TYPES } from './Features';
+import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './Outcomes';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';
@@ -318,17 +319,15 @@ export default function Train({
   albumExtraction,
   collectionInfos,
   metadataColumns,
-  tabularClassificationLabels,
-  tabularSurvivalLabels,
   featureExtractionID,
-  unlabelledDataPoints,
   dataPoints,
+  formattedDataLabels,
+  activeLabelCategory,
+  labelCategories,
   models,
   setModels,
 }) {
   let [keycloak] = useKeycloak();
-
-  let [modelType, setModelType] = useState(MODEL_TYPES.CLASSIFICATION);
 
   const maxAUCModel = _.maxBy(models, 'metrics.auc.mean');
 
@@ -389,10 +388,6 @@ export default function Train({
     setDataNormalization(e.target.value);
   };
 
-  const handleModelTypeChange = (e) => {
-    setModelType(e.target.value);
-  };
-
   const handleAlgorithmTypeChange = (e) => {
     setAlgorithmType(e.target.value);
   };
@@ -405,6 +400,26 @@ export default function Train({
     setPatientIDsOpen((open) => !open);
   };
 
+  const transformLabelsToTabular = (formattedDataLabels) => {
+    let tabularLabels = [];
+
+    for (let patientID in formattedDataLabels) {
+      let tabularLabel = [patientID];
+      let outcomeFields =
+        activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+          ? CLASSIFICATION_OUTCOMES
+          : SURVIVAL_OUTCOMES;
+
+      for (let field of outcomeFields) {
+        tabularLabel = [...tabularLabel, formattedDataLabels[patientID][field]];
+      }
+
+      tabularLabels.push(tabularLabel);
+    }
+
+    return tabularLabels;
+  };
+
   // Handle model train click
   const handleTrainModelClick = async () => {
     setIsTraining(true);
@@ -413,10 +428,9 @@ export default function Train({
     try {
       let albumStudies = await Kheops.studies(keycloak.token, album.album_id);
 
-      let labels =
-        modelType === MODEL_TYPES.CLASSIFICATION
-          ? tabularClassificationLabels
-          : tabularSurvivalLabels;
+      // Turn labels into a tabular format for Melampus [ [PatientID,Outcome], ... ]
+      // or [ [PatientID,Time,Event], ... ]
+      let labels = transformLabelsToTabular(formattedDataLabels);
 
       let model = await trainModel(
         featureExtractionID,
@@ -424,7 +438,7 @@ export default function Train({
         albumStudies,
         album,
         labels,
-        modelType,
+        activeLabelCategory.label_type,
         algorithmType,
         dataNormalization,
         metadataColumns[MODALITY_FIELD],
@@ -468,35 +482,20 @@ export default function Train({
 
   //let album = albums.find((a) => a.album_id === albumID);
 
-  let newModelForm = (
+  let newModelForm = () => (
     <div>
       <h2>
         Train a new model on album "{album.name}"
         {collectionInfos ? (
           <span>, collection "{collectionInfos.collection.name}"</span>
-        ) : null}
+        ) : null}{' '}
+        using current outcome "{activeLabelCategory.name}" (
+        {activeLabelCategory.label_type})
       </h2>
 
-      <h3>Model configuration</h3>
-      <div>Choose the type of model to train</div>
-      <div className="form-container">
-        <Form>
-          <Input
-            type="select"
-            id="model-type"
-            name="model-type"
-            value={modelType}
-            onChange={handleModelTypeChange}
-          >
-            {Object.keys(MODEL_TYPES).map((key) => (
-              <option key={key} value={MODEL_TYPES[key]}>
-                {MODEL_TYPES[key]}
-              </option>
-            ))}
-          </Input>
-        </Form>
-      </div>
-      {modelType === MODEL_TYPES.CLASSIFICATION && (
+      <h4>Model configuration</h4>
+
+      {activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
         <>
           <div>Choose the classification algorithm</div>
           <div className="form-container">
@@ -641,9 +640,18 @@ export default function Train({
           <strong>{metricName}</strong>
         </td>
         <td>
-          {metrics[metricName]['mean'].toFixed(3)} (
-          {metrics[metricName]['inf_value'].toFixed(3)} -{' '}
-          {metrics[metricName]['sup_value'].toFixed(3)})
+          {_.isNumber(metrics[metricName]['mean'])
+            ? metrics[metricName]['mean'].toFixed(3)
+            : metrics[metricName]['mean']}{' '}
+          (
+          {_.isNumber(metrics[metricName]['inf_value'])
+            ? metrics[metricName]['inf_value'].toFixed(3)
+            : metrics[metricName]['inf_value']}{' '}
+          -{' '}
+          {_.isNumber(metrics[metricName]['sup_value'])
+            ? metrics[metricName]['sup_value'].toFixed(3)
+            : metrics[metricName]['sup_value']}
+          )
         </td>
       </tr>
     ));
@@ -753,8 +761,33 @@ export default function Train({
     </>
   );
 
+  if (labelCategories.length === 0) {
+    return (
+      <Alert color="info">
+        You have not created any outcomes yet.
+        <ol>
+          <li>
+            Go to the "Outcomes" tab and create a new outcome using the "Create
+            New Outcome" button.
+          </li>
+          <li>Input or upload the patient labels for that outcome</li>
+          <li>Set an outcome as "current" using the "Set As Current" button</li>
+        </ol>
+      </Alert>
+    );
+  }
+
+  if (!activeLabelCategory) {
+    return (
+      <Alert color="info">
+        You have not defined a current outcome yet. Go to the "Outcomes" tab and
+        set an outcome as "current" using the "Set As Current" button.
+      </Alert>
+    );
+  }
+
   if (models.length === 0) {
-    return newModelForm;
+    return newModelForm();
   } else {
     if (showNewModel)
       return (
@@ -766,7 +799,7 @@ export default function Train({
             </Button>
           </div>
           <p> </p>
-          {newModelForm}
+          {newModelForm()}
         </>
       );
     else

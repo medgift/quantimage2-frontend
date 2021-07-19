@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  forwardRef,
+  useCallback,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
@@ -47,6 +53,10 @@ import Kheops from './services/kheops';
 import _ from 'lodash';
 import DataLabels from './components/DataLabels';
 import Visualisation from './Visualisation';
+import Outcomes, {
+  CLASSIFICATION_OUTCOMES,
+  SURVIVAL_OUTCOMES,
+} from './Outcomes';
 
 const PYRADIOMICS_PREFIX = 'original';
 
@@ -54,43 +64,6 @@ export const MODEL_TYPES = {
   CLASSIFICATION: 'Classification',
   SURVIVAL: 'Survival',
 };
-
-const CLASSIFICATION_OUTCOMES = ['Outcome'];
-
-const SURVIVAL_OUTCOMES = ['Time', 'Event'];
-
-async function getFormattedLabels(
-  token,
-  albumID,
-  dataPoints,
-  labelType,
-  outcomeColumns
-) {
-  let labels = await Backend.labels(token, albumID, labelType);
-
-  let formattedLabels = labels.reduce((acc, label) => {
-    acc[label.patient_id] = label.label_content;
-    return acc;
-  }, {});
-
-  // Add potentially missing labels
-  for (let patientID of dataPoints) {
-    // Go through all outcome columns
-    if (!Object.keys(formattedLabels).includes(patientID)) {
-      formattedLabels[patientID] = {};
-      for (let outcomeColumn of outcomeColumns) {
-        formattedLabels[patientID][outcomeColumn] = '';
-      }
-    } else {
-      for (let outcomeColumn of outcomeColumns) {
-        if (!Object.keys(formattedLabels[patientID]).includes(outcomeColumn))
-          formattedLabels[patientID][outcomeColumn] = '';
-      }
-    }
-  }
-
-  return formattedLabels;
-}
 
 function Features({ history }) {
   const [keycloak] = useKeycloak();
@@ -100,7 +73,6 @@ function Features({ history }) {
       let matches = keycloak.idTokenParsed.email.match(
         /user(?<user>\d+)@chuv\.ch/
       );
-      console.log('matches', matches);
       if (matches && matches.groups.user && +matches.groups.user % 2 === 1) {
         return true;
       } else {
@@ -135,10 +107,9 @@ function Features({ history }) {
   const [selectedFeatures, setSelectedFeatures] = useState([]);
 
   // Outcomes management
-  const [outcomeType, setOutcomeType] = useState(MODEL_TYPES.CLASSIFICATION);
   const [dataPoints, setDataPoints] = useState(null);
-  const [classificationLabels, setClassificationLabels] = useState({});
-  const [survivalLabels, setSurvivalLabels] = useState({});
+  const [labelCategories, setLabelCategories] = useState(null);
+  const [activeLabelCategoryID, setActiveLabelCategoryID] = useState(null);
 
   // Models management
   const [models, setModels] = useState([]);
@@ -224,6 +195,32 @@ function Features({ history }) {
     if (featureExtractionID) getCollections();
   }, [featureExtractionID, collectionID]);
 
+  // Fetch label categories
+  useEffect(() => {
+    async function fetchLabelCategories() {
+      let labelCategories = await Backend.labelCategories(
+        keycloak.token,
+        albumID
+      );
+      setLabelCategories(labelCategories);
+    }
+
+    if (albumID) fetchLabelCategories();
+  }, [albumID, keycloak.token]);
+
+  // Get active outcome
+  useEffect(() => {
+    async function fetchCurrentOutcomeID() {
+      let currentOutcome = await Backend.getCurrentOutcome(
+        keycloak.token,
+        albumID
+      );
+
+      if (currentOutcome) setActiveLabelCategoryID(currentOutcome);
+    }
+    if (albumID) fetchCurrentOutcomeID();
+  }, [albumID, keycloak.token]);
+
   // Set active collection name
   useEffect(() => {
     if (collections && collectionID && currentCollection) {
@@ -256,48 +253,10 @@ function Features({ history }) {
     }
   }, [featureExtractionID, collectionID]);
 
-  // Get classification labels
-  useEffect(() => {
-    if (!dataPoints) return;
-
-    async function getLabels() {
-      let formattedLabels = await getFormattedLabels(
-        keycloak.token,
-        album.album_id,
-        dataPoints,
-        MODEL_TYPES.CLASSIFICATION,
-        CLASSIFICATION_OUTCOMES
-      );
-      setClassificationLabels(formattedLabels);
-    }
-
-    getLabels();
-  }, [dataPoints]);
-
-  // Get survival labels
-  useEffect(() => {
-    if (!dataPoints) return;
-
-    async function getLabels() {
-      let formattedLabels = await getFormattedLabels(
-        keycloak.token,
-        album.album_id,
-        dataPoints,
-        MODEL_TYPES.SURVIVAL,
-        SURVIVAL_OUTCOMES
-      );
-      setSurvivalLabels(formattedLabels);
-    }
-
-    getLabels();
-  }, [dataPoints]);
-
   // Get features
   useEffect(() => {
     async function getFeatures() {
       setIsLoading(true);
-
-      console.log('Show features for albumID:', albumID);
 
       const latestExtraction = await Backend.extractions(
         keycloak.token,
@@ -403,30 +362,6 @@ function Features({ history }) {
       );
   }, [features]);
 
-  const tabularClassificationLabels = useMemo(() => {
-    let formattedLabels = [];
-    for (let patientID in classificationLabels) {
-      formattedLabels.push([
-        patientID,
-        classificationLabels[patientID].Outcome,
-      ]);
-    }
-
-    return formattedLabels;
-  }, [classificationLabels]);
-
-  const tabularSurvivalLabels = useMemo(() => {
-    let formattedLabels = [];
-    for (let patientID in survivalLabels) {
-      formattedLabels.push([
-        patientID,
-        survivalLabels[patientID].Time,
-        survivalLabels[patientID].Event,
-      ]);
-    }
-    return formattedLabels;
-  });
-
   // Reset selected modalities etc. when features are updated (collection click for example)
   useEffect(() => {
     if (metadataColumns) {
@@ -488,35 +423,85 @@ function Features({ history }) {
     return null;
   }, [featureNames]);
 
+  // Active outcome
+  const activeLabelCategory = useMemo(() => {
+    if (!activeLabelCategoryID || !labelCategories) return null;
+
+    return labelCategories.find((c) => c.id === activeLabelCategoryID);
+  }, [activeLabelCategoryID, labelCategories]);
+
   // Get current collection
   const currentCollection =
     collections && collectionID
       ? collections.find((c) => c.collection.id === +collectionID)
       : null;
 
+  // Update labels (for current outcome)
+  const updateCurrentLabels = useCallback(
+    (labels) => {
+      setFormattedDataLabels(labels);
+    },
+    [labelCategories, activeLabelCategoryID]
+  );
+
+  // Format active data labels
+  const [formattedDataLabels, setFormattedDataLabels] = useState({});
+
+  // Reinitialize formatted data labels on changes
+  useEffect(() => {
+    if (!activeLabelCategory || !dataPoints) return;
+
+    let formattedLabels = activeLabelCategory.labels.reduce((acc, label) => {
+      acc[label.patient_id] = label.label_content;
+      return acc;
+    }, {});
+
+    // Define columns based on the label type
+    let outcomeColumns =
+      activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES;
+
+    // Add potentially missing labels
+    for (let patientID of dataPoints) {
+      // Go through all outcome columns
+      if (!Object.keys(formattedLabels).includes(patientID)) {
+        formattedLabels[patientID] = {};
+        for (let outcomeColumn of outcomeColumns) {
+          formattedLabels[patientID][outcomeColumn] = '';
+        }
+      } else {
+        for (let outcomeColumn of outcomeColumns) {
+          if (!Object.keys(formattedLabels[patientID]).includes(outcomeColumn))
+            formattedLabels[patientID][outcomeColumn] = '';
+        }
+      }
+    }
+
+    setFormattedDataLabels(formattedLabels);
+  }, [activeLabelCategory, dataPoints]);
+
   // Compute unlabelled data points
   const unlabelledDataPoints = useMemo(() => {
+    if (!activeLabelCategory || !dataPoints) return null;
+
     let unlabelled = 0;
-    let dataLabels =
-      outcomeType === MODEL_TYPES.CLASSIFICATION
-        ? classificationLabels
-        : survivalLabels;
+    let dataLabels = activeLabelCategory.labels;
 
-    // Nothing loaded yet
-    if (Object.keys(dataLabels).length === 0) return null;
+    for (let patientID of dataPoints) {
+      let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
 
-    for (let patientID in dataLabels) {
       if (
-        !dataLabels[patientID] ||
-        Object.keys(dataLabels[patientID]).every(
-          (outcomeColumn) => dataLabels[patientID][outcomeColumn] === ''
+        !patientLabel ||
+        Object.keys(patientLabel.label_content).every(
+          (column) => patientLabel.label_content[column] === ''
         )
       )
         unlabelled++;
     }
 
     return unlabelled;
-  }, [classificationLabels, survivalLabels]);
+  }, [activeLabelCategory, dataPoints]);
 
   // Handle click on a filter button
   const handleFilterClick = (selected, field, setField) => {
@@ -640,11 +625,6 @@ function Features({ history }) {
     history.push(
       `/features/${albumID}/collection/${newCollection.collection.id}/overview`
     );
-  };
-
-  // Handle outcome type change
-  const handleOutcomeTypeChange = (e) => {
-    setOutcomeType(e.target.value);
   };
 
   // Handle back to overview click
@@ -854,6 +834,8 @@ function Features({ history }) {
                       >
                         {getTabSymbol()}
                         Outcomes
+                        {activeLabelCategory &&
+                          ` (Current - ${activeLabelCategory.name})`}
                       </NavLink>
                     </NavItem>
                     {isAlternativeUser !== true && (
@@ -1022,66 +1004,21 @@ function Features({ history }) {
                               )}
                             </Alert>
                           )}
-                          <h3>Patient Outcomes</h3>
-                          <div>Choose the type of outcomes to input</div>
-                          <div className="form-container">
-                            <Form>
-                              <Input
-                                type="select"
-                                id="outcome-type"
-                                name="outcome-type"
-                                value={outcomeType}
-                                onChange={handleOutcomeTypeChange}
-                              >
-                                {Object.keys(MODEL_TYPES).map((key) => (
-                                  <option key={key} value={MODEL_TYPES[key]}>
-                                    {MODEL_TYPES[key]}
-                                  </option>
-                                ))}
-                              </Input>
-                            </Form>
-                          </div>
-
-                          <DataLabels
+                          <Outcomes
                             albumID={albumID}
                             dataPoints={dataPoints}
                             isTraining={isTraining}
+                            featureExtractionID={featureExtractionID}
                             isSavingLabels={isSavingLabels}
                             setIsSavingLabels={setIsSavingLabels}
-                            dataLabels={
-                              outcomeType === MODEL_TYPES.CLASSIFICATION
-                                ? classificationLabels
-                                : survivalLabels
-                            }
-                            setDataLabels={
-                              outcomeType === MODEL_TYPES.CLASSIFICATION
-                                ? setClassificationLabels
-                                : setSurvivalLabels
-                            }
-                            labelType={
-                              outcomeType === MODEL_TYPES.CLASSIFICATION
-                                ? MODEL_TYPES.CLASSIFICATION
-                                : MODEL_TYPES.SURVIVAL
-                            }
-                            outcomeColumns={
-                              outcomeType === MODEL_TYPES.CLASSIFICATION
-                                ? CLASSIFICATION_OUTCOMES
-                                : SURVIVAL_OUTCOMES
-                            }
-                            validateLabelFile={(
-                              file,
-                              dataPoints,
-                              setDataLabels
-                            ) =>
-                              validateLabelFile(
-                                file,
-                                dataPoints,
-                                setDataLabels,
-                                outcomeType === MODEL_TYPES.CLASSIFICATION
-                                  ? CLASSIFICATION_OUTCOMES
-                                  : SURVIVAL_OUTCOMES
-                              )
-                            }
+                            activeLabelCategory={activeLabelCategory}
+                            activeLabelCategoryID={activeLabelCategoryID}
+                            setActiveLabelCategoryID={setActiveLabelCategoryID}
+                            labelCategories={labelCategories}
+                            setLabelCategories={setLabelCategories}
+                            setLasagnaData={setLasagnaData}
+                            updateCurrentLabels={updateCurrentLabels}
+                            formattedDataLabels={formattedDataLabels}
                           />
                         </>
                       ) : (
@@ -1143,12 +1080,11 @@ function Features({ history }) {
                                   ? currentCollection
                                   : null
                               }
+                              labelCategories={labelCategories}
+                              activeLabelCategory={activeLabelCategory}
                               metadataColumns={metadataColumns}
                               dataPoints={dataPoints}
-                              tabularClassificationLabels={
-                                tabularClassificationLabels
-                              }
-                              tabularSurvivalLabels={tabularSurvivalLabels}
+                              formattedDataLabels={formattedDataLabels}
                               featureExtractionID={featureExtractionID}
                               unlabelledDataPoints={unlabelledDataPoints}
                             />
@@ -1374,111 +1310,3 @@ function MetadataAlert({ selectedValues, values, title }) {
 }
 
 export default Features;
-
-function validateFileType(file) {
-  /* Validate metadata - file type */
-  if (
-    ![
-      'text/csv',
-      'text/comma-separated-values',
-      'text/tab-separated-values',
-      'application/csv',
-      'application/x-csv',
-    ].includes(file.type)
-  ) {
-    if (
-      file.type === 'application/vnd.ms-excel' &&
-      file.name.endsWith('.csv')
-    ) {
-      // Ok, Windows sends strange MIME type
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-async function validateLabelFile(
-  file,
-  dataPoints,
-  setDataLabels,
-  headerFieldNames
-) {
-  console.log(file);
-  let valid = false;
-  let error = null;
-
-  /* Validate file type */
-  let fileTypeIsValid = validateFileType(file);
-
-  if (!fileTypeIsValid) {
-    error = 'The file is not a CSV file!';
-    return [valid, error];
-  }
-
-  /* Validate file content */
-  const content = await file.text();
-
-  let nbMatches = 0;
-
-  try {
-    /* Add PatientID to the header field names (should always exist) */
-    let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
-    console.log('full header field names', fullHeaderFieldNames);
-
-    let lineEnding = detectNewline(content);
-
-    let firstLine = content.split(lineEnding)[0];
-
-    let separator = csvString.detect(firstLine);
-
-    let headerFields = firstLine.split(separator);
-
-    let hasHeader =
-      headerFields.length === fullHeaderFieldNames.length &&
-      fullHeaderFieldNames.every((fieldName) =>
-        headerFields.includes(fieldName)
-      );
-
-    let columns = hasHeader ? true : fullHeaderFieldNames;
-
-    const records = parse(content, {
-      columns: columns,
-      skip_empty_lines: true,
-    });
-
-    // Match rows to data points
-    console.log(dataPoints);
-
-    let labels = {};
-
-    for (let patientID of dataPoints) {
-      let matchingRecord = records.find(
-        (record) => record.PatientID === patientID
-      );
-
-      if (matchingRecord) {
-        nbMatches++;
-
-        // Fill labels
-        const { PatientID, ...recordContent } = matchingRecord;
-        labels[PatientID] = recordContent;
-      }
-    }
-
-    if (nbMatches === 0) {
-      error = `The CSV file matched none of the patients!`;
-      return [valid, error];
-    } else {
-      setDataLabels(labels);
-    }
-  } catch (e) {
-    error = 'The CSV file could not be parsed, check its format!';
-    return [valid, error];
-  }
-
-  valid = true;
-  return [valid, `The CSV matched ${nbMatches}/${dataPoints.length} patients.`];
-}

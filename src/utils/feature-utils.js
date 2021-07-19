@@ -168,7 +168,7 @@ function getFeaturesFromTasks(patientID, tasks) {
     Object.keys(task.payload).map((modality) => {
       if (!filteredFeatures[modality]) filteredFeatures[modality] = {};
 
-      // Go through labels
+      // Go through labelCategories
       Object.keys(task.payload[modality]).map((label) => {
         //if (!filteredFeatures[modality][label]) filteredFeatures[modality][label] = {};
         filteredFeatures[modality][label] = {

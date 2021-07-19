@@ -11,6 +11,7 @@ const endpoints = {
   collections: `${baseEndpoint}/feature-collections`,
   presets: `${baseEndpoint}/feature-presets`,
   models: `${baseEndpoint}/models`,
+  labelCategories: `${baseEndpoint}/label-categories`,
   labels: `${baseEndpoint}/labels`,
   tasks: `${baseEndpoint}/tasks`,
   charts: `${baseEndpoint}/charts`,
@@ -90,9 +91,25 @@ class Backend {
     }
   }
 
-  async labels(token, albumID, labelType) {
+  async saveLabelCategory(token, albumID, labelType, name) {
     try {
-      const url = `${endpoints.labels}/${albumID}/${labelType}`;
+      const url = `${endpoints.labelCategories}/${albumID}`;
+
+      const data = { label_type: labelType, name };
+
+      return await request(url, {
+        token: token,
+        data: data,
+        method: 'POST',
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async labelCategories(token, albumID) {
+    try {
+      const url = `${endpoints.labelCategories}/${albumID}`;
 
       return await request(url, {
         token: token,
@@ -102,9 +119,9 @@ class Backend {
     }
   }
 
-  async saveLabels(token, albumID, labelType, labelMap) {
+  async saveLabels(token, labelCollectionID, labelMap) {
     try {
-      const url = `${endpoints.labels}/${albumID}/${labelType}`;
+      const url = `${endpoints.labels}/${labelCollectionID}`;
 
       return await request(url, {
         method: 'POST',
@@ -423,6 +440,26 @@ class Backend {
       if (force) url += '/force';
 
       return await request(url, { token: token, method: 'GET' });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async getCurrentOutcome(token, albumID) {
+    try {
+      let url = `${endpoints.albums}/${albumID}/current-outcome`;
+
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async saveCurrentOutcome(token, albumID, labelCategoryID) {
+    try {
+      let url = `${endpoints.albums}/${albumID}/current-outcome/${labelCategoryID}`;
+
+      return await request(url, { token: token, method: 'PATCH' });
     } catch (err) {
       throw err;
     }

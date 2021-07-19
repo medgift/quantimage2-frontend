@@ -9,11 +9,15 @@ export default function DataLabels({
   dataPoints,
   dataLabels,
   labelType,
-  setDataLabels,
+  updateCurrentLabels,
+  activeLabelCategoryID,
   outcomeColumns,
   validateLabelFile,
   isSavingLabels,
   setIsSavingLabels,
+  setLabelCategories,
+  setLasagnaData,
+  featureExtractionID,
 }) {
   let [keycloak] = useKeycloak();
 
@@ -39,22 +43,39 @@ export default function DataLabels({
 
     updatedLabels[patientID][outcomeColumn] = e.target.value;
 
-    setDataLabels(updatedLabels);
+    updateCurrentLabels(updatedLabels);
   };
 
   const handleSaveLabelsClick = async (e) => {
     setIsSavingLabels(true);
-    await Backend.saveLabels(keycloak.token, albumID, labelType, dataLabels);
+    await Backend.saveLabels(keycloak.token, activeLabelCategoryID, dataLabels);
     setIsSavingLabels(false);
     toggleAutoLabelling();
     toggleManualLabelling();
+
+    /* TODO - Improve this part, these manual calls are not so elegant */
+    let labelCategories = await Backend.labelCategories(
+      keycloak.token,
+      albumID
+    );
+
+    setLabelCategories(labelCategories);
+
+    const {
+      visualization: lasagnaData,
+    } = await Backend.extractionFeatureDetails(
+      keycloak.token,
+      featureExtractionID
+    );
+
+    setLasagnaData(lasagnaData);
   };
 
   const handleFileInputChange = async () => {
     let [isValid, message] = await validateLabelFile(
       fileInput.current.files[0],
       dataPoints,
-      setDataLabels
+      updateCurrentLabels
     );
     setIsLabelFileValid(isValid);
     setLabelFileMessage(message);
