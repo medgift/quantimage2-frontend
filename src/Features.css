@@ -16,12 +16,12 @@
 }
 
 .features-table {
-  /*width: calc(100% - 250px);*/
 }
 
 .feature-tabs {
   /*overflow-x: hidden;*/
   flex-grow: 1;
+  width: calc(100% - 250px);
 }
 
 .tab-content {

@@ -26,6 +26,7 @@ import Loading from './visualisation/Loading';
 import { VegaLite } from 'react-vega';
 
 export default function Visualisation({
+  active,
   lasagnaData,
   setLasagnaData,
   album,
@@ -288,21 +289,23 @@ export default function Visualisation({
             <td className="filter-data">
               <div>
                 <h6>Filter Features (Lines)</h6>
-                <FilterTree
-                  filteringItems={filteringItems}
-                  formatTreeData={formatTreeData}
-                  treeData={treeData}
-                  leafItems={leafItems}
-                  getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
-                  modalities={modalities}
-                  regions={regions}
-                  featureNames={featureNames}
-                  featureIDs={featureIDs}
-                  setFeatureIDs={setFeatureIDs}
-                  selected={selected}
-                  setSelected={setSelected}
-                  disabled={dropCorrelatedFeatures}
-                />
+                {active && (
+                  <FilterTree
+                    filteringItems={filteringItems}
+                    formatTreeData={formatTreeData}
+                    treeData={treeData}
+                    leafItems={leafItems}
+                    getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
+                    modalities={modalities}
+                    regions={regions}
+                    featureNames={featureNames}
+                    featureIDs={featureIDs}
+                    setFeatureIDs={setFeatureIDs}
+                    selected={selected}
+                    setSelected={setSelected}
+                    disabled={dropCorrelatedFeatures}
+                  />
+                )}
                 <h6>Filter Patients (Columns)</h6>
                 <div className="filter-visualization">
                   <FilterList
@@ -323,10 +326,15 @@ export default function Visualisation({
                 features)
               </Button>
               <div>
-                <VegaLite
-                  spec={lasagnaSpec}
-                  data={{ features: selectedFeatures, status: filteredStatus }}
-                />
+                {active && (
+                  <VegaLite
+                    spec={lasagnaSpec}
+                    data={{
+                      features: selectedFeatures,
+                      status: filteredStatus,
+                    }}
+                  />
+                )}
               </div>
               <div>
                 <small>

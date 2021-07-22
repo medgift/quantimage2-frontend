@@ -253,9 +253,9 @@ function Features({ history }) {
     }
   }, [featureExtractionID, collectionID]);
 
-  // Get features
+  // Get feature extraction
   useEffect(() => {
-    async function getFeatures() {
+    async function getExtraction() {
       setIsLoading(true);
 
       const latestExtraction = await Backend.extractions(
@@ -265,7 +265,14 @@ function Features({ history }) {
 
       setFeatureExtractionID(latestExtraction.id);
       setFeatureExtraction(latestExtraction);
+    }
 
+    getExtraction();
+  }, [albumID, collectionID]);
+
+  // Get features
+  useEffect(() => {
+    async function getFeatures() {
       let features;
       let header;
       let lasagna;
@@ -276,7 +283,7 @@ function Features({ history }) {
           visualization: lasagnaData,
         } = await Backend.extractionFeatureDetails(
           keycloak.token,
-          latestExtraction.id
+          featureExtractionID
         );
 
         features = allFeatures;
@@ -289,7 +296,7 @@ function Features({ history }) {
           visualization: lasagnaData,
         } = await Backend.extractionCollectionFeatureDetails(
           keycloak.token,
-          latestExtraction.id,
+          featureExtractionID,
           +collectionID
         );
 
@@ -305,8 +312,8 @@ function Features({ history }) {
       setIsLoading(false);
     }
 
-    getFeatures();
-  }, [albumID, collectionID]);
+    if (featureExtractionID) getFeatures();
+  }, [featureExtractionID, collectionID]);
 
   // Get models
   useEffect(() => {
@@ -1036,6 +1043,7 @@ function Features({ history }) {
                               </Alert>
                             )}
                             <Visualisation
+                              active={tab === 'visualize'}
                               lasagnaData={lasagnaData}
                               setLasagnaData={setLasagnaData}
                               collectionInfos={
