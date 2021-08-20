@@ -51,6 +51,7 @@ import {
   faSortDown,
   faCaretUp,
   faCaretDown,
+  faPencilAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -106,4 +107,5 @@ export default function registerIcons() {
   library.add(faSortDown);
   library.add(faCaretUp);
   library.add(faCaretDown);
+  library.add(faPencilAlt);
 }

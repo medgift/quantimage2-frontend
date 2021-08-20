@@ -107,6 +107,35 @@ class Backend {
     }
   }
 
+  async editLabelCategory(token, labelCategoryID, name) {
+    try {
+      const url = `${endpoints.labels}/${labelCategoryID}`;
+
+      const data = { name };
+
+      return await request(url, {
+        token: token,
+        data: data,
+        method: 'PATCH',
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async deleteLabelCategory(token, labelCategoryID) {
+    try {
+      const url = `${endpoints.labels}/${labelCategoryID}`;
+
+      return await request(url, {
+        token: token,
+        method: 'DELETE',
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async labelCategories(token, albumID) {
     try {
       const url = `${endpoints.labelCategories}/${albumID}`;
@@ -457,7 +486,9 @@ class Backend {
 
   async saveCurrentOutcome(token, albumID, labelCategoryID) {
     try {
-      let url = `${endpoints.albums}/${albumID}/current-outcome/${labelCategoryID}`;
+      let url = `${endpoints.albums}/${albumID}/current-outcome`;
+
+      if (labelCategoryID) url += `/${labelCategoryID}`;
 
       return await request(url, { token: token, method: 'PATCH' });
     } catch (err) {

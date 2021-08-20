@@ -4,13 +4,15 @@ import React, { useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from 'react-keycloak';
 
+import './DataLabels.css';
+
 export default function DataLabels({
   albumID,
   dataPoints,
   dataLabels,
-  labelType,
   updateCurrentLabels,
-  activeLabelCategoryID,
+  selectedLabelCategory,
+  setSelectedLabelCategory,
   outcomeColumns,
   validateLabelFile,
   isSavingLabels,
@@ -48,7 +50,11 @@ export default function DataLabels({
 
   const handleSaveLabelsClick = async (e) => {
     setIsSavingLabels(true);
-    await Backend.saveLabels(keycloak.token, activeLabelCategoryID, dataLabels);
+    await Backend.saveLabels(
+      keycloak.token,
+      selectedLabelCategory.id,
+      dataLabels
+    );
     setIsSavingLabels(false);
     toggleAutoLabelling();
     toggleManualLabelling();
@@ -60,6 +66,10 @@ export default function DataLabels({
     );
 
     setLabelCategories(labelCategories);
+
+    setSelectedLabelCategory(
+      labelCategories.find((c) => c.id === selectedLabelCategory.id)
+    );
 
     const {
       visualization: lasagnaData,
@@ -92,7 +102,7 @@ export default function DataLabels({
         </Button>
       </p>
       <Collapse isOpen={isManualLabellingOpen}>
-        <Table className="narrow-table">
+        <Table className="narrow-table table-fixed">
           <thead>
             <tr>
               <th>PatientID</th>

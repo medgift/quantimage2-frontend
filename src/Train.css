@@ -9,8 +9,9 @@
   vertical-align: inherit;
 }
 
-.data-label {
+.data-label input {
   width: 120px;
+  margin: auto;
 }
 
 .data-label input[type='text'] {
@@ -18,7 +19,7 @@
 }
 
 .narrow-table {
-  width: 400px;
+  width: 600px;
   margin-left: auto;
   margin-right: auto;
 }

@@ -8,8 +8,9 @@ import {
   InputGroupAddon,
   Label,
 } from 'reactstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DataLabels from './components/DataLabels';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { MODEL_TYPES } from './Features';
 import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
@@ -27,9 +28,8 @@ export default function Outcomes({
   isTraining,
   isSavingLabels,
   setIsSavingLabels,
-  activeLabelCategory,
-  activeLabelCategoryID,
-  setActiveLabelCategoryID,
+  selectedLabelCategory,
+  setSelectedLabelCategory,
   labelCategories,
   setLabelCategories,
   setLasagnaData,
@@ -44,13 +44,7 @@ export default function Outcomes({
   const [newOutcomeType, setNewOutcomeType] = useState(
     MODEL_TYPES.CLASSIFICATION
   );
-
-  const [selectedOutcome, setSelectedOutcome] = useState(null);
-
-  useEffect(() => {
-    if (labelCategories && activeLabelCategory)
-      setSelectedOutcome(activeLabelCategory);
-  }, [labelCategories, activeLabelCategory]);
+  const [isEditingOutcome, setIsEditingOutcome] = useState(false);
 
   // Handle outcome type change
   const handleOutcomeTypeChange = (e) => {
@@ -68,8 +62,10 @@ export default function Outcomes({
   };
 
   // Handle outcome seleciton
-  const handleOutcomeChange = (e) => {
-    setSelectedOutcome(labelCategories.find((c) => c.id === +e.target.value));
+  const handleOutcomeChange = async (e) => {
+    let selectedOutcome = labelCategories.find((c) => c.id === +e.target.value);
+    await saveCurrentOutcome(selectedOutcome ? selectedOutcome : null);
+    setSelectedLabelCategory(selectedOutcome);
   };
 
   // Toggle outcome creation modal
@@ -77,6 +73,7 @@ export default function Outcomes({
     setOutcomeModalOpen((o) => {
       setNewOutcomeType(MODEL_TYPES.CLASSIFICATION);
       setNewOutcomeName('');
+      setIsEditingOutcome(false);
       return !o;
     });
   };
@@ -93,22 +90,79 @@ export default function Outcomes({
     );
 
     setLabelCategories((c) => [...c, newLabelCategory]);
+
+    // Select the new label category as the active one
+    await saveCurrentOutcome(newLabelCategory);
+
     toggleOutcomeModal();
   };
 
-  // Handle setting current outcome
-  const handleSetCurrentClick = async (e) => {
-    if (selectedOutcome) {
-      await Backend.saveCurrentOutcome(
-        keycloak.token,
-        albumID,
-        selectedOutcome.id
-      );
-      setActiveLabelCategoryID(selectedOutcome.id);
-    }
+  const handleEditOutcomeSubmit = async (e) => {
+    e.preventDefault();
+
+    let updatedLabelCategory = await Backend.editLabelCategory(
+      keycloak.token,
+      selectedLabelCategory.id,
+      newOutcomeName
+    );
+
+    // Update category name in the list of label categories
+    let categoryToUpdateIndex = labelCategories.findIndex(
+      (c) => c.id === updatedLabelCategory.id
+    );
+    let categories = [...labelCategories];
+    categories[categoryToUpdateIndex] = updatedLabelCategory;
+    setLabelCategories(categories);
+
+    setSelectedLabelCategory(updatedLabelCategory);
+
+    toggleOutcomeModal();
+  };
+
+  // Handle editing current outcome
+  const handleEditOutcomeClick = async () => {
+    toggleOutcomeModal();
+    setIsEditingOutcome(true);
+    setNewOutcomeName(selectedLabelCategory.name);
+    setNewOutcomeType(selectedLabelCategory.label_type);
+  };
+
+  // Handle deleting an outcome
+  const handleDeleteOutcomeClick = async () => {
+    let categoryToDelete = selectedLabelCategory;
+
+    await Backend.deleteLabelCategory(keycloak.token, categoryToDelete.id);
+
+    let categoryToRemoveIndex = labelCategories.findIndex(
+      (c) => c.id === categoryToDelete.id
+    );
+    let categories = [...labelCategories];
+    categories.splice(categoryToRemoveIndex, 1);
+    setLabelCategories(categories);
+
+    setSelectedLabelCategory(null);
   };
 
   if (labelCategories === null) return <div>Loading...</div>;
+
+  const saveCurrentOutcome = async (outcome) => {
+    await Backend.saveCurrentOutcome(
+      keycloak.token,
+      albumID,
+      outcome ? outcome.id : null
+    );
+    setSelectedLabelCategory(outcome);
+
+    /* TODO - Improve this part, these manual calls are not so elegant */
+    const {
+      visualization: lasagnaData,
+    } = await Backend.extractionFeatureDetails(
+      keycloak.token,
+      featureExtractionID
+    );
+
+    setLasagnaData(lasagnaData);
+  };
 
   const classificationCategories = labelCategories.filter(
     (c) => c.label_type === MODEL_TYPES.CLASSIFICATION
@@ -131,13 +185,13 @@ export default function Outcomes({
       </Button>
       {labelCategories.length > 0 && (
         <FormGroup>
-          <Label for="outcomeList">Select an Outcome</Label>
+          <Label for="outcomeList">Select the current Outcome</Label>
           <InputGroup>
             <Input
               type="select"
               id="outcomeList"
               name="outcomeList"
-              value={selectedOutcome ? selectedOutcome.id : ''}
+              value={selectedLabelCategory ? selectedLabelCategory.id : ''}
               onChange={handleOutcomeChange}
             >
               <option key="EMPTY" value="">
@@ -162,15 +216,24 @@ export default function Outcomes({
                 </optgroup>
               )}
             </Input>
-            <InputGroupAddon addonType="append">
-              <Button color="success" onClick={handleSetCurrentClick}>
-                Set as Current
-              </Button>
-            </InputGroupAddon>
+            {selectedLabelCategory && (
+              <>
+                <InputGroupAddon addonType="append">
+                  <Button color="success" onClick={handleEditOutcomeClick}>
+                    <FontAwesomeIcon icon="pencil-alt" title="Edit Outcome" />
+                  </Button>
+                </InputGroupAddon>
+                <InputGroupAddon addonType="append">
+                  <Button color="danger" onClick={handleDeleteOutcomeClick}>
+                    <FontAwesomeIcon icon="trash-alt" title="Delete Outcome" />
+                  </Button>
+                </InputGroupAddon>
+              </>
+            )}
           </InputGroup>
         </FormGroup>
       )}
-      {activeLabelCategory && (
+      {selectedLabelCategory && (
         <>
           <DataLabels
             albumID={albumID}
@@ -180,13 +243,13 @@ export default function Outcomes({
             setIsSavingLabels={setIsSavingLabels}
             dataLabels={formattedDataLabels}
             updateCurrentLabels={updateCurrentLabels}
-            labelType={activeLabelCategory.label_type}
-            activeLabelCategoryID={activeLabelCategoryID}
+            selectedLabelCategory={selectedLabelCategory}
+            setSelectedLabelCategory={setSelectedLabelCategory}
             setLabelCategories={setLabelCategories}
             setLasagnaData={setLasagnaData}
             featureExtractionID={featureExtractionID}
             outcomeColumns={
-              activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+              selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
                 ? CLASSIFICATION_OUTCOMES
                 : SURVIVAL_OUTCOMES
             }
@@ -195,7 +258,7 @@ export default function Outcomes({
                 file,
                 dataPoints,
                 updateCurrentLabels,
-                activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+                selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
                   ? CLASSIFICATION_OUTCOMES
                   : SURVIVAL_OUTCOMES
               )
@@ -206,11 +269,17 @@ export default function Outcomes({
       <MyModal
         isOpen={outcomeModalOpen}
         toggle={toggleOutcomeModal}
-        title="Create a new outcome"
+        title={isEditingOutcome ? 'Edit outcome' : 'Create a new outcome'}
       >
-        <Form onSubmit={handleCreateOutcomeSubmit}>
+        <Form
+          onSubmit={
+            isEditingOutcome
+              ? handleEditOutcomeSubmit
+              : handleCreateOutcomeSubmit
+          }
+        >
           <FormGroup>
-            <Label for="newOutcomeName">New Outcome Name</Label>
+            <Label for="newOutcomeName">Outcome Name</Label>
             <Input
               type="text"
               id="newOutcomeName"
@@ -221,13 +290,14 @@ export default function Outcomes({
             />
           </FormGroup>
           <FormGroup>
-            <Label for="newOutcomeType">New Outcome Type</Label>
+            <Label for="newOutcomeType">Outcome Type</Label>
             <Input
               type="select"
               id="outcome-type"
               name="outcome-type"
               value={newOutcomeType}
               onChange={handleOutcomeTypeChange}
+              disabled={isEditingOutcome}
             >
               {Object.keys(MODEL_TYPES).map((key) => (
                 <option key={key} value={MODEL_TYPES[key]}>
@@ -241,13 +311,15 @@ export default function Outcomes({
             </FormText>
           </FormGroup>
           <Button color="primary" type="submit">
-            Create New Outcome
+            {isEditingOutcome ? 'Save Outcome' : 'Create New Outcome'}
           </Button>
         </Form>
       </MyModal>
     </>
   );
 }
+
+function OutcomeCreateEditModal(isEdit) {}
 
 function validateFileType(file) {
   /* Validate metadata - file type */

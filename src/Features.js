@@ -65,6 +65,10 @@ export const MODEL_TYPES = {
   SURVIVAL: 'Survival',
 };
 
+export const OUTCOME_CLASSIFICATION = 'Outcome';
+export const OUTCOME_SURVIVAL_EVENT = 'Event';
+export const OUTCOME_SURVIVAL_TIME = 'Time';
+
 function Features({ history }) {
   const [keycloak] = useKeycloak();
 
@@ -109,7 +113,7 @@ function Features({ history }) {
   // Outcomes management
   const [dataPoints, setDataPoints] = useState(null);
   const [labelCategories, setLabelCategories] = useState(null);
-  const [activeLabelCategoryID, setActiveLabelCategoryID] = useState(null);
+  const [selectedLabelCategory, setSelectedLabelCategory] = useState(null);
 
   // Models management
   const [models, setModels] = useState([]);
@@ -216,7 +220,7 @@ function Features({ history }) {
         albumID
       );
 
-      if (currentOutcome) setActiveLabelCategoryID(currentOutcome);
+      if (currentOutcome) setSelectedLabelCategory(currentOutcome);
     }
     if (albumID) fetchCurrentOutcomeID();
   }, [albumID, keycloak.token]);
@@ -430,13 +434,6 @@ function Features({ history }) {
     return null;
   }, [featureNames]);
 
-  // Active outcome
-  const activeLabelCategory = useMemo(() => {
-    if (!activeLabelCategoryID || !labelCategories) return null;
-
-    return labelCategories.find((c) => c.id === activeLabelCategoryID);
-  }, [activeLabelCategoryID, labelCategories]);
-
   // Get current collection
   const currentCollection =
     collections && collectionID
@@ -448,7 +445,7 @@ function Features({ history }) {
     (labels) => {
       setFormattedDataLabels(labels);
     },
-    [labelCategories, activeLabelCategoryID]
+    [labelCategories, selectedLabelCategory]
   );
 
   // Format active data labels
@@ -456,16 +453,16 @@ function Features({ history }) {
 
   // Reinitialize formatted data labels on changes
   useEffect(() => {
-    if (!activeLabelCategory || !dataPoints) return;
+    if (!selectedLabelCategory || !dataPoints) return;
 
-    let formattedLabels = activeLabelCategory.labels.reduce((acc, label) => {
+    let formattedLabels = selectedLabelCategory.labels.reduce((acc, label) => {
       acc[label.patient_id] = label.label_content;
       return acc;
     }, {});
 
     // Define columns based on the label type
     let outcomeColumns =
-      activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
         ? CLASSIFICATION_OUTCOMES
         : SURVIVAL_OUTCOMES;
 
@@ -486,14 +483,14 @@ function Features({ history }) {
     }
 
     setFormattedDataLabels(formattedLabels);
-  }, [activeLabelCategory, dataPoints]);
+  }, [selectedLabelCategory, dataPoints]);
 
   // Compute unlabelled data points
   const unlabelledDataPoints = useMemo(() => {
-    if (!activeLabelCategory || !dataPoints) return null;
+    if (!selectedLabelCategory || !dataPoints) return null;
 
     let unlabelled = 0;
-    let dataLabels = activeLabelCategory.labels;
+    let dataLabels = selectedLabelCategory.labels;
 
     for (let patientID of dataPoints) {
       let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
@@ -508,7 +505,7 @@ function Features({ history }) {
     }
 
     return unlabelled;
-  }, [activeLabelCategory, dataPoints]);
+  }, [selectedLabelCategory, dataPoints]);
 
   // Handle click on a filter button
   const handleFilterClick = (selected, field, setField) => {
@@ -841,8 +838,8 @@ function Features({ history }) {
                       >
                         {getTabSymbol()}
                         Outcomes
-                        {activeLabelCategory &&
-                          ` (Current - ${activeLabelCategory.name})`}
+                        {selectedLabelCategory &&
+                          ` (Current - ${selectedLabelCategory.name})`}
                       </NavLink>
                     </NavItem>
                     {isAlternativeUser !== true && (
@@ -1018,9 +1015,8 @@ function Features({ history }) {
                             featureExtractionID={featureExtractionID}
                             isSavingLabels={isSavingLabels}
                             setIsSavingLabels={setIsSavingLabels}
-                            activeLabelCategory={activeLabelCategory}
-                            activeLabelCategoryID={activeLabelCategoryID}
-                            setActiveLabelCategoryID={setActiveLabelCategoryID}
+                            selectedLabelCategory={selectedLabelCategory}
+                            setSelectedLabelCategory={setSelectedLabelCategory}
                             labelCategories={labelCategories}
                             setLabelCategories={setLabelCategories}
                             setLasagnaData={setLasagnaData}
@@ -1044,6 +1040,7 @@ function Features({ history }) {
                             )}
                             <Visualisation
                               active={tab === 'visualize'}
+                              selectedLabelCategory={selectedLabelCategory}
                               lasagnaData={lasagnaData}
                               setLasagnaData={setLasagnaData}
                               collectionInfos={
@@ -1089,7 +1086,7 @@ function Features({ history }) {
                                   : null
                               }
                               labelCategories={labelCategories}
-                              activeLabelCategory={activeLabelCategory}
+                              selectedLabelCategory={selectedLabelCategory}
                               metadataColumns={metadataColumns}
                               dataPoints={dataPoints}
                               formattedDataLabels={formattedDataLabels}

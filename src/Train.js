@@ -43,6 +43,7 @@ const CLASSIFICATION_ALGORITHMS = {
 };
 
 function ModelsTable({
+  title,
   columns,
   data,
   dataPoints,
@@ -52,7 +53,7 @@ function ModelsTable({
   handleShowFeatureNames,
   handleShowPatientIDs,
   formatMetrics,
-  maxAUCModel,
+  bestModel,
 }) {
   const {
     getTableProps,
@@ -77,8 +78,11 @@ function ModelsTable({
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
   };
 
+  if (data.length === 0) return null;
+
   return (
     <>
+      <h4 className="mt-3">{title}</h4>
       <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
           {headerGroups.map((headerGroup) => (
@@ -138,7 +142,7 @@ function ModelsTable({
                 <tr
                   {...row.getRowProps()}
                   className={`model-row ${
-                    row.original.id === maxAUCModel.id && 'text-success'
+                    row.original.id === bestModel.id && 'text-success'
                   }`}
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
@@ -322,14 +326,22 @@ export default function Train({
   featureExtractionID,
   dataPoints,
   formattedDataLabels,
-  activeLabelCategory,
+  selectedLabelCategory,
   labelCategories,
   models,
   setModels,
 }) {
   let [keycloak] = useKeycloak();
 
-  const maxAUCModel = _.maxBy(models, 'metrics.auc.mean');
+  const maxAUCModel = _.maxBy(
+    models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION),
+    'metrics.auc.mean'
+  );
+
+  const maxCIndexModel = _.maxBy(
+    models.filter((m) => m.type === MODEL_TYPES.SURVIVAL),
+    'metrics.concordance_index'
+  );
 
   let [algorithmType, setAlgorithmType] = useState(
     CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
@@ -356,7 +368,7 @@ export default function Train({
   //let [featureSelection, setFeatureSelection] = useState('none');
 
   // Model table header
-  const columns = React.useMemo(
+  const columnsClassification = React.useMemo(
     () => [
       {
         Header: 'Date created',
@@ -372,6 +384,28 @@ export default function Train({
       {
         Header: 'Mean AUC (green is highest)',
         accessor: 'metrics.auc.mean',
+        sortDescFirst: true,
+      },
+    ],
+    []
+  );
+
+  const columnsSurvival = React.useMemo(
+    () => [
+      {
+        Header: 'Date created',
+        accessor: (r) =>
+          DateTime.fromJSDate(new Date(r.created_at)).toFormat(
+            'yyyy-MM-dd HH:mm:ss'
+          ),
+        sortDescFirst: true,
+        id: 'created_at',
+      },
+      { Header: 'Algorithm', accessor: 'algorithm' },
+      { Header: 'Data Normalization', accessor: 'data_normalization' },
+      {
+        Header: 'c-index (green is highest)',
+        accessor: 'metrics.concordance_index',
         sortDescFirst: true,
       },
     ],
@@ -406,7 +440,7 @@ export default function Train({
     for (let patientID in formattedDataLabels) {
       let tabularLabel = [patientID];
       let outcomeFields =
-        activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
           ? CLASSIFICATION_OUTCOMES
           : SURVIVAL_OUTCOMES;
 
@@ -438,7 +472,7 @@ export default function Train({
         albumStudies,
         album,
         labels,
-        activeLabelCategory.label_type,
+        selectedLabelCategory.label_type,
         algorithmType,
         dataNormalization,
         metadataColumns[MODALITY_FIELD],
@@ -485,18 +519,17 @@ export default function Train({
   let newModelForm = () => (
     <div>
       <h2>
-        Train a new model on album "{album.name}"
+        Train a new <strong>{selectedLabelCategory.label_type}</strong> model on
+        album "{album.name}"
         {collectionInfos ? (
           <span>, collection "{collectionInfos.collection.name}"</span>
         ) : null}{' '}
-        using current outcome "{activeLabelCategory.name}" (
-        {activeLabelCategory.label_type})
+        using current outcome "{selectedLabelCategory.name}"
       </h2>
 
-      <h4>Model configuration</h4>
-
-      {activeLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
+      {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
         <>
+          <h4>Model configuration</h4>
           <div>Choose the classification algorithm</div>
           <div className="form-container">
             <Form>
@@ -729,20 +762,35 @@ export default function Train({
 
   const modelsList = (
     <>
-      <h4 className="mt-3">Classification Models</h4>
       {albumExtraction && (
-        <ModelsTable
-          columns={columns}
-          data={models}
-          dataPoints={dataPoints}
-          albumExtraction={albumExtraction}
-          collectionInfos={collectionInfos}
-          handleDeleteModelClick={handleDeleteModelClick}
-          handleShowFeatureNames={handleShowFeatureNames}
-          handleShowPatientIDs={handleShowPatientIDs}
-          formatMetrics={formatMetrics}
-          maxAUCModel={maxAUCModel}
-        />
+        <>
+          <ModelsTable
+            title="Classification Models"
+            columns={columnsClassification}
+            data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
+            dataPoints={dataPoints}
+            albumExtraction={albumExtraction}
+            collectionInfos={collectionInfos}
+            handleDeleteModelClick={handleDeleteModelClick}
+            handleShowFeatureNames={handleShowFeatureNames}
+            handleShowPatientIDs={handleShowPatientIDs}
+            formatMetrics={formatMetrics}
+            bestModel={maxAUCModel}
+          />
+          <ModelsTable
+            title="Survival Models"
+            columns={columnsSurvival}
+            data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
+            dataPoints={dataPoints}
+            albumExtraction={albumExtraction}
+            collectionInfos={collectionInfos}
+            handleDeleteModelClick={handleDeleteModelClick}
+            handleShowFeatureNames={handleShowFeatureNames}
+            handleShowPatientIDs={handleShowPatientIDs}
+            formatMetrics={formatMetrics}
+            bestModel={maxCIndexModel}
+          />
+        </>
       )}
       <MyModal
         isOpen={featureNamesOpen}
@@ -768,16 +816,16 @@ export default function Train({
         <ol>
           <li>
             Go to the "Outcomes" tab and create a new outcome using the "Create
-            New Outcome" button.
+            New Outcome" button
           </li>
           <li>Input or upload the patient labels for that outcome</li>
-          <li>Set an outcome as "current" using the "Set As Current" button</li>
+          <li>Set an outcome as "current" by selecting it in the list</li>
         </ol>
       </Alert>
     );
   }
 
-  if (!activeLabelCategory) {
+  if (!selectedLabelCategory) {
     return (
       <Alert color="info">
         You have not defined a current outcome yet. Go to the "Outcomes" tab and

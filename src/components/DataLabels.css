@@ -1,0 +1,19 @@
+.table-fixed tbody {
+  max-height: 20em;
+  overflow-y: auto;
+}
+
+.table-fixed thead,
+.table-fixed tbody {
+  display: block;
+}
+
+.table-fixed tr {
+  display: flex;
+}
+
+.table-fixed td,
+.table-fixed th {
+  display: block; /* Needed for IE */
+  width: 50%;
+}

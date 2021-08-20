@@ -60,11 +60,6 @@
             "field": "feature_value",
             "type": "quantitative",
             "title": "Value"
-          },
-          {
-            "field": "Outcome",
-            "type": "nominal",
-            "title": "Outcome"
           }
         ]
       }

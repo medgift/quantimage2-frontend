@@ -24,9 +24,15 @@ import FilterList from './components/FilterList';
 import MyModal from './components/MyModal';
 import Loading from './visualisation/Loading';
 import { VegaLite } from 'react-vega';
+import {
+  MODEL_TYPES,
+  OUTCOME_CLASSIFICATION,
+  OUTCOME_SURVIVAL_EVENT,
+} from './Features';
 
 export default function Visualisation({
   active,
+  selectedLabelCategory,
   lasagnaData,
   setLasagnaData,
   album,
@@ -203,30 +209,65 @@ export default function Visualisation({
 
   // Define spec dynamically
   const lasagnaSpec = useMemo(() => {
-    if (!filteredStatus) return Lasagna;
-
     let finalSpec = _.cloneDeep(Lasagna);
 
-    // Custom sort of patients
-    let statusSorted = filteredStatus.sort((p1, p2) => {
-      if (p1.Outcome > p2.Outcome) {
-        return 1;
-      } else if (p1.Outcome < p2.Outcome) {
-        return -1;
-      } else {
-        return p1.PatientID > p2.PatientID;
-      }
-    });
+    if (!filteredStatus) {
+      finalSpec.vconcat = finalSpec.vconcat.splice(1, 1);
+      return finalSpec;
+    }
 
-    // Custom color scheme (for UNKNOWN and then others)
-    finalSpec.vconcat[1].encoding.color.scale.domain = [
-      ...new Set(filteredStatus.map((p) => p.Outcome)),
-    ];
-    finalSpec.vconcat[1].encoding.color.scale.range = [
-      '#f25a38',
-      '#59c26e',
-      '#cccccc',
-    ];
+    let statusSorted;
+
+    if (selectedLabelCategory) {
+      // Define field to use for outcomes based on the current label type
+      let outcomeField =
+        selectedLabelCategory?.label_type === MODEL_TYPES.SURVIVAL
+          ? OUTCOME_SURVIVAL_EVENT
+          : OUTCOME_CLASSIFICATION;
+
+      // Define tooltip
+      let tooltipNode = {
+        field: outcomeField,
+        type: 'nominal',
+        title: outcomeField,
+      };
+
+      // Add tooltip
+      finalSpec.vconcat[0].encoding.tooltip = [
+        ...finalSpec.vconcat[0].encoding.tooltip,
+        tooltipNode,
+      ];
+
+      // Custom sort of patients
+      statusSorted = filteredStatus.sort((p1, p2) => {
+        if (p1[outcomeField] > p2[outcomeField]) {
+          return 1;
+        } else if (p1[outcomeField] < p2[outcomeField]) {
+          return -1;
+        } else {
+          return p1.PatientID > p2.PatientID;
+        }
+      });
+
+      // Update patient labels at the bottom
+      finalSpec.vconcat[1].encoding.color.field = outcomeField;
+
+      // Custom color scheme (for UNKNOWN and then others)
+      finalSpec.vconcat[1].encoding.color.scale.domain = [
+        ...new Set(filteredStatus.map((p) => p[outcomeField])),
+      ];
+      finalSpec.vconcat[1].encoding.color.scale.range = [
+        '#f25a38',
+        '#59c26e',
+        '#cccccc',
+      ];
+    } else {
+      // No active outcome - Don't show the second chart
+      finalSpec.vconcat.splice(1, 1);
+      statusSorted = filteredStatus.sort(
+        (p1, p2) => p1.PatientID > p2.PatientID
+      );
+    }
 
     let patientIDsSorted = statusSorted.map((p) => p.PatientID);
 
@@ -238,7 +279,7 @@ export default function Visualisation({
     else finalSpec.vconcat[0].encoding.y.field = 'feature_id';
 
     return finalSpec;
-  }, [filteredStatus, rankFeatures]);
+  }, [selectedLabelCategory, filteredStatus, rankFeatures]);
 
   const handleCreateCollectionClick = () => {
     console.log('Creating new collection using', featureIDs.size, 'features');
@@ -329,10 +370,14 @@ export default function Visualisation({
                 {active && (
                   <VegaLite
                     spec={lasagnaSpec}
-                    data={{
-                      features: selectedFeatures,
-                      status: filteredStatus,
-                    }}
+                    data={
+                      lasagnaSpec.vconcat.length > 1
+                        ? {
+                            features: selectedFeatures,
+                            status: filteredStatus,
+                          }
+                        : { features: selectedFeatures }
+                    }
                   />
                 )}
               </div>
