@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Input,
@@ -40,6 +40,10 @@ const CLASSIFICATION_ALGORITHMS = {
   ELASTIC_NET: 'elastic_net',
   RANDOM_FOREST: 'random_forest',
   SVM: 'svm',
+};
+
+const SURVIVAL_ALGORITHMS = {
+  COX_MODEL: 'cox',
 };
 
 function ModelsTable({
@@ -367,6 +371,15 @@ export default function Train({
   let [dataNormalization, setDataNormalization] = useState('none');
   //let [featureSelection, setFeatureSelection] = useState('none');
 
+  // Modify algorithm type on label category switch
+  useEffect(() => {
+    if (selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION)
+      setAlgorithmType(CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION);
+
+    if (selectedLabelCategory.label_type === MODEL_TYPES.SURVIVAL)
+      setAlgorithmType(SURVIVAL_ALGORITHMS.COX_MODEL);
+  }, [selectedLabelCategory]);
+
   // Model table header
   const columnsClassification = React.useMemo(
     () => [
@@ -672,20 +685,7 @@ export default function Train({
         <td>
           <strong>{metricName}</strong>
         </td>
-        <td>
-          {_.isNumber(metrics[metricName]['mean'])
-            ? metrics[metricName]['mean'].toFixed(3)
-            : metrics[metricName]['mean']}{' '}
-          (
-          {_.isNumber(metrics[metricName]['inf_value'])
-            ? metrics[metricName]['inf_value'].toFixed(3)
-            : metrics[metricName]['inf_value']}{' '}
-          -{' '}
-          {_.isNumber(metrics[metricName]['sup_value'])
-            ? metrics[metricName]['sup_value'].toFixed(3)
-            : metrics[metricName]['sup_value']}
-          )
-        </td>
+        <td>{formatMetric(metrics[metricName])}</td>
       </tr>
     ));
 
@@ -734,15 +734,19 @@ export default function Train({
               <th>Metric Name</th>
               <th>
                 Metric Value{' '}
-                <FontAwesomeIcon icon="question-circle" id="ciTooltip" />
-                <Tooltip
-                  placement="right"
-                  isOpen={ciTooltipOpen}
-                  target="ciTooltip"
-                  toggle={toggleCITooltip}
-                >
-                  Shows the mean value & 95% confidence interval
-                </Tooltip>
+                {_.isPlainObject(Object.values(metrics)[0]) && (
+                  <>
+                    <FontAwesomeIcon icon="question-circle" id="ciTooltip" />
+                    <Tooltip
+                      placement="right"
+                      isOpen={ciTooltipOpen}
+                      target="ciTooltip"
+                      toggle={toggleCITooltip}
+                    >
+                      Shows the mean value & 95% confidence interval
+                    </Tooltip>
+                  </>
+                )}
               </th>
             </tr>
           </thead>
@@ -862,11 +866,32 @@ export default function Train({
           <div>
             <Button color="primary" onClick={handleShowNewModelClick}>
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
-              <span>Train a new model</span>
+              <span>
+                Train a new <strong>{selectedLabelCategory.label_type}</strong>{' '}
+                model using current outcome "{selectedLabelCategory.name}"
+              </span>
             </Button>
           </div>
           {modelsList}
         </>
       );
   }
+}
+
+function formatMetric(metric) {
+  if (!_.isPlainObject(metric)) return metric;
+
+  return (
+    <>
+      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(3) : metric['mean']}{' '}
+      (
+      {_.isNumber(metric['inf_value'])
+        ? metric['inf_value'].toFixed(3)
+        : metric['inf_value']}{' '}
+      -{' '}
+      {_.isNumber(metric['sup_value'])
+        ? metric['sup_value'].toFixed(3)
+        : metric['sup_value']}
+    </>
+  );
 }
