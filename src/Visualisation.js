@@ -416,10 +416,12 @@ export default function Visualisation({
                   dropCorrelatedFeatures={dropCorrelatedFeatures}
                   setDropCorrelatedFeatures={setDropCorrelatedFeatures}
                 />
-                <FeatureRanking
-                  rankFeatures={rankFeatures}
-                  setRankFeatures={setRankFeatures}
-                />
+                {selectedLabelCategory && (
+                  <FeatureRanking
+                    rankFeatures={rankFeatures}
+                    setRankFeatures={setRankFeatures}
+                  />
+                )}
               </div>
             </td>
           </tr>
