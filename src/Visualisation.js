@@ -28,6 +28,7 @@ import {
   MODEL_TYPES,
   OUTCOME_CLASSIFICATION,
   OUTCOME_SURVIVAL_EVENT,
+  OUTCOME_SURVIVAL_TIME,
 } from './Features';
 
 export default function Visualisation({
@@ -219,9 +220,11 @@ export default function Visualisation({
     let statusSorted;
 
     if (selectedLabelCategory) {
+      let modelType = selectedLabelCategory.label_type;
+
       // Define field to use for outcomes based on the current label type
       let outcomeField =
-        selectedLabelCategory?.label_type === MODEL_TYPES.SURVIVAL
+        modelType === MODEL_TYPES.SURVIVAL
           ? OUTCOME_SURVIVAL_EVENT
           : OUTCOME_CLASSIFICATION;
 
@@ -240,12 +243,19 @@ export default function Visualisation({
 
       // Custom sort of patients
       statusSorted = filteredStatus.sort((p1, p2) => {
-        if (p1[outcomeField] > p2[outcomeField]) {
-          return 1;
-        } else if (p1[outcomeField] < p2[outcomeField]) {
-          return -1;
+        if (modelType === MODEL_TYPES.SURVIVAL) {
+          if (p1[OUTCOME_SURVIVAL_EVENT] > p2[OUTCOME_SURVIVAL_EVENT]) return 1;
+          else if (p1[OUTCOME_SURVIVAL_EVENT] < p2[OUTCOME_SURVIVAL_EVENT])
+            return -1;
+          else if (+p1[OUTCOME_SURVIVAL_TIME] > +p2[OUTCOME_SURVIVAL_TIME])
+            return 1;
+          else if (+p1[OUTCOME_SURVIVAL_TIME] < +p2[OUTCOME_SURVIVAL_TIME])
+            return -1;
+          else return p1.PatientID > p2.PatientID;
         } else {
-          return p1.PatientID > p2.PatientID;
+          if (p1[outcomeField] > p2[outcomeField]) return 1;
+          else if (p1[outcomeField] < p2[outcomeField]) return -1;
+          else return p1.PatientID > p2.PatientID;
         }
       });
 
@@ -261,6 +271,12 @@ export default function Visualisation({
         '#59c26e',
         '#cccccc',
       ];
+
+      // Survival, add also time below Event & remove x axis title for the Event
+      if (outcomeField === OUTCOME_SURVIVAL_EVENT) {
+        finalSpec.vconcat[1].encoding.x.title = false;
+        finalSpec.vconcat[2] = { ...lasagnaSurvivalTimeChart };
+      }
     } else {
       // No active outcome - Don't show the second chart
       finalSpec.vconcat.splice(1, 1);
@@ -513,3 +529,39 @@ function getLeafItems(node, collector) {
     collector[node.id] = `${modality}-${region}-${node.value.id}`;
   }
 }
+
+const lasagnaSurvivalTimeChart = {
+  data: {
+    name: 'status',
+  },
+  mark: 'rect',
+  height: 20,
+  width: 700,
+  encoding: {
+    x: {
+      field: 'PatientID',
+      type: 'nominal',
+      title: 'Patients',
+      sort: 'ascending',
+      axis: {
+        labels: false,
+      },
+    },
+    color: {
+      field: 'Time',
+      type: 'quantitative',
+      scale: {
+        scheme: 'redblue',
+      },
+    },
+    tooltip: [
+      {
+        field: 'PatientID',
+        type: 'nominal',
+        title: 'Patient',
+      },
+      { field: 'Event', type: 'nominal', title: 'Event' },
+      { field: 'Time', type: 'quantitative', title: 'Time' },
+    ],
+  },
+};
