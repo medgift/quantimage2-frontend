@@ -8,7 +8,7 @@ import { useKeycloak } from 'react-keycloak';
 
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
-import { Button, Form, FormGroup, Input, Label } from 'reactstrap';
+import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
 import CorrelatedFeatures from './components/CorrelatedFeatures';
 import FeatureRanking from './components/FeatureRanking';
 import {
@@ -30,6 +30,8 @@ import {
   OUTCOME_SURVIVAL_EVENT,
   OUTCOME_SURVIVAL_TIME,
 } from './Features';
+
+const MAX_DISPLAYED_FEATURES = 200000;
 
 export default function Visualisation({
   active,
@@ -128,7 +130,10 @@ export default function Visualisation({
       return featureIDs.has(f.feature_id) && selectedPatients.has(f.PatientID);
     });
     const end = Date.now();
-    console.log(`filtered features in ${end - start}ms `, filteredFeatures);
+    console.log(
+      `filtered features in ${end - start}ms `,
+      filteredFeatures.length
+    );
 
     setSelectedFeatures(filteredFeatures);
   }, [lasagnaData, featureIDs, selectedPatients]);
@@ -382,8 +387,9 @@ export default function Visualisation({
                 + Create new collection with these settings ({featureIDs.size}{' '}
                 features)
               </Button>
-              <div>
-                {active && (
+
+              {active && selectedFeatures.length < MAX_DISPLAYED_FEATURES ? (
+                <div>
                   <VegaLite
                     spec={lasagnaSpec}
                     data={
@@ -395,8 +401,24 @@ export default function Visualisation({
                         : { features: selectedFeatures }
                     }
                   />
-                )}
-              </div>
+                </div>
+              ) : (
+                <Alert
+                  color="warning"
+                  className="m-3"
+                  style={{ whiteSpace: 'normal' }}
+                >
+                  <p>
+                    Number of data points ({selectedFeatures.length}) is too
+                    high to display chart.
+                  </p>
+                  <span>
+                    Deselect some features or patients on the left in order to
+                    reduce the number of data points to display.
+                  </span>
+                </Alert>
+              )}
+
               <div>
                 <small>
                   * Feature values are standardized and the scale is clipped to

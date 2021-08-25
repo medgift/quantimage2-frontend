@@ -373,6 +373,8 @@ export default function Train({
 
   // Modify algorithm type on label category switch
   useEffect(() => {
+    if (!selectedLabelCategory) return;
+
     if (selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION)
       setAlgorithmType(CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION);
 
