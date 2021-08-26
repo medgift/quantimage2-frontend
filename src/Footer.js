@@ -12,7 +12,7 @@ export default function Footer() {
         </a>
         {' and the '}
         <a href="https://snf.ch" target="_blank" rel="noopener noreferrer">
-          SNF
+          SNSF
         </a>
       </p>
     </div>
