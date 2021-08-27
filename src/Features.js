@@ -643,6 +643,8 @@ function Features({ history }) {
         ? currentCollection.modalities
         : featureExtraction.modalities;
 
+    if (!modalities) return null;
+
     return modalities.map((modality) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
         {modality}
@@ -656,6 +658,8 @@ function Features({ history }) {
       collectionID && currentCollection
         ? currentCollection.rois
         : featureExtraction.rois;
+
+    if (!rois) return null;
 
     return rois.map((roi) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
@@ -675,6 +679,8 @@ function Features({ history }) {
       collectionID && currentCollection
         ? currentCollection.features
         : featureExtraction.feature_definitions;
+
+    if (!features) return 0;
 
     return features.length;
   };
