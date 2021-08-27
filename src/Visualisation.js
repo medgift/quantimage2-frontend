@@ -56,11 +56,9 @@ export default function Visualisation({
   const [loading, setLoading] = useState(true);
 
   // Features
-  const [featureNames, setFeatureNames] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [modalities, setModalities] = useState([]);
   const [patients, setPatients] = useState([]);
   const [featureIDs, setFeatureIDs] = useState(null);
+  const [selectedFeatureIDs, setSelectedFeatureIDs] = useState(null);
 
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
@@ -68,7 +66,7 @@ export default function Visualisation({
   // Drop correlated features
   const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
 
-  // Manage feature selections
+  // Manage feature selections (checkboxes)
   const [selected, setSelected] = useState([]);
 
   // Selected features
@@ -79,55 +77,37 @@ export default function Visualisation({
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
-  // Get features & annotations
+  // Filter selected patients
+  const selectedPatients = useMemo(() => {
+    return new Set(patients.filter((p) => p.selected).map((p) => p.name));
+  }, [patients]);
+
+  // Initialize feature IDs & patients
   useEffect(() => {
-    async function initSelections() {
-      setFeatureNames(
-        [...new Set(lasagnaData.features.map((f) => f.feature_name))].map(
-          (f) => ({
-            name: f,
-            selected: true,
-          })
-        )
-      );
-      setModalities(
-        [...new Set(lasagnaData.features.map((f) => f.Modality))].map((m) => ({
-          name: m,
-          selected: true,
-        }))
-      );
-      setRegions(
-        [...new Set(lasagnaData.features.map((f) => f.ROI))].map((r) => ({
-          name: r,
-          selected: true,
-        }))
-      );
+    if (lasagnaData) {
+      let featureIDs = new Set(lasagnaData.features.map((f) => f.feature_id));
+      setFeatureIDs(featureIDs);
+      setSelectedFeatureIDs(featureIDs);
+
       setPatients(
         [...new Set(lasagnaData.features.map((f) => f.PatientID))].map((p) => ({
           name: p,
           selected: true,
         }))
       );
-
-      // Set initial feature IDs (all) to show the chart in the right moment
-      setFeatureIDs(new Set(lasagnaData.features.map((f) => f.feature_id)));
     }
-
-    if (lasagnaData) initSelections();
   }, [lasagnaData]);
-
-  // Filter selected patients
-  const selectedPatients = useMemo(() => {
-    return new Set(patients.filter((p) => p.selected).map((p) => p.name));
-  }, [patients]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
-    if (!lasagnaData || featureIDs === null) return undefined;
+    if (!lasagnaData || selectedFeatureIDs === null) return undefined;
 
     const start = Date.now();
     let filteredFeatures = lasagnaData.features.filter((f) => {
-      return featureIDs.has(f.feature_id) && selectedPatients.has(f.PatientID);
+      return (
+        selectedFeatureIDs.has(f.feature_id) &&
+        selectedPatients.has(f.PatientID)
+      );
     });
     const end = Date.now();
     console.log(
@@ -136,37 +116,39 @@ export default function Visualisation({
     );
 
     setSelectedFeatures(filteredFeatures);
-  }, [lasagnaData, featureIDs, selectedPatients]);
+  }, [lasagnaData, selectedFeatureIDs, selectedPatients]);
 
   const filteringItems = useMemo(() => {
+    if (!featureIDs) return {};
+
     // Create tree of items to check/uncheck
-    let tree = {};
+    let ungroupedTree = {};
 
-    let featureGroups = groupFeatures(featureNames);
+    // Go through feature IDs to build the tree items
+    for (let featureID of featureIDs) {
+      let { modality, roi, featureName } = featureID.match(
+        /(?<modality>.*?)-(?<roi>.*?)-(?<featureName>.*)/
+      ).groups;
 
-    // Go through modalities
-    for (let modality of modalities) {
-      if (!tree[modality.name]) tree[modality.name] = {};
+      if (!ungroupedTree[modality]) ungroupedTree[modality] = {};
+      if (!ungroupedTree[modality][roi]) ungroupedTree[modality][roi] = [];
 
-      // Go through ROIs
-      for (let region of regions) {
-        if (!tree[modality.name][region.name])
-          tree[modality.name][region.name] = {};
+      ungroupedTree[modality][roi].push(featureName);
+    }
 
-        // Filter out any modality-specific features that don't correspond to the current one
-        let filteredFeatureGroups = _.omitBy(
-          featureGroups,
-          (value, key) =>
-            MODALITIES.includes(key) && modality.name !== MODALITIES_MAP[key]
+    let groupedTree = _.cloneDeep(ungroupedTree);
+
+    /* Group features for each modality/ROI pair */
+    for (let modality in groupedTree) {
+      for (let roi in groupedTree[modality]) {
+        groupedTree[modality][roi] = groupFeatures(
+          ungroupedTree[modality][roi]
         );
-
-        // Spread feature groups into the current Modality/ROI
-        tree[modality.name][region.name] = { ...filteredFeatureGroups };
       }
     }
 
-    return tree;
-  }, [modalities, regions, featureNames]);
+    return groupedTree;
+  }, [featureIDs]);
 
   const treeData = useMemo(() => {
     if (filteringItems) {
@@ -303,7 +285,11 @@ export default function Visualisation({
   }, [selectedLabelCategory, filteredStatus, rankFeatures]);
 
   const handleCreateCollectionClick = () => {
-    console.log('Creating new collection using', featureIDs.size, 'features');
+    console.log(
+      'Creating new collection using',
+      selectedFeatureIDs.size,
+      'features'
+    );
     toggleCollectionModal();
   };
 
@@ -314,7 +300,7 @@ export default function Visualisation({
       keycloak.token,
       featureExtractionID,
       newCollectionName,
-      [...featureIDs],
+      [...selectedFeatureIDs],
       patients
     );
     toggleCollectionModal();
@@ -358,11 +344,7 @@ export default function Visualisation({
                     treeData={treeData}
                     leafItems={leafItems}
                     getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
-                    modalities={modalities}
-                    regions={regions}
-                    featureNames={featureNames}
-                    featureIDs={featureIDs}
-                    setFeatureIDs={setFeatureIDs}
+                    setSelectedFeatureIDs={setSelectedFeatureIDs}
                     selected={selected}
                     setSelected={setSelected}
                     disabled={dropCorrelatedFeatures}
@@ -382,10 +364,10 @@ export default function Visualisation({
               <Button
                 color="success"
                 onClick={handleCreateCollectionClick}
-                disabled={featureIDs.size === 0}
+                disabled={selectedFeatureIDs.size === 0}
               >
-                + Create new collection with these settings ({featureIDs.size}{' '}
-                features)
+                + Create new collection with these settings (
+                {selectedFeatureIDs.size} features)
               </Button>
 
               {active && selectedFeatures.length < MAX_DISPLAYED_FEATURES ? (
@@ -459,8 +441,8 @@ export default function Visualisation({
         }
       >
         <p>
-          The collection contains <strong>{featureIDs.size}</strong> different
-          features (combining modalities, ROIs & feature types)
+          The collection contains <strong>{selectedFeatureIDs.size}</strong>{' '}
+          different features (combining modalities, ROIs & feature types)
         </p>
         <Form>
           <FormGroup>

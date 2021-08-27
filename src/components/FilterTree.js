@@ -17,8 +17,7 @@ export default function FilterTree({
   getNodeAndAllChildrenIDs,
   filteringItems,
   leafItems,
-  featureIDs,
-  setFeatureIDs,
+  setSelectedFeatureIDs,
   selected,
   setSelected,
   disabled,
@@ -34,8 +33,9 @@ export default function FilterTree({
     );
   }, [leafItems, selected]);
 
+  // TODO - Put it back once it works
   useEffect(() => {
-    setFeatureIDs(selectedFeatureIDs);
+    setSelectedFeatureIDs(selectedFeatureIDs);
   }, [selectedFeatureIDs]);
 
   // const handleToggle = (event, nodeIds) => {
