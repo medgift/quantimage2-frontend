@@ -394,6 +394,7 @@ export default function Train({
         sortDescFirst: true,
         id: 'created_at',
       },
+      { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Algorithm', accessor: 'algorithm' },
       { Header: 'Data Normalization', accessor: 'data_normalization' },
       {
@@ -416,6 +417,7 @@ export default function Train({
         sortDescFirst: true,
         id: 'created_at',
       },
+      { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Algorithm', accessor: 'algorithm' },
       { Header: 'Data Normalization', accessor: 'data_normalization' },
       {
@@ -484,10 +486,10 @@ export default function Train({
       let model = await trainModel(
         featureExtractionID,
         collectionInfos ? collectionInfos.collection.id : null,
+        selectedLabelCategory.id,
         albumStudies,
         album,
         labels,
-        selectedLabelCategory.label_type,
         algorithmType,
         dataNormalization,
         metadataColumns[MODALITY_FIELD],

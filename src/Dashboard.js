@@ -22,7 +22,6 @@ import FeaturesList from './components/FeaturesList';
 import MyModal from './components/MyModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from './context/SocketContext';
-import { trainModel } from './utils/feature-utils';
 
 function Dashboard({ albums, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
