@@ -5,10 +5,8 @@ import TreeItem from '@material-ui/lab/TreeItem';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import _ from 'lodash';
-import { v4 as uuidv4 } from 'uuid';
 
 import './FilterTree.css';
-import { Checkbox, FormControlLabel } from '@material-ui/core';
 import MyCheckbox from './MyCheckbox';
 
 export default function FilterTree({
@@ -92,11 +90,15 @@ export default function FilterTree({
 
       if (!newSelections.includes(node.id)) {
         let nodesToSelect = allNodeIDs
-          .filter((n) => n.includes(stringToCheck))
+          .filter((n) =>
+            node.value ? n.endsWith(stringToCheck) : n.includes(stringToCheck)
+          )
           .filter((n) => !newSelections.includes(n));
         newSelections.push(...nodesToSelect);
       } else {
-        newSelections = newSelections.filter((n) => !n.includes(stringToCheck));
+        newSelections = newSelections.filter((n) =>
+          node.value ? !n.endsWith(stringToCheck) : !n.includes(stringToCheck)
+        );
       }
 
       return newSelections;
