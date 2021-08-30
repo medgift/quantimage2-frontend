@@ -327,7 +327,7 @@ class Backend {
           featureExtractionID: featureExtractionID,
           name: name,
           featureIDs: featureIDs,
-          patients: patients.filter((p) => p.selected).map((p) => p.name),
+          patientIDs: patients.filter((p) => p.selected).map((p) => p.name),
         },
         token: token,
       });
