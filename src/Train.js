@@ -896,6 +896,7 @@ function formatMetric(metric) {
       {_.isNumber(metric['sup_value'])
         ? metric['sup_value'].toFixed(3)
         : metric['sup_value']}
+      )
     </>
   );
 }
