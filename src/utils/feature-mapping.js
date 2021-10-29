@@ -120,7 +120,7 @@ export const FEATURE_DEFINITIONS = [
     id: 'firstorder_Uniformity',
     url: 'www.radiomics.org/RO/BJ5W',
     description:
-      'The uniformity is a measure of the randomness of the grey levels distirbution histogram',
+      'The uniformity is a measure of the randomness of the grey levels distribution histogram',
     category: 'Intensity',
     subcategory: '',
   },
