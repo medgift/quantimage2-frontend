@@ -231,6 +231,24 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     }
   };
 
+  const getStudyDate = (study) => {
+    if (study?.[DicomFields.DATE]?.[DicomFields.VALUE]?.[0]) {
+      return study?.[DicomFields.DATE]?.[DicomFields.VALUE]?.[0];
+    } else {
+      return 'Date Unknown';
+    }
+  };
+
+  const getStudyUID = (study) => {
+    return study[DicomFields.STUDY_UID][DicomFields.VALUE][0];
+  };
+
+  const getStudyModalities = (study) => {
+    return !study[DicomFields.MODALITIES][DicomFields.VALUE][0].includes(',')
+      ? study[DicomFields.MODALITIES][DicomFields.VALUE]
+      : study[DicomFields.MODALITIES][DicomFields.VALUE][0].split(',');
+  };
+
   const [studyToggles, setStudyToggles] = useState({});
 
   const fetchStudiesFromAlbum = async (albumID) => {
@@ -447,45 +465,23 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
                             <ListGroup>
                               {studies[album.album_id].map((study) => (
                                 <ListGroupItem
-                                  key={
-                                    study[DicomFields.STUDY_UID][
-                                      DicomFields.VALUE
-                                    ][0]
-                                  }
+                                  key={getStudyUID(study)}
                                   className="d-flex justify-content-between align-items-center"
                                 >
                                   <Link
-                                    to={`/study/${
-                                      study[DicomFields.STUDY_UID][
-                                        DicomFields.VALUE
-                                      ][0]
-                                    }`}
+                                    to={`/study/${getStudyUID(study)}`}
                                     className={`btn btn-link ${getStudyStatusClass(
                                       album.album_id,
-                                      study[DicomFields.STUDY_UID][
-                                        DicomFields.VALUE
-                                      ][0]
+                                      getStudyUID(study)
                                     )}`}
                                     href="#"
-                                    title={
-                                      study[DicomFields.STUDY_UID][
-                                        DicomFields.VALUE
-                                      ][0]
-                                    }
+                                    title={getStudyUID(study)}
                                   >
                                     {getPatientNameForStudy(study)} (
-                                    {moment(
-                                      study[DicomFields.DATE][
-                                        DicomFields.VALUE
-                                      ][0],
-                                      DicomFields.DATE_FORMAT
-                                    ).format(DICOM_DATE_FORMAT)}
-                                    ){' '}
+                                    {getStudyDate(study)}){' '}
                                     {getStudyErrors(
                                       album.album_id,
-                                      study[DicomFields.STUDY_UID][
-                                        DicomFields.VALUE
-                                      ][0]
+                                      getStudyUID(study)
                                     )}
                                   </Link>
                                   <div>
@@ -493,15 +489,9 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
                                       let modalities = [];
 
                                       // Determine if the modality types field is already an array or needs to be split
-                                      let modalityArray = !study[
-                                        DicomFields.MODALITIES
-                                      ][DicomFields.VALUE][0].includes(',')
-                                        ? study[DicomFields.MODALITIES][
-                                            DicomFields.VALUE
-                                          ]
-                                        : study[DicomFields.MODALITIES][
-                                            DicomFields.VALUE
-                                          ][0].split(',');
+                                      let modalityArray = getStudyModalities(
+                                        study
+                                      );
 
                                       for (let modality of modalityArray) {
                                         modalities.push(
