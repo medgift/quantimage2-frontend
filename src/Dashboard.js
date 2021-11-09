@@ -263,24 +263,27 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     await fetchStudiesFromAlbum(albumID);
   };
 
-  const handleExtractionStatus = useCallback((extractionStatus) => {
-    console.log(
-      `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
-      extractionStatus
-    );
+  const handleExtractionStatus = useCallback(
+    (extractionStatus) => {
+      console.log(
+        `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
+        extractionStatus
+      );
 
-    // If full extraction object
-    if (extractionStatus.id) {
-      console.log('Updating full object');
-      updateExtraction(extractionStatus.id, {
-        ...extractionStatus,
-      });
-    } else {
-      updateExtraction(extractionStatus.feature_extraction_id, {
-        status: extractionStatus.status,
-      });
-    }
-  }, []);
+      // If full extraction object
+      if (extractions !== null && extractionStatus.id) {
+        console.log('Updating full object');
+        updateExtraction(extractionStatus.id, {
+          ...extractionStatus,
+        });
+      } else {
+        updateExtraction(extractionStatus.feature_extraction_id, {
+          status: extractionStatus.status,
+        });
+      }
+    },
+    [extractions]
+  );
 
   // Initialize all albums to NOT show the studies
   useEffect(() => {
