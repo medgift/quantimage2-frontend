@@ -9,9 +9,21 @@ export const FEATURE_STATUS = {
   properties: {
     PENDING: { name: 'Not Computed' },
     PROGRESS: { name: 'In Progress' },
-    SUCCESS: { name: 'Complete' }
-  }
+    SUCCESS: { name: 'Complete' },
+  },
 };
+
+export const RIESZ_FEATURE_PREFIXES = ['tex'];
+export const PYRADIOMICS_FEATURE_PREFIXES = [
+  'original',
+  'log',
+  'wavelet',
+  'gradient',
+  'square',
+  'squareroot',
+  'exponential',
+  'logarithm',
+];
 
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
 export const KEYCLOAK_FRONTEND_CLIENT_ID = 'imagine-frontend';

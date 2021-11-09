@@ -17,6 +17,7 @@ import {
   MODALITIES_MAP,
 } from './utils/feature-naming';
 import {
+  FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
   FEATURE_CATEGORY_ALIASES,
 } from './utils/feature-mapping';
@@ -30,8 +31,28 @@ import {
   OUTCOME_SURVIVAL_EVENT,
   OUTCOME_SURVIVAL_TIME,
 } from './Features';
+import {
+  PYRADIOMICS_FEATURE_PREFIXES,
+  RIESZ_FEATURE_PREFIXES,
+} from './config/constants';
 
 const MAX_DISPLAYED_FEATURES = 200000;
+
+let featureIDPattern = `(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:${[
+  ...RIESZ_FEATURE_PREFIXES,
+  ...PYRADIOMICS_FEATURE_PREFIXES,
+].join('|')}).*)`;
+
+let featureIDRegex = new RegExp(featureIDPattern);
+
+let featureCategories = Array.from(
+  new Set(FEATURE_DEFINITIONS.map((fd) => fd.category))
+);
+let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
+  '|'
+)}).*)`;
+
+let featureNameRegex = new RegExp(featureNamePattern);
 
 export default function Visualisation({
   active,
@@ -127,7 +148,7 @@ export default function Visualisation({
     // Go through feature IDs to build the tree items
     for (let featureID of featureIDs) {
       let { modality, roi, featureName } = featureID.match(
-        /(?<modality>.*?)-(?<roi>.*?)-(?<featureName>.*)/
+        featureIDRegex
       ).groups;
 
       if (!ungroupedTree[modality]) ungroupedTree[modality] = {};
@@ -520,8 +541,6 @@ function getAllLeafItems(obj) {
   return leafItems;
 }
 
-const FULL_FEATURE_NAME_PATTERN = /(?<modality>.*?)-(?<region>.*?)-(?<name>.*)/;
-
 function getLeafItems(node, collector) {
   if (Array.isArray(node)) {
     for (let item of node) {
@@ -531,8 +550,8 @@ function getLeafItems(node, collector) {
     getLeafItems(node.children, collector);
   } else {
     let nodeId = node.id;
-    let { modality, region } = nodeId.match(FULL_FEATURE_NAME_PATTERN).groups;
-    collector[node.id] = `${modality}-${region}-${node.value.id}`;
+    let { modality, roi } = nodeId.match(featureNameRegex).groups;
+    collector[node.id] = `${modality}-${roi}-${node.value.id}`;
   }
 }
 
