@@ -32,6 +32,7 @@ import {
   OUTCOME_SURVIVAL_TIME,
 } from './Features';
 import {
+  PET_SPECIFIC_PREFIXES,
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
 } from './config/constants';
@@ -41,6 +42,7 @@ const MAX_DISPLAYED_FEATURES = 200000;
 let featureIDPattern = `(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:${[
   ...RIESZ_FEATURE_PREFIXES,
   ...PYRADIOMICS_FEATURE_PREFIXES,
+  ...PET_SPECIFIC_PREFIXES,
 ].join('|')}).*)`;
 
 let featureIDRegex = new RegExp(featureIDPattern);
@@ -48,6 +50,7 @@ let featureIDRegex = new RegExp(featureIDPattern);
 let featureCategories = Array.from(
   new Set(FEATURE_DEFINITIONS.map((fd) => fd.category))
 );
+featureCategories = [...featureCategories, ...PET_SPECIFIC_PREFIXES];
 let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
   '|'
 )}).*)`;
@@ -550,6 +553,11 @@ function getLeafItems(node, collector) {
     getLeafItems(node.children, collector);
   } else {
     let nodeId = node.id;
+
+    let match = nodeId.match(featureNameRegex);
+    if (match === null)
+      console.error(nodeId, 'DOES NOT MATCH THE PATTERN, WHY?');
+
     let { modality, roi } = nodeId.match(featureNameRegex).groups;
     collector[node.id] = `${modality}-${roi}-${node.value.id}`;
   }

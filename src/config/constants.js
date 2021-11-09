@@ -24,6 +24,7 @@ export const PYRADIOMICS_FEATURE_PREFIXES = [
   'exponential',
   'logarithm',
 ];
+export const PET_SPECIFIC_PREFIXES = ['PET'];
 
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
 export const KEYCLOAK_FRONTEND_CLIENT_ID = 'imagine-frontend';
