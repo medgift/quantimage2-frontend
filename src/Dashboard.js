@@ -271,15 +271,17 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
       );
 
       // If full extraction object
-      if (extractions !== null && extractionStatus.id) {
-        console.log('Updating full object');
-        updateExtraction(extractionStatus.id, {
-          ...extractionStatus,
-        });
-      } else {
-        updateExtraction(extractionStatus.feature_extraction_id, {
-          status: extractionStatus.status,
-        });
+      if (extractions !== null) {
+        if (extractionStatus.id) {
+          console.log('Updating full object');
+          updateExtraction(extractionStatus.id, {
+            ...extractionStatus,
+          });
+        } else {
+          updateExtraction(extractionStatus.feature_extraction_id, {
+            status: extractionStatus.status,
+          });
+        }
       }
     },
     [extractions]
