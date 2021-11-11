@@ -18,7 +18,8 @@ export default function DataLabels({
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  setLasagnaData,
+  setOutcomes,
+  setFeaturesChart,
   featureExtractionID,
 }) {
   let [keycloak] = useKeycloak();
@@ -72,13 +73,15 @@ export default function DataLabels({
     );
 
     const {
-      visualization: lasagnaData,
+      outcomes,
+      features_chart: featuresChart,
     } = await Backend.extractionFeatureDetails(
       keycloak.token,
       featureExtractionID
     );
 
-    setLasagnaData(lasagnaData);
+    setOutcomes(outcomes);
+    setFeaturesChart(featuresChart);
   };
 
   const handleFileInputChange = async () => {
@@ -134,25 +137,6 @@ export default function DataLabels({
                   </td>
                 ))}
               </tr>
-              // <tr key={`${dataPoint[0]}-${dataPoint[1]}`}>
-              //   <td>{dataPoint[0]}</td>
-              //   <td>{dataPoint[1]}</td>
-              //   <td className="data-label">
-              //     <Input
-              //       type="text"
-              //       placeholder="LABEL"
-              //       value={
-              //         dataLabels[dataPoint[0]] &&
-              //         dataLabels[dataPoint[0]][dataPoint[1]]
-              //           ? dataLabels[dataPoint[0]][dataPoint[1]]
-              //           : ''
-              //       }
-              //       onChange={e => {
-              //         handleLabelInputChange(e, dataPoint[0], dataPoint[1]);
-              //       }}
-              //     />
-              //   </td>
-              // </tr>
             ))}
           </tbody>
         </Table>

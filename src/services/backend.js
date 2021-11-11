@@ -73,24 +73,6 @@ class Backend {
     }
   }
 
-  async extractionDataPoints(token, extractionID) {
-    try {
-      const url = `${endpoints.extractions}/${extractionID}/data-points`;
-      return await request(url, { token: token });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
-  async extractionCollectionDataPoints(token, extractionID, collectionID) {
-    try {
-      const url = `${endpoints.extractions}/${extractionID}/collections/${collectionID}/data-points`;
-      return await request(url, { token: token });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
   async saveLabelCategory(token, albumID, labelType, name) {
     try {
       const url = `${endpoints.labelCategories}/${albumID}`;

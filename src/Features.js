@@ -94,10 +94,8 @@ function Features({ history }) {
   const [featureExtractionID, setFeatureExtractionID] = useState(null);
   const [featureExtraction, setFeatureExtraction] = useState(null);
   const [header, setHeader] = useState(null);
-  const [features, setFeatures] = useState(null);
-
-  // Visualization
-  const [lasagnaData, setLasagnaData] = useState(null);
+  const [featuresTabular, setFeaturesTabular] = useState(null);
+  const [featuresChart, setFeaturesChart] = useState(null);
 
   // Collection management
   const [collections, setCollections] = useState(null);
@@ -105,7 +103,7 @@ function Features({ history }) {
   const [activeCollectionName, setActiveCollectionName] = useState('');
 
   // Outcomes management
-  const [dataPoints, setDataPoints] = useState(null);
+  const [outcomes, setOutcomes] = useState(null);
   const [labelCategories, setLabelCategories] = useState(null);
   const [selectedLabelCategory, setSelectedLabelCategory] = useState(null);
 
@@ -120,6 +118,13 @@ function Features({ history }) {
   const [isSavingCollectionName, setIsSavingCollectionName] = useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Compute data points based on outcomes
+  let dataPoints = useMemo(() => {
+    if (!outcomes) return null;
+
+    return outcomes.map((o) => o.PatientID);
+  }, [outcomes]);
 
   // Get classes of a tab
   const getTabClassName = (targetTab) => {
@@ -226,31 +231,6 @@ function Features({ history }) {
     }
   }, [collectionID, collections]);
 
-  // Get Data Points for Labelling
-  useEffect(() => {
-    async function getDataPoints() {
-      let response = await Backend.extractionDataPoints(
-        keycloak.token,
-        featureExtractionID
-      );
-      setDataPoints(response['data-points']);
-    }
-
-    async function getCollectionDataPoints() {
-      let response = await Backend.extractionCollectionDataPoints(
-        keycloak.token,
-        featureExtractionID,
-        +collectionID
-      );
-      setDataPoints(response['data-points']);
-    }
-
-    if (featureExtractionID) {
-      if (collectionID) getCollectionDataPoints();
-      else getDataPoints();
-    }
-  }, [featureExtractionID, collectionID]);
-
   // Get feature extraction
   useEffect(() => {
     async function getExtraction() {
@@ -271,40 +251,48 @@ function Features({ history }) {
   // Get features
   useEffect(() => {
     async function getFeatures() {
-      let features;
+      let featuresTabular;
+      let featuresChart;
       let header;
-      let lasagna;
+      let outcomes;
       if (!collectionID) {
         const {
-          features: allFeatures,
+          features_tabular: allFeaturesTabular,
+          features_chart: allFeaturesChart,
           header: allHeader,
-          visualization: lasagnaData,
+          outcomes: allOutcomes,
         } = await Backend.extractionFeatureDetails(
           keycloak.token,
           featureExtractionID
         );
 
-        features = allFeatures;
+        featuresTabular = allFeaturesTabular;
+        featuresChart = allFeaturesChart;
         header = allHeader;
-        lasagna = lasagnaData;
+        outcomes = allOutcomes;
       } else {
         const {
-          features: collectionFeatures,
+          features_tabular: collectionFeaturesTabular,
+          features_chart: collectionFeaturesChart,
           header: collectionHeader,
-          visualization: lasagnaData,
+          outcomes: collectionOutcomes,
         } = await Backend.extractionCollectionFeatureDetails(
           keycloak.token,
           featureExtractionID,
           +collectionID
         );
 
-        features = collectionFeatures;
+        featuresTabular = collectionFeaturesTabular;
+        featuresChart = collectionFeaturesChart;
         header = collectionHeader;
-        lasagna = lasagnaData;
+        outcomes = collectionOutcomes;
       }
 
-      setFeatures(features.map((f) => ({ ...f, isSelected: true })));
-      setLasagnaData(lasagna);
+      setFeaturesTabular(
+        featuresTabular.map((f) => ({ ...f, isSelected: true }))
+      );
+      setFeaturesChart(featuresChart);
+      setOutcomes(outcomes);
       setHeader(header);
 
       setIsLoading(false);
@@ -345,8 +333,8 @@ function Features({ history }) {
 
   // Determine available Modalities, ROIs & Patients (for filtering)
   let metadataColumns = useMemo(() => {
-    if (features)
-      return features.reduce(
+    if (featuresTabular)
+      return featuresTabular.reduce(
         (acc, currentRow) => {
           if (!acc[MODALITY_FIELD].includes(currentRow[MODALITY_FIELD]))
             acc[MODALITY_FIELD].push(currentRow[MODALITY_FIELD]);
@@ -365,7 +353,7 @@ function Features({ history }) {
         },
         { [MODALITY_FIELD]: [], [ROI_FIELD]: [], [PATIENT_ID_FIELD]: [] }
       );
-  }, [features]);
+  }, [featuresTabular]);
 
   // Handle feature names
   let featureNames = useMemo(() => {
@@ -642,7 +630,7 @@ function Features({ history }) {
       <h2>Feature Explorer</h2>
       {!isLoading && album && collections !== null ? (
         <div style={{ textAlign: 'center' }}>
-          {features.length > 0 && (
+          {featuresTabular.length > 0 && (
             <div className="features-wrapper">
               <div className="collections-list">
                 <CollectionSelection
@@ -831,7 +819,7 @@ function Features({ history }) {
                     {tab === 'table' && (
                       <div className="features-table">
                         <FeatureTable
-                          features={features}
+                          featuresTabular={featuresTabular}
                           header={header}
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
@@ -866,7 +854,8 @@ function Features({ history }) {
                           setSelectedLabelCategory={setSelectedLabelCategory}
                           labelCategories={labelCategories}
                           setLabelCategories={setLabelCategories}
-                          setLasagnaData={setLasagnaData}
+                          setOutcomes={setOutcomes}
+                          setFeaturesChart={setFeaturesChart}
                           updateCurrentLabels={updateCurrentLabels}
                           formattedDataLabels={formattedDataLabels}
                         />
@@ -888,13 +877,13 @@ function Features({ history }) {
                           <Visualisation
                             active={tab === 'visualize'}
                             selectedLabelCategory={selectedLabelCategory}
-                            lasagnaData={lasagnaData}
-                            setLasagnaData={setLasagnaData}
                             collectionInfos={
                               collectionID && currentCollection
                                 ? currentCollection
                                 : null
                             }
+                            featuresChart={featuresChart}
+                            outcomes={outcomes}
                             featureExtractionID={featureExtractionID}
                             setCollections={setCollections}
                             album={album.name}

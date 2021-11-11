@@ -10,7 +10,7 @@ if (window.Worker) {
 }
 
 export default function CorrelatedFeatures({
-  lasagnaData,
+  featuresChart,
   leafItems,
   selected,
   setSelected,
@@ -27,7 +27,7 @@ export default function CorrelatedFeatures({
 
   const getFeatures = useCallback(() => {
     // Get list of feature values for each feature name
-    const features = lasagnaData.features.reduce((acc, curr) => {
+    const features = featuresChart.reduce((acc, curr) => {
       if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
 
       acc[curr.feature_name].push(curr.feature_value);
@@ -36,7 +36,7 @@ export default function CorrelatedFeatures({
     }, {});
 
     return features;
-  }, [lasagnaData]);
+  }, [featuresChart]);
 
   useEffect(() => {
     //if (selectedBeforeDropping.length === 0 && selected.length > 0)
@@ -47,13 +47,13 @@ export default function CorrelatedFeatures({
   useEffect(() => {
     if (
       featuresValuesBeforeDropping.length === 0 &&
-      lasagnaData &&
-      lasagnaData.features.length > 0
+      featuresChart &&
+      featuresChart.length > 0
     ) {
       let features = getFeatures();
       setFeatureValuesBeforeDropping(features);
     }
-  }, [lasagnaData, featuresValuesBeforeDropping.length, getFeatures]);
+  }, [featuresChart, featuresValuesBeforeDropping.length, getFeatures]);
 
   const dropFeatures = (drop) => {
     if (drop) {

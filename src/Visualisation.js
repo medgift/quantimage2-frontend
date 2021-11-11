@@ -36,6 +36,7 @@ import {
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
 } from './config/constants';
+import { HeatMapCanvas } from '@nivo/heatmap';
 
 const MAX_DISPLAYED_FEATURES = 200000;
 
@@ -60,11 +61,10 @@ let featureNameRegex = new RegExp(featureNamePattern);
 export default function Visualisation({
   active,
   selectedLabelCategory,
-  lasagnaData,
-  setLasagnaData,
   album,
+  featuresChart,
+  outcomes,
   featureExtractionID,
-  collectionInfos,
   setCollections,
 }) {
   // Route
@@ -108,26 +108,26 @@ export default function Visualisation({
 
   // Initialize feature IDs & patients
   useEffect(() => {
-    if (lasagnaData) {
-      let featureIDs = new Set(lasagnaData.features.map((f) => f.feature_id));
+    if (featuresChart) {
+      let featureIDs = new Set(featuresChart.map((f) => f.feature_id));
       setFeatureIDs(featureIDs);
       setSelectedFeatureIDs(featureIDs);
 
       setPatients(
-        [...new Set(lasagnaData.features.map((f) => f.PatientID))].map((p) => ({
+        [...new Set(featuresChart.map((f) => f.PatientID))].map((p) => ({
           name: p,
           selected: true,
         }))
       );
     }
-  }, [lasagnaData]);
+  }, [featuresChart]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
-    if (!lasagnaData || selectedFeatureIDs === null) return undefined;
+    if (!featuresChart || selectedFeatureIDs === null) return undefined;
 
     const start = Date.now();
-    let filteredFeatures = lasagnaData.features.filter((f) => {
+    let filteredFeatures = featuresChart.filter((f) => {
       return (
         selectedFeatureIDs.has(f.feature_id) &&
         selectedPatients.has(f.PatientID)
@@ -140,7 +140,7 @@ export default function Visualisation({
     );
 
     setSelectedFeatures(filteredFeatures);
-  }, [lasagnaData, selectedFeatureIDs, selectedPatients]);
+  }, [featuresChart, selectedFeatureIDs, selectedPatients]);
 
   const filteringItems = useMemo(() => {
     if (!featureIDs) return {};
@@ -204,20 +204,18 @@ export default function Visualisation({
 
   // Get filtered status data
   const filteredStatus = useMemo(() => {
-    if (!lasagnaData) return [];
+    if (!featuresChart) return [];
 
-    return lasagnaData.outcomes.filter((o) =>
-      selectedPatients.has(o.PatientID)
-    );
-  }, [lasagnaData, selectedPatients]);
+    return outcomes.filter((o) => selectedPatients.has(o.PatientID));
+  }, [outcomes, selectedPatients]);
 
   // Update Vega
   useEffect(() => {
-    if (lasagnaData && featureIDs && loading === true) {
+    if (featuresChart && featureIDs && loading === true) {
       setLoading(false);
       console.log('charts loaded');
     }
-  }, [lasagnaData, featureIDs, loading]);
+  }, [featuresChart, featureIDs, loading]);
 
   // Define spec dynamically
   const lasagnaSpec = useMemo(() => {
@@ -434,7 +432,7 @@ export default function Visualisation({
               </div>
               <div className="d-flex justify-content-around">
                 <CorrelatedFeatures
-                  lasagnaData={lasagnaData}
+                  featuresChart={featuresChart}
                   filteringItems={filteringItems}
                   leafItems={leafItems}
                   loading={loading}

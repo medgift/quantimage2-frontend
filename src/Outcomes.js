@@ -32,7 +32,8 @@ export default function Outcomes({
   setSelectedLabelCategory,
   labelCategories,
   setLabelCategories,
-  setLasagnaData,
+  setOutcomes,
+  setFeaturesChart,
   featureExtractionID,
   updateCurrentLabels,
   formattedDataLabels,
@@ -155,13 +156,15 @@ export default function Outcomes({
 
     /* TODO - Improve this part, these manual calls are not so elegant */
     const {
-      visualization: lasagnaData,
+      outcomes,
+      features_chart: featuresChart,
     } = await Backend.extractionFeatureDetails(
       keycloak.token,
       featureExtractionID
     );
 
-    setLasagnaData(lasagnaData);
+    setOutcomes(outcomes);
+    setFeaturesChart(featuresChart);
   };
 
   const classificationCategories = labelCategories.filter(
@@ -246,7 +249,8 @@ export default function Outcomes({
             selectedLabelCategory={selectedLabelCategory}
             setSelectedLabelCategory={setSelectedLabelCategory}
             setLabelCategories={setLabelCategories}
-            setLasagnaData={setLasagnaData}
+            setOutcomes={setOutcomes}
+            setFeaturesChart={setFeaturesChart}
             featureExtractionID={featureExtractionID}
             outcomeColumns={
               selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION

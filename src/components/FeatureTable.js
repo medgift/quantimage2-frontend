@@ -1,65 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { useTable, usePagination, useFilters } from 'react-table';
 
 import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useKeycloak } from 'react-keycloak';
 
 import _ from 'lodash';
 
 const PYRADIOMICS_PREFIX = 'original';
-
-// Generate indeterminate checkbox renderer
-const IndeterminateCheckbox = React.forwardRef(
-  ({ indeterminate, ...rest }, ref) => {
-    const defaultRef = React.useRef();
-    const resolvedRef = ref || defaultRef;
-
-    React.useEffect(() => {
-      resolvedRef.current.indeterminate = indeterminate;
-    }, [resolvedRef, indeterminate]);
-
-    return (
-      <>
-        <input type="checkbox" ref={resolvedRef} {...rest} />
-      </>
-    );
-  }
-);
-
-// Create an editable cell renderer
-const EditableCell = ({
-  value: initialValue,
-  row: { index },
-  column: { id },
-  updateMyData, // This is a custom function that we supplied to our table instance
-  editable,
-}) => {
-  // We need to keep and update the state of the cell normally
-  const [value, setValue] = React.useState(initialValue);
-
-  const onChange = (e) => {
-    setValue(e.target.value);
-  };
-
-  // We'll only update the external data when the input is blurred
-  const onBlur = () => {
-    updateMyData(index, id, value);
-  };
-
-  // If the initialValue is changed externall, sync it up with our state
-  React.useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  if (!editable) {
-    return `${initialValue}`;
-  }
-
-  return <input value={value} onChange={onChange} onBlur={onBlur} />;
-};
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -94,122 +43,8 @@ function SelectColumnFilter({
   );
 }
 
-const CheckableColumnHeader = React.forwardRef(
-  ({ updateSelectedFeature, column, inline }, ref) => {
-    return (
-      <div>
-        <input
-          id={`feature-column-${column}`}
-          type="checkbox"
-          defaultChecked
-          ref={ref}
-          onChange={(e) => updateSelectedFeature(column, e.target.checked)}
-          //onChange={(e) => updateSelectedFeature(column, e.target.checked)}
-        />
-        {inline ? <br /> : ' '}
-        <label htmlFor={`feature-column-${column}`}>{column}</label>
-      </div>
-    );
-  }
-);
-
-export default function FeatureTable({
-  features,
-  header,
-  featureExtractionID,
-  setCollections,
-}) {
-  const [keycloak] = useKeycloak();
-  const data = useMemo(() => features, []);
-  const [collectionName, setCollectionName] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Manage feature selection
-  const selectedFeatures = useRef();
-  const [selectedFeaturesLabel, setSelectedFeaturesLabel] = useState('');
-  const featureCheckboxRefs = useRef({});
-
-  const updateSelectedFeaturesLabel = (nbFeatures) => {
-    let totalFeatures = header.filter((f) => !NON_FEATURE_FIELDS.includes(f))
-      .length;
-    setSelectedFeaturesLabel(
-      `${
-        nbFeatures !== undefined ? nbFeatures : totalFeatures
-      }/${totalFeatures} selected`
-    );
-  };
-
-  //const [selectedFeatures, setSelectedFeatures] = useState({});
-  const updateSelectedFeature = (column, value) => {
-    //setSelectedFeatures((f) => ({ ...f, [column]: value }));
-    selectedFeatures.current[column] = value;
-    updateSelectedFeaturesLabel(
-      Object.values(selectedFeatures.current).filter((f) => f === true).length
-    );
-  };
-
-  const updateSelectedFeatureGroups = (featureGroup, value) => {
-    console.log('setting the group ' + featureGroup + ' to ' + value);
-
-    // Identify the columns to uncheck
-    let columnsToToggle = header.filter((f) => f.includes(featureGroup));
-
-    for (let columnToToggle of columnsToToggle) {
-      featureCheckboxRefs.current[columnToToggle].checked = value;
-      selectedFeatures.current[columnToToggle] = value;
-    }
-
-    updateSelectedFeaturesLabel(
-      Object.values(selectedFeatures.current).filter((f) => f === true).length
-    );
-  };
-
-  // Initialize number of selected features
-  useEffect(() => {
-    updateSelectedFeaturesLabel();
-  }, []);
-
-  useEffect(() => {
-    let defaultFeatures = {};
-    for (let feature of header) {
-      if (!NON_FEATURE_FIELDS.includes(feature))
-        defaultFeatures[feature] = true;
-    }
-
-    selectedFeatures.current = defaultFeatures;
-
-    //setSelectedFeatures(defaultFeatures);
-  }, []);
-
-  const handleCollectionNameChange = (e) => {
-    setCollectionName(e.target.value);
-  };
-
-  /*const saveFeatures = async () => {
-    setIsSaving(true);
-    //console.log('going to save', { rows: selectedRows });
-    let newCollection = await Backend.saveCollection(
-      keycloak.token,
-      featureExtractionID,
-      collectionName,
-      //selectedRows,
-      Object.keys(_.pickBy(selectedFeatures.current))
-    );
-    setIsSaving(false);
-    setCollections((c) => [...c, newCollection]);
-
-    history.push(
-      `/features/${albumID}/collection/${newCollection.collection.id}/table`
-    );
-  };*/
-
-  const getColumnClassName = (column) => {
-    if (NON_FEATURE_FIELDS.includes(column)) {
-      return 'align-left';
-    } else {
-      return 'align-right';
-    }
-  };
+export default function FeatureTable({ featuresTabular, header }) {
+  const data = useMemo(() => featuresTabular, []);
 
   const COLUMN_GROUP_METADATA = 'Metadata';
   const COLUMN_GROUP_FEATURES = 'Features';
@@ -248,25 +83,9 @@ export default function FeatureTable({
     console.log('feature groups', featureGroups);
 
     let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
-      /*Header: () => (
-        <CheckableColumnHeader
-          updateSelectedFeature={updateSelectedFeatureGroups}
-          column={featureGroup}
-        />
-      ),*/
       Header: featureGroup,
       id: featureGroup,
       columns: featureGroups[featureGroup].map((featureName) => ({
-        /*Header: () => (
-          <CheckableColumnHeader
-            updateSelectedFeature={updateSelectedFeature}
-            column={featureName}
-            ref={(ref) => {
-              featureCheckboxRefs.current[featureName] = ref;
-            }}
-            inline
-          />
-        ),*/
         Header: featureName,
         accessor: featureName,
         disableFilters: true,
@@ -294,18 +113,7 @@ export default function FeatureTable({
     return columnsDefinitions;
   }, []);
 
-  const columns = useMemo(
-    () =>
-      /*header.map((column) => ({
-        Header: column,
-        accessor: column,
-        Filter: SelectColumnFilter,
-        filter: 'includes',
-        disableFilters: !NON_FEATURE_FIELDS.includes(column),
-      }))*/
-      columnsDefinitions,
-    [columnsDefinitions]
-  );
+  const columns = useMemo(() => columnsDefinitions, [columnsDefinitions]);
 
   // Set up the react-table instance
   const tableInstance = useTable(
@@ -318,45 +126,8 @@ export default function FeatureTable({
       //autoResetSelectedRows: false,
     },
     useFilters,
-    usePagination,
-    //useRowSelect,
-    (hooks) => {
-      /*hooks.visibleColumns.push((columns) => [
-        // Let's make a column for selection
-        {
-          id: 'selection',
-          // The header can use the table's getToggleAllRowsSelectedProps method
-          // to render a checkbox
-          Header: ({ getToggleAllRowsSelectedProps }) => (
-            <div>
-              <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
-            </div>
-          ),
-          // The cell can use the individual row's getToggleRowSelectedProps method
-          // to the render a checkbox
-          Cell: ({ row }) => (
-            <div>
-              <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
-            </div>
-          ),
-        },
-        ...columns,
-      ]);*/
-    }
+    usePagination
   );
-
-  const getCircularReplacer = () => {
-    const seen = new WeakSet();
-    return (key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        if (seen.has(value)) {
-          return;
-        }
-        seen.add(value);
-      }
-      return value;
-    };
-  };
 
   // Get the various functions to render the table markup
   const {
@@ -375,27 +146,8 @@ export default function FeatureTable({
     nextPage,
     previousPage,
     setPageSize,
-    selectedFlatRows,
-    state: { pageIndex, pageSize /*selectedRowIds*/ },
+    state: { pageIndex, pageSize },
   } = tableInstance;
-
-  /*const selectedRows = selectedFlatRows.map((r) => {
-    let currentRow = {};
-    for (let field of NON_FEATURE_FIELDS) {
-      currentRow[field] = r.original[field];
-    }
-    return currentRow;
-  });*/
-
-  /*const selectedRows = data
-    .filter((row, i) => selectedRowIds[i] === true)
-    .map((row) => {
-      let currentRow = {};
-      for (let field of NON_FEATURE_FIELDS) {
-        currentRow[field] = row[field];
-      }
-      return currentRow;
-    });*/
 
   return (
     <div>
