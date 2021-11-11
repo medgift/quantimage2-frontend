@@ -401,6 +401,7 @@ export default function Train({
         Header: 'Mean AUC (green is highest)',
         accessor: 'metrics.auc.mean',
         sortDescFirst: true,
+        sortType: 'number',
       },
     ],
     []
@@ -424,6 +425,7 @@ export default function Train({
         Header: 'c-index (green is highest)',
         accessor: 'metrics.concordance_index',
         sortDescFirst: true,
+        sortType: 'number',
       },
     ],
     []
