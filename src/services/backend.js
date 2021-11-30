@@ -1,6 +1,7 @@
 import { pythonBackendBaseURL } from './config';
 
-import { request } from './common';
+import { rawRequest, request } from './common';
+import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -56,9 +57,17 @@ class Backend {
     try {
       const url = `${endpoints.extractions}/${extractionID}/feature-details`;
 
-      let response = await request(url, { token: token });
+      let response = await rawRequest(url, {
+        token: token,
+        headers: new Headers({ Accept: 'multipart/form-data' }),
+      });
 
-      return response;
+      let {
+        featuresTabular,
+        featuresChart,
+      } = await parseFeatureDetailsResponse(response);
+
+      return { featuresTabular, featuresChart };
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -67,7 +76,18 @@ class Backend {
   async extractionCollectionFeatureDetails(token, extractionID, collectionID) {
     try {
       const url = `${endpoints.extractions}/${extractionID}/collections/${collectionID}/feature-details`;
-      return await request(url, { token: token });
+
+      let response = await rawRequest(url, {
+        token: token,
+        headers: new Headers({ Accept: 'multipart/form-data' }),
+      });
+
+      let {
+        featuresTabular,
+        featuresChart,
+      } = await parseFeatureDetailsResponse(response);
+
+      return { featuresTabular, featuresChart };
     } catch (err) {
       throw err; // Just throw it for now
     }

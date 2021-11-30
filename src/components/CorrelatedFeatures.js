@@ -14,6 +14,7 @@ export default function CorrelatedFeatures({
   leafItems,
   selected,
   setSelected,
+  setIsRecomputingChart,
   dropCorrelatedFeatures,
   setDropCorrelatedFeatures,
 }) {
@@ -28,10 +29,8 @@ export default function CorrelatedFeatures({
   const getFeatures = useCallback(() => {
     // Get list of feature values for each feature name
     const features = featuresChart.reduce((acc, curr) => {
-      if (!acc[curr.feature_name]) acc[curr.feature_name] = [];
-
-      acc[curr.feature_name].push(curr.feature_value);
-
+      const { FeatureID, Ranking, ...patients } = curr;
+      acc[FeatureID] = Object.values(patients).map((v) => +v);
       return acc;
     }, {});
 
@@ -62,6 +61,7 @@ export default function CorrelatedFeatures({
         features: features,
         corrThreshold: corrThreshold,
       });
+      setIsRecomputingChart(true);
     } else {
       setSelected(selectedBeforeDropping);
       setSelectedBeforeDropping();
@@ -69,6 +69,7 @@ export default function CorrelatedFeatures({
   };
 
   const adjustThreshold = () => {
+    setIsRecomputingChart(true);
     correlatedFeaturesWorker.postMessage({
       features: featuresValuesBeforeDropping,
       corrThreshold: corrThreshold,
@@ -81,13 +82,13 @@ export default function CorrelatedFeatures({
         selectedBeforeDropping.filter((s) => !nodesToDeselect.includes(s))
       );
     },
-    [selectedBeforeDropping]
+    [setSelected, selectedBeforeDropping]
   );
 
   // Bind web worker
   useEffect(() => {
     correlatedFeaturesWorker.onmessage = (m) => {
-      console.log('MESSAGE FROM THE WORKER', m.data);
+      setIsRecomputingChart(false);
 
       // Features to drop are returned by the worker
       let featuresToDrop = m.data;

@@ -1,16 +1,20 @@
 import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from 'react-keycloak';
 
 import './DataLabels.css';
+import {
+  CLASSIFICATION_OUTCOMES,
+  MODEL_TYPES,
+  OUTCOME_CLASSIFICATION,
+  OUTCOME_SURVIVAL_EVENT,
+  SURVIVAL_OUTCOMES,
+} from '../config/constants';
 
 export default function DataLabels({
   albumID,
-  dataPoints,
-  dataLabels,
-  updateCurrentLabels,
   selectedLabelCategory,
   setSelectedLabelCategory,
   outcomeColumns,
@@ -18,11 +22,12 @@ export default function DataLabels({
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  setOutcomes,
-  setFeaturesChart,
-  featureExtractionID,
+  dataPoints,
+  outcomes,
 }) {
   let [keycloak] = useKeycloak();
+
+  let [editableOutcomes, setEditableOutcomes] = useState({});
 
   let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(true);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
@@ -41,12 +46,13 @@ export default function DataLabels({
     setIsManualLabellingOpen(false);
   };
 
-  const handleLabelInputChange = (e, patientID, outcomeColumn) => {
-    let updatedLabels = { ...dataLabels };
+  const handleOutcomeInputChange = (e, patientID, outcomeColumn) => {
+    let updatedOutcomes = { ...editableOutcomes };
 
-    updatedLabels[patientID][outcomeColumn] = e.target.value;
+    let outcomeToUpdate = updatedOutcomes[patientID];
+    outcomeToUpdate[outcomeColumn] = e.target.value;
 
-    updateCurrentLabels(updatedLabels);
+    setEditableOutcomes(updatedOutcomes);
   };
 
   const handleSaveLabelsClick = async (e) => {
@@ -54,11 +60,16 @@ export default function DataLabels({
     await Backend.saveLabels(
       keycloak.token,
       selectedLabelCategory.id,
-      dataLabels
+      editableOutcomes
     );
     setIsSavingLabels(false);
-    toggleAutoLabelling();
-    toggleManualLabelling();
+
+    if (isAutoLabellingOpen) {
+      toggleManualLabelling();
+      setLabelFileMessage(null);
+      setIsLabelFileValid(null);
+      fileInput.current.value = '';
+    }
 
     /* TODO - Improve this part, these manual calls are not so elegant */
     let labelCategories = await Backend.labelCategories(
@@ -71,28 +82,66 @@ export default function DataLabels({
     setSelectedLabelCategory(
       labelCategories.find((c) => c.id === selectedLabelCategory.id)
     );
+  };
 
-    const {
-      outcomes,
-      features_chart: featuresChart,
-    } = await Backend.extractionFeatureDetails(
-      keycloak.token,
-      featureExtractionID
-    );
+  const updateEditableOutcomes = (labels) => {
+    let outcomesToUpdate = { ...editableOutcomes };
 
-    setOutcomes(outcomes);
-    setFeaturesChart(featuresChart);
+    for (let patientID in labels) {
+      if (patientID in editableOutcomes) {
+        outcomesToUpdate[patientID] = labels[patientID];
+      }
+    }
+
+    setEditableOutcomes(outcomesToUpdate);
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, message] = await validateLabelFile(
+    let [isValid, message, labels] = await validateLabelFile(
       fileInput.current.files[0],
-      dataPoints,
-      updateCurrentLabels
+      dataPoints
     );
+
+    if (isValid) {
+      updateEditableOutcomes(labels);
+    }
     setIsLabelFileValid(isValid);
     setLabelFileMessage(message);
   };
+
+  useEffect(() => {
+    if (!selectedLabelCategory) return [];
+
+    let formattedOutcomes = {};
+
+    for (let dataPoint of [
+      ...dataPoints.sort((p1, p2) =>
+        p1.localeCompare(p2, undefined, { numeric: true })
+      ),
+    ]) {
+      let existingLabel = selectedLabelCategory.labels.find(
+        (l) => l.patient_id === dataPoint
+      );
+
+      if (existingLabel)
+        formattedOutcomes[dataPoint] = existingLabel.label_content;
+      else
+        formattedOutcomes[dataPoint] = Object.assign(
+          {},
+          {},
+          ...outcomeColumns.map((o) => '')
+        );
+
+      setEditableOutcomes(formattedOutcomes);
+      // return selectedLabelCategory.labels.reduce((acc, curr) => {
+      //   acc[curr.patient_id] = curr.label_content;
+      //
+      //   return acc;
+      // }, {});
+    }
+
+    setEditableOutcomes(formattedOutcomes);
+  }, [selectedLabelCategory, dataPoints, outcomeColumns]);
 
   return (
     <>
@@ -125,13 +174,13 @@ export default function DataLabels({
                       type="text"
                       placeholder={outcomeColumn}
                       value={
-                        dataLabels[dataPoint] &&
-                        dataLabels[dataPoint][outcomeColumn]
-                          ? dataLabels[dataPoint][outcomeColumn]
+                        editableOutcomes[dataPoint] &&
+                        editableOutcomes[dataPoint][outcomeColumn]
+                          ? editableOutcomes[dataPoint][outcomeColumn]
                           : ''
                       }
                       onChange={(e) => {
-                        handleLabelInputChange(e, dataPoint, outcomeColumn);
+                        handleOutcomeInputChange(e, dataPoint, outcomeColumn);
                       }}
                     />
                   </td>

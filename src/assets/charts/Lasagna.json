@@ -6,6 +6,20 @@
         "name": "features"
       },
       "mark": "rect",
+      "transform": [
+        {
+          "calculate": "replace(datum.FeatureID, /(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:original|log|wavelet|gradient|square|squareroot|exponential|logarithm|PET|tex).*)/, '$<modality>')",
+          "as": "modality"
+        },
+        {
+          "calculate": "replace(datum.FeatureID, /(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:original|log|wavelet|gradient|square|squareroot|exponential|logarithm|PET|tex).*)/, '$<roi>')",
+          "as": "roi"
+        },
+        {
+          "calculate": "replace(datum.FeatureID, /(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:original|log|wavelet|gradient|square|squareroot|exponential|logarithm|PET|tex).*)/, '$<featureName>')",
+          "as": "featureName"
+        }
+      ],
       "width": 700,
       "height": 300,
       "encoding": {
@@ -19,7 +33,7 @@
           "sort": "ascending"
         },
         "color": {
-          "field": "feature_value",
+          "field": "FeatureValue",
           "type": "quantitative",
           "title": "Feature Value*",
           "scale": {
@@ -28,7 +42,6 @@
           }
         },
         "y": {
-          "field": "feature_id",
           "type": "nominal",
           "title": "Features",
           "axis": {
@@ -37,27 +50,27 @@
         },
         "tooltip": [
           {
-            "field": "PatientID",
-            "type": "ordinal",
-            "title": "Patient"
-          },
-          {
-            "field": "Modality",
+            "field": "modality",
             "type": "nominal",
             "title": "Modality"
           },
           {
-            "field": "ROI",
+            "field": "roi",
             "type": "nominal",
             "title": "ROI"
           },
           {
-            "field": "feature_name",
-            "type": "nominal,",
-            "title": "Feature"
+            "field": "featureName",
+            "type": "nominal",
+            "title": "Feature Name"
           },
           {
-            "field": "feature_value",
+            "field": "PatientID",
+            "type": "nominal",
+            "title": "Patient"
+          },
+          {
+            "field": "FeatureValue",
             "type": "quantitative",
             "title": "Value"
           }

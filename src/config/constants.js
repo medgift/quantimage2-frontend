@@ -26,6 +26,21 @@ export const PYRADIOMICS_FEATURE_PREFIXES = [
 ];
 export const PET_SPECIFIC_PREFIXES = ['PET'];
 
+export const MODEL_TYPES = {
+  CLASSIFICATION: 'Classification',
+  SURVIVAL: 'Survival',
+};
+
+export const OUTCOME_CLASSIFICATION = 'Outcome';
+export const OUTCOME_SURVIVAL_EVENT = 'Event';
+export const OUTCOME_SURVIVAL_TIME = 'Time';
+
+export const CLASSIFICATION_OUTCOMES = [OUTCOME_CLASSIFICATION];
+export const SURVIVAL_OUTCOMES = [
+  OUTCOME_SURVIVAL_TIME,
+  OUTCOME_SURVIVAL_EVENT,
+];
+
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
 export const KEYCLOAK_FRONTEND_CLIENT_ID = 'imagine-frontend';
 export const KEYCLOAK_ADMIN_ROLE = 'admin';

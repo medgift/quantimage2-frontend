@@ -7,7 +7,6 @@ import { useHistory, useParams } from 'react-router-dom';
 export default function CollectionSelection({
   album,
   collections,
-  isAlternativeUser,
   setIsLoading,
 }) {
   const history = useHistory();
@@ -61,12 +60,6 @@ export default function CollectionSelection({
           </ListGroupItem>
         ))}
       </ListGroup>
-
-      {isAlternativeUser && (
-        <Button color="link" onClick={handleCreateCollectionClick}>
-          <FontAwesomeIcon icon="plus" /> Create a new collection
-        </Button>
-      )}
     </div>
   ) : null;
 }

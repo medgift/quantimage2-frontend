@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import './Header.css';
 import { withRouter, NavLink as RouterNavLink } from 'react-router-dom';
 import {
@@ -11,31 +11,12 @@ import {
   NavLink,
 } from 'reactstrap';
 import UserContext from './context/UserContext';
-import { useKeycloak } from 'react-keycloak';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-function Header({ location, onLogout }) {
+function Header({ onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const [keycloak] = useKeycloak();
-
   const { isAdmin } = useContext(UserContext);
-
-  useEffect(() => {
-    async function loadUser() {
-      // TODO - Remove these debugging logs
-      /*keycloak.loadUserInfo().success(userInfo => {
-        console.log(userInfo);
-      });*/
-      /*keycloak.loadUserProfile().success(userProfile => {
-        console.log(userProfile);
-      });*/
-      //console.log(keycloak.tokenParsed);
-      //console.log(keycloak.token);
-    }
-
-    loadUser();
-  }, [keycloak]);
 
   const user = useContext(UserContext);
 

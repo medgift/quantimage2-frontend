@@ -21,11 +21,14 @@ function getFeaturesToDrop(features, corrThreshold) {
   // Build correlation matrix
   start = Date.now();
   let corrMatrix = [];
-  for (let i = 0; i < Object.keys(features).length; i++) {
+
+  let featureNames = Object.keys(features);
+
+  for (let i = 0; i < featureNames.length; i++) {
     let corrArray = [];
-    for (let j = 0; j < Object.keys(features).length; j++) {
-      let featuresI = [...features[Object.keys(features)[i]]];
-      let featuresJ = [...features[Object.keys(features)[j]]];
+    for (let j = 0; j < featureNames.length; j++) {
+      let featuresI = [...features[featureNames[i]]];
+      let featuresJ = [...features[featureNames[j]]];
 
       // Check if the array needs to be padded (e.g. PET features don't exist for CT)
       // TODO - Correlations with NaNs don't work so great perhaps...
@@ -43,7 +46,7 @@ function getFeaturesToDrop(features, corrThreshold) {
     corrMatrix.push(corrArray);
   }
   end = Date.now();
-  console.log('building the correlation matrix took', end - start);
+  console.log(`Building the correlation matrix took ${end - start}ms`);
 
   let featuresIndexDropList = [];
 

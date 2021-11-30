@@ -43,8 +43,9 @@ function SelectColumnFilter({
   );
 }
 
-export default function FeatureTable({ featuresTabular, header }) {
-  const data = useMemo(() => featuresTabular, []);
+export default function FeatureTable({ featuresTabular }) {
+  const data = featuresTabular;
+  const header = Object.keys(featuresTabular[0]) || [];
 
   const COLUMN_GROUP_METADATA = 'Metadata';
   const COLUMN_GROUP_FEATURES = 'Features';
@@ -57,7 +58,7 @@ export default function FeatureTable({ featuresTabular, header }) {
     for (let featureName of header.filter(
       (c) => !NON_FEATURE_FIELDS.includes(c)
     )) {
-      // TODO - Make this more elegant, maybe a convention for feature names is needed
+      /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
       // Group PyRadiomics features by the second level,
       // first level for other backends so far
       let featureGroupName;

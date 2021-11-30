@@ -26,8 +26,8 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
-import { MODEL_TYPES } from './Features';
-import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './Outcomes';
+import { MODEL_TYPES } from './config/constants';
+import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './config/constants';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';
@@ -329,7 +329,8 @@ export default function Train({
   metadataColumns,
   featureExtractionID,
   dataPoints,
-  formattedDataLabels,
+  unlabelledDataPoints,
+  outcomes,
   selectedLabelCategory,
   labelCategories,
   models,
@@ -453,19 +454,14 @@ export default function Train({
     setPatientIDsOpen((open) => !open);
   };
 
-  const transformLabelsToTabular = (formattedDataLabels) => {
+  const transformLabelsToTabular = (outcomes) => {
     let tabularLabels = [];
 
-    for (let patientID in formattedDataLabels) {
-      let tabularLabel = [patientID];
-      let outcomeFields =
-        selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
-          ? CLASSIFICATION_OUTCOMES
-          : SURVIVAL_OUTCOMES;
-
-      for (let field of outcomeFields) {
-        tabularLabel = [...tabularLabel, formattedDataLabels[patientID][field]];
-      }
+    for (let outcome of outcomes) {
+      let tabularLabel = [
+        outcome.patient_id,
+        ...Object.values(outcome.label_content),
+      ];
 
       tabularLabels.push(tabularLabel);
     }
@@ -483,7 +479,7 @@ export default function Train({
 
       // Turn labels into a tabular format for Melampus [ [PatientID,Outcome], ... ]
       // or [ [PatientID,Time,Event], ... ]
-      let labels = transformLabelsToTabular(formattedDataLabels);
+      let labels = transformLabelsToTabular(outcomes);
 
       let model = await trainModel(
         featureExtractionID,
@@ -662,7 +658,11 @@ export default function Train({
       {albumExtraction && (
         <>
           <h3>Train Model</h3>
-          <Button color="info" onClick={handleTrainModelClick}>
+          <Button
+            color="info"
+            onClick={handleTrainModelClick}
+            disabled={isTraining}
+          >
             {isTraining ? (
               <>
                 <FontAwesomeIcon icon="spinner" spin />{' '}
@@ -870,7 +870,11 @@ export default function Train({
             ) : null}
           </h2>
           <div>
-            <Button color="primary" onClick={handleShowNewModelClick}>
+            <Button
+              color="primary"
+              onClick={handleShowNewModelClick}
+              disabled={unlabelledDataPoints === dataPoints.length}
+            >
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
               <span>
                 Train a new <strong>{selectedLabelCategory.label_type}</strong>{' '}

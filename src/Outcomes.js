@@ -11,32 +11,30 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DataLabels from './components/DataLabels';
 import React, { useState } from 'react';
-import { MODEL_TYPES } from './Features';
+import {
+  CLASSIFICATION_OUTCOMES,
+  MODEL_TYPES,
+  SURVIVAL_OUTCOMES,
+} from './config/constants';
 import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
-import * as parse from 'csv-parse/lib/sync';
+import { parse } from 'csv-parse/lib/sync';
 import Backend from './services/backend';
 import { useKeycloak } from 'react-keycloak';
 import MyModal from './components/MyModal';
 
-export const CLASSIFICATION_OUTCOMES = ['Outcome'];
-export const SURVIVAL_OUTCOMES = ['Time', 'Event'];
-
 export default function Outcomes({
   albumID,
-  dataPoints,
-  isTraining,
+  featureExtractionID,
   isSavingLabels,
   setIsSavingLabels,
+  dataPoints,
+  outcomes,
   selectedLabelCategory,
   setSelectedLabelCategory,
   labelCategories,
   setLabelCategories,
-  setOutcomes,
   setFeaturesChart,
-  featureExtractionID,
-  updateCurrentLabels,
-  formattedDataLabels,
 }) {
   const [keycloak] = useKeycloak();
 
@@ -62,7 +60,7 @@ export default function Outcomes({
     toggleOutcomeModal();
   };
 
-  // Handle outcome seleciton
+  // Handle outcome selection
   const handleOutcomeChange = async (e) => {
     let selectedOutcome = labelCategories.find((c) => c.id === +e.target.value);
     await saveCurrentOutcome(selectedOutcome ? selectedOutcome : null);
@@ -154,17 +152,13 @@ export default function Outcomes({
     );
     setSelectedLabelCategory(outcome);
 
-    /* TODO - Improve this part, these manual calls are not so elegant */
-    const {
-      outcomes,
-      features_chart: featuresChart,
-    } = await Backend.extractionFeatureDetails(
-      keycloak.token,
-      featureExtractionID
-    );
-
-    setOutcomes(outcomes);
-    setFeaturesChart(featuresChart);
+    // /* TODO - Improve this part, these manual calls are not so elegant */
+    // const { featuresChart } = await Backend.extractionFeatureDetails(
+    //   keycloak.token,
+    //   featureExtractionID
+    // );
+    //
+    // setFeaturesChart(featuresChart);
   };
 
   const classificationCategories = labelCategories.filter(
@@ -241,15 +235,12 @@ export default function Outcomes({
           <DataLabels
             albumID={albumID}
             dataPoints={dataPoints}
-            isTraining={isTraining}
             isSavingLabels={isSavingLabels}
             setIsSavingLabels={setIsSavingLabels}
-            dataLabels={formattedDataLabels}
-            updateCurrentLabels={updateCurrentLabels}
             selectedLabelCategory={selectedLabelCategory}
             setSelectedLabelCategory={setSelectedLabelCategory}
             setLabelCategories={setLabelCategories}
-            setOutcomes={setOutcomes}
+            outcomes={outcomes}
             setFeaturesChart={setFeaturesChart}
             featureExtractionID={featureExtractionID}
             outcomeColumns={
@@ -257,11 +248,10 @@ export default function Outcomes({
                 ? CLASSIFICATION_OUTCOMES
                 : SURVIVAL_OUTCOMES
             }
-            validateLabelFile={(file, dataPoints, updateCurrentLabels) =>
+            validateLabelFile={(file, dataPoints) =>
               validateLabelFile(
                 file,
                 dataPoints,
-                updateCurrentLabels,
                 selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
                   ? CLASSIFICATION_OUTCOMES
                   : SURVIVAL_OUTCOMES
@@ -350,12 +340,7 @@ function validateFileType(file) {
   return true;
 }
 
-async function validateLabelFile(
-  file,
-  dataPoints,
-  updateCurrentLabels,
-  headerFieldNames
-) {
+async function validateLabelFile(file, dataPoints, headerFieldNames) {
   console.log(file);
   let valid = false;
   let error = null;
@@ -372,6 +357,7 @@ async function validateLabelFile(
   const content = await file.text();
 
   let nbMatches = 0;
+  let labels = {};
 
   try {
     /* Add PatientID to the header field names (should always exist) */
@@ -402,8 +388,6 @@ async function validateLabelFile(
     // Match rows to data points
     console.log(dataPoints);
 
-    let labels = {};
-
     for (let patientID of dataPoints) {
       let matchingRecord = records.find(
         (record) => record.PatientID === patientID
@@ -420,15 +404,18 @@ async function validateLabelFile(
 
     if (nbMatches === 0) {
       error = `The CSV file matched none of the patients!`;
-      return [valid, error];
-    } else {
-      updateCurrentLabels(labels);
+      return [valid, error, {}];
     }
   } catch (e) {
+    console.error(e);
     error = 'The CSV file could not be parsed, check its format!';
-    return [valid, error];
+    return [valid, error, {}];
   }
 
   valid = true;
-  return [valid, `The CSV matched ${nbMatches}/${dataPoints.length} patients.`];
+  return [
+    valid,
+    `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
+    labels,
+  ];
 }

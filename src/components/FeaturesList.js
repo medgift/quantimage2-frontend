@@ -104,6 +104,7 @@ export default function FeaturesList({
       }
 
       const featurePresets = await Backend.presets(keycloak.token);
+      featurePresets.sort((fp1, fp2) => fp1.name.localeCompare(fp2.name));
       setFeaturePresets(featurePresets);
 
       setSelectedPreset(featurePresets[0]);

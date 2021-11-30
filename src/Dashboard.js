@@ -87,7 +87,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
   let showAlbumButtons = (album) => {
     let extractionButton = (
-      <Button color="link" onClick={() => handleExtractAlbumClick(album, true)}>
+      <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
         <FontAwesomeIcon icon="cog" /> <span>Extract Features</span>
       </Button>
     );

@@ -168,10 +168,15 @@ function RecursiveTreeView({
                   : selected.includes(n.id)
               }
               onChange={
-                (event) => selectNode(event, n)
+                (event) => {
+                  event.stopPropagation();
+                  selectNode(event, n);
+                }
                 //getOnChange(event.currentTarget.checked, nodes)
               }
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
               disabled={disabled}
               style={{ marginRight: '0.5em' }}
             />

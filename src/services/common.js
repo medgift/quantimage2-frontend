@@ -3,29 +3,7 @@ export async function request(
   { method = 'GET', data = null, token = null, multipart = false } = {}
 ) {
   try {
-    let headers = new Headers();
-    let options = {
-      headers: headers,
-      method: method,
-    };
-
-    // Authentication
-    if (token) {
-      headers.append('Authorization', getTokenAuthorization(token));
-    }
-
-    // Add body
-    if ((method === 'POST' || method === 'PATCH' || method === 'PUT') && data) {
-      if (multipart) {
-        options.body = data;
-        headers.append('Accept', 'application/json');
-      } else {
-        headers.append('Content-Type', 'application/json');
-        options.body = JSON.stringify(data);
-      }
-    }
-
-    const response = await fetch(url, options);
+    let response = await rawRequest(url, { method, data, token, multipart });
 
     if (!response.ok) {
       let body = await response.json();
@@ -40,6 +18,47 @@ export async function request(
         return null;
       }
     }
+  } catch (err) {
+    throw err; // Just throw it for now
+  }
+}
+
+export async function rawRequest(
+  url,
+  {
+    method = 'GET',
+    data = null,
+    token = null,
+    multipart = false,
+    headers = new Headers({
+      Accept: 'application/json',
+    }),
+  } = {}
+) {
+  try {
+    let options = {
+      headers: headers,
+      method: method,
+    };
+
+    // Authentication
+    if (token) {
+      headers.append('Authorization', getTokenAuthorization(token));
+    }
+
+    // Add body
+    if ((method === 'POST' || method === 'PATCH' || method === 'PUT') && data) {
+      if (multipart) {
+        options.body = data;
+      } else {
+        headers.append('Content-Type', 'application/json');
+        options.body = JSON.stringify(data);
+      }
+    }
+
+    const response = await fetch(url, options);
+
+    return response;
   } catch (err) {
     throw err; // Just throw it for now
   }

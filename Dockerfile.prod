@@ -1,7 +1,7 @@
 ### STAGE 1: Build ###
 
 # Build and compile app
-FROM node:12 as build
+FROM node:14 as build
 MAINTAINER Roger Schaer <roger.schaer@hevs.ch>
 
 # Create app directory

@@ -62,10 +62,13 @@ function Study({ match, kheopsError }) {
               <tr>
                 <th scope="row">Date</th>
                 <td>
-                  {moment(
-                    studyDetails[DicomFields.DATE][DicomFields.VALUE][0],
-                    DicomFields.DATE_FORMAT
-                  ).format(DICOM_DATE_FORMAT)}
+                  {studyDetails[DicomFields.DATE] &&
+                  studyDetails[DicomFields.DATE][DicomFields.VALUE]
+                    ? moment(
+                        studyDetails[DicomFields.DATE][DicomFields.VALUE][0],
+                        DicomFields.DATE_FORMAT
+                      ).format(DICOM_DATE_FORMAT)
+                    : 'UNKNOWN'}
                 </td>
               </tr>
               {Object.keys(series)

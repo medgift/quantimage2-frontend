@@ -5,6 +5,12 @@ import Backend from './services/backend';
 import Lasagna from './assets/charts/Lasagna.json';
 import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+
+import HighchartsReact from 'highcharts-react-official';
+import Highcharts from 'highcharts';
+import HighchartsHeatmap from 'highcharts/modules/heatmap';
+import HighchartsBoost from 'highcharts/modules/boost';
 
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
@@ -26,17 +32,23 @@ import MyModal from './components/MyModal';
 import Loading from './visualisation/Loading';
 import { VegaLite } from 'react-vega';
 import {
+  CLASSIFICATION_OUTCOMES,
   MODEL_TYPES,
   OUTCOME_CLASSIFICATION,
   OUTCOME_SURVIVAL_EVENT,
   OUTCOME_SURVIVAL_TIME,
-} from './Features';
+  SURVIVAL_OUTCOMES,
+} from './config/constants';
 import {
   PET_SPECIFIC_PREFIXES,
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
 } from './config/constants';
-import { HeatMapCanvas } from '@nivo/heatmap';
+import { HeatMapCanvas, ResponsiveHeatMapCanvas } from '@nivo/heatmap';
+import { COMMON_CHART_OPTIONS } from './assets/charts/common';
+
+HighchartsHeatmap(Highcharts);
+HighchartsBoost(Highcharts);
 
 const MAX_DISPLAYED_FEATURES = 200000;
 
@@ -60,6 +72,7 @@ let featureNameRegex = new RegExp(featureNamePattern);
 
 export default function Visualisation({
   active,
+  isAlternativeUser,
   selectedLabelCategory,
   album,
   featuresChart,
@@ -89,32 +102,243 @@ export default function Visualisation({
 
   // Drop correlated features
   const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
+  const [isRecomputingChart, setIsRecomputingChart] = useState(false);
 
   // Manage feature selections (checkboxes)
   const [selected, setSelected] = useState([]);
-
-  // Selected features
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
 
   // Collection creation
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
+  // Filtered features (based on selections)
+  const [filteredFeatures, setFilteredFeatures] = useState([]);
+
+  // Determine outcome column to inspect for chart
+  const outcomeField = useMemo(() => {
+    if (!selectedLabelCategory) return null;
+
+    let outcomeField =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? OUTCOME_CLASSIFICATION
+        : OUTCOME_SURVIVAL_EVENT;
+
+    return outcomeField;
+  }, [selectedLabelCategory]);
+
   // Filter selected patients
   const selectedPatients = useMemo(() => {
     return new Set(patients.filter((p) => p.selected).map((p) => p.name));
   }, [patients]);
 
+  // Sorted classes for the chart data
+  const sortedClasses = useMemo(() => {
+    if (!outcomeField) return [];
+
+    let classes =
+      outcomes.length > 0
+        ? Array.from(
+            new Set(
+              outcomes.map((o) =>
+                o.label_content[outcomeField]
+                  ? o.label_content[outcomeField]
+                  : 'UNKNOWN'
+              )
+            )
+          )
+        : ['UNKNOWN'];
+
+    classes.sort((o1, o2) => {
+      if (o1 === 'UNKNOWN') return 1;
+      if (o2 === 'UNKNOWN') return -1;
+
+      return o1.localeCompare(o2);
+    });
+
+    return classes;
+  }, [outcomes, outcomeField]);
+
+  // Sorted Patient outcomes
+  const sortedOutcomes = useMemo(() => {
+    if (!outcomeField) return [];
+
+    let outcomes =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES;
+
+    let labels = selectedLabelCategory.labels;
+    let patientOutcomes = [];
+    for (let patient of selectedPatients) {
+      let patientOutcome = labels.find((l) => l.patient_id === patient);
+
+      if (!patientOutcome)
+        patientOutcomes.push(
+          Object.assign(
+            {},
+            { PatientID: patient },
+            ...outcomes.map((o) => ({ [o]: 'UNKNOWN' }))
+          )
+        );
+      else
+        patientOutcomes.push(
+          Object.assign(
+            {},
+
+            { PatientID: patient },
+            ...outcomes.map((o) => ({
+              [o]:
+                patientOutcome.label_content[o] !== ''
+                  ? patientOutcome.label_content[o]
+                  : 'UNKNOWN',
+            }))
+          )
+        );
+    }
+
+    patientOutcomes.sort((p1, p2) => {
+      if (
+        sortedClasses.indexOf(p1[outcomeField]) <
+        sortedClasses.indexOf(p2[outcomeField])
+      )
+        return -1;
+      if (
+        sortedClasses.indexOf(p1[outcomeField]) >
+        sortedClasses.indexOf(p2[outcomeField])
+      )
+        return 1;
+
+      if (selectedLabelCategory.label_type === MODEL_TYPES.SURVIVAL) {
+        return p1[OUTCOME_SURVIVAL_TIME] - p2[OUTCOME_SURVIVAL_TIME];
+      }
+
+      return p1.PatientID.localeCompare(p2.PatientID, undefined, {
+        numeric: true,
+      });
+    });
+
+    return patientOutcomes;
+  }, [selectedLabelCategory, selectedPatients, sortedClasses, outcomeField]);
+
+  // Sort Patient IDs for the chart data
+  const sortedPatientIDs = useMemo(() => {
+    if (sortedOutcomes.length > 0) {
+      return Array.from(new Set(sortedOutcomes.map((o) => o.PatientID)));
+    } else {
+      return Array.from(selectedPatients).sort((p1, p2) =>
+        p1.localeCompare(p2, undefined, { numeric: true })
+      );
+    }
+  }, [sortedOutcomes, selectedPatients]);
+
+  // Format survival times to correspond to the Highcharts requirements
+  const formattedHighchartsDataSurvivalTime = useMemo(() => {
+    if (
+      !selectedLabelCategory ||
+      selectedLabelCategory.label_type !== MODEL_TYPES.SURVIVAL
+    )
+      return null;
+
+    return sortedOutcomes.map((outcome) => ({
+      x: outcome.PatientID,
+      y:
+        outcome[OUTCOME_SURVIVAL_TIME] !== 'UNKNOWN'
+          ? +outcome[OUTCOME_SURVIVAL_TIME]
+          : null,
+    }));
+  }, [selectedLabelCategory, sortedOutcomes]);
+
+  // Format outcomes data to correspond to the Highcharts requirements
+  const formattedHighchartsDataOutcomes = useMemo(() => {
+    return sortedOutcomes.map((outcome) => ({
+      x: outcome.PatientID,
+      y: outcome[outcomeField],
+    }));
+  }, [sortedOutcomes, outcomeField]);
+
+  // Format features data to correspond to the Highcharts requirements
+  const formattedHighchartsDataFeatures = useMemo(() => {
+    const start = Date.now();
+
+    const formattedFeatures = [];
+
+    if (!sortedPatientIDs) return [];
+
+    // Rank feature by F-value
+    let featuresToFormat = filteredFeatures;
+    if (rankFeatures) featuresToFormat = _.sortBy(filteredFeatures, 'Ranking');
+
+    for (let [featureIndex, featureForPatients] of featuresToFormat.entries()) {
+      let { FeatureID, Ranking, ...patientValues } = featureForPatients;
+
+      let patientIndex = 0;
+      for (let patient of sortedPatientIDs) {
+        formattedFeatures.push([
+          patientIndex,
+          featureIndex,
+          patientValues[patient] ? +patientValues[patient] : null,
+        ]); // patient is X, feature is Y and value is color
+        patientIndex++;
+      }
+    }
+
+    const end = Date.now();
+
+    console.log(`Formatting features for HighCharts took ${end - start}ms`);
+
+    return formattedFeatures;
+  }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
+
+  // Format data to correspond to the Nivo requirements
+  /*const formattedNivoData = useMemo(() => {
+    const formattedFeatures = [];
+
+    for (let featureForPatients of filteredFeatures) {
+      let { FeatureID, Ranking, ...patients } = featureForPatients;
+
+      formattedFeatures.push({ FeatureID, Ranking, ...patients });
+    }
+
+    return formattedFeatures;
+  }, [filteredFeatures]);*/
+
+  // Format data to correspond to the Vega requirements
+  /*const formattedVegaData = useMemo(() => {
+    const formattedFeatures = [];
+
+    const start = Date.now();
+    for (let featureForPatients of filteredFeatures) {
+      let { FeatureID, Ranking, ...patients } = featureForPatients;
+
+      for (let [patient, value] of Object.entries(patients)) {
+        formattedFeatures.push({
+          FeatureID,
+          Ranking,
+          PatientID: patient,
+          FeatureValue: value ? +value : null,
+        });
+      }
+    }
+    const end = Date.now();
+
+    console.log(`Formatting features for Vega took ${end - start}ms`);
+
+    return formattedFeatures;
+  }, [filteredFeatures]);*/
+
   // Initialize feature IDs & patients
   useEffect(() => {
     if (featuresChart) {
-      let featureIDs = new Set(featuresChart.map((f) => f.feature_id));
+      let featureIDs = new Set(featuresChart.map((f) => f.FeatureID));
       setFeatureIDs(featureIDs);
       setSelectedFeatureIDs(featureIDs);
 
+      // Get the patient IDs from the first "line" of the chart
+      let { FeatureID, Ranking, ...patientIDs } = featuresChart[0];
+
       setPatients(
-        [...new Set(featuresChart.map((f) => f.PatientID))].map((p) => ({
+        Object.keys(patientIDs).map((p) => ({
           name: p,
           selected: true,
         }))
@@ -127,20 +351,35 @@ export default function Visualisation({
     if (!featuresChart || selectedFeatureIDs === null) return undefined;
 
     const start = Date.now();
+    // Filter out non-selected feature IDs
     let filteredFeatures = featuresChart.filter((f) => {
-      return (
-        selectedFeatureIDs.has(f.feature_id) &&
-        selectedPatients.has(f.PatientID)
-      );
+      return selectedFeatureIDs.has(f.FeatureID);
+    });
+    // For each remaining feature ID, keep only selected patients
+    filteredFeatures = filteredFeatures.map((featureObject) => {
+      return {
+        FeatureID: featureObject.FeatureID,
+        Ranking: +featureObject.Ranking,
+        ..._.pickBy(featureObject, (v, k) => selectedPatients.has(k)),
+      };
     });
     const end = Date.now();
     console.log(
-      `filtered features in ${end - start}ms `,
-      filteredFeatures.length
+      `Filtering features took ${end - start}ms `,
+      filteredFeatures.length > 0
+        ? filteredFeatures.length *
+            (Object.keys(filteredFeatures[0]).length - 1)
+        : 0
     );
 
-    setSelectedFeatures(filteredFeatures);
+    setFilteredFeatures(filteredFeatures);
   }, [featuresChart, selectedFeatureIDs, selectedPatients]);
+
+  // Calculate number of values to display (based on filtered features)
+  const nbFeatures =
+    filteredFeatures.length > 0
+      ? filteredFeatures.length * (Object.keys(filteredFeatures[0]).length - 1)
+      : 0;
 
   const filteringItems = useMemo(() => {
     if (!featureIDs) return {};
@@ -176,17 +415,17 @@ export default function Visualisation({
 
   const treeData = useMemo(() => {
     if (filteringItems) {
-      let formattedData = formatTreeData(filteringItems);
+      let formattedTreeData = formatTreeData(filteringItems);
 
       let allNodeIDs = [];
-      for (let topLevelElement of formattedData) {
+      for (let topLevelElement of formattedTreeData) {
         let nodeAndChildrenIds = getNodeAndAllChildrenIDs(topLevelElement, []);
         allNodeIDs.push(...nodeAndChildrenIds);
       }
 
       setSelected(allNodeIDs);
 
-      return formattedData;
+      return formattedTreeData;
     }
 
     return [];
@@ -202,13 +441,6 @@ export default function Visualisation({
     return {};
   }, [treeData]);
 
-  // Get filtered status data
-  const filteredStatus = useMemo(() => {
-    if (!featuresChart) return [];
-
-    return outcomes.filter((o) => selectedPatients.has(o.PatientID));
-  }, [outcomes, selectedPatients]);
-
   // Update Vega
   useEffect(() => {
     if (featuresChart && featureIDs && loading === true) {
@@ -217,8 +449,242 @@ export default function Visualisation({
     }
   }, [featuresChart, featureIDs, loading]);
 
+  // Define the Highcharts options dynamically (features)
+  const highchartsOptionsFeatures = useMemo(
+    () =>
+      _.merge({}, COMMON_CHART_OPTIONS, {
+        chart: {
+          height: 350,
+        },
+        xAxis: {
+          categories: sortedPatientIDs,
+        },
+        yAxis: {
+          categories: filteredFeatures.map((f) => f.FeatureID),
+          title: { text: 'Features' },
+        },
+        legend: {
+          layout: 'vertical',
+          verticalAlign: 'top',
+          align: 'right',
+          title: {
+            text: 'Feature Value*',
+          },
+        },
+        tooltip: {
+          formatter: function () {
+            let chart = this.series.chart;
+            let yIndex = this.y;
+
+            let { modality, roi, featureName } = chart.yAxis[0].categories[
+              yIndex
+            ].match(featureIDRegex).groups;
+
+            return (
+              `<strong>Patient:</strong> ${
+                chart.xAxis[0].categories[this.point.options.x]
+              }<br />` +
+              `<strong>Modality:</strong> ${modality}<br />` +
+              `<strong>ROI:</strong> ${roi}<br />` +
+              `<strong>Feature:</strong> ${featureName}<br />` +
+              `<strong>Value:</strong> ${this.point.options.value}`
+            );
+          },
+        },
+        colorAxis: {
+          stops: [
+            [0, '#ff0000'],
+            [0.005, '#eef8bc'],
+            [0.5, '#47b5c1'],
+            [0.995, '#1c3185'],
+            [1, '#00ff00'],
+          ],
+          min: -2.01,
+          max: 2.01,
+          startOnTick: false,
+          endOnTick: false,
+        },
+        series: [
+          {
+            data: formattedHighchartsDataFeatures,
+            boostThreshold: 100,
+            turboThreshold: Number.MAX_VALUE,
+            nullColor: '#000',
+          },
+        ],
+        boost: {
+          useGPUTranslations: true,
+          usePreallocated: true,
+        },
+      }),
+    [formattedHighchartsDataFeatures, filteredFeatures, sortedPatientIDs]
+  );
+
+  // Define the Highcharts options dynamically (outcomes)
+  const highchartsOptionsOutcome = useMemo(() => {
+    let colors = ['#59c26e', '#f25a38', '#666666'];
+
+    return _.merge({}, COMMON_CHART_OPTIONS, {
+      chart: {
+        marginRight: 111,
+        marginTop: 0,
+        marginBottom: 40,
+        plotBorderWidth: 0,
+        height: 60,
+      },
+
+      xAxis: {
+        categories: formattedHighchartsDataOutcomes.map((o) => o.x),
+      },
+
+      yAxis: {
+        categories: [outcomeField],
+        title: { text: 'ㅤ' },
+      },
+
+      colorAxis: {
+        dataClasses: sortedClasses.map((c, i) => ({
+          from: i,
+          name: c,
+          color:
+            sortedClasses.length === 1 && sortedClasses[0] === 'UNKNOWN'
+              ? colors[colors.length - 1]
+              : colors[i],
+        })),
+      },
+
+      tooltip: {
+        formatter: function () {
+          return (
+            '<b>' +
+            getPointCategoryName(this.point, 'x') +
+            '</b> :' +
+            sortedClasses[this.point.options.value]
+          );
+        },
+      },
+
+      legend: {
+        align: 'center',
+        layout: 'horizontal',
+        margin: 12,
+        x: -28,
+        y: 10,
+        floating: true,
+        verticalAlign: 'bottom',
+        title: {
+          text: outcomeField,
+        },
+        symbolRadius: 0,
+      },
+
+      series: [
+        {
+          name: outcomeField,
+          borderWidth: 0.5,
+          borderColor: '#cccccc',
+          data: formattedHighchartsDataOutcomes.map((outcome) => ({
+            name: outcome.x,
+            y: 0,
+            value: sortedClasses.indexOf(outcome.y),
+          })),
+        },
+      ],
+    });
+  }, [formattedHighchartsDataOutcomes, outcomeField, sortedClasses]);
+
+  const highchartsOptionsSurvival = useMemo(() => {
+    if (!formattedHighchartsDataSurvivalTime) return {};
+
+    return _.merge({}, COMMON_CHART_OPTIONS, {
+      chart: {
+        marginRight: 111,
+        marginTop: 0,
+        marginBottom: 60,
+        plotBorderWidth: 0,
+        height: 80,
+      },
+
+      xAxis: {
+        categories: formattedHighchartsDataSurvivalTime.map((o) => o.x),
+      },
+
+      yAxis: {
+        categories: [OUTCOME_SURVIVAL_TIME],
+        title: { text: 'ㅤ' },
+      },
+
+      colorAxis: {
+        minColor: '#f25a38',
+        maxColor: '#59c26e',
+        startOnTick: true,
+        endOnTick: true,
+        tickPositioner: function (min, max) {
+          const tickPosCor = [];
+          const numOfTicks = 1;
+          const tik = (max - min) / numOfTicks;
+
+          tickPosCor.push(min);
+          for (let i = 0; i < numOfTicks; i++) {
+            tickPosCor.push(Highcharts.correctFloat(tickPosCor[i] + tik));
+          }
+
+          return tickPosCor;
+        },
+      },
+
+      tooltip: {
+        formatter: function () {
+          return (
+            '<b>' +
+            getPointCategoryName(this.point, 'x') +
+            '</b> :' +
+            this.point.options.value
+          );
+        },
+      },
+
+      legend: {
+        align: 'center',
+        layout: 'horizontal',
+        margin: 12,
+        x: -28,
+        y: 5,
+        floating: true,
+        verticalAlign: 'bottom',
+        title: {
+          text: OUTCOME_SURVIVAL_TIME,
+        },
+        navigation: {
+          enabled: false,
+        },
+      },
+
+      series: [
+        {
+          name: OUTCOME_SURVIVAL_TIME,
+          borderWidth: 0.5,
+          borderColor: '#cccccc',
+          data: formattedHighchartsDataSurvivalTime.map((outcome) => ({
+            name: outcome.x,
+            y: 0,
+            value: outcome.y,
+          })),
+        },
+      ],
+    });
+  }, [formattedHighchartsDataSurvivalTime]);
+
+  function getPointCategoryName(point, dimension) {
+    const series = point.series;
+    const isY = dimension === 'y';
+    const axis = series[isY ? 'yAxis' : 'xAxis'];
+
+    return axis.categories[point[isY ? 'y' : 'x']];
+  }
+
   // Define spec dynamically
-  const lasagnaSpec = useMemo(() => {
+  /*const lasagnaSpec = useMemo(() => {
     let finalSpec = _.cloneDeep(Lasagna);
 
     if (!filteredStatus) {
@@ -245,10 +711,10 @@ export default function Visualisation({
       };
 
       // Add tooltip
-      finalSpec.vconcat[0].encoding.tooltip = [
-        ...finalSpec.vconcat[0].encoding.tooltip,
-        tooltipNode,
-      ];
+      // finalSpec.vconcat[0].encoding.tooltip = [
+      //   ...finalSpec.vconcat[0].encoding.tooltip,
+      //   tooltipNode,
+      // ];
 
       // Custom sort of patients
       statusSorted = filteredStatus.sort((p1, p2) => {
@@ -300,11 +766,11 @@ export default function Visualisation({
       chart.encoding.x.sort = patientIDsSorted;
     }
 
-    if (rankFeatures) finalSpec.vconcat[0].encoding.y.field = 'feature_rank';
-    else finalSpec.vconcat[0].encoding.y.field = 'feature_id';
+    if (rankFeatures) finalSpec.vconcat[0].encoding.y.field = 'Ranking';
+    else finalSpec.vconcat[0].encoding.y.field = 'FeatureID';
 
     return finalSpec;
-  }, [selectedLabelCategory, filteredStatus, rankFeatures]);
+  }, [selectedLabelCategory, filteredStatus, rankFeatures]);*/
 
   const handleCreateCollectionClick = () => {
     console.log(
@@ -392,19 +858,93 @@ export default function Visualisation({
                 {selectedFeatureIDs.size} features)
               </Button>
 
-              {active && selectedFeatures.length < MAX_DISPLAYED_FEATURES ? (
+              {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
                 <div>
-                  <VegaLite
+                  <div style={{ position: 'relative' }}>
+                    {isRecomputingChart && (
+                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+                        <FontAwesomeIcon
+                          icon="sync"
+                          spin
+                          color="white"
+                          size="4x"
+                        />
+                      </div>
+                    )}
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={highchartsOptionsFeatures}
+                    />
+                  </div>
+                  {selectedLabelCategory && (
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={highchartsOptionsOutcome}
+                    />
+                  )}
+                  {selectedLabelCategory &&
+                    selectedLabelCategory.label_type ===
+                      MODEL_TYPES.SURVIVAL && (
+                      <div className="mt-3">
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={highchartsOptionsSurvival}
+                        />
+                      </div>
+                    )}
+                  {/*<VegaLite
                     spec={lasagnaSpec}
                     data={
                       lasagnaSpec.vconcat.length > 1
                         ? {
-                            features: selectedFeatures,
+                            features: formattedVegaData,
                             status: filteredStatus,
                           }
-                        : { features: selectedFeatures }
+                        : { features: filteredFeatures }
                     }
-                  />
+                  />*/}
+                  {/*<HeatMapCanvas
+                    data={formattedNivoData}
+                    keys={Array.from(selectedPatients)}
+                    width={700}
+                    height={300}
+                    indexBy="FeatureID"
+                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                    pixelRatio={1}
+                    minValue={-2}
+                    maxValue={2}
+                    forceSquare={false}
+                    sizeVariation={0}
+                    padding={0}
+                    colors="BrBG"
+                    axisTop={{
+                      orient: 'top',
+                      tickSize: 0,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      format: () => '',
+                      legend: 'Patients',
+                    }}
+                    axisLeft={{
+                      orient: 'left',
+                      tickSize: 0,
+                      tickPadding: 5,
+                      tickRotation: 0,
+                      format: () => '',
+                      legend: 'Features',
+                    }}
+                    enableGridX={false}
+                    enableGridY={false}
+                    cellShape="rect"
+                    cellOpacity={1}
+                    cellBorderWidth={0}
+                    enableLabels={false}
+                    animate={false}
+                    isInteractive={true}
+                    hoverTarget="cell"
+                    cellHoverOpacity={1}
+                    cellHoverOthersOpacity={0.5}
+                  />*/}
                 </div>
               ) : (
                 <Alert
@@ -413,8 +953,8 @@ export default function Visualisation({
                   style={{ whiteSpace: 'normal' }}
                 >
                   <p>
-                    Number of data points ({selectedFeatures.length}) is too
-                    high to display chart.
+                    Number of values ({nbFeatures}) is too high to display
+                    chart.
                   </p>
                   <span>
                     Deselect some features or patients on the left in order to
@@ -436,6 +976,7 @@ export default function Visualisation({
                   filteringItems={filteringItems}
                   leafItems={leafItems}
                   loading={loading}
+                  setIsRecomputingChart={setIsRecomputingChart}
                   featureIDs={featureIDs}
                   selected={selected}
                   setSelected={setSelected}
