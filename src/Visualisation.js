@@ -8,6 +8,7 @@ import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
 import HighchartsBoost from 'highcharts/modules/boost';
+import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
@@ -39,6 +40,7 @@ import { COMMON_CHART_OPTIONS } from './assets/charts/common';
 
 import './Visualisation.css';
 
+HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
 HighchartsBoost(Highcharts);
 
@@ -447,11 +449,11 @@ export default function Visualisation({
         },
         colorAxis: {
           stops: [
-            [0, '#ff0000'],
-            [0.005, '#eef8bc'],
-            [0.5, '#47b5c1'],
-            [0.995, '#1c3185'],
-            [1, '#00ff00'],
+            [0, '#0000ff'],
+            [0.005, '#2066ac'],
+            [0.5, '#f7f7f7'],
+            [0.995, '#b2182b'],
+            [1, '#ff0000'],
           ],
           min: -2.01,
           max: 2.01,
@@ -463,7 +465,7 @@ export default function Visualisation({
             data: formattedHighchartsDataFeatures,
             boostThreshold: 100,
             turboThreshold: Number.MAX_VALUE,
-            nullColor: '#000',
+            nullColor: '#666',
           },
         ],
         boost: {
@@ -476,7 +478,7 @@ export default function Visualisation({
 
   // Define the Highcharts options dynamically (outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
-    let colors = ['#59c26e', '#f25a38', '#666666'];
+    let colors = ['#0b84a5', '#94e3d5', '#666666'];
 
     return _.merge({}, COMMON_CHART_OPTIONS, {
       chart: {
@@ -867,8 +869,8 @@ export default function Visualisation({
               <div>
                 <small>
                   * Feature values are standardized and the scale is clipped to
-                  [-2, 2]. Outliers will appear either in white ({'<-2'}) or
-                  black (>2).
+                  [-2, 2]. Extreme values will appear either in 100% blue (
+                  {'<-2'}) or 100% red (>2).
                 </small>
               </div>
               <div className="d-flex justify-content-around">
