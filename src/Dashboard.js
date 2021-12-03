@@ -539,6 +539,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
               Feature Extraction for Album <strong>{currentAlbum.name}</strong>
             </span>
           }
+          size="xl"
         >
           <FeaturesList
             albumID={currentAlbum.album_id}

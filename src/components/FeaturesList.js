@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   Alert,
   Button,
@@ -10,22 +10,26 @@ import {
 } from 'reactstrap';
 import { FEATURE_STATUS } from '../config/constants';
 
+import yaml from 'js-yaml';
+
 import { v4 as uuidv4 } from 'uuid';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import Backend from '../services/backend';
-import FeaturesModal from '../FeaturesModal';
 import { useKeycloak } from 'react-keycloak';
 import SocketContext from '../context/SocketContext';
 
-import TreeView from '@material-ui/lab/TreeView';
-import TreeItem from '@material-ui/lab/TreeItem';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import TreeView from '@mui/lab/TreeView';
+import TreeItem from '@mui/lab/TreeItem';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import _ from 'lodash';
 
 import './FeaturesList.css';
+import { ConfigEditor } from './ConfigEditor';
+
+const EXTRACTION_CONFIG_TREE_TITLE = 'Extraction Configuration';
 
 export default function FeaturesList({
   albumID,
@@ -51,8 +55,9 @@ export default function FeaturesList({
   let [backendError, setBackendError] = useState(null);
   let [backendErrorVisible, setBackendErrorVisible] = useState(false);
 
-  // Misc
-  let [modal, setModal] = useState(false);
+  // Configuration
+  let [showEditor, setShowEditor] = useState(false);
+  let [customConfig, setCustomConfig] = useState(null);
 
   let socket = useContext(SocketContext);
 
@@ -144,10 +149,6 @@ export default function FeaturesList({
     };
   }, [socket]);
 
-  let toggleModal = () => {
-    setModal(!modal);
-  };
-
   let hideBackendError = () => {
     setBackendErrorVisible(false);
   };
@@ -157,7 +158,9 @@ export default function FeaturesList({
       let featureExtraction = await Backend.extract(
         keycloak.token,
         albumID,
-        selectedPreset.config,
+        showEditor && !parsedCustomConfig.error
+          ? parsedCustomConfig
+          : selectedPreset.config,
         selectedROIs
       );
 
@@ -178,20 +181,25 @@ export default function FeaturesList({
   };
 
   const handlePresetClick = (e) => {
+    setShowEditor(false);
+    setCustomConfig(null);
     setSelectedPreset(featurePresets.find((p) => p.id === +e.target.value));
   };
 
-  let handleViewFeaturesClick = () => {
-    toggleModal();
+  let handleEditConfigClick = () => {
+    setShowEditor((s) => {
+      if (s === true) setCustomConfig(null);
+      return !s;
+    });
   };
 
-  let handleDownloadFeaturesClick = async (e) => {
-    window.location.href = Backend.downloadExtractionURL(
-      extraction.id,
-      patientID,
-      studyDate
-    );
-  };
+  const parsedCustomConfig = useMemo(() => {
+    try {
+      return yaml.load(customConfig);
+    } catch (e) {
+      return { error: e.message.substr(0, e.message.indexOf('\n')) };
+    }
+  }, [customConfig]);
 
   return (
     <>
@@ -203,13 +211,27 @@ export default function FeaturesList({
         </ListGroupItem>
         {featurePresets && selectedPreset && (
           <ListGroupItem>
+            {showEditor && (
+              <FormGroup check inline key="custom">
+                <Label check>
+                  <Input
+                    type="radio"
+                    name="selectedPreset"
+                    checked={true}
+                    value="custom"
+                    onChange={handlePresetClick}
+                  />{' '}
+                  <strong>Custom</strong>
+                </Label>
+              </FormGroup>
+            )}
             {featurePresets.map((preset) => (
               <FormGroup check inline key={preset.id}>
                 <Label check>
                   <Input
                     type="radio"
                     name="selectedPreset"
-                    checked={selectedPreset.id === preset.id}
+                    checked={!showEditor && selectedPreset.id === preset.id}
                     value={preset.id}
                     onChange={handlePresetClick}
                   />{' '}
@@ -217,9 +239,31 @@ export default function FeaturesList({
                 </Label>
               </FormGroup>
             ))}
-            <RecursiveTreeView
-              data={{ 'Show configuration options': selectedPreset.config }}
-            />
+
+            {customConfig && parsedCustomConfig.error ? (
+              <Alert color="danger">
+                Invalid YAML configuration : {parsedCustomConfig.error}
+              </Alert>
+            ) : (
+              <RecursiveTreeView
+                data={{
+                  [EXTRACTION_CONFIG_TREE_TITLE]: !customConfig
+                    ? selectedPreset.config
+                    : parsedCustomConfig,
+                }}
+              />
+            )}
+            <Button color="primary" onClick={handleEditConfigClick} size="sm">
+              <FontAwesomeIcon icon="pencil-alt" /> Edit Configuration
+              (Advanced)
+            </Button>
+            {showEditor && (
+              <ConfigEditor
+                config={selectedPreset['config-raw']}
+                setCustomConfig={setCustomConfig}
+                error={parsedCustomConfig?.error}
+              />
+            )}
           </ListGroupItem>
         )}
         <ListGroupItem>Select ROIs to extract</ListGroupItem>
@@ -251,7 +295,7 @@ export default function FeaturesList({
                 <Button
                   color="success"
                   onClick={handleExtractFeaturesClick}
-                  disabled={albumROIs === null}
+                  disabled={albumROIs === null || parsedCustomConfig?.error}
                 >
                   <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
                   <span>Extract Features</span>
@@ -281,42 +325,40 @@ export default function FeaturesList({
       >
         Error from the backend: {backendError}
       </Alert>
-      {extraction && !albumID && (
-        <FeaturesModal
-          isOpen={modal}
-          toggle={toggleModal}
-          extractionID={extraction.id}
-        />
-      )}
     </>
   );
 }
 
-function formatTreeData(object) {
-  return Object.entries(object).map(([key, value]) =>
-    value && _.isPlainObject(value)
+function formatTreeData(object, prefix = '') {
+  return Object.entries(object).map(([key, value]) => {
+    let fullKey = `${prefix}${prefix && '-'}${key}`;
+
+    return value && _.isPlainObject(value)
       ? {
-          id: uuidv4(),
+          id: fullKey,
           name: isNaN(key) ? key : `Item #${key}`,
-          children: formatTreeData(value),
+          children: formatTreeData(value, fullKey),
         }
       : value && _.isArray(value) && !_.isObject(value[0])
       ? {
-          id: uuidv4(),
+          id: fullKey,
           name: key,
-          children: value.map((v, i) => ({ id: `${v}-${i}`, name: v })),
+          children: value.map((v, i) => ({
+            id: `${fullKey}-${v}-${i}`,
+            name: v,
+          })),
         }
       : value && _.isArray(value) && _.isObject(value[0])
       ? {
-          id: uuidv4(),
+          id: fullKey,
           name: key,
-          children: formatTreeData(value),
+          children: formatTreeData(value, fullKey),
         }
       : {
           id: uuidv4(),
           name: value !== null ? `${key} : ${value}` : `${key}`,
-        }
-  );
+        };
+  });
 }
 
 function RecursiveTreeView({ data }) {
@@ -333,7 +375,7 @@ function RecursiveTreeView({ data }) {
   return (
     <TreeView
       defaultCollapseIcon={<ExpandMoreIcon />}
-      defaultExpanded={['root']}
+      defaultExpanded={[EXTRACTION_CONFIG_TREE_TITLE]}
       defaultExpandIcon={<ChevronRightIcon />}
       className="text-left m-2 FeatureConfig-tree"
     >

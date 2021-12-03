@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Checkbox } from '@material-ui/core';
 
 export default function MyCheckbox(props) {
   const checkRef = useRef();
