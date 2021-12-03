@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import './Visualisation.css';
 import Backend from './services/backend';
-// Chart Specs
-import Lasagna from './assets/charts/Lasagna.json';
 import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from 'react-keycloak';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -17,11 +14,7 @@ import FilterTree from './components/FilterTree';
 import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
 import CorrelatedFeatures from './components/CorrelatedFeatures';
 import FeatureRanking from './components/FeatureRanking';
-import {
-  groupFeatures,
-  MODALITIES,
-  MODALITIES_MAP,
-} from './utils/feature-naming';
+import { groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
@@ -29,8 +22,6 @@ import {
 } from './utils/feature-mapping';
 import FilterList from './components/FilterList';
 import MyModal from './components/MyModal';
-import Loading from './visualisation/Loading';
-import { VegaLite } from 'react-vega';
 import {
   CLASSIFICATION_OUTCOMES,
   MODEL_TYPES,
@@ -44,8 +35,9 @@ import {
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
 } from './config/constants';
-import { HeatMapCanvas, ResponsiveHeatMapCanvas } from '@nivo/heatmap';
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
+
+import './Visualisation.css';
 
 HighchartsHeatmap(Highcharts);
 HighchartsBoost(Highcharts);
@@ -72,7 +64,6 @@ let featureNameRegex = new RegExp(featureNamePattern);
 
 export default function Visualisation({
   active,
-  isAlternativeUser,
   selectedLabelCategory,
   album,
   featuresChart,
@@ -290,43 +281,6 @@ export default function Visualisation({
     return formattedFeatures;
   }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
 
-  // Format data to correspond to the Nivo requirements
-  /*const formattedNivoData = useMemo(() => {
-    const formattedFeatures = [];
-
-    for (let featureForPatients of filteredFeatures) {
-      let { FeatureID, Ranking, ...patients } = featureForPatients;
-
-      formattedFeatures.push({ FeatureID, Ranking, ...patients });
-    }
-
-    return formattedFeatures;
-  }, [filteredFeatures]);*/
-
-  // Format data to correspond to the Vega requirements
-  /*const formattedVegaData = useMemo(() => {
-    const formattedFeatures = [];
-
-    const start = Date.now();
-    for (let featureForPatients of filteredFeatures) {
-      let { FeatureID, Ranking, ...patients } = featureForPatients;
-
-      for (let [patient, value] of Object.entries(patients)) {
-        formattedFeatures.push({
-          FeatureID,
-          Ranking,
-          PatientID: patient,
-          FeatureValue: value ? +value : null,
-        });
-      }
-    }
-    const end = Date.now();
-
-    console.log(`Formatting features for Vega took ${end - start}ms`);
-
-    return formattedFeatures;
-  }, [filteredFeatures]);*/
-
   // Initialize feature IDs & patients
   useEffect(() => {
     if (featuresChart) {
@@ -441,11 +395,11 @@ export default function Visualisation({
     return {};
   }, [treeData]);
 
-  // Update Vega
+  // Update chart
   useEffect(() => {
     if (featuresChart && featureIDs && loading === true) {
       setLoading(false);
-      console.log('charts loaded');
+      console.log('chart loaded');
     }
   }, [featuresChart, featureIDs, loading]);
 
@@ -808,10 +762,10 @@ export default function Visualisation({
 
   if (loading) {
     return (
-      <div className="Visualisation">
-        <Loading color="dark" className="flex-grow-1">
-          <h3>Loading Charts...</h3>
-        </Loading>
+      <div className="Visualisation d-flex justify-content-center align-items-center">
+        <h3>
+          <FontAwesomeIcon icon="sync" spin /> Loading Charts...
+        </h3>
       </div>
     );
   }
@@ -892,59 +846,6 @@ export default function Visualisation({
                         />
                       </div>
                     )}
-                  {/*<VegaLite
-                    spec={lasagnaSpec}
-                    data={
-                      lasagnaSpec.vconcat.length > 1
-                        ? {
-                            features: formattedVegaData,
-                            status: filteredStatus,
-                          }
-                        : { features: filteredFeatures }
-                    }
-                  />*/}
-                  {/*<HeatMapCanvas
-                    data={formattedNivoData}
-                    keys={Array.from(selectedPatients)}
-                    width={700}
-                    height={300}
-                    indexBy="FeatureID"
-                    margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                    pixelRatio={1}
-                    minValue={-2}
-                    maxValue={2}
-                    forceSquare={false}
-                    sizeVariation={0}
-                    padding={0}
-                    colors="BrBG"
-                    axisTop={{
-                      orient: 'top',
-                      tickSize: 0,
-                      tickPadding: 5,
-                      tickRotation: 0,
-                      format: () => '',
-                      legend: 'Patients',
-                    }}
-                    axisLeft={{
-                      orient: 'left',
-                      tickSize: 0,
-                      tickPadding: 5,
-                      tickRotation: 0,
-                      format: () => '',
-                      legend: 'Features',
-                    }}
-                    enableGridX={false}
-                    enableGridY={false}
-                    cellShape="rect"
-                    cellOpacity={1}
-                    cellBorderWidth={0}
-                    enableLabels={false}
-                    animate={false}
-                    isInteractive={true}
-                    hoverTarget="cell"
-                    cellHoverOpacity={1}
-                    cellHoverOthersOpacity={0.5}
-                  />*/}
                 </div>
               ) : (
                 <Alert
@@ -1101,39 +1002,3 @@ function getLeafItems(node, collector) {
     collector[node.id] = `${modality}-${roi}-${node.value.id}`;
   }
 }
-
-const lasagnaSurvivalTimeChart = {
-  data: {
-    name: 'status',
-  },
-  mark: 'rect',
-  height: 20,
-  width: 700,
-  encoding: {
-    x: {
-      field: 'PatientID',
-      type: 'nominal',
-      title: 'Patients',
-      sort: 'ascending',
-      axis: {
-        labels: false,
-      },
-    },
-    color: {
-      field: 'Time',
-      type: 'quantitative',
-      scale: {
-        scheme: 'redblue',
-      },
-    },
-    tooltip: [
-      {
-        field: 'PatientID',
-        type: 'nominal',
-        title: 'Patient',
-      },
-      { field: 'Event', type: 'nominal', title: 'Event' },
-      { field: 'Time', type: 'quantitative', title: 'Time' },
-    ],
-  },
-};

@@ -13,8 +13,6 @@
     "@mui/icons-material": "^5.2.0",
     "@mui/lab": "^5.0.0-alpha.58",
     "@mui/material": "^5.2.2",
-    "@nivo/core": "^0.74.0",
-    "@nivo/heatmap": "^0.74.0",
     "bootstrap": "^4.3.1",
     "classnames": "^2.2.6",
     "csv-parse": "^5.0.1",
@@ -48,7 +46,6 @@
     "react-router-dom": "^5.0.1",
     "react-scripts": "3.0.1",
     "react-table": "^7.6.0",
-    "react-vega": "^7.4.1",
     "react-window": "^1.8.6",
     "reactstrap": "^8.0.0",
     "simple-statistics": "^7.4.0",
@@ -56,8 +53,6 @@
     "socket.io-client": "^2.2.0",
     "use-dynamic-refs": "^1.0.0",
     "uuid": "^8.3.2",
-    "vega": "^5.17.0",
-    "vega-lite": "^4.17.0",
     "yup": "^0.27.0"
   },
   "scripts": {
