@@ -416,7 +416,9 @@ export default function Visualisation({
           categories: sortedPatientIDs,
         },
         yAxis: {
-          categories: filteredFeatures.map((f) => f.FeatureID),
+          categories: rankFeatures
+            ? _.sortBy(filteredFeatures, 'Ranking').map((f) => f.FeatureID)
+            : filteredFeatures.map((f) => f.FeatureID),
           title: { text: 'Features' },
         },
         legend: {
@@ -473,7 +475,12 @@ export default function Visualisation({
           usePreallocated: true,
         },
       }),
-    [formattedHighchartsDataFeatures, filteredFeatures, sortedPatientIDs]
+    [
+      formattedHighchartsDataFeatures,
+      filteredFeatures,
+      sortedPatientIDs,
+      rankFeatures,
+    ]
   );
 
   // Define the Highcharts options dynamically (outcomes)
@@ -766,7 +773,7 @@ export default function Visualisation({
     return (
       <div className="Visualisation d-flex justify-content-center align-items-center">
         <h3>
-          <FontAwesomeIcon icon="sync" spin /> Loading Charts...
+          <FontAwesomeIcon icon="sync" spin /> Loading Chart...
         </h3>
       </div>
     );
@@ -830,6 +837,7 @@ export default function Visualisation({
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={highchartsOptionsFeatures}
+                      updateArgs={[true, false, false]}
                     />
                   </div>
                   {selectedLabelCategory && (
@@ -869,8 +877,8 @@ export default function Visualisation({
               <div>
                 <small>
                   * Feature values are standardized and the scale is clipped to
-                  [-2, 2]. Extreme values will appear either in 100% blue (
-                  {'<-2'}) or 100% red (>2).
+                  [-2, 2]. Extreme values appear either in 100% blue ({'<-2'})
+                  or 100% red (>2).
                 </small>
               </div>
               <div className="d-flex justify-content-around">
