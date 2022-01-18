@@ -24,7 +24,7 @@ export function groupFeatures(featureNames) {
   let featureGroups = {};
 
   for (let featureName of featureNames) {
-    /* TODO - Make this more elegant, maybe a convention for feature names is needed */
+    /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
     // Group PyRadiomics features by the second level,
     // first level for other backends so far
     let name = featureName;

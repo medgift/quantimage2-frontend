@@ -413,7 +413,7 @@ function ROIsList({ rois, selectedROIs, setSelectedROIs, nbStudies }) {
   };
 
   return (
-    <div className="d-flex justify-content-center flex-wrap ROIList">
+    <div className="d-flex flex-wrap ROIList">
       {sortedROIs.map((roi) => (
         <div key={roi} className="ROIList-Item text-left">
           {/*<MyCheckbox

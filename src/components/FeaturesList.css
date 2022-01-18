@@ -11,6 +11,6 @@
 }
 
 .ROIList-Item {
-  flex: 1 1 30%;
+  flex: 0 0 30%;
   font-size: smaller;
 }
