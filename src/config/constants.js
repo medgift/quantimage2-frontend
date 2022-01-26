@@ -31,6 +31,11 @@ export const MODEL_TYPES = {
   SURVIVAL: 'Survival',
 };
 
+export const VALIDATION_TYPES = {
+  CROSSVALIDATION: 'crossvalidation',
+  TRAINTEST: 'traintest',
+};
+
 export const OUTCOME_CLASSIFICATION = 'Outcome';
 export const OUTCOME_SURVIVAL_EVENT = 'Event';
 export const OUTCOME_SURVIVAL_TIME = 'Time';

@@ -99,6 +99,8 @@ export async function trainModel(
   labels,
   algorithmType,
   dataNormalization,
+  validationType,
+  trainTestSplit,
   usedModalities,
   usedROIs,
   token
@@ -113,6 +115,8 @@ export async function trainModel(
     labels,
     algorithmType,
     dataNormalization,
+    validationType,
+    trainTestSplit,
     usedModalities,
     usedROIs
   );

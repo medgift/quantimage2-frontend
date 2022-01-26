@@ -2,6 +2,7 @@ import { pythonBackendBaseURL } from './config';
 
 import { rawRequest, request } from './common';
 import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
+import { VALIDATION_TYPES } from '../config/constants';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -230,6 +231,8 @@ class Backend {
     labels,
     algorithmType,
     dataNormalization,
+    validationType,
+    trainTestSplit,
     usedModalities,
     usedROIs
   ) {
@@ -246,6 +249,11 @@ class Backend {
           labels: labels,
           'algorithm-type': algorithmType,
           'data-normalization': dataNormalization,
+          'validation-type': validationType,
+          'train-test-split':
+            validationType === VALIDATION_TYPES.TRAINTEST
+              ? trainTestSplit
+              : null,
           modalities: usedModalities,
           rois: usedROIs,
         },

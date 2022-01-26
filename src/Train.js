@@ -10,6 +10,7 @@ import {
   FormGroup,
   Badge,
   Tooltip,
+  ButtonGroup,
 } from 'reactstrap';
 
 import { useTable, useSortBy } from 'react-table';
@@ -26,7 +27,7 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
-import { MODEL_TYPES } from './config/constants';
+import { MODEL_TYPES, VALIDATION_TYPES } from './config/constants';
 import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './config/constants';
 
 export const PATIENT_ID_FIELD = 'PatientID';
@@ -187,10 +188,19 @@ function ModelsTable({
                                 <td>{row.original.algorithm}</td>
                               </tr>
                               <tr>
-                                <td>Validation Strategy</td>
+                                <td>Model Validation Type</td>
                                 <td>
-                                  {row.original.validation_strategy
-                                    ? row.original.validation_strategy
+                                  {row.original.validation_type ===
+                                  VALIDATION_TYPES.CROSSVALIDATION
+                                    ? 'Cross-validation on Full Dataset'
+                                    : 'Train/Test Split'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Training Validation Strategy</td>
+                                <td>
+                                  {row.original.training_validation
+                                    ? row.original.training_validation
                                     : 'None'}
                                 </td>
                               </tr>
@@ -259,37 +269,65 @@ function ModelsTable({
                                           : albumExtraction.feature_definitions
                                       );
                                     }}
+                                    className="p-0"
                                   >
                                     Show details
                                   </Button>
                                 </td>
                               </tr>
                               <tr>
-                                <td>Number of Observations</td>
+                                <td>Number of Observations (Training)</td>
                                 <td>
-                                  {row.original.patient_ids ? (
-                                    <>
-                                      {row.original.patient_ids.length}
-                                      {' - '}
-                                      <Button
-                                        color="link"
-                                        onClick={(event) => {
-                                          event.preventDefault();
-                                          handleShowPatientIDs(
-                                            row.original.patient_ids
-                                          );
-                                        }}
-                                      >
-                                        Show details
-                                      </Button>
-                                    </>
-                                  ) : isNaN(dataPoints) ? (
-                                    dataPoints.length
-                                  ) : (
-                                    dataPoints
-                                  )}
+                                  {row.original.training_patient_ids.length}
+                                  {' - '}
+                                  <Button
+                                    color="link"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      handleShowPatientIDs(
+                                        row.original.training_patient_ids.sort(
+                                          (p1, p2) =>
+                                            p1.localeCompare(p2, undefined, {
+                                              numeric: true,
+                                              sensitivity: 'base',
+                                            })
+                                        )
+                                      );
+                                    }}
+                                    className="p-0"
+                                  >
+                                    Show details
+                                  </Button>
                                 </td>
                               </tr>
+                              {row.original.validation_type ===
+                                VALIDATION_TYPES.TRAINTEST && (
+                                <tr>
+                                  <td>Number of Observations (Test)</td>
+                                  <td>
+                                    {row.original.test_patient_ids.length}
+                                    {' - '}
+                                    <Button
+                                      color="link"
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        handleShowPatientIDs(
+                                          row.original.test_patient_ids.sort(
+                                            (p1, p2) =>
+                                              p1.localeCompare(p2, undefined, {
+                                                numeric: true,
+                                                sensitivity: 'base',
+                                              })
+                                          )
+                                        );
+                                      }}
+                                      className="p-0"
+                                    >
+                                      Show details
+                                    </Button>
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
                           </Table>
                         </div>
@@ -372,6 +410,14 @@ export default function Train({
   let [dataNormalization, setDataNormalization] = useState('none');
   //let [featureSelection, setFeatureSelection] = useState('none');
 
+  // Model validation parameters
+  let [validationType, setValidationType] = useState(
+    VALIDATION_TYPES.TRAINTEST
+  );
+
+  // Train/Test split
+  let [trainTestSplit, setTrainTestSplit] = useState(80);
+
   // Modify algorithm type on label category switch
   useEffect(() => {
     if (!selectedLabelCategory) return;
@@ -442,6 +488,14 @@ export default function Train({
     setDataNormalization(e.target.value);
   };
 
+  const handleValidationChange = (e) => {
+    setValidationType(e.target.value);
+  };
+
+  const handleTrainTestSplitChange = (e) => {
+    setTrainTestSplit(e.target.value);
+  };
+
   const handleAlgorithmTypeChange = (e) => {
     setAlgorithmType(e.target.value);
   };
@@ -490,6 +544,8 @@ export default function Train({
         labels,
         algorithmType,
         dataNormalization,
+        validationType,
+        trainTestSplit,
         metadataColumns[MODALITY_FIELD],
         metadataColumns[ROI_FIELD],
         keycloak.token
@@ -530,6 +586,33 @@ export default function Train({
   if (!album) return <span>Loading...</span>;
 
   //let album = albums.find((a) => a.album_id === albumID);
+
+  let trainingButton = () => {
+    let buttonText = isTraining
+      ? validationType === VALIDATION_TYPES.CROSSVALIDATION
+        ? 'Training Model...'
+        : 'Training & Testing Model...'
+      : validationType === VALIDATION_TYPES.CROSSVALIDATION
+      ? 'Train Model'
+      : 'Train & Test Model';
+
+    return (
+      <Button
+        color="info"
+        onClick={handleTrainModelClick}
+        disabled={isTraining}
+      >
+        <>
+          {isTraining && (
+            <>
+              <FontAwesomeIcon icon="spinner" spin />{' '}
+            </>
+          )}
+          <span>{buttonText}</span>
+        </>
+      </Button>
+    );
+  };
 
   let newModelForm = () => (
     <div>
@@ -653,25 +736,68 @@ export default function Train({
               </Form>
             </Collapse>
           </div>
+          <hr />
+          <div>
+            <h4>Model Validation</h4>
+            <Form>
+              <FormGroup tag="fieldset">
+                <FormGroup check inline>
+                  <Label>
+                    <Input
+                      type="radio"
+                      name="model-validation"
+                      value={VALIDATION_TYPES.CROSSVALIDATION}
+                      checked={
+                        validationType === VALIDATION_TYPES.CROSSVALIDATION
+                      }
+                      onChange={handleValidationChange}
+                    />{' '}
+                    Cross-Validation on Full Dataset
+                  </Label>
+                </FormGroup>
+                <FormGroup check inline>
+                  <Label>
+                    <Input
+                      type="radio"
+                      name="model-validation"
+                      value={VALIDATION_TYPES.TRAINTEST}
+                      checked={validationType === VALIDATION_TYPES.TRAINTEST}
+                      onChange={handleValidationChange}
+                    />{' '}
+                    Train/Test Split
+                  </Label>
+                </FormGroup>
+              </FormGroup>
+            </Form>
+          </div>
         </>
       )}
       {albumExtraction && (
         <>
+          {validationType === VALIDATION_TYPES.TRAINTEST && (
+            <>
+              <h5>Training & Test Set Split</h5>
+              <FormGroup style={{ width: '33%' }} className="m-auto">
+                <Input
+                  id="train-test-split-range"
+                  name="traintestsplit"
+                  type="range"
+                  className="custom-range"
+                  value={trainTestSplit}
+                  onChange={handleTrainTestSplitChange}
+                />
+                <Label
+                  for="train-test-split-range"
+                  className="d-flex flex-grow-1 justify-content-between"
+                >
+                  <span>Training : {trainTestSplit}%</span>
+                  <span>Testing : {100 - trainTestSplit}%</span>
+                </Label>
+              </FormGroup>
+            </>
+          )}
           <h3>Train Model</h3>
-          <Button
-            color="info"
-            onClick={handleTrainModelClick}
-            disabled={isTraining}
-          >
-            {isTraining ? (
-              <>
-                <FontAwesomeIcon icon="spinner" spin />{' '}
-                <span>Training Model...</span>
-              </>
-            ) : (
-              <span>Train Model</span>
-            )}
-          </Button>
+          {trainingButton()}
           {trainingError && (
             <Alert color="danger" className="mt-3">
               Model Training failed. Error message returned is :{' '}
