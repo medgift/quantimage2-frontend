@@ -212,6 +212,14 @@ function ModelsTable({
                                     : 'None'}
                                 </td>
                               </tr>
+                              <tr>
+                                <td>Model Validation</td>
+                                <td>
+                                  {row.validation_type
+                                    ? row.validation_type
+                                    : 'None'}
+                                </td>
+                              </tr>
                               {/* TODO - Put this back once it's implemented */}
                               {/*
                               <tr>
@@ -378,7 +386,11 @@ export default function Train({
 
   const maxAUCModel = _.maxBy(
     models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION),
-    'metrics.auc.mean'
+    (model) => {
+      return _.isPlainObject(model.metrics.auc)
+        ? model.metrics.auc.mean
+        : model.metrics.auc;
+    }
   );
 
   const maxCIndexModel = _.maxBy(
@@ -445,8 +457,29 @@ export default function Train({
       { Header: 'Algorithm', accessor: 'algorithm' },
       { Header: 'Data Normalization', accessor: 'data_normalization' },
       {
+        Header: 'Model Validation',
+        accessor: (r) => {
+          let isTrainTest = r.validation_type === VALIDATION_TYPES.TRAINTEST;
+
+          if (isTrainTest) {
+            let trainingProportion =
+              (r.training_patient_ids.length /
+                (r.training_patient_ids.length + r.test_patient_ids.length)) *
+              100;
+            let testProportion = 100 - trainingProportion;
+
+            return `Train/Test split (${Math.round(
+              trainingProportion
+            )}%/${Math.round(testProportion)}%)`;
+          } else {
+            return 'Cross-validation (Full Dataset)';
+          }
+        },
+      },
+      {
         Header: 'Mean AUC (green is highest)',
-        accessor: 'metrics.auc.mean',
+        accessor: (r) =>
+          _.isPlainObject(r.metrics.auc) ? r.metrics.auc.mean : r.metrics.auc,
         sortDescFirst: true,
         sortType: 'number',
       },
@@ -493,7 +526,7 @@ export default function Train({
   };
 
   const handleTrainTestSplitChange = (e) => {
-    setTrainTestSplit(e.target.value);
+    setTrainTestSplit(+e.target.value);
   };
 
   const handleAlgorithmTypeChange = (e) => {
