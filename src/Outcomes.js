@@ -20,7 +20,7 @@ import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
 import { parse } from 'csv-parse/lib/sync';
 import Backend from './services/backend';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import MyModal from './components/MyModal';
 
 export default function Outcomes({
@@ -36,7 +36,7 @@ export default function Outcomes({
   setLabelCategories,
   setFeaturesChart,
 }) {
-  const [keycloak] = useKeycloak();
+  const {keycloak} = useKeycloak();
 
   const [outcomeModalOpen, setOutcomeModalOpen] = useState(false);
   const [newOutcomeName, setNewOutcomeName] = useState('');

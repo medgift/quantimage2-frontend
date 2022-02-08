@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import { Button, FormGroup, FormText, Label, Spinner } from 'reactstrap';
 import Backend from './services/backend';
@@ -14,7 +14,7 @@ const modes = {
 };
 
 function FeaturePresetCreate({ history, match, kheopsError }) {
-  const [keycloak] = useKeycloak();
+  const {keycloak} = useKeycloak();
   const alert = useAlert();
 
   const [dataFetched, setDataFetched] = useState(false);

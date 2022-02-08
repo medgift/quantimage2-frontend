@@ -20,7 +20,7 @@ import { Badge } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FeaturesList from './components/FeaturesList';
 import MyModal from './components/MyModal';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import SocketContext from './context/SocketContext';
 
 function Dashboard({ albums, dataFetched, kheopsError }) {
@@ -30,7 +30,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   let [forceUpdate, setForceUpdate] = useState(false);
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
   let history = useHistory();
 
   let socket = useContext(SocketContext);

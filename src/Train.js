@@ -19,7 +19,7 @@ import { DateTime } from 'luxon';
 
 import './Train.css';
 import Backend from './services/backend';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 
 import _ from 'lodash';
 import Kheops from './services/kheops';
@@ -382,7 +382,7 @@ export default function Train({
   models,
   setModels,
 }) {
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
 
   const maxAUCModel = _.maxBy(
     models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION),

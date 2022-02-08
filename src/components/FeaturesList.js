@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ListGroup from 'reactstrap/es/ListGroup';
 import Backend from '../services/backend';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import SocketContext from '../context/SocketContext';
 
 import TreeView from '@mui/lab/TreeView';
@@ -40,7 +40,7 @@ export default function FeaturesList({
   forceUpdate,
   nbStudies,
 }) {
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
 
   // Data
   let [featurePresets, setFeaturePresets] = useState([]);

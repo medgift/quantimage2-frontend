@@ -31,14 +31,14 @@ export async function rawRequest(
     token = null,
     multipart = false,
     headers = new Headers({
-      Accept: 'application/json',
-    }),
+      Accept: 'application/json'
+    })
   } = {}
 ) {
   try {
     let options = {
       headers: headers,
-      method: method,
+      method: method
     };
 
     // Authentication
@@ -59,6 +59,26 @@ export async function rawRequest(
     const response = await fetch(url, options);
 
     return response;
+  } catch (err) {
+    throw err; // Just throw it for now
+  }
+}
+
+export async function downloadFile(url, token) {
+  try {
+    let headers = new Headers({});
+    headers.append('Authorization', getTokenAuthorization(token));
+
+    let options = { headers: headers };
+
+    let response = await fetch(url, options);
+
+    let fileContent = await response.blob();
+
+    let contentDisposition = response.headers.get('Content-Disposition');
+    let filename = contentDisposition.split('=')[1];
+
+    return { filename: filename, content: fileContent };
   } catch (err) {
     throw err; // Just throw it for now
   }

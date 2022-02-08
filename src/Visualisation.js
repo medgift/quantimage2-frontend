@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Backend from './services/backend';
 import { useHistory, useParams } from 'react-router-dom';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import HighchartsReact from 'highcharts-react-official';
@@ -77,7 +77,7 @@ export default function Visualisation({
   const { albumID } = useParams();
 
   // Keycloak
-  const [keycloak] = useKeycloak();
+  const {keycloak} = useKeycloak();
 
   // History
   const history = useHistory();

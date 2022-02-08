@@ -4,7 +4,7 @@ import ListGroup from 'reactstrap/es/ListGroup';
 import Kheops from './services/kheops';
 import Backend from './services/backend';
 import { assembleFeatures } from './utils/feature-utils';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import _ from 'lodash';
 
 export default function FeaturesModal({
@@ -13,7 +13,7 @@ export default function FeaturesModal({
   extractionID,
   studyUID,
 }) {
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
 
   let [features, setFeatures] = useState(null);
 

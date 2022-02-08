@@ -22,10 +22,10 @@ import {
   TabContent,
   Table,
   TabPane,
-  Collapse,
+  Collapse
 } from 'reactstrap';
 
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import Train, { MODALITY_FIELD, PATIENT_ID_FIELD, ROI_FIELD } from './Train';
@@ -39,7 +39,7 @@ import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 
 function Features({ history }) {
-  const [keycloak] = useKeycloak();
+  const { keycloak } = useKeycloak();
 
   // Check if the user is an "alternative" user, i.e. with no visualization features
   const isAlternativeUser = useMemo(
@@ -88,7 +88,7 @@ function Features({ history }) {
   let dataPoints = useMemo(() => {
     if (!featuresTabular) return null;
 
-    return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
+    return Array.from(new Set(featuresTabular.map(f => f.PatientID)));
   }, [featuresTabular]);
 
   // Compute unlabelled data points
@@ -99,12 +99,12 @@ function Features({ history }) {
     let dataLabels = selectedLabelCategory.labels;
 
     for (let patientID of dataPoints) {
-      let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
+      let patientLabel = dataLabels.find(l => l.patient_id === patientID);
 
       if (
         !patientLabel ||
         Object.keys(patientLabel.label_content).every(
-          (column) => patientLabel.label_content[column] === ''
+          column => patientLabel.label_content[column] === ''
         )
       )
         unlabelled++;
@@ -149,7 +149,7 @@ function Features({ history }) {
 
       if (collectionDetails) {
         let collectionToReplaceIndex = finalCollections.findIndex(
-          (c) => c.collection.id === +collectionID
+          c => c.collection.id === +collectionID
         );
         finalCollections.splice(collectionToReplaceIndex, 1, collectionDetails);
       }
@@ -217,7 +217,7 @@ function Features({ history }) {
       if (!collectionID) {
         ({
           featuresChart,
-          featuresTabular,
+          featuresTabular
         } = await Backend.extractionFeatureDetails(
           keycloak.token,
           featureExtractionID
@@ -225,7 +225,7 @@ function Features({ history }) {
       } else {
         ({
           featuresChart,
-          featuresTabular,
+          featuresTabular
         } = await Backend.extractionCollectionFeatureDetails(
           keycloak.token,
           featureExtractionID,
@@ -248,8 +248,8 @@ function Features({ history }) {
 
       // Filter out models that are not for this collection / original feature set
       let filteredModels = collectionID
-        ? models.filter((m) => m.feature_collection_id === +collectionID)
-        : models.filter((m) => m.feature_collection_id === null);
+        ? models.filter(m => m.feature_collection_id === +collectionID)
+        : models.filter(m => m.feature_collection_id === null);
 
       let sortedModels = filteredModels.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
@@ -261,13 +261,13 @@ function Features({ history }) {
   }, [keycloak.token, albumID, collectionID]);
 
   // Get classes of a tab
-  const getTabClassName = (targetTab) => {
+  const getTabClassName = targetTab => {
     return classnames({
       active: tab === targetTab,
       'text-danger':
         unlabelledDataPoints > 0 && unlabelledDataPoints === dataPoints.length,
       'text-warning':
-        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length,
+        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length
     });
   };
 
@@ -287,7 +287,7 @@ function Features({ history }) {
   };
 
   // Toggle active
-  const toggle = (newTab) => {
+  const toggle = newTab => {
     if (newTab !== tab) {
       if (!collectionID) history.push(`/features/${albumID}/${newTab}`);
       else
@@ -324,7 +324,7 @@ function Features({ history }) {
   // Get current collection
   const currentCollection =
     collections && collectionID
-      ? collections.find((c) => c.collection.id === +collectionID)
+      ? collections.find(c => c.collection.id === +collectionID)
       : null;
 
   // Handle click on a filter button
@@ -339,31 +339,15 @@ function Features({ history }) {
   };
 
   // Handle download click
-  const handleDownloadClick = async (e) => {
+  const handleDownloadClick = async e => {
     e.preventDefault();
     setIsDownloading(true);
 
-    let url = collectionID
-      ? Backend.downloadCollectionURL(
-          +collectionID,
-          null,
-          null,
-          keycloak.tokenParsed.sub
-        )
-      : Backend.downloadExtractionURL(
-          featureExtractionID,
-          null,
-          null,
-          keycloak.tokenParsed.sub
-        );
+    let { filename, content } = collectionID
+      ? await Backend.downloadCollection(keycloak.token, collectionID)
+      : await Backend.downloadExtraction(keycloak.token, featureExtractionID);
 
-    let response = await fetch(url);
-
-    let contentDisposition = response.headers.get('Content-Disposition');
-    let filename = contentDisposition.split('=')[1];
-    let responseContent = await response.blob();
-
-    fileDownload(responseContent, filename);
+    fileDownload(content, filename);
 
     //window.location.href = url;
 
@@ -371,12 +355,12 @@ function Features({ history }) {
   };
 
   // Handle change of active collection name
-  const handleActiveCollectionNameChange = (e) => {
+  const handleActiveCollectionNameChange = e => {
     setActiveCollectionName(e.target.value);
   };
 
   // Handle renaming of existing collection
-  const handleSaveCollectionNameClick = async (e) => {
+  const handleSaveCollectionNameClick = async e => {
     e.preventDefault();
     setIsSavingCollectionName(true);
     let updatedCollection = await Backend.updateCollection(
@@ -386,11 +370,11 @@ function Features({ history }) {
     );
 
     // Update collections with new name
-    setCollections((c) => {
+    setCollections(c => {
       let collections = [...c];
 
       let collectionToUpdate = collections.find(
-        (c) => c.collection.id === +collectionID
+        c => c.collection.id === +collectionID
       );
       collectionToUpdate.collection.name = updatedCollection.name;
 
@@ -401,7 +385,7 @@ function Features({ history }) {
   };
 
   // Handle deleting collection
-  const handleDeleteCollectionClick = async (e) => {
+  const handleDeleteCollectionClick = async e => {
     e.preventDefault();
     setIsDeletingCollection(true);
     let deletedCollection = await Backend.deleteCollection(
@@ -411,11 +395,11 @@ function Features({ history }) {
     setIsDeletingCollection(false);
 
     // Remove deleted collection and redirect to original feature set
-    setCollections((c) => {
+    setCollections(c => {
       let collections = [...c];
 
       let collectionToDeleteIndex = collections.findIndex(
-        (c) => c.collection.id === +collectionID
+        c => c.collection.id === +collectionID
       );
       collections.splice(collectionToDeleteIndex, 1);
 
@@ -434,7 +418,7 @@ function Features({ history }) {
 
     if (!modalities) return null;
 
-    return modalities.map((modality) => (
+    return modalities.map(modality => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
         {modality}
       </Badge>
@@ -450,7 +434,7 @@ function Features({ history }) {
 
     if (!rois) return null;
 
-    return rois.map((roi) => (
+    return rois.map(roi => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
         {roi}
       </Badge>
@@ -814,7 +798,7 @@ function FilterButtonGroup({
   values,
   selectedValues,
   setSelectedValues,
-  handleClick,
+  handleClick
 }) {
   return (
     <>
@@ -841,7 +825,7 @@ function FilterButtonGroup({
           vertical
           style={{ marginRight: '-14px', width: 'calc(100% - 14px)' }}
         >
-          {values.map((v) => (
+          {values.map(v => (
             <Button
               key={v}
               color={selectedValues.includes(v) ? 'primary' : 'secondary'}
@@ -861,17 +845,17 @@ function FeatureFilterButtonGroup({
   values,
   selectedValues,
   setSelectedValues,
-  handleClick,
+  handleClick
 }) {
   const [groupsOpen, setGroupsOpen] = useState({});
 
-  const toggleGroupOpen = (group) => {
+  const toggleGroupOpen = group => {
     let wasOpen = groupsOpen[group];
-    setGroupsOpen((g) => ({ ...g, [group]: !wasOpen }));
+    setGroupsOpen(g => ({ ...g, [group]: !wasOpen }));
   };
 
-  const toggleGroupSelected = (g) => {
-    let wasSelected = groups[g].some((f) => selectedValues.includes(f));
+  const toggleGroupSelected = g => {
+    let wasSelected = groups[g].some(f => selectedValues.includes(f));
 
     let groupFeatures = groups[g];
 
@@ -884,7 +868,7 @@ function FeatureFilterButtonGroup({
       // Remove the features
       for (let f of groupFeatures) {
         let featureIndex = updatedSelectedValues.findIndex(
-          (feature) => feature === f
+          feature => feature === f
         );
 
         if (featureIndex > -1) updatedSelectedValues.splice(featureIndex, 1);
@@ -918,16 +902,16 @@ function FeatureFilterButtonGroup({
       </div>
       <div className="pre-scrollable mt-2">
         <ListGroup vertical flush>
-          {Object.keys(groups).map((g) => (
+          {Object.keys(groups).map(g => (
             <>
               <ListGroupItem key={g} className="p-0">
                 <div className="d-flex">
                   <Button
                     className="flex-grow-1"
                     color={
-                      groups[g].every((f) => selectedValues.includes(f))
+                      groups[g].every(f => selectedValues.includes(f))
                         ? 'primary'
-                        : groups[g].some((f) => selectedValues.includes(f))
+                        : groups[g].some(f => selectedValues.includes(f))
                         ? 'info'
                         : 'secondary'
                     }
@@ -952,7 +936,7 @@ function FeatureFilterButtonGroup({
                     style={{ width: 'calc(100% - 36px)' }}
                     className="mt-2 mb-2"
                   >
-                    {groups[g].map((f) => (
+                    {groups[g].map(f => (
                       <Button
                         key={f}
                         color={
@@ -984,7 +968,7 @@ function MetadataAlert({ selectedValues, values, title }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'center'
       }}
     >
       {selectedValues.length}/{values.length} {title}

@@ -2,7 +2,7 @@ import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 
 import './DataLabels.css';
 import {
@@ -25,7 +25,7 @@ export default function DataLabels({
   dataPoints,
   outcomes,
 }) {
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
 
   let [editableOutcomes, setEditableOutcomes] = useState({});
 

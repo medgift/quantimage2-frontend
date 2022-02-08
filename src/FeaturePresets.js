@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Backend from './services/backend';
 import { ListGroup, ListGroupItem, Spinner } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 
 function FeaturePresets({ history, match, kheopsError }) {
-  const [keycloak] = useKeycloak();
+  const {keycloak} = useKeycloak();
 
   const [featurePresets, setFeaturePresets] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);

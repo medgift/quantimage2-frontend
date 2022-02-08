@@ -1,6 +1,6 @@
 import { pythonBackendBaseURL } from './config';
 
-import { rawRequest, request } from './common';
+import { downloadFile, rawRequest, request } from './common';
 import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
 import { VALIDATION_TYPES } from '../config/constants';
 
@@ -19,7 +19,7 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   annotations: `${baseEndpoint}/annotations`,
   navigation: `${baseEndpoint}/navigation`,
-  albums: `${baseEndpoint}/albums`,
+  albums: `${baseEndpoint}/albums`
 };
 
 class Backend {
@@ -60,12 +60,12 @@ class Backend {
 
       let response = await rawRequest(url, {
         token: token,
-        headers: new Headers({ Accept: 'multipart/form-data' }),
+        headers: new Headers({ Accept: 'multipart/form-data' })
       });
 
       let {
         featuresTabular,
-        featuresChart,
+        featuresChart
       } = await parseFeatureDetailsResponse(response);
 
       return { featuresTabular, featuresChart };
@@ -80,12 +80,12 @@ class Backend {
 
       let response = await rawRequest(url, {
         token: token,
-        headers: new Headers({ Accept: 'multipart/form-data' }),
+        headers: new Headers({ Accept: 'multipart/form-data' })
       });
 
       let {
         featuresTabular,
-        featuresChart,
+        featuresChart
       } = await parseFeatureDetailsResponse(response);
 
       return { featuresTabular, featuresChart };
@@ -103,7 +103,7 @@ class Backend {
       return await request(url, {
         token: token,
         data: data,
-        method: 'POST',
+        method: 'POST'
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -119,7 +119,7 @@ class Backend {
       return await request(url, {
         token: token,
         data: data,
-        method: 'PATCH',
+        method: 'PATCH'
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -132,7 +132,7 @@ class Backend {
 
       return await request(url, {
         token: token,
-        method: 'DELETE',
+        method: 'DELETE'
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -144,7 +144,7 @@ class Backend {
       const url = `${endpoints.labelCategories}/${albumID}`;
 
       return await request(url, {
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -158,7 +158,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: labelMap,
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -184,6 +184,18 @@ class Backend {
     } catch (err) {
       throw err; // Just throw it for now
     }
+  }
+
+  async downloadExtraction(token, extractionID) {
+    let url = `${endpoints.extractions}/${extractionID}/download`;
+
+    return downloadFile(url, token);
+  }
+
+  async downloadCollection(token, collectionID) {
+    let url = `${endpoints.collections}/${collectionID}/download`;
+
+    return downloadFile(url, token);
   }
 
   downloadExtractionURL(extractionID, patientID, studyDate, userID) {
@@ -214,7 +226,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: { config: featureExtractionConfig, rois: rois },
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -255,9 +267,9 @@ class Backend {
               ? trainTestSplit
               : null,
           modalities: usedModalities,
-          rois: usedROIs,
+          rois: usedROIs
         },
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -299,7 +311,7 @@ class Backend {
         method: 'POST',
         data: formData,
         token: token,
-        multipart: true,
+        multipart: true
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -314,7 +326,7 @@ class Backend {
         method: 'PATCH',
         data: formData,
         token: token,
-        multipart: true,
+        multipart: true
       });
     } catch (err) {
       throw err;
@@ -337,9 +349,9 @@ class Backend {
           featureExtractionID: featureExtractionID,
           name: name,
           featureIDs: featureIDs,
-          patientIDs: patients.filter((p) => p.selected).map((p) => p.name),
+          patientIDs: patients.filter(p => p.selected).map(p => p.name)
         },
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -366,9 +378,9 @@ class Backend {
           modalities: modalities,
           rois: rois,
           patients: patients,
-          features: features,
+          features: features
         },
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -382,7 +394,7 @@ class Backend {
       return await request(url, {
         method: 'PATCH',
         data: fields,
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -403,7 +415,7 @@ class Backend {
       const url = `${endpoints.collections}/extraction/${featureExtractionID}`;
 
       return await request(url, {
-        token: token,
+        token: token
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -437,7 +449,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'POST',
-        data: annotation,
+        data: annotation
       });
     } catch (err) {
       throw err;
@@ -451,7 +463,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'PATCH',
-        data: annotation,
+        data: annotation
       });
     } catch (err) {
       throw err;
@@ -465,7 +477,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'POST',
-        data: { path: path },
+        data: { path: path }
       });
     } catch (err) {
       throw err;

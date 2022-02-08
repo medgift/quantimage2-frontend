@@ -7,14 +7,14 @@ import { DICOM_DATE_FORMAT } from './config/constants';
 import Kheops from './services/kheops';
 
 import './Study.css';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 
 function Study({ match, kheopsError }) {
   let {
     params: { studyUID },
   } = match;
 
-  let [keycloak] = useKeycloak();
+  let {keycloak} = useKeycloak();
   let [studyDetails, setStudyDetails] = useState(null);
   let [seriesDetails, setSeriesDetails] = useState(null);
 

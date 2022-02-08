@@ -11,11 +11,11 @@ import Header from './Header';
 import Features from './Features';
 import Study from './Study';
 import Kheops from './services/kheops';
-import { useKeycloak } from 'react-keycloak';
+import { useKeycloak } from '@react-keycloak/web';
 import {
   KEYCLOAK_ADMIN_ROLE,
   KEYCLOAK_FRONTEND_CLIENT_ID,
-  KEYCLOAK_RESOURCE_ACCESS,
+  KEYCLOAK_RESOURCE_ACCESS
 } from './config/constants';
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
@@ -34,7 +34,7 @@ function App({ setUser, setIsAdmin }) {
   const [dataFetched, setDataFetched] = useState(false);
   const [kheopsError, setKheopsError] = useState(false);
 
-  const [keycloak, initialized] = useKeycloak();
+  const { keycloak, initialized } = useKeycloak();
 
   const location = useLocation();
 
@@ -48,7 +48,7 @@ function App({ setUser, setIsAdmin }) {
   // Manage admin status
   useEffect(() => {
     if (keycloak && initialized) {
-      keycloak.loadUserProfile().success((profile) => {
+      keycloak.loadUserProfile().then(profile => {
         setUser(profile);
       });
       let isAdmin =
@@ -103,7 +103,7 @@ function App({ setUser, setIsAdmin }) {
               <PropsRoute
                 path={[
                   '/features/:albumID/:tab',
-                  '/features/:albumID/collection/:collectionID/:tab',
+                  '/features/:albumID/collection/:collectionID/:tab'
                 ]}
                 exact
                 component={Features}
