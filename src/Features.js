@@ -827,8 +827,9 @@ function Features({ history }) {
                           featureExtractionID={featureExtractionID}
                           dataPoints={dataPoints}
                           unlabelledDataPoints={unlabelledDataPoints}
-                          validationType={dataSplittingType}
-                          trainTestSplit={trainTestSplit}
+                          dataSplittingType={dataSplittingType}
+                          trainingPatients={trainingPatients}
+                          testingPatients={testingPatients}
                         />
                       </>
                     ) : (

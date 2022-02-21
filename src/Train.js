@@ -381,7 +381,8 @@ export default function Train({
   models,
   setModels,
   dataSplittingType,
-  trainTestSplit
+  trainingPatients,
+  testingPatients
 }) {
   let { keycloak } = useKeycloak();
 
@@ -564,7 +565,8 @@ export default function Train({
         algorithmType,
         dataNormalization,
         dataSplittingType,
-        trainTestSplit,
+        trainingPatients,
+        testingPatients,
         metadataColumns[MODALITY_FIELD],
         metadataColumns[ROI_FIELD],
         keycloak.token

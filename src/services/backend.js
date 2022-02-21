@@ -268,8 +268,9 @@ class Backend {
     labels,
     algorithmType,
     dataNormalization,
-    validationType,
-    trainTestSplit,
+    dataSplittingType,
+    trainingPatients,
+    testingPatients,
     usedModalities,
     usedROIs
   ) {
@@ -286,11 +287,9 @@ class Backend {
           labels: labels,
           'algorithm-type': algorithmType,
           'data-normalization': dataNormalization,
-          'validation-type': validationType,
-          'train-test-split':
-            validationType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
-              ? trainTestSplit
-              : null,
+          'data-splitting-type': dataSplittingType,
+          'training-patients': trainingPatients,
+          'testing-patients': testingPatients,
           modalities: usedModalities,
           rois: usedROIs
         },
