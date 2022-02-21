@@ -19,7 +19,7 @@ import { groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
-  FEATURE_CATEGORY_ALIASES,
+  FEATURE_CATEGORY_ALIASES
 } from './utils/feature-mapping';
 import FilterList from './components/FilterList';
 import MyModal from './components/MyModal';
@@ -29,16 +29,17 @@ import {
   OUTCOME_CLASSIFICATION,
   OUTCOME_SURVIVAL_EVENT,
   OUTCOME_SURVIVAL_TIME,
-  SURVIVAL_OUTCOMES,
+  SURVIVAL_OUTCOMES
 } from './config/constants';
 import {
   PET_SPECIFIC_PREFIXES,
   PYRADIOMICS_FEATURE_PREFIXES,
-  RIESZ_FEATURE_PREFIXES,
+  RIESZ_FEATURE_PREFIXES
 } from './config/constants';
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
 
 import './Visualisation.css';
+import ListValues from './components/ListValues';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -49,13 +50,13 @@ const MAX_DISPLAYED_FEATURES = 200000;
 let featureIDPattern = `(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:${[
   ...RIESZ_FEATURE_PREFIXES,
   ...PYRADIOMICS_FEATURE_PREFIXES,
-  ...PET_SPECIFIC_PREFIXES,
+  ...PET_SPECIFIC_PREFIXES
 ].join('|')}).*)`;
 
 let featureIDRegex = new RegExp(featureIDPattern);
 
 let featureCategories = Array.from(
-  new Set(FEATURE_DEFINITIONS.map((fd) => fd.category))
+  new Set(FEATURE_DEFINITIONS.map(fd => fd.category))
 );
 featureCategories = [...featureCategories, ...PET_SPECIFIC_PREFIXES];
 let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
@@ -70,14 +71,17 @@ export default function Visualisation({
   album,
   featuresChart,
   outcomes,
+  dataPoints,
+  trainingPatients,
+  testingPatients,
   featureExtractionID,
-  setCollections,
+  setCollections
 }) {
   // Route
   const { albumID } = useParams();
 
   // Keycloak
-  const {keycloak} = useKeycloak();
+  const { keycloak } = useKeycloak();
 
   // History
   const history = useHistory();
@@ -105,6 +109,9 @@ export default function Visualisation({
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
+  // Testing Patients Modal
+  const [testingPatientsOpen, setTestingPatientsOpen] = useState(false);
+
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
 
@@ -122,7 +129,7 @@ export default function Visualisation({
 
   // Filter selected patients
   const selectedPatients = useMemo(() => {
-    return new Set(patients.filter((p) => p.selected).map((p) => p.name));
+    return new Set(patients.filter(p => p.selected).map(p => p.name));
   }, [patients]);
 
   // Sorted classes for the chart data
@@ -133,7 +140,7 @@ export default function Visualisation({
       outcomes.length > 0
         ? Array.from(
             new Set(
-              outcomes.map((o) =>
+              outcomes.map(o =>
                 o.label_content[outcomeField]
                   ? o.label_content[outcomeField]
                   : 'UNKNOWN'
@@ -164,14 +171,14 @@ export default function Visualisation({
     let labels = selectedLabelCategory.labels;
     let patientOutcomes = [];
     for (let patient of selectedPatients) {
-      let patientOutcome = labels.find((l) => l.patient_id === patient);
+      let patientOutcome = labels.find(l => l.patient_id === patient);
 
       if (!patientOutcome)
         patientOutcomes.push(
           Object.assign(
             {},
             { PatientID: patient },
-            ...outcomes.map((o) => ({ [o]: 'UNKNOWN' }))
+            ...outcomes.map(o => ({ [o]: 'UNKNOWN' }))
           )
         );
       else
@@ -180,11 +187,11 @@ export default function Visualisation({
             {},
 
             { PatientID: patient },
-            ...outcomes.map((o) => ({
+            ...outcomes.map(o => ({
               [o]:
                 patientOutcome.label_content[o] !== ''
                   ? patientOutcome.label_content[o]
-                  : 'UNKNOWN',
+                  : 'UNKNOWN'
             }))
           )
         );
@@ -207,7 +214,7 @@ export default function Visualisation({
       }
 
       return p1.PatientID.localeCompare(p2.PatientID, undefined, {
-        numeric: true,
+        numeric: true
       });
     });
 
@@ -217,7 +224,7 @@ export default function Visualisation({
   // Sort Patient IDs for the chart data
   const sortedPatientIDs = useMemo(() => {
     if (sortedOutcomes.length > 0) {
-      return Array.from(new Set(sortedOutcomes.map((o) => o.PatientID)));
+      return Array.from(new Set(sortedOutcomes.map(o => o.PatientID)));
     } else {
       return Array.from(selectedPatients).sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
@@ -233,20 +240,20 @@ export default function Visualisation({
     )
       return null;
 
-    return sortedOutcomes.map((outcome) => ({
+    return sortedOutcomes.map(outcome => ({
       x: outcome.PatientID,
       y:
         outcome[OUTCOME_SURVIVAL_TIME] !== 'UNKNOWN'
           ? +outcome[OUTCOME_SURVIVAL_TIME]
-          : null,
+          : null
     }));
   }, [selectedLabelCategory, sortedOutcomes]);
 
   // Format outcomes data to correspond to the Highcharts requirements
   const formattedHighchartsDataOutcomes = useMemo(() => {
-    return sortedOutcomes.map((outcome) => ({
+    return sortedOutcomes.map(outcome => ({
       x: outcome.PatientID,
-      y: outcome[outcomeField],
+      y: outcome[outcomeField]
     }));
   }, [sortedOutcomes, outcomeField]);
 
@@ -270,7 +277,7 @@ export default function Visualisation({
         formattedFeatures.push([
           patientIndex,
           featureIndex,
-          patientValues[patient] ? +patientValues[patient] : null,
+          patientValues[patient] ? +patientValues[patient] : null
         ]); // patient is X, feature is Y and value is color
         patientIndex++;
       }
@@ -283,24 +290,29 @@ export default function Visualisation({
     return formattedFeatures;
   }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
 
-  // Initialize feature IDs & patients
+  // Initialize feature IDs
   useEffect(() => {
     if (featuresChart) {
-      let featureIDs = new Set(featuresChart.map((f) => f.FeatureID));
+      let featureIDs = new Set(featuresChart.map(f => f.FeatureID));
       setFeatureIDs(featureIDs);
       setSelectedFeatureIDs(featureIDs);
-
-      // Get the patient IDs from the first "line" of the chart
-      let { FeatureID, Ranking, ...patientIDs } = featuresChart[0];
-
-      setPatients(
-        Object.keys(patientIDs).map((p) => ({
-          name: p,
-          selected: true,
-        }))
-      );
     }
   }, [featuresChart]);
+
+  // Initialize patient IDs
+  useEffect(() => {
+    let patients = trainingPatients ? trainingPatients : dataPoints;
+    setPatients(
+      patients
+        .map(p => ({ name: p, selected: true }))
+        .sort((p1, p2) =>
+          p1.name.localeCompare(p2.name, undefined, {
+            numeric: true,
+            sensitivity: 'base'
+          })
+        )
+    );
+  }, [dataPoints, trainingPatients]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
@@ -308,15 +320,15 @@ export default function Visualisation({
 
     const start = Date.now();
     // Filter out non-selected feature IDs
-    let filteredFeatures = featuresChart.filter((f) => {
+    let filteredFeatures = featuresChart.filter(f => {
       return selectedFeatureIDs.has(f.FeatureID);
     });
     // For each remaining feature ID, keep only selected patients
-    filteredFeatures = filteredFeatures.map((featureObject) => {
+    filteredFeatures = filteredFeatures.map(featureObject => {
       return {
         FeatureID: featureObject.FeatureID,
         Ranking: +featureObject.Ranking,
-        ..._.pickBy(featureObject, (v, k) => selectedPatients.has(k)),
+        ..._.pickBy(featureObject, (v, k) => selectedPatients.has(k))
       };
     });
     const end = Date.now();
@@ -330,6 +342,11 @@ export default function Visualisation({
 
     setFilteredFeatures(filteredFeatures);
   }, [featuresChart, selectedFeatureIDs, selectedPatients]);
+
+  // Toggle patients modal
+  const toggleTestingPatientsOpen = () => {
+    setTestingPatientsOpen(o => !o);
+  };
 
   // Calculate number of values to display (based on filtered features)
   const nbFeatures =
@@ -410,27 +427,27 @@ export default function Visualisation({
     () =>
       _.merge({}, COMMON_CHART_OPTIONS, {
         chart: {
-          height: 350,
+          height: 350
         },
         xAxis: {
-          categories: sortedPatientIDs,
+          categories: sortedPatientIDs
         },
         yAxis: {
           categories: rankFeatures
-            ? _.sortBy(filteredFeatures, 'Ranking').map((f) => f.FeatureID)
-            : filteredFeatures.map((f) => f.FeatureID),
-          title: { text: 'Features' },
+            ? _.sortBy(filteredFeatures, 'Ranking').map(f => f.FeatureID)
+            : filteredFeatures.map(f => f.FeatureID),
+          title: { text: 'Features' }
         },
         legend: {
           layout: 'vertical',
           verticalAlign: 'top',
           align: 'right',
           title: {
-            text: 'Feature Value*',
-          },
+            text: 'Feature Value*'
+          }
         },
         tooltip: {
-          formatter: function () {
+          formatter: function() {
             let chart = this.series.chart;
             let yIndex = this.y;
 
@@ -447,7 +464,7 @@ export default function Visualisation({
               `<strong>Feature:</strong> ${featureName}<br />` +
               `<strong>Value:</strong> ${this.point.options.value}`
             );
-          },
+          }
         },
         colorAxis: {
           stops: [
@@ -455,31 +472,31 @@ export default function Visualisation({
             [0.005, '#2066ac'],
             [0.5, '#f7f7f7'],
             [0.995, '#b2182b'],
-            [1, '#ff0000'],
+            [1, '#ff0000']
           ],
           min: -2.01,
           max: 2.01,
           startOnTick: false,
-          endOnTick: false,
+          endOnTick: false
         },
         series: [
           {
             data: formattedHighchartsDataFeatures,
             boostThreshold: 100,
             turboThreshold: Number.MAX_VALUE,
-            nullColor: '#666',
-          },
+            nullColor: '#666'
+          }
         ],
         boost: {
           useGPUTranslations: true,
-          usePreallocated: true,
-        },
+          usePreallocated: true
+        }
       }),
     [
       formattedHighchartsDataFeatures,
       filteredFeatures,
       sortedPatientIDs,
-      rankFeatures,
+      rankFeatures
     ]
   );
 
@@ -493,16 +510,16 @@ export default function Visualisation({
         marginTop: 0,
         marginBottom: 40,
         plotBorderWidth: 0,
-        height: 60,
+        height: 60
       },
 
       xAxis: {
-        categories: formattedHighchartsDataOutcomes.map((o) => o.x),
+        categories: formattedHighchartsDataOutcomes.map(o => o.x)
       },
 
       yAxis: {
         categories: [outcomeField],
-        title: { text: 'ㅤ' },
+        title: { text: 'ㅤ' }
       },
 
       colorAxis: {
@@ -512,19 +529,19 @@ export default function Visualisation({
           color:
             sortedClasses.length === 1 && sortedClasses[0] === 'UNKNOWN'
               ? colors[colors.length - 1]
-              : colors[i],
-        })),
+              : colors[i]
+        }))
       },
 
       tooltip: {
-        formatter: function () {
+        formatter: function() {
           return (
             '<b>' +
             getPointCategoryName(this.point, 'x') +
             '</b> :' +
             sortedClasses[this.point.options.value]
           );
-        },
+        }
       },
 
       legend: {
@@ -536,9 +553,9 @@ export default function Visualisation({
         floating: true,
         verticalAlign: 'bottom',
         title: {
-          text: outcomeField,
+          text: outcomeField
         },
-        symbolRadius: 0,
+        symbolRadius: 0
       },
 
       series: [
@@ -546,13 +563,13 @@ export default function Visualisation({
           name: outcomeField,
           borderWidth: 0.5,
           borderColor: '#cccccc',
-          data: formattedHighchartsDataOutcomes.map((outcome) => ({
+          data: formattedHighchartsDataOutcomes.map(outcome => ({
             name: outcome.x,
             y: 0,
-            value: sortedClasses.indexOf(outcome.y),
-          })),
-        },
-      ],
+            value: sortedClasses.indexOf(outcome.y)
+          }))
+        }
+      ]
     });
   }, [formattedHighchartsDataOutcomes, outcomeField, sortedClasses]);
 
@@ -565,16 +582,16 @@ export default function Visualisation({
         marginTop: 0,
         marginBottom: 60,
         plotBorderWidth: 0,
-        height: 80,
+        height: 80
       },
 
       xAxis: {
-        categories: formattedHighchartsDataSurvivalTime.map((o) => o.x),
+        categories: formattedHighchartsDataSurvivalTime.map(o => o.x)
       },
 
       yAxis: {
         categories: [OUTCOME_SURVIVAL_TIME],
-        title: { text: 'ㅤ' },
+        title: { text: 'ㅤ' }
       },
 
       colorAxis: {
@@ -582,7 +599,7 @@ export default function Visualisation({
         maxColor: '#59c26e',
         startOnTick: true,
         endOnTick: true,
-        tickPositioner: function (min, max) {
+        tickPositioner: function(min, max) {
           const tickPosCor = [];
           const numOfTicks = 1;
           const tik = (max - min) / numOfTicks;
@@ -593,18 +610,18 @@ export default function Visualisation({
           }
 
           return tickPosCor;
-        },
+        }
       },
 
       tooltip: {
-        formatter: function () {
+        formatter: function() {
           return (
             '<b>' +
             getPointCategoryName(this.point, 'x') +
             '</b> :' +
             this.point.options.value
           );
-        },
+        }
       },
 
       legend: {
@@ -616,11 +633,11 @@ export default function Visualisation({
         floating: true,
         verticalAlign: 'bottom',
         title: {
-          text: OUTCOME_SURVIVAL_TIME,
+          text: OUTCOME_SURVIVAL_TIME
         },
         navigation: {
-          enabled: false,
-        },
+          enabled: false
+        }
       },
 
       series: [
@@ -628,13 +645,13 @@ export default function Visualisation({
           name: OUTCOME_SURVIVAL_TIME,
           borderWidth: 0.5,
           borderColor: '#cccccc',
-          data: formattedHighchartsDataSurvivalTime.map((outcome) => ({
+          data: formattedHighchartsDataSurvivalTime.map(outcome => ({
             name: outcome.x,
             y: 0,
-            value: outcome.y,
-          })),
-        },
-      ],
+            value: outcome.y
+          }))
+        }
+      ]
     });
   }, [formattedHighchartsDataSurvivalTime]);
 
@@ -757,7 +774,7 @@ export default function Visualisation({
     toggleCollectionModal();
     setIsCollectionSaving(false);
 
-    setCollections((c) => [...c, newCollection]);
+    setCollections(c => [...c, newCollection]);
 
     history.push(
       `/features/${albumID}/collection/${newCollection.collection.id}/visualize`
@@ -765,7 +782,7 @@ export default function Visualisation({
   };
 
   const toggleCollectionModal = () => {
-    setIsCollectionModalOpen((o) => !o);
+    setIsCollectionModalOpen(o => !o);
     setNewCollectionName('');
   };
 
@@ -801,7 +818,10 @@ export default function Visualisation({
                     disabled={dropCorrelatedFeatures}
                   />
                 )}
-                <h6>Filter Patients (Columns)</h6>
+                <h6>
+                  Filter {trainingPatients ? 'Training Patients' : 'Patients'}{' '}
+                  (Columns)
+                </h6>
                 <div className="filter-visualization">
                   <FilterList
                     label="patient"
@@ -809,6 +829,24 @@ export default function Visualisation({
                     setter={setPatients}
                   />
                 </div>
+                {testingPatients && (
+                  <h6>
+                    <Button color="link" onClick={toggleTestingPatientsOpen}>
+                      <FontAwesomeIcon icon="eye" /> Show Testing Patient IDs
+                    </Button>
+                    <MyModal
+                      isOpen={testingPatientsOpen}
+                      toggle={toggleTestingPatientsOpen}
+                      title={<span>Testing Patient IDs</span>}
+                    >
+                      <ListValues
+                        values={testingPatients.sort((p1, p2) =>
+                          p1.localeCompare(p2, undefined, { numeric: true })
+                        )}
+                      />
+                    </MyModal>
+                  </h6>
+                )}
               </div>
             </td>
             <td className="chart-cell">
@@ -927,7 +965,7 @@ export default function Visualisation({
               id="collectionNAme"
               placeholder="New collection name..."
               value={newCollectionName}
-              onChange={(e) => setNewCollectionName(e.target.value)}
+              onChange={e => setNewCollectionName(e.target.value)}
             />
           </FormGroup>
           <Button
@@ -962,12 +1000,12 @@ function formatTreeData(object, prefix) {
           children: formatTreeData(value, `${prefix}${key}-`),
           description: CATEGORY_DEFINITIONS[alias ? alias : key]
             ? CATEGORY_DEFINITIONS[alias ? alias : key]
-            : null,
+            : null
         }
       : {
           id: `${prefix}${key}`,
           name: alias ? alias : key,
-          value: value,
+          value: value
         };
   });
 }

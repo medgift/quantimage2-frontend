@@ -1,3 +1,4 @@
+import './utils/seed';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';

@@ -10,7 +10,7 @@ import {
   FormGroup,
   Badge,
   Tooltip,
-  ButtonGroup,
+  ButtonGroup
 } from 'reactstrap';
 
 import { useTable, useSortBy } from 'react-table';
@@ -27,7 +27,7 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
-import { MODEL_TYPES, VALIDATION_TYPES } from './config/constants';
+import { MODEL_TYPES, DATA_SPLITTING_TYPES } from './config/constants';
 import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './config/constants';
 
 export const PATIENT_ID_FIELD = 'PatientID';
@@ -40,11 +40,11 @@ const CLASSIFICATION_ALGORITHMS = {
   LASSO_REGRESSION: 'lasso_regression',
   ELASTIC_NET: 'elastic_net',
   RANDOM_FOREST: 'random_forest',
-  SVM: 'svm',
+  SVM: 'svm'
 };
 
 const SURVIVAL_ALGORITHMS = {
-  COX_MODEL: 'cox',
+  COX_MODEL: 'cox'
 };
 
 function ModelsTable({
@@ -58,29 +58,29 @@ function ModelsTable({
   handleShowFeatureNames,
   handleShowPatientIDs,
   formatMetrics,
-  bestModel,
+  bestModel
 }) {
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
     rows,
-    prepareRow,
+    prepareRow
   } = useTable(
     {
       columns,
       data,
       initialState: {
-        sortBy: [{ id: 'created_at', desc: true }],
-      },
+        sortBy: [{ id: 'created_at', desc: true }]
+      }
     },
     useSortBy
   );
 
   const [openModelID, setOpenModelID] = useState(-1);
 
-  const toggleModel = (modelID) => {
-    setOpenModelID((m) => (m !== modelID ? modelID : -1));
+  const toggleModel = modelID => {
+    setOpenModelID(m => (m !== modelID ? modelID : -1));
   };
 
   if (data.length === 0) return null;
@@ -90,10 +90,10 @@ function ModelsTable({
       <h4 className="mt-3">{title}</h4>
       <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
-          {headerGroups.map((headerGroup) => (
+          {headerGroups.map(headerGroup => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               <th> </th>
-              {headerGroup.headers.map((column) => (
+              {headerGroup.headers.map(column => (
                 // Add the sorting props to control sorting. For this example
                 // we can add them into the header props
                 <th {...column.getHeaderProps(column.getSortByToggleProps())}>
@@ -146,9 +146,8 @@ function ModelsTable({
               <React.Fragment key={row.getRowProps().key}>
                 <tr
                   {...row.getRowProps()}
-                  className={`model-row ${
-                    row.original.id === bestModel.id && 'text-success'
-                  }`}
+                  className={`model-row ${row.original.id === bestModel.id &&
+                    'text-success'}`}
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
                 >
@@ -161,7 +160,7 @@ function ModelsTable({
                       }
                     />
                   </td>
-                  {row.cells.map((cell) => {
+                  {row.cells.map(cell => {
                     return (
                       <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
                     );
@@ -191,7 +190,7 @@ function ModelsTable({
                                 <td>Model Validation Type</td>
                                 <td>
                                   {row.original.validation_type ===
-                                  VALIDATION_TYPES.CROSSVALIDATION
+                                  DATA_SPLITTING_TYPES.FULL_DATASET
                                     ? 'Cross-validation on Full Dataset'
                                     : 'Train/Test Split'}
                                 </td>
@@ -234,7 +233,7 @@ function ModelsTable({
                               <tr>
                                 <td>Modalities Used</td>
                                 <td>
-                                  {row.original.modalities.map((modality) => (
+                                  {row.original.modalities.map(modality => (
                                     <Badge
                                       style={{ marginRight: '0.5em' }}
                                       color="primary"
@@ -248,7 +247,7 @@ function ModelsTable({
                               <tr>
                                 <td>ROIs Used</td>
                                 <td>
-                                  {row.original.rois.map((roi) => (
+                                  {row.original.rois.map(roi => (
                                     <Badge
                                       style={{ marginRight: '0.5em' }}
                                       color="primary"
@@ -269,7 +268,7 @@ function ModelsTable({
                                   {' - '}
                                   <Button
                                     color="link"
-                                    onClick={(event) => {
+                                    onClick={event => {
                                       event.preventDefault();
                                       handleShowFeatureNames(
                                         collectionInfos
@@ -290,14 +289,14 @@ function ModelsTable({
                                   {' - '}
                                   <Button
                                     color="link"
-                                    onClick={(event) => {
+                                    onClick={event => {
                                       event.preventDefault();
                                       handleShowPatientIDs(
                                         row.original.training_patient_ids.sort(
                                           (p1, p2) =>
                                             p1.localeCompare(p2, undefined, {
                                               numeric: true,
-                                              sensitivity: 'base',
+                                              sensitivity: 'base'
                                             })
                                         )
                                       );
@@ -309,7 +308,7 @@ function ModelsTable({
                                 </td>
                               </tr>
                               {row.original.validation_type ===
-                                VALIDATION_TYPES.TRAINTEST && (
+                                DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
                                 <tr>
                                   <td>Number of Observations (Test)</td>
                                   <td>
@@ -317,14 +316,14 @@ function ModelsTable({
                                     {' - '}
                                     <Button
                                       color="link"
-                                      onClick={(event) => {
+                                      onClick={event => {
                                         event.preventDefault();
                                         handleShowPatientIDs(
                                           row.original.test_patient_ids.sort(
                                             (p1, p2) =>
                                               p1.localeCompare(p2, undefined, {
                                                 numeric: true,
-                                                sensitivity: 'base',
+                                                sensitivity: 'base'
                                               })
                                           )
                                         );
@@ -381,12 +380,14 @@ export default function Train({
   labelCategories,
   models,
   setModels,
+  dataSplittingType,
+  trainTestSplit
 }) {
-  let {keycloak} = useKeycloak();
+  let { keycloak } = useKeycloak();
 
   const maxAUCModel = _.maxBy(
-    models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION),
-    (model) => {
+    models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION),
+    model => {
       return _.isPlainObject(model.metrics.auc)
         ? model.metrics.auc.mean
         : model.metrics.auc;
@@ -394,7 +395,7 @@ export default function Train({
   );
 
   const maxCIndexModel = _.maxBy(
-    models.filter((m) => m.type === MODEL_TYPES.SURVIVAL),
+    models.filter(m => m.type === MODEL_TYPES.SURVIVAL),
     'metrics.concordance_index'
   );
 
@@ -422,14 +423,6 @@ export default function Train({
   let [dataNormalization, setDataNormalization] = useState('none');
   //let [featureSelection, setFeatureSelection] = useState('none');
 
-  // Model validation parameters
-  let [validationType, setValidationType] = useState(
-    VALIDATION_TYPES.TRAINTEST
-  );
-
-  // Train/Test split
-  let [trainTestSplit, setTrainTestSplit] = useState(80);
-
   // Modify algorithm type on label category switch
   useEffect(() => {
     if (!selectedLabelCategory) return;
@@ -446,20 +439,21 @@ export default function Train({
     () => [
       {
         Header: 'Date created',
-        accessor: (r) =>
+        accessor: r =>
           DateTime.fromJSDate(new Date(r.created_at)).toFormat(
             'yyyy-MM-dd HH:mm:ss'
           ),
         sortDescFirst: true,
-        id: 'created_at',
+        id: 'created_at'
       },
       { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Algorithm', accessor: 'algorithm' },
       { Header: 'Data Normalization', accessor: 'data_normalization' },
       {
         Header: 'Model Validation',
-        accessor: (r) => {
-          let isTrainTest = r.validation_type === VALIDATION_TYPES.TRAINTEST;
+        accessor: r => {
+          let isTrainTest =
+            r.validation_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
 
           if (isTrainTest) {
             let trainingProportion =
@@ -474,15 +468,15 @@ export default function Train({
           } else {
             return 'Cross-validation (Full Dataset)';
           }
-        },
+        }
       },
       {
         Header: 'Mean AUC (green is highest)',
-        accessor: (r) =>
+        accessor: r =>
           _.isPlainObject(r.metrics.auc) ? r.metrics.auc.mean : r.metrics.auc,
         sortDescFirst: true,
-        sortType: 'number',
-      },
+        sortType: 'number'
+      }
     ],
     []
   );
@@ -491,12 +485,12 @@ export default function Train({
     () => [
       {
         Header: 'Date created',
-        accessor: (r) =>
+        accessor: r =>
           DateTime.fromJSDate(new Date(r.created_at)).toFormat(
             'yyyy-MM-dd HH:mm:ss'
           ),
         sortDescFirst: true,
-        id: 'created_at',
+        id: 'created_at'
       },
       { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Algorithm', accessor: 'algorithm' },
@@ -505,49 +499,41 @@ export default function Train({
         Header: 'c-index (green is highest)',
         accessor: 'metrics.concordance_index',
         sortDescFirst: true,
-        sortType: 'number',
-      },
+        sortType: 'number'
+      }
     ],
     []
   );
 
-  const toggleCITooltip = () => setCITooltipOpen((open) => !open);
+  const toggleCITooltip = () => setCITooltipOpen(open => !open);
 
   const toggleAdvancedConfig = () => {
-    setIsAdvancedConfigOpen((o) => !o);
+    setIsAdvancedConfigOpen(o => !o);
   };
 
-  const handleNormalizationChange = (e) => {
+  const handleNormalizationChange = e => {
     setDataNormalization(e.target.value);
   };
 
-  const handleValidationChange = (e) => {
-    setValidationType(e.target.value);
-  };
-
-  const handleTrainTestSplitChange = (e) => {
-    setTrainTestSplit(+e.target.value);
-  };
-
-  const handleAlgorithmTypeChange = (e) => {
+  const handleAlgorithmTypeChange = e => {
     setAlgorithmType(e.target.value);
   };
 
   const toggleFeatureNames = () => {
-    setFeatureNamesOpen((open) => !open);
+    setFeatureNamesOpen(open => !open);
   };
 
   const togglePatientIDs = () => {
-    setPatientIDsOpen((open) => !open);
+    setPatientIDsOpen(open => !open);
   };
 
-  const transformLabelsToTabular = (outcomes) => {
+  const transformLabelsToTabular = outcomes => {
     let tabularLabels = [];
 
     for (let outcome of outcomes) {
       let tabularLabel = [
         outcome.patient_id,
-        ...Object.values(outcome.label_content),
+        ...Object.values(outcome.label_content)
       ];
 
       tabularLabels.push(tabularLabel);
@@ -577,7 +563,7 @@ export default function Train({
         labels,
         algorithmType,
         dataNormalization,
-        validationType,
+        dataSplittingType,
         trainTestSplit,
         metadataColumns[MODALITY_FIELD],
         metadataColumns[ROI_FIELD],
@@ -593,9 +579,9 @@ export default function Train({
     }
   };
 
-  const handleDeleteModelClick = async (id) => {
+  const handleDeleteModelClick = async id => {
     await Backend.deleteModel(keycloak.token, id);
-    setModels(models.filter((model) => model.id !== id));
+    setModels(models.filter(model => model.id !== id));
   };
 
   const handleShowNewModelClick = () => {
@@ -606,12 +592,12 @@ export default function Train({
     setShowNewModel(false);
   };
 
-  const handleShowFeatureNames = (names) => {
+  const handleShowFeatureNames = names => {
     setFeatureNames(names);
     toggleFeatureNames();
   };
 
-  const handleShowPatientIDs = (ids) => {
+  const handleShowPatientIDs = ids => {
     setPatientIDs(ids);
     togglePatientIDs();
   };
@@ -622,10 +608,10 @@ export default function Train({
 
   let trainingButton = () => {
     let buttonText = isTraining
-      ? validationType === VALIDATION_TYPES.CROSSVALIDATION
+      ? dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
         ? 'Training Model...'
         : 'Training & Testing Model...'
-      : validationType === VALIDATION_TYPES.CROSSVALIDATION
+      : dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
       ? 'Train Model'
       : 'Train & Test Model';
 
@@ -671,7 +657,7 @@ export default function Train({
                 value={algorithmType}
                 onChange={handleAlgorithmTypeChange}
               >
-                {Object.keys(CLASSIFICATION_ALGORITHMS).map((key) => (
+                {Object.keys(CLASSIFICATION_ALGORITHMS).map(key => (
                   <option key={key} value={CLASSIFICATION_ALGORITHMS[key]}>
                     {_.startCase(
                       CLASSIFICATION_ALGORITHMS[key].replace('_', ' ')
@@ -772,63 +758,12 @@ export default function Train({
           <hr />
           <div>
             <h4>Model Validation</h4>
-            <Form>
-              <FormGroup tag="fieldset">
-                <FormGroup check inline>
-                  <Label>
-                    <Input
-                      type="radio"
-                      name="model-validation"
-                      value={VALIDATION_TYPES.CROSSVALIDATION}
-                      checked={
-                        validationType === VALIDATION_TYPES.CROSSVALIDATION
-                      }
-                      onChange={handleValidationChange}
-                    />{' '}
-                    Cross-Validation on Full Dataset
-                  </Label>
-                </FormGroup>
-                <FormGroup check inline>
-                  <Label>
-                    <Input
-                      type="radio"
-                      name="model-validation"
-                      value={VALIDATION_TYPES.TRAINTEST}
-                      checked={validationType === VALIDATION_TYPES.TRAINTEST}
-                      onChange={handleValidationChange}
-                    />{' '}
-                    Train/Test Split
-                  </Label>
-                </FormGroup>
-              </FormGroup>
-            </Form>
+            <p>Summary</p>
           </div>
         </>
       )}
       {albumExtraction && (
         <>
-          {validationType === VALIDATION_TYPES.TRAINTEST && (
-            <>
-              <h5>Training & Test Set Split</h5>
-              <FormGroup style={{ width: '33%' }} className="m-auto">
-                <Input
-                  id="train-test-split-range"
-                  name="traintestsplit"
-                  type="range"
-                  className="custom-range"
-                  value={trainTestSplit}
-                  onChange={handleTrainTestSplitChange}
-                />
-                <Label
-                  for="train-test-split-range"
-                  className="d-flex flex-grow-1 justify-content-between"
-                >
-                  <span>Training : {trainTestSplit}%</span>
-                  <span>Testing : {100 - trainTestSplit}%</span>
-                </Label>
-              </FormGroup>
-            </>
-          )}
           <h3>Train Model</h3>
           {trainingButton()}
           {trainingError && (
@@ -844,8 +779,8 @@ export default function Train({
     </div>
   );
 
-  const formatMetrics = (metrics) => {
-    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
+  const formatMetrics = metrics => {
+    let formattedOtherMetrics = Object.keys(metrics).map(metricName => (
       <tr key={metricName}>
         <td>
           <strong>{metricName}</strong>
@@ -936,7 +871,7 @@ export default function Train({
           <ModelsTable
             title="Classification Models"
             columns={columnsClassification}
-            data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
+            data={models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION)}
             dataPoints={dataPoints}
             albumExtraction={albumExtraction}
             collectionInfos={collectionInfos}
@@ -949,7 +884,7 @@ export default function Train({
           <ModelsTable
             title="Survival Models"
             columns={columnsSurvival}
-            data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
+            data={models.filter(m => m.type === MODEL_TYPES.SURVIVAL)}
             dataPoints={dataPoints}
             albumExtraction={albumExtraction}
             collectionInfos={collectionInfos}

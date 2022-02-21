@@ -2,7 +2,7 @@ import { pythonBackendBaseURL } from './config';
 
 import { downloadFile, rawRequest, request } from './common';
 import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
-import { VALIDATION_TYPES } from '../config/constants';
+import { DATA_SPLITTING_TYPES } from '../config/constants';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -165,6 +165,31 @@ class Backend {
     }
   }
 
+  async saveTrainingTestingPatients(
+    token,
+    extractionID,
+    collectionID,
+    trainingPatients,
+    testingPatients
+  ) {
+    try {
+      let url = collectionID
+        ? `${endpoints.collections}/${collectionID}`
+        : `${endpoints.extractions}/${extractionID}`;
+
+      return await request(url, {
+        method: 'PATCH',
+        data: {
+          training_patients: trainingPatients,
+          testing_patients: testingPatients
+        },
+        token: token
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async models(token, albumID) {
     try {
       let url;
@@ -263,7 +288,7 @@ class Backend {
           'data-normalization': dataNormalization,
           'validation-type': validationType,
           'train-test-split':
-            validationType === VALIDATION_TYPES.TRAINTEST
+            validationType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
               ? trainTestSplit
               : null,
           modalities: usedModalities,

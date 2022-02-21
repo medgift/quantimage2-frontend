@@ -37,6 +37,11 @@ import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
+import {
+  DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE,
+  DATA_SPLITTING_TYPES
+} from './config/constants';
+import DataSplitting from './DataSplitting';
 
 function Features({ history }) {
   const { keycloak } = useKeycloak();
@@ -67,6 +72,14 @@ function Features({ history }) {
 
   // Models management
   const [models, setModels] = useState([]);
+
+  // Model validation management
+  let [dataSplittingType, setDataSplittingType] = useState(null);
+
+  // Train/Test split
+  let [trainTestSplit, setTrainTestSplit] = useState(null);
+  let [trainingPatients, setTrainingPatients] = useState(null);
+  let [testingPatients, setTestingPatients] = useState(null);
 
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +139,7 @@ function Features({ history }) {
     }
 
     getAlbum();
-  }, []);
+  }, [albumID]);
 
   // Get collections
   useEffect(() => {
@@ -207,7 +220,7 @@ function Features({ history }) {
     }
 
     getExtraction();
-  }, [albumID, collectionID]);
+  }, [albumID]);
 
   // Get features
   useEffect(() => {
@@ -326,6 +339,34 @@ function Features({ history }) {
     collections && collectionID
       ? collections.find(c => c.collection.id === +collectionID)
       : null;
+
+  // Set training & testing patients
+  useEffect(() => {
+    let trainingPatients;
+    let testingPatients;
+
+    if (!dataPoints) return;
+
+    if (!collectionID && featureExtraction) {
+      trainingPatients = featureExtraction.training_patients;
+      testingPatients = featureExtraction.testing_patients;
+    } else if (collectionID && currentCollection) {
+      trainingPatients = currentCollection.collection.training_patients;
+      testingPatients = currentCollection.collection.testing_patients;
+    }
+
+    if (trainingPatients === null || trainingPatients === undefined) {
+      setDataSplittingType(DATA_SPLITTING_TYPES.FULL_DATASET);
+      setTrainTestSplit(DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE);
+    } else {
+      setDataSplittingType(DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT);
+      setTrainingPatients(trainingPatients);
+      setTestingPatients(testingPatients);
+      setTrainTestSplit(
+        Math.round((trainingPatients.length / dataPoints.length) * 100)
+      );
+    }
+  }, [featureExtraction, collectionID, currentCollection, dataPoints]);
 
   // Handle click on a filter button
   const handleFilterClick = (selected, field, setField) => {
@@ -511,6 +552,16 @@ function Features({ history }) {
                 </NavItem>
                 <NavItem>
                   <NavLink
+                    className={getTabClassName('split')}
+                    onClick={() => {
+                      toggle('split');
+                    }}
+                  >
+                    Data Splitting
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
                     className={getTabClassName('visualize')}
                     onClick={() => {
                       toggle('visualize');
@@ -682,6 +733,24 @@ function Features({ history }) {
                     <span>Loading...</span>
                   )}
                 </TabPane>
+                <TabPane tabId="split">
+                  {dataPoints && dataSplittingType && (
+                    <DataSplitting
+                      featureExtractionID={featureExtractionID}
+                      collectionID={collectionID}
+                      dataSplittingType={dataSplittingType}
+                      setDataSplittingType={setDataSplittingType}
+                      trainTestSplit={trainTestSplit}
+                      setTrainTestSplit={setTrainTestSplit}
+                      trainingPatients={trainingPatients}
+                      testingPatients={testingPatients}
+                      setTrainingPatients={setTrainingPatients}
+                      setTestingPatients={setTestingPatients}
+                      dataPoints={dataPoints}
+                      outcomes={outcomes}
+                    />
+                  )}
+                </TabPane>
                 <TabPane tabId="visualize">
                   {dataPoints ? (
                     !isSavingLabels ? (
@@ -703,6 +772,9 @@ function Features({ history }) {
                           }
                           featuresChart={featuresChart}
                           outcomes={outcomes}
+                          dataPoints={dataPoints}
+                          trainingPatients={trainingPatients}
+                          testingPatients={testingPatients}
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
@@ -755,6 +827,8 @@ function Features({ history }) {
                           featureExtractionID={featureExtractionID}
                           dataPoints={dataPoints}
                           unlabelledDataPoints={unlabelledDataPoints}
+                          validationType={dataSplittingType}
+                          trainTestSplit={trainTestSplit}
                         />
                       </>
                     ) : (

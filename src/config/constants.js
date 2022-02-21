@@ -9,8 +9,8 @@ export const FEATURE_STATUS = {
   properties: {
     PENDING: { name: 'Not Computed' },
     PROGRESS: { name: 'In Progress' },
-    SUCCESS: { name: 'Complete' },
-  },
+    SUCCESS: { name: 'Complete' }
+  }
 };
 
 export const RIESZ_FEATURE_PREFIXES = ['tex'];
@@ -22,19 +22,21 @@ export const PYRADIOMICS_FEATURE_PREFIXES = [
   'square',
   'squareroot',
   'exponential',
-  'logarithm',
+  'logarithm'
 ];
 export const PET_SPECIFIC_PREFIXES = ['PET'];
 
 export const MODEL_TYPES = {
   CLASSIFICATION: 'Classification',
-  SURVIVAL: 'Survival',
+  SURVIVAL: 'Survival'
 };
 
-export const VALIDATION_TYPES = {
-  CROSSVALIDATION: 'crossvalidation',
-  TRAINTEST: 'traintest',
+export const DATA_SPLITTING_TYPES = {
+  FULL_DATASET: 'fulldataset',
+  TRAIN_TEST_SPLIT: 'traintest'
 };
+
+export const DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE = 80;
 
 export const OUTCOME_CLASSIFICATION = 'Outcome';
 export const OUTCOME_SURVIVAL_EVENT = 'Event';
@@ -43,7 +45,7 @@ export const OUTCOME_SURVIVAL_TIME = 'Time';
 export const CLASSIFICATION_OUTCOMES = [OUTCOME_CLASSIFICATION];
 export const SURVIVAL_OUTCOMES = [
   OUTCOME_SURVIVAL_TIME,
-  OUTCOME_SURVIVAL_EVENT,
+  OUTCOME_SURVIVAL_EVENT
 ];
 
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
