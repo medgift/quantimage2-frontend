@@ -73,7 +73,7 @@ export default function Visualisation({
   outcomes,
   dataPoints,
   trainingPatients,
-  testingPatients,
+  testPatients,
   featureExtractionID,
   setCollections
 }) {
@@ -109,8 +109,8 @@ export default function Visualisation({
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
 
-  // Testing Patients Modal
-  const [testingPatientsOpen, setTestingPatientsOpen] = useState(false);
+  // Test Patients Modal
+  const [testPatientsOpen, setTestPatientsOpen] = useState(false);
 
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
@@ -344,8 +344,8 @@ export default function Visualisation({
   }, [featuresChart, selectedFeatureIDs, selectedPatients]);
 
   // Toggle patients modal
-  const toggleTestingPatientsOpen = () => {
-    setTestingPatientsOpen(o => !o);
+  const toggleTestPatientsOpen = () => {
+    setTestPatientsOpen(o => !o);
   };
 
   // Calculate number of values to display (based on filtered features)
@@ -829,18 +829,18 @@ export default function Visualisation({
                     setter={setPatients}
                   />
                 </div>
-                {testingPatients && (
+                {testPatients && (
                   <h6>
-                    <Button color="link" onClick={toggleTestingPatientsOpen}>
-                      <FontAwesomeIcon icon="eye" /> Show Testing Patient IDs
+                    <Button color="link" onClick={toggleTestPatientsOpen}>
+                      <FontAwesomeIcon icon="eye" /> Show Test Patient IDs
                     </Button>
                     <MyModal
-                      isOpen={testingPatientsOpen}
-                      toggle={toggleTestingPatientsOpen}
-                      title={<span>Testing Patient IDs</span>}
+                      isOpen={testPatientsOpen}
+                      toggle={toggleTestPatientsOpen}
+                      title={<span>Test Patient IDs</span>}
                     >
                       <ListValues
-                        values={testingPatients.sort((p1, p2) =>
+                        values={testPatients.sort((p1, p2) =>
                           p1.localeCompare(p2, undefined, { numeric: true })
                         )}
                       />

@@ -21,9 +21,9 @@ export default function DataSplitting({
   dataPoints,
   outcomes,
   trainingPatients,
-  testingPatients,
+  testPatients,
   setTrainingPatients,
-  setTestingPatients
+  setTestPatients
 }) {
   const { keycloak } = useKeycloak();
 
@@ -54,33 +54,33 @@ export default function DataSplitting({
       .map(v => v.patient_id)
       .value();
 
-    let testingPatients = _.difference(dataPoints, trainingPatients);
+    let testPatients = _.difference(dataPoints, trainingPatients);
 
-    return { trainingPatients, testingPatients };
+    return { trainingPatients, testPatients };
   }, [dataPoints, outcomes, trainTestSplit]);
 
   const savePatients = useCallback(async () => {
-    await backend.saveTrainingTestingPatients(
+    await backend.saveTrainingTestPatients(
       keycloak.token,
       featureExtractionID,
       collectionID,
       patients.trainingPatients,
-      patients.testingPatients
+      patients.testPatients
     );
 
     setTrainingPatients(patients.trainingPatients);
-    setTestingPatients(patients.testingPatients);
+    setTestPatients(patients.testPatients);
   }, [
     keycloak.token,
     featureExtractionID,
     collectionID,
     patients,
     setTrainingPatients,
-    setTestingPatients
+    setTestPatients
   ]);
 
   const resetPatients = useCallback(async () => {
-    await backend.saveTrainingTestingPatients(
+    await backend.saveTrainingTestPatients(
       keycloak.token,
       featureExtractionID,
       collectionID,
@@ -88,14 +88,14 @@ export default function DataSplitting({
       null
     );
     setTrainingPatients(null);
-    setTestingPatients(null);
+    setTestPatients(null);
     setTrainTestSplit(DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE);
   }, [
     keycloak.token,
     featureExtractionID,
     collectionID,
     setTrainingPatients,
-    setTestingPatients,
+    setTestPatients,
     setTrainTestSplit
   ]);
 
@@ -184,15 +184,15 @@ export default function DataSplitting({
                 }
                 onChange={handleDataSplitChange}
               />{' '}
-              Split the dataset into training & testing sets
+              Split the dataset into training & test sets
             </Label>
             <Alert color="secondary">
               <span>
                 Using this mode, the data will be split into{' '}
-                <strong>training</strong> & <strong>testing</strong> sets.
-                Testing patients will not be shown in the visualization tab.
-                Machine learning models are created using only the training set
-                and are subsequently evaluated on the unseen testing set.
+                <strong>training</strong> & <strong>test</strong> sets. Test
+                patients will not be shown in the visualization tab. Machine
+                learning models are created using only the training set and are
+                subsequently evaluated on the unseen test set.
               </span>
             </Alert>
           </FormGroup>
@@ -217,11 +217,11 @@ export default function DataSplitting({
               className="d-flex flex-grow-1 justify-content-between"
             >
               <span>Training : {trainTestSplit}%</span>
-              <span>Testing : {100 - trainTestSplit}%</span>
+              <span>Test : {100 - trainTestSplit}%</span>
             </Label>
-            <h6>Training & Testing Patients</h6>
+            <h6>Training & Test Patients</h6>
             <p>{computeClassProportions(dataPoints)}</p>
-            {trainingPatients && testingPatients && (
+            {trainingPatients && testPatients && (
               <div className="d-flex align-items-start justify-content-center">
                 <div className="Patients-list">
                   <p>{computeClassProportions(trainingPatients)}</p>
@@ -239,8 +239,8 @@ export default function DataSplitting({
                     ))}
                 </div>
                 <div className="Patients-list">
-                  <p>{computeClassProportions(testingPatients)}</p>
-                  {[...testingPatients]
+                  <p>{computeClassProportions(testPatients)}</p>
+                  {[...testPatients]
                     .sort((p1, p2) =>
                       p1.localeCompare(p2, undefined, {
                         numeric: true,

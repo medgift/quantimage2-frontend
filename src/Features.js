@@ -79,7 +79,7 @@ function Features({ history }) {
   // Train/Test split
   let [trainTestSplit, setTrainTestSplit] = useState(null);
   let [trainingPatients, setTrainingPatients] = useState(null);
-  let [testingPatients, setTestingPatients] = useState(null);
+  let [testPatients, setTestPatients] = useState(null);
 
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
@@ -340,19 +340,19 @@ function Features({ history }) {
       ? collections.find(c => c.collection.id === +collectionID)
       : null;
 
-  // Set training & testing patients
+  // Set training & test patients
   useEffect(() => {
     let trainingPatients;
-    let testingPatients;
+    let testPatients;
 
     if (!dataPoints) return;
 
     if (!collectionID && featureExtraction) {
       trainingPatients = featureExtraction.training_patients;
-      testingPatients = featureExtraction.testing_patients;
+      testPatients = featureExtraction.test_patients;
     } else if (collectionID && currentCollection) {
       trainingPatients = currentCollection.collection.training_patients;
-      testingPatients = currentCollection.collection.testing_patients;
+      testPatients = currentCollection.collection.test_patients;
     }
 
     if (trainingPatients === null || trainingPatients === undefined) {
@@ -361,7 +361,7 @@ function Features({ history }) {
     } else {
       setDataSplittingType(DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT);
       setTrainingPatients(trainingPatients);
-      setTestingPatients(testingPatients);
+      setTestPatients(testPatients);
       setTrainTestSplit(
         Math.round((trainingPatients.length / dataPoints.length) * 100)
       );
@@ -557,7 +557,12 @@ function Features({ history }) {
                       toggle('split');
                     }}
                   >
-                    Data Splitting
+                    Data Splitting (Current -{' '}
+                    {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
+                      ? 'Full Dataset'
+                      : `Train/Test Split ${trainTestSplit}%/${100 -
+                          trainTestSplit}%`}
+                    )
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -743,9 +748,9 @@ function Features({ history }) {
                       trainTestSplit={trainTestSplit}
                       setTrainTestSplit={setTrainTestSplit}
                       trainingPatients={trainingPatients}
-                      testingPatients={testingPatients}
+                      testPatients={testPatients}
                       setTrainingPatients={setTrainingPatients}
-                      setTestingPatients={setTestingPatients}
+                      setTestPatients={setTestPatients}
                       dataPoints={dataPoints}
                       outcomes={outcomes}
                     />
@@ -774,7 +779,7 @@ function Features({ history }) {
                           outcomes={outcomes}
                           dataPoints={dataPoints}
                           trainingPatients={trainingPatients}
-                          testingPatients={testingPatients}
+                          testPatients={testPatients}
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
@@ -829,7 +834,7 @@ function Features({ history }) {
                           unlabelledDataPoints={unlabelledDataPoints}
                           dataSplittingType={dataSplittingType}
                           trainingPatients={trainingPatients}
-                          testingPatients={testingPatients}
+                          testPatients={testPatients}
                         />
                       </>
                     ) : (

@@ -165,12 +165,12 @@ class Backend {
     }
   }
 
-  async saveTrainingTestingPatients(
+  async saveTrainingTestPatients(
     token,
     extractionID,
     collectionID,
     trainingPatients,
-    testingPatients
+    testPatients
   ) {
     try {
       let url = collectionID
@@ -181,7 +181,7 @@ class Backend {
         method: 'PATCH',
         data: {
           training_patients: trainingPatients,
-          testing_patients: testingPatients
+          test_patients: testPatients
         },
         token: token
       });
@@ -270,7 +270,7 @@ class Backend {
     dataNormalization,
     dataSplittingType,
     trainingPatients,
-    testingPatients,
+    testPatients,
     usedModalities,
     usedROIs
   ) {
@@ -289,7 +289,7 @@ class Backend {
           'data-normalization': dataNormalization,
           'data-splitting-type': dataSplittingType,
           'training-patients': trainingPatients,
-          'testing-patients': testingPatients,
+          'test-patients': testPatients,
           modalities: usedModalities,
           rois: usedROIs
         },

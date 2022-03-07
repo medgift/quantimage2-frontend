@@ -101,7 +101,7 @@ export async function trainModel(
   dataNormalization,
   dataSplittingType,
   trainingPatients,
-  testingPatients,
+  testPatients,
   usedModalities,
   usedROIs,
   token
@@ -118,7 +118,7 @@ export async function trainModel(
     dataNormalization,
     dataSplittingType,
     trainingPatients,
-    testingPatients,
+    testPatients,
     usedModalities,
     usedROIs
   );

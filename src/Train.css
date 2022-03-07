@@ -60,7 +60,3 @@
 .model-row:hover .model-row-icon {
   color: #666;
 }
-
-.models-summary tr td {
-  text-align: left;
-}
