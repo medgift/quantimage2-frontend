@@ -187,35 +187,10 @@ function ModelsTable({
                                 <td>{row.original.algorithm}</td>
                               </tr>
                               <tr>
-                                <td>Model Validation Type</td>
-                                <td>
-                                  {row.original.validation_type ===
-                                  DATA_SPLITTING_TYPES.FULL_DATASET
-                                    ? 'Cross-validation on Full Dataset'
-                                    : 'Train/Test Split'}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Training Validation Strategy</td>
-                                <td>
-                                  {row.original.training_validation
-                                    ? row.original.training_validation
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              <tr>
                                 <td>Data Normalization</td>
                                 <td>
                                   {row.data_normalization
                                     ? row.data_normalization
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Model Validation</td>
-                                <td>
-                                  {row.validation_type
-                                    ? row.validation_type
                                     : 'None'}
                                 </td>
                               </tr>
@@ -259,7 +234,7 @@ function ModelsTable({
                                 </td>
                               </tr>
                               <tr>
-                                <td>Number of Features</td>
+                                <td>Features Used</td>
                                 <td>
                                   {collectionInfos
                                     ? collectionInfos.features.length
@@ -283,7 +258,12 @@ function ModelsTable({
                                 </td>
                               </tr>
                               <tr>
-                                <td>Number of Observations (Training)</td>
+                                <td>
+                                  Number of Observations
+                                  {row.original.validation_type ===
+                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
+                                    ' (Training)'}
+                                </td>
                                 <td>
                                   {row.original.training_patient_ids.length}
                                   {' - '}
@@ -332,6 +312,39 @@ function ModelsTable({
                                     >
                                       Show details
                                     </Button>
+                                  </td>
+                                </tr>
+                              )}
+                              <tr>
+                                <td>Validation Type</td>
+                                <td>
+                                  {row.original.validation_type ===
+                                  DATA_SPLITTING_TYPES.FULL_DATASET
+                                    ? 'Cross-validation on Full Dataset'
+                                    : 'Train/Test Split'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  {row.original.validation_type ===
+                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
+                                    'Training '}
+                                  Validation Strategy
+                                </td>
+                                <td>
+                                  {row.original.training_validation
+                                    ? row.original.training_validation
+                                    : 'None'}
+                                </td>
+                              </tr>
+                              {row.original.validation_type ===
+                                DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                                <tr>
+                                  <td>Test Validation Strategy</td>
+                                  <td>
+                                    {row.original.test_validation
+                                      ? row.original.test_validation
+                                      : 'None'}
                                   </td>
                                 </tr>
                               )}
@@ -760,7 +773,24 @@ export default function Train({
           <hr />
           <div>
             <h4>Model Validation</h4>
-            <p>Summary</p>
+            <p>
+              {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
+                <p>
+                  All the available features & patients will be used to train
+                  the model, with a cross-validation method to provide more
+                  balanced & representative metrics.
+                </p>
+              ) : (
+                <p>
+                  Only the training data will be used for the creation of the
+                  model, which uses a cross-validation method to select the
+                  model with the best AUC metric. Subsequently, this model is
+                  then applied on the test data, using the Bootstrap method to
+                  give a range of performance metrics across different data
+                  splits.
+                </p>
+              )}
+            </p>
           </div>
         </>
       )}

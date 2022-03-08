@@ -36,7 +36,7 @@ export const DATA_SPLITTING_TYPES = {
   TRAIN_TEST_SPLIT: 'traintest'
 };
 
-export const DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE = 80;
+export const DATA_SPLITTING_DEFAULT_TRAINING_SPLIT = 0.8;
 
 export const OUTCOME_CLASSIFICATION = 'Outcome';
 export const OUTCOME_SURVIVAL_EVENT = 'Event';

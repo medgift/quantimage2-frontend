@@ -38,7 +38,7 @@ import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 import {
-  DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE,
+  DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES
 } from './config/constants';
 import DataSplitting from './DataSplitting';
@@ -77,7 +77,7 @@ function Features({ history }) {
   let [dataSplittingType, setDataSplittingType] = useState(null);
 
   // Train/Test split
-  let [trainTestSplit, setTrainTestSplit] = useState(null);
+  let [nbTrainingPatients, setNbTrainingPatients] = useState(null);
   let [trainingPatients, setTrainingPatients] = useState(null);
   let [testPatients, setTestPatients] = useState(null);
 
@@ -357,14 +357,14 @@ function Features({ history }) {
 
     if (trainingPatients === null || trainingPatients === undefined) {
       setDataSplittingType(DATA_SPLITTING_TYPES.FULL_DATASET);
-      setTrainTestSplit(DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE);
+      setNbTrainingPatients(
+        Math.floor(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
+      );
     } else {
       setDataSplittingType(DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT);
       setTrainingPatients(trainingPatients);
       setTestPatients(testPatients);
-      setTrainTestSplit(
-        Math.round((trainingPatients.length / dataPoints.length) * 100)
-      );
+      setNbTrainingPatients(trainingPatients.length);
     }
   }, [featureExtraction, collectionID, currentCollection, dataPoints]);
 
@@ -559,9 +559,9 @@ function Features({ history }) {
                   >
                     Data Splitting (Current -{' '}
                     {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
-                      ? 'Full Dataset'
-                      : `Train/Test Split ${trainTestSplit}%/${100 -
-                          trainTestSplit}%`}
+                      ? 'Full'
+                      : `Train/Test Split ${nbTrainingPatients}%/${100 -
+                          nbTrainingPatients}%`}
                     )
                   </NavLink>
                 </NavItem>
@@ -745,8 +745,8 @@ function Features({ history }) {
                       collectionID={collectionID}
                       dataSplittingType={dataSplittingType}
                       setDataSplittingType={setDataSplittingType}
-                      trainTestSplit={trainTestSplit}
-                      setTrainTestSplit={setTrainTestSplit}
+                      nbTrainingPatients={nbTrainingPatients}
+                      setNbTrainingPatients={setNbTrainingPatients}
                       trainingPatients={trainingPatients}
                       testPatients={testPatients}
                       setTrainingPatients={setTrainingPatients}

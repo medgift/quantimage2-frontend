@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Form, FormGroup, FormText, Input, Label } from 'reactstrap';
 import {
-  DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE,
+  DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES
 } from './config/constants';
 
@@ -16,8 +16,8 @@ export default function DataSplitting({
   collectionID,
   dataSplittingType,
   setDataSplittingType,
-  trainTestSplit,
-  setTrainTestSplit,
+  nbTrainingPatients,
+  setNbTrainingPatients,
   dataPoints,
   outcomes,
   trainingPatients,
@@ -31,8 +31,8 @@ export default function DataSplitting({
     setDataSplittingType(e.target.value);
   };
 
-  const handleTrainTestSplitChange = async e => {
-    setTrainTestSplit(+e.target.value);
+  const handleNbTrainingPatientsChange = async e => {
+    setNbTrainingPatients(+e.target.value);
   };
 
   const patients = useMemo(() => {
@@ -40,24 +40,29 @@ export default function DataSplitting({
       dataPoints.includes(o.patient_id)
     );
 
-    let groupedOutcomes = _.groupBy(filteredOutcomes, 'label_content.Outcome');
-
-    // TODO - This needs to be modified if more than 2 classes need to be supported!
-    let firstClassProportion =
-      groupedOutcomes[Object.keys(groupedOutcomes)[0]].length /
-      filteredOutcomes.length;
-
     let trainingPatients = _(filteredOutcomes)
       .groupBy('label_content.Outcome')
-      .map(v => _.sampleSize(v, v.length * (trainTestSplit / 100)))
+      .map(v =>
+        _.sampleSize(
+          v,
+          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+        )
+      )
       .flatten()
       .map(v => v.patient_id)
       .value();
 
+    // Fill up with another patient if split does not produce exact number of requested patients
+    if (trainingPatients.length < nbTrainingPatients) {
+      trainingPatients.push(
+        _.sample(_.difference(dataPoints, trainingPatients))
+      );
+    }
+
     let testPatients = _.difference(dataPoints, trainingPatients);
 
     return { trainingPatients, testPatients };
-  }, [dataPoints, outcomes, trainTestSplit]);
+  }, [dataPoints, outcomes, nbTrainingPatients]);
 
   const savePatients = useCallback(async () => {
     await backend.saveTrainingTestPatients(
@@ -89,14 +94,17 @@ export default function DataSplitting({
     );
     setTrainingPatients(null);
     setTestPatients(null);
-    setTrainTestSplit(DATA_SPLITTING_DEFAULT_TRAINING_PERCENTAGE);
+    setNbTrainingPatients(
+      Math.floor(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
+    );
   }, [
     keycloak.token,
     featureExtractionID,
     collectionID,
     setTrainingPatients,
     setTestPatients,
-    setTrainTestSplit
+    setNbTrainingPatients,
+    dataPoints
   ]);
 
   useEffect(() => {
@@ -151,28 +159,6 @@ export default function DataSplitting({
       <h4>Data Splitting</h4>
       <Form>
         <FormGroup tag="fieldset" className="d-flex">
-          <FormGroup check className="flex-grow-1 Splitting-choice">
-            <Label>
-              <Input
-                type="radio"
-                name="model-validation"
-                value={DATA_SPLITTING_TYPES.FULL_DATASET}
-                checked={
-                  dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
-                }
-                onChange={handleDataSplitChange}
-              />{' '}
-              Explore whole dataset/collection with {dataPoints.length} patients
-            </Label>
-            <Alert color="secondary">
-              <span>
-                Using this mode, you will be able to visualize the features of{' '}
-                <strong>all patients</strong>. When creating machine learning
-                models, evaluation metrics will be based on a{' '}
-                <strong>cross-validation</strong> of all available data.
-              </span>
-            </Alert>
-          </FormGroup>
           <FormGroup check className="flex-grow-1" style={{ flexBasis: 0 }}>
             <Label>
               <Input
@@ -192,7 +178,30 @@ export default function DataSplitting({
                 <strong>training</strong> & <strong>test</strong> sets. Test
                 patients will not be shown in the visualization tab. Machine
                 learning models are created using only the training set and are
-                subsequently evaluated on the unseen test set.
+                subsequently evaluated on the unseen test set using the
+                Bootstrap method.
+              </span>
+            </Alert>
+          </FormGroup>
+          <FormGroup check className="flex-grow-1 Splitting-choice">
+            <Label>
+              <Input
+                type="radio"
+                name="model-validation"
+                value={DATA_SPLITTING_TYPES.FULL_DATASET}
+                checked={
+                  dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
+                }
+                onChange={handleDataSplitChange}
+              />{' '}
+              Explore whole dataset/collection ({dataPoints.length} patients)
+            </Label>
+            <Alert color="secondary">
+              <span>
+                Using this mode, you will be able to visualize the features of{' '}
+                <strong>all patients</strong>. When creating machine learning
+                models, evaluation metrics will be based on a{' '}
+                <strong>cross-validation</strong> of all available data.
               </span>
             </Alert>
           </FormGroup>
@@ -203,58 +212,35 @@ export default function DataSplitting({
           <h5>Training & Test Set Split</h5>
           <FormGroup style={{ width: '66%' }} className="m-auto">
             <Input
-              id="train-test-split-range"
-              name="traintestsplit"
+              id="nb-training-patients-range"
+              name="nbtrainingpatients"
               type="range"
               className="custom-range"
-              value={trainTestSplit}
-              onChange={handleTrainTestSplitChange}
+              value={nbTrainingPatients}
+              onChange={handleNbTrainingPatientsChange}
               onMouseUp={savePatients}
               onKeyUp={savePatients}
+              min={1}
+              max={dataPoints.length - 1}
             />
             <Label
               for="train-test-split-range"
               className="d-flex flex-grow-1 justify-content-between"
             >
-              <span>Training : {trainTestSplit}%</span>
-              <span>Test : {100 - trainTestSplit}%</span>
+              <span>
+                Training : {nbTrainingPatients} patients (
+                {Math.floor((nbTrainingPatients / dataPoints.length) * 100)}%)
+              </span>
+              <span>
+                Test : {dataPoints.length - nbTrainingPatients} patients (
+                {Math.floor(
+                  ((dataPoints.length - nbTrainingPatients) /
+                    dataPoints.length) *
+                    100
+                )}
+                %)
+              </span>
             </Label>
-            <h6>Training & Test Patients</h6>
-            <p>{computeClassProportions(dataPoints)}</p>
-            {trainingPatients && testPatients && (
-              <div className="d-flex align-items-start justify-content-center">
-                <div className="Patients-list">
-                  <p>{computeClassProportions(trainingPatients)}</p>
-                  {[...trainingPatients]
-                    .sort((p1, p2) =>
-                      p1.localeCompare(p2, undefined, {
-                        numeric: true,
-                        sensitivity: 'base'
-                      })
-                    )
-                    .map(p => (
-                      <p key={p} style={{ color: computePatientColor(p) }}>
-                        {p}
-                      </p>
-                    ))}
-                </div>
-                <div className="Patients-list">
-                  <p>{computeClassProportions(testPatients)}</p>
-                  {[...testPatients]
-                    .sort((p1, p2) =>
-                      p1.localeCompare(p2, undefined, {
-                        numeric: true,
-                        sensitivity: 'base'
-                      })
-                    )
-                    .map(p => (
-                      <p key={p} style={{ color: computePatientColor(p) }}>
-                        {p}
-                      </p>
-                    ))}
-                </div>
-              </div>
-            )}
           </FormGroup>
         </>
       )}
