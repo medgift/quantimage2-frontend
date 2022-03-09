@@ -6,20 +6,18 @@ import { NON_FEATURE_FIELDS } from '../Train';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import _ from 'lodash';
-
 const PYRADIOMICS_PREFIX = 'original';
 
 // This is a custom filter UI for selecting
 // a unique option from a list
 function SelectColumnFilter({
-  column: { filterValue, setFilter, preFilteredRows, id },
+  column: { filterValue, setFilter, preFilteredRows, id }
 }) {
   // Calculate the options for filtering
   // using the preFilteredRows
   const options = React.useMemo(() => {
     const options = new Set();
-    preFilteredRows.forEach((row) => {
+    preFilteredRows.forEach(row => {
       options.add(row.values[id]);
     });
     return [...options.values()];
@@ -29,7 +27,7 @@ function SelectColumnFilter({
   return (
     <select
       value={filterValue}
-      onChange={(e) => {
+      onChange={e => {
         setFilter(e.target.value || undefined);
       }}
     >
@@ -56,7 +54,7 @@ export default function FeatureTable({ featuresTabular }) {
 
     // Make groups of features
     for (let featureName of header.filter(
-      (c) => !NON_FEATURE_FIELDS.includes(c)
+      c => !NON_FEATURE_FIELDS.includes(c)
     )) {
       /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
       // Group PyRadiomics features by the second level,
@@ -83,14 +81,14 @@ export default function FeatureTable({ featuresTabular }) {
 
     console.log('feature groups', featureGroups);
 
-    let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
+    let featureColumns = Object.keys(featureGroups).map(featureGroup => ({
       Header: featureGroup,
       id: featureGroup,
-      columns: featureGroups[featureGroup].map((featureName) => ({
+      columns: featureGroups[featureGroup].map(featureName => ({
         Header: featureName,
         accessor: featureName,
-        disableFilters: true,
-      })),
+        disableFilters: true
+      }))
     }));
 
     console.log('feature columns', featureColumns);
@@ -98,21 +96,21 @@ export default function FeatureTable({ featuresTabular }) {
     let columnsDefinitions = [
       {
         Header: COLUMN_GROUP_METADATA,
-        columns: NON_FEATURE_FIELDS.map((field) => ({
+        columns: NON_FEATURE_FIELDS.map(field => ({
           Header: field,
           accessor: field,
           Filter: SelectColumnFilter,
-          filter: 'equals',
-        })),
+          filter: 'equals'
+        }))
       },
       {
         Header: COLUMN_GROUP_FEATURES,
-        columns: featureColumns,
-      },
+        columns: featureColumns
+      }
     ];
 
     return columnsDefinitions;
-  }, []);
+  }, [header]);
 
   const columns = useMemo(() => columnsDefinitions, [columnsDefinitions]);
 
@@ -122,8 +120,8 @@ export default function FeatureTable({ featuresTabular }) {
       columns,
       data,
       initialState: {
-        pageSize: 20,
-      },
+        pageSize: 20
+      }
       //autoResetSelectedRows: false,
     },
     useFilters,
@@ -147,7 +145,7 @@ export default function FeatureTable({ featuresTabular }) {
     nextPage,
     previousPage,
     setPageSize,
-    state: { pageIndex, pageSize },
+    state: { pageIndex, pageSize }
   } = tableInstance;
 
   return (
@@ -157,62 +155,48 @@ export default function FeatureTable({ featuresTabular }) {
           {/* MAIN TABLE */}
           <table {...getTableProps()}>
             <thead>
-              {
-                // Loop over the header rows
-                headerGroups.map((headerGroup) => (
-                  // Apply the header row props
-                  <tr {...headerGroup.getHeaderGroupProps()}>
-                    {
-                      // Loop over the headers in each row
-                      headerGroup.headers.map((column) => (
-                        // Apply the header cell props
-                        <th {...column.getHeaderProps()}>
-                          {
-                            // Render the header
-                            column.render('Header')
-                          }
-                          {
-                            // Render the filter (if necessary)
-                            <div>
-                              {column.canFilter
-                                ? column.render('Filter')
-                                : null}
-                            </div>
-                          }
-                        </th>
-                      ))
-                    }
-                  </tr>
-                ))
-              }
+              {// Loop over the header rows
+              headerGroups.map(headerGroup => (
+                // Apply the header row props
+                <tr {...headerGroup.getHeaderGroupProps()}>
+                  {// Loop over the headers in each row
+                  headerGroup.headers.map(column => (
+                    // Apply the header cell props
+                    <th {...column.getHeaderProps()}>
+                      {// Render the header
+                      column.render('Header')}
+                      {
+                        // Render the filter (if necessary)
+                        <div>
+                          {column.canFilter ? column.render('Filter') : null}
+                        </div>
+                      }
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             {/* Apply the table body props */}
             <tbody {...getTableBodyProps()}>
-              {
-                // Loop over the table rows
-                page.map((row) => {
-                  prepareRow(row);
-                  return (
-                    // Apply the row props
-                    <tr {...row.getRowProps()}>
-                      {
-                        // Loop over the rows cells
-                        row.cells.map((cell) => {
-                          // Apply the cell props
-                          return (
-                            <td {...cell.getCellProps()}>
-                              {
-                                // Render the cell contents
-                                cell.render('Cell')
-                              }
-                            </td>
-                          );
-                        })
-                      }
-                    </tr>
-                  );
-                })
-              }
+              {// Loop over the table rows
+              page.map(row => {
+                prepareRow(row);
+                return (
+                  // Apply the row props
+                  <tr {...row.getRowProps()}>
+                    {// Loop over the rows cells
+                    row.cells.map(cell => {
+                      // Apply the cell props
+                      return (
+                        <td {...cell.getCellProps()}>
+                          {// Render the cell contents
+                          cell.render('Cell')}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -255,7 +239,7 @@ export default function FeatureTable({ featuresTabular }) {
             <input
               type="number"
               defaultValue={pageIndex + 1}
-              onChange={(e) => {
+              onChange={e => {
                 const page = e.target.value ? Number(e.target.value) - 1 : 0;
                 gotoPage(page);
               }}
@@ -264,11 +248,11 @@ export default function FeatureTable({ featuresTabular }) {
           </span>{' '}
           <select
             value={pageSize}
-            onChange={(e) => {
+            onChange={e => {
               setPageSize(Number(e.target.value));
             }}
           >
-            {[10, 20, 50, 100].map((pageSize) => (
+            {[10, 20, 50, 100].map(pageSize => (
               <option key={pageSize} value={pageSize}>
                 Show {pageSize}
               </option>

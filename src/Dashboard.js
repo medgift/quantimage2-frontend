@@ -1,21 +1,18 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import DicomFields from './dicom/fields';
-import moment from 'moment';
 import './Dashboard.css';
 import Backend from './services/backend';
 import Kheops from './services/kheops';
 import { useHistory } from 'react-router-dom';
 import {
-  Alert,
   Button,
   Collapse,
   Jumbotron,
   ListGroup,
   ListGroupItem,
-  Spinner,
+  Spinner
 } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { DICOM_DATE_FORMAT } from './config/constants';
 import { Badge } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import FeaturesList from './components/FeaturesList';
@@ -30,7 +27,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   let [forceUpdate, setForceUpdate] = useState(false);
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
-  let {keycloak} = useKeycloak();
+  let { keycloak } = useKeycloak();
   let history = useHistory();
 
   let socket = useContext(SocketContext);
@@ -41,7 +38,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     setCurrentAlbum(album);
   };
 
-  let handleExploreAlbumClick = async (album) => {
+  let handleExploreAlbumClick = async album => {
     // Redirect to feature table route here
     history.push(`/features/${album.album_id}/overview`);
   };
@@ -51,16 +48,16 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   };
 
   let updateExtraction = (featureExtractionID, updatedContent) => {
-    setExtractions((extractions) => {
+    setExtractions(extractions => {
       let updatedExtractions = [...extractions];
       let extractionToUpdate = updatedExtractions.find(
-        (extraction) => extraction.id === featureExtractionID
+        extraction => extraction.id === featureExtractionID
       );
 
       if (extractionToUpdate) {
         Object.assign(extractionToUpdate, {
           ...extractionToUpdate,
-          ...updatedContent,
+          ...updatedContent
         });
       }
 
@@ -69,10 +66,10 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   };
 
   let replaceExtraction = (albumID, newExtraction) => {
-    setExtractions((extractions) => {
+    setExtractions(extractions => {
       let updatedExtractions = [...extractions];
       let extractionToReplace = updatedExtractions.find(
-        (extraction) => extraction.album_id === albumID
+        extraction => extraction.album_id === albumID
       );
 
       if (extractionToReplace) {
@@ -85,7 +82,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     });
   };
 
-  let showAlbumButtons = (album) => {
+  let showAlbumButtons = album => {
     let extractionButton = (
       <Button color="link" onClick={() => handleExtractAlbumClick(album)}>
         <FontAwesomeIcon icon="cog" /> <span>Extract Features</span>
@@ -116,11 +113,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
     if (extractions && models) {
       let albumExtraction = extractions.find(
-        (extraction) => extraction.album_id === album.album_id
-      );
-
-      let albumModels = models.find(
-        (model) => model.album_id === album.album_id
+        extraction => extraction.album_id === album.album_id
       );
 
       if (!albumExtraction) {
@@ -165,7 +158,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     }
   };
 
-  const featureExtractionStatusText = (albumExtraction) => {
+  const featureExtractionStatusText = albumExtraction => {
     // Completely successful extraction
     if (albumExtraction.status.successful) return null;
 
@@ -215,7 +208,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     }
   };
 
-  const getPatientNameForStudy = (study) => {
+  const getPatientNameForStudy = study => {
     if (
       study?.[DicomFields.PATIENT_NAME]?.[DicomFields.VALUE]?.[0]?.[
         DicomFields.ALPHABETIC
@@ -231,7 +224,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     }
   };
 
-  const getStudyDate = (study) => {
+  const getStudyDate = study => {
     if (study?.[DicomFields.DATE]?.[DicomFields.VALUE]?.[0]) {
       return study?.[DicomFields.DATE]?.[DicomFields.VALUE]?.[0];
     } else {
@@ -239,11 +232,11 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     }
   };
 
-  const getStudyUID = (study) => {
+  const getStudyUID = study => {
     return study[DicomFields.STUDY_UID][DicomFields.VALUE][0];
   };
 
-  const getStudyModalities = (study) => {
+  const getStudyModalities = study => {
     return !study[DicomFields.MODALITIES][DicomFields.VALUE][0].includes(',')
       ? study[DicomFields.MODALITIES][DicomFields.VALUE]
       : study[DicomFields.MODALITIES][DicomFields.VALUE][0].split(',');
@@ -251,12 +244,12 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
   const [studyToggles, setStudyToggles] = useState({});
 
-  const fetchStudiesFromAlbum = async (albumID) => {
+  const fetchStudiesFromAlbum = async albumID => {
     let albumStudies = await Kheops.studies(keycloak.token, albumID);
-    setStudies((s) => ({ ...s, [albumID]: albumStudies }));
+    setStudies(s => ({ ...s, [albumID]: albumStudies }));
   };
 
-  const handleStudyToggle = async (albumID) => {
+  const handleStudyToggle = async albumID => {
     const updatedStudyToggles = { ...studyToggles };
     updatedStudyToggles[albumID] = !updatedStudyToggles[albumID];
     setStudyToggles(updatedStudyToggles);
@@ -264,7 +257,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   };
 
   const handleExtractionStatus = useCallback(
-    (extractionStatus) => {
+    extractionStatus => {
       console.log(
         `STATUS for Extraction ${extractionStatus.feature_extraction_id} !!!`,
         extractionStatus
@@ -275,11 +268,11 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
         if (extractionStatus.id) {
           console.log('Updating full object');
           updateExtraction(extractionStatus.id, {
-            ...extractionStatus,
+            ...extractionStatus
           });
         } else {
           updateExtraction(extractionStatus.feature_extraction_id, {
-            status: extractionStatus.status,
+            status: extractionStatus.status
           });
         }
       }
@@ -297,7 +290,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
         }, {})
       );
     }
-  }, [albums]);
+  }, [albums, studyToggles]);
 
   // Subscribe to Socket messages
   useEffect(() => {
@@ -321,7 +314,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
         if (latestExtraction) latestExtractions.push(latestExtraction);
       }
 
-      setExtractions((extractions) => latestExtractions);
+      setExtractions(extractions => latestExtractions);
     }
 
     async function getAlbumModels() {
@@ -343,7 +336,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     if (!extractions) return '';
 
     let albumExtraction = extractions.find(
-      (extraction) => extraction.album_id === albumID
+      extraction => extraction.album_id === albumID
     );
 
     if (!albumExtraction) {
@@ -362,7 +355,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     if (!extractions) return null;
 
     let albumExtraction = extractions.find(
-      (extraction) => extraction.album_id === albumID
+      extraction => extraction.album_id === albumID
     );
 
     if (!albumExtraction) {
@@ -437,8 +430,8 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
               albums.length > 0 && (
                 <ListGroup className="albums">
                   {albums
-                    .filter((album) => album.number_of_studies > 0)
-                    .map((album) => (
+                    .filter(album => album.number_of_studies > 0)
+                    .map(album => (
                       <ListGroupItem key={album.album_id}>
                         <div className="d-flex justify-content-between align-items-center">
                           <h5 style={{ margin: 0 }}>
@@ -450,9 +443,10 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
                           {showAlbumButtons(album)}
                         </div>
 
-                        <a
-                          href="#"
-                          onClick={(e) => {
+                        <Button
+                          color="link"
+                          style={{ border: 0, padding: 0 }}
+                          onClick={e => {
                             e.preventDefault();
                             handleStudyToggle(album.album_id);
                           }}
@@ -460,7 +454,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
                           {studyToggles && studyToggles[album.album_id]
                             ? 'Hide studies'
                             : 'Show studies'}
-                        </a>
+                        </Button>
                         <Collapse
                           isOpen={
                             studyToggles ? studyToggles[album.album_id] : false
@@ -468,7 +462,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
                         >
                           {album.album_id in studies ? (
                             <ListGroup>
-                              {studies[album.album_id].map((study) => (
+                              {studies[album.album_id].map(study => (
                                 <ListGroupItem
                                   key={getStudyUID(study)}
                                   className="d-flex justify-content-between align-items-center"
@@ -543,7 +537,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
         >
           <FeaturesList
             albumID={currentAlbum.album_id}
-            extractionCallback={(newExtraction) => {
+            extractionCallback={newExtraction => {
               toggleModal();
               replaceExtraction(newExtraction.album_id, newExtraction);
             }}

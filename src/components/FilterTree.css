@@ -29,6 +29,8 @@
 
 .FilterTree .Check-All {
   visibility: hidden;
+  padding: 0;
+  border: 0;
 }
 
 .FilterTree .MuiTreeItem-content:hover .Check-All {

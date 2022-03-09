@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Form, FormGroup, FormText, Input, Label } from 'reactstrap';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { Alert, Form, FormGroup, Input, Label } from 'reactstrap';
 import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES
@@ -15,7 +15,7 @@ export default function DataSplitting({
   featureExtractionID,
   collectionID,
   dataSplittingType,
-  setDataSplittingType,
+  updateDataSplittingType,
   nbTrainingPatients,
   setNbTrainingPatients,
   dataPoints,
@@ -27,8 +27,8 @@ export default function DataSplitting({
 }) {
   const { keycloak } = useKeycloak();
 
-  const handleDataSplitChange = e => {
-    setDataSplittingType(e.target.value);
+  const handleDataSplitChange = async e => {
+    await updateDataSplittingType(e.target.value);
   };
 
   const handleNbTrainingPatientsChange = async e => {
@@ -36,6 +36,10 @@ export default function DataSplitting({
   };
 
   const patients = useMemo(() => {
+    if (!outcomes) {
+      return { trainingPatients: [], testPatients: [] };
+    }
+
     let filteredOutcomes = outcomes.filter(o =>
       dataPoints.includes(o.patient_id)
     );
@@ -116,43 +120,12 @@ export default function DataSplitting({
       if (trainingPatients !== null) await resetPatients();
     }
 
-    if (dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT) {
+    if (dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET) {
       initPatients();
     } else {
       reinitPatients();
     }
-  }, [savePatients, dataSplittingType, resetPatients, trainingPatients]);
-
-  const computePatientColor = patientID => {
-    let patientOutcome = outcomes.find(o => o.patient_id === patientID);
-
-    return patientOutcome.label_content.Outcome === 'PLC-' ? 'green' : 'red';
-  };
-
-  const computeClassProportions = patientIDs => {
-    let patientOutcomes = {};
-
-    for (let patientID of patientIDs) {
-      let patientLabel = outcomes.find(o => o.patient_id === patientID);
-      let patientOutcome = patientLabel.label_content.Outcome;
-
-      if (!Object.keys(patientOutcomes).includes(patientOutcome)) {
-        patientOutcomes[patientOutcome] = 1;
-      } else {
-        patientOutcomes[patientOutcome]++;
-      }
-    }
-
-    return Object.keys(patientOutcomes)
-      .sort((o1, o2) => o1.localeCompare(o2))
-      .map(
-        label =>
-          `${label} : ${patientOutcomes[label]} (${(
-            (patientOutcomes[label] / patientIDs.length) *
-            100
-          ).toFixed(1)}%) `
-      );
-  };
+  }, [savePatients, resetPatients, trainingPatients, dataSplittingType]);
 
   return (
     <div>
@@ -166,7 +139,7 @@ export default function DataSplitting({
                 name="model-validation"
                 value={DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT}
                 checked={
-                  dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
+                  dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET
                 }
                 onChange={handleDataSplitChange}
               />{' '}
@@ -207,7 +180,7 @@ export default function DataSplitting({
           </FormGroup>
         </FormGroup>
       </Form>
-      {dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+      {dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET && (
         <>
           <h5>Training & Test Set Split</h5>
           <FormGroup style={{ width: '66%' }} className="m-auto">
@@ -229,11 +202,11 @@ export default function DataSplitting({
             >
               <span>
                 Training : {nbTrainingPatients} patients (
-                {Math.floor((nbTrainingPatients / dataPoints.length) * 100)}%)
+                {Math.round((nbTrainingPatients / dataPoints.length) * 100)}%)
               </span>
               <span>
                 Test : {dataPoints.length - nbTrainingPatients} patients (
-                {Math.floor(
+                {Math.round(
                   ((dataPoints.length - nbTrainingPatients) /
                     dataPoints.length) *
                     100

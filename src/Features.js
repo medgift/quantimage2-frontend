@@ -6,23 +6,19 @@ import {
   Alert,
   Badge,
   Button,
-  ButtonGroup,
   Form,
   FormGroup,
   Input,
   InputGroup,
   InputGroupAddon,
   Label,
-  ListGroup,
-  ListGroupItem,
   Nav,
   NavItem,
   NavLink,
   Spinner,
   TabContent,
   Table,
-  TabPane,
-  Collapse
+  TabPane
 } from 'reactstrap';
 
 import { useKeycloak } from '@react-keycloak/web';
@@ -72,9 +68,6 @@ function Features({ history }) {
 
   // Models management
   const [models, setModels] = useState([]);
-
-  // Model validation management
-  let [dataSplittingType, setDataSplittingType] = useState(null);
 
   // Train/Test split
   let [nbTrainingPatients, setNbTrainingPatients] = useState(null);
@@ -126,6 +119,12 @@ function Features({ history }) {
     return unlabelled;
   }, [selectedLabelCategory, dataPoints]);
 
+  // Get current collection
+  const currentCollection =
+    collections && collectionID
+      ? collections.find(c => c.collection.id === +collectionID)
+      : null;
+
   // Get album
   useEffect(() => {
     async function getAlbum() {
@@ -139,7 +138,7 @@ function Features({ history }) {
     }
 
     getAlbum();
-  }, [albumID]);
+  }, [albumID, keycloak.token]);
 
   // Get collections
   useEffect(() => {
@@ -170,7 +169,7 @@ function Features({ history }) {
       setCollections(finalCollections);
     }
     if (featureExtractionID) getCollections();
-  }, [featureExtractionID, collectionID]);
+  }, [featureExtractionID, collectionID, keycloak.token]);
 
   // Fetch label categories
   useEffect(() => {
@@ -203,7 +202,7 @@ function Features({ history }) {
     if (collections && collectionID && currentCollection) {
       setActiveCollectionName(currentCollection.collection.name);
     }
-  }, [collectionID, collections]);
+  }, [collectionID, collections, currentCollection, keycloak.token]);
 
   // Get feature extraction
   useEffect(() => {
@@ -220,7 +219,7 @@ function Features({ history }) {
     }
 
     getExtraction();
-  }, [albumID]);
+  }, [albumID, keycloak.token]);
 
   // Get features
   useEffect(() => {
@@ -252,7 +251,7 @@ function Features({ history }) {
     }
 
     if (featureExtractionID) getFeatures();
-  }, [featureExtractionID, collectionID]);
+  }, [featureExtractionID, collectionID, keycloak.token]);
 
   // Get models
   useEffect(() => {
@@ -334,12 +333,6 @@ function Features({ history }) {
       );
   }, [featuresTabular]);
 
-  // Get current collection
-  const currentCollection =
-    collections && collectionID
-      ? collections.find(c => c.collection.id === +collectionID)
-      : null;
-
   // Set training & test patients
   useEffect(() => {
     let trainingPatients;
@@ -356,28 +349,15 @@ function Features({ history }) {
     }
 
     if (trainingPatients === null || trainingPatients === undefined) {
-      setDataSplittingType(DATA_SPLITTING_TYPES.FULL_DATASET);
       setNbTrainingPatients(
         Math.floor(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
       );
     } else {
-      setDataSplittingType(DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT);
       setTrainingPatients(trainingPatients);
       setTestPatients(testPatients);
       setNbTrainingPatients(trainingPatients.length);
     }
   }, [featureExtraction, collectionID, currentCollection, dataPoints]);
-
-  // Handle click on a filter button
-  const handleFilterClick = (selected, field, setField) => {
-    const index = field.indexOf(selected);
-    if (index < 0) {
-      field.push(selected);
-    } else {
-      field.splice(index, 1);
-    }
-    setField([...field]);
-  };
 
   // Handle download click
   const handleDownloadClick = async e => {
@@ -429,10 +409,7 @@ function Features({ history }) {
   const handleDeleteCollectionClick = async e => {
     e.preventDefault();
     setIsDeletingCollection(true);
-    let deletedCollection = await Backend.deleteCollection(
-      keycloak.token,
-      collectionID
-    );
+    await Backend.deleteCollection(keycloak.token, collectionID);
     setIsDeletingCollection(false);
 
     // Remove deleted collection and redirect to original feature set
@@ -499,6 +476,53 @@ function Features({ history }) {
     return features.length;
   };
 
+  // Data splitting type based on current extraction/collection
+  const dataSplittingType =
+    collectionID && currentCollection
+      ? currentCollection.collection.data_splitting_type
+      : featureExtraction
+      ? featureExtraction.data_splitting_type
+      : null;
+
+  const updateDataSplittingType = async newDataSplittingType => {
+    if (collectionID && currentCollection) {
+      let updatedCollection = await Backend.updateCollection(
+        keycloak.token,
+        collectionID,
+        { data_splitting_type: newDataSplittingType }
+      );
+
+      setCollections(c => {
+        let collections = [...c];
+
+        let collectionToUpdateIndex = collections.findIndex(
+          col => col.collection.id === currentCollection.collection.id
+        );
+        collections[collectionToUpdateIndex].collection = updatedCollection;
+
+        return collections;
+      });
+    } else {
+      let updatedExtraction = await Backend.updateExtraction(
+        keycloak.token,
+        featureExtractionID,
+        { data_splitting_type: newDataSplittingType }
+      );
+
+      setFeatureExtraction(extraction => ({
+        ...extraction,
+        ...updatedExtraction
+      }));
+    }
+  };
+
+  const percentageTraining =
+    nbTrainingPatients && dataPoints
+      ? Math.round((nbTrainingPatients / dataPoints.length) * 100)
+      : 0;
+
+  const percentageTest = 100 - percentageTraining;
+
   return (
     <>
       <h2>Feature Explorer</h2>
@@ -560,8 +584,7 @@ function Features({ history }) {
                     Data Splitting (Current -{' '}
                     {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
                       ? 'Full'
-                      : `Train/Test Split ${nbTrainingPatients}%/${100 -
-                          nbTrainingPatients}%`}
+                      : `Training/Test Split ${percentageTraining}%/${percentageTest}%`}
                     )
                   </NavLink>
                 </NavItem>
@@ -739,12 +762,12 @@ function Features({ history }) {
                   )}
                 </TabPane>
                 <TabPane tabId="split">
-                  {dataPoints && dataSplittingType && (
+                  {dataPoints && (
                     <DataSplitting
                       featureExtractionID={featureExtractionID}
                       collectionID={collectionID}
                       dataSplittingType={dataSplittingType}
-                      setDataSplittingType={setDataSplittingType}
+                      updateDataSplittingType={updateDataSplittingType}
                       nbTrainingPatients={nbTrainingPatients}
                       setNbTrainingPatients={setNbTrainingPatients}
                       trainingPatients={trainingPatients}
@@ -871,188 +894,6 @@ function getFeatureTitleSingularOrPlural(unlabelledDataPoints) {
       </strong>{' '}
       missing an outcome!
     </span>
-  );
-}
-
-function FilterButtonGroup({
-  values,
-  selectedValues,
-  setSelectedValues,
-  handleClick
-}) {
-  return (
-    <>
-      <div>
-        <ButtonGroup>
-          <Button
-            size="sm"
-            color="primary"
-            onClick={() => setSelectedValues(values)}
-          >
-            All
-          </Button>
-          <Button
-            size="sm"
-            color="secondary"
-            onClick={() => setSelectedValues([])}
-          >
-            None
-          </Button>
-        </ButtonGroup>
-      </div>
-      <div className="pre-scrollable mt-2">
-        <ButtonGroup
-          vertical
-          style={{ marginRight: '-14px', width: 'calc(100% - 14px)' }}
-        >
-          {values.map(v => (
-            <Button
-              key={v}
-              color={selectedValues.includes(v) ? 'primary' : 'secondary'}
-              onClick={() => handleClick(v, selectedValues, setSelectedValues)}
-            >
-              {v}
-            </Button>
-          ))}
-        </ButtonGroup>
-      </div>
-    </>
-  );
-}
-
-function FeatureFilterButtonGroup({
-  groups,
-  values,
-  selectedValues,
-  setSelectedValues,
-  handleClick
-}) {
-  const [groupsOpen, setGroupsOpen] = useState({});
-
-  const toggleGroupOpen = group => {
-    let wasOpen = groupsOpen[group];
-    setGroupsOpen(g => ({ ...g, [group]: !wasOpen }));
-  };
-
-  const toggleGroupSelected = g => {
-    let wasSelected = groups[g].some(f => selectedValues.includes(f));
-
-    let groupFeatures = groups[g];
-
-    let newValues = [...values];
-
-    let updatedSelectedValues = [...selectedValues];
-
-    // Remove the group's features or keep them?
-    if (wasSelected) {
-      // Remove the features
-      for (let f of groupFeatures) {
-        let featureIndex = updatedSelectedValues.findIndex(
-          feature => feature === f
-        );
-
-        if (featureIndex > -1) updatedSelectedValues.splice(featureIndex, 1);
-      }
-    } else {
-      updatedSelectedValues = [...updatedSelectedValues, ...groupFeatures];
-    }
-
-    setSelectedValues(updatedSelectedValues);
-  };
-
-  return (
-    <>
-      <div>
-        <ButtonGroup>
-          <Button
-            size="sm"
-            color="primary"
-            onClick={() => setSelectedValues(values)}
-          >
-            All
-          </Button>
-          <Button
-            size="sm"
-            color="secondary"
-            onClick={() => setSelectedValues([])}
-          >
-            None
-          </Button>
-        </ButtonGroup>
-      </div>
-      <div className="pre-scrollable mt-2">
-        <ListGroup vertical flush>
-          {Object.keys(groups).map(g => (
-            <>
-              <ListGroupItem key={g} className="p-0">
-                <div className="d-flex">
-                  <Button
-                    className="flex-grow-1"
-                    color={
-                      groups[g].every(f => selectedValues.includes(f))
-                        ? 'primary'
-                        : groups[g].some(f => selectedValues.includes(f))
-                        ? 'info'
-                        : 'secondary'
-                    }
-                    onClick={() => {
-                      toggleGroupSelected(g);
-                    }}
-                  >
-                    {g}
-                  </Button>
-                  <Button
-                    color="link"
-                    onClick={() => toggleGroupOpen(g)}
-                    style={{ boxSizing: 'border-box', width: '36px' }}
-                  >
-                    {groupsOpen[g] === true ? '-' : '+'}
-                  </Button>
-                </div>
-
-                <Collapse isOpen={groupsOpen[g] === true} className="text-left">
-                  <ButtonGroup
-                    vertical
-                    style={{ width: 'calc(100% - 36px)' }}
-                    className="mt-2 mb-2"
-                  >
-                    {groups[g].map(f => (
-                      <Button
-                        key={f}
-                        color={
-                          selectedValues.includes(f) ? 'primary' : 'secondary'
-                        }
-                        onClick={() =>
-                          handleClick(f, selectedValues, setSelectedValues)
-                        }
-                      >
-                        {f}
-                      </Button>
-                    ))}
-                  </ButtonGroup>
-                </Collapse>
-              </ListGroupItem>
-            </>
-          ))}
-        </ListGroup>
-      </div>
-    </>
-  );
-}
-
-function MetadataAlert({ selectedValues, values, title }) {
-  return (
-    <Alert
-      color={selectedValues.length > 0 ? 'primary' : 'danger'}
-      className="mt-2"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      {selectedValues.length}/{values.length} {title}
-    </Alert>
   );
 }
 

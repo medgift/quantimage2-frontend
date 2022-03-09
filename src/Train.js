@@ -9,8 +9,7 @@ import {
   Label,
   FormGroup,
   Badge,
-  Tooltip,
-  ButtonGroup
+  Tooltip
 } from 'reactstrap';
 
 import { useTable, useSortBy } from 'react-table';
@@ -28,7 +27,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
 import { MODEL_TYPES, DATA_SPLITTING_TYPES } from './config/constants';
-import { CLASSIFICATION_OUTCOMES, SURVIVAL_OUTCOMES } from './config/constants';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';

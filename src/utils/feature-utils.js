@@ -51,9 +51,10 @@ function assembleCSVHeader(allFeatures) {
   for (let features of allFeatures) {
     Object.keys(features)
       .filter(key => key !== PATIENT_ID_FIELD)
-      .map(modality => {
-        Object.keys(features[modality]).map(label => {
-          Object.keys(features[modality][label]).map(featureName => {
+      // eslint-disable-next-line no-loop-func
+      .forEach(modality => {
+        Object.keys(features[modality]).forEach(label => {
+          Object.keys(features[modality][label]).forEach(featureName => {
             if (!fields.includes(featureName)) fields.push(featureName);
           });
         });
@@ -72,8 +73,8 @@ function assembleCSVData(allFeatures, fields) {
 
     Object.keys(features)
       .filter(key => key !== PATIENT_ID_FIELD)
-      .map(modality => {
-        Object.keys(features[modality]).map(label => {
+      .forEach(modality => {
+        Object.keys(features[modality]).forEach(label => {
           let dataLine = {};
 
           dataLine[PATIENT_ID_FIELD] = patientID;
@@ -169,11 +170,11 @@ function getFeaturesFromTasks(patientID, tasks) {
 
   tasks.map(task => {
     // Go through modalities
-    Object.keys(task.payload).map(modality => {
+    Object.keys(task.payload).forEach(modality => {
       if (!filteredFeatures[modality]) filteredFeatures[modality] = {};
 
       // Go through labelCategories
-      Object.keys(task.payload[modality]).map(label => {
+      Object.keys(task.payload[modality]).forEach(label => {
         //if (!filteredFeatures[modality][label]) filteredFeatures[modality][label] = {};
         filteredFeatures[modality][label] = {
           ...filteredFeatures[modality][label],

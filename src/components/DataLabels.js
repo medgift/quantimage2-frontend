@@ -1,17 +1,10 @@
 import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './DataLabels.css';
-import {
-  CLASSIFICATION_OUTCOMES,
-  MODEL_TYPES,
-  OUTCOME_CLASSIFICATION,
-  OUTCOME_SURVIVAL_EVENT,
-  SURVIVAL_OUTCOMES,
-} from '../config/constants';
 
 export default function DataLabels({
   albumID,
@@ -22,10 +15,9 @@ export default function DataLabels({
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  dataPoints,
-  outcomes,
+  dataPoints
 }) {
-  let {keycloak} = useKeycloak();
+  let { keycloak } = useKeycloak();
 
   let [editableOutcomes, setEditableOutcomes] = useState({});
 
@@ -37,12 +29,12 @@ export default function DataLabels({
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
-    setIsManualLabellingOpen((open) => !open);
+    setIsManualLabellingOpen(open => !open);
     setIsAutoLabellingOpen(false);
   };
 
   const toggleAutoLabelling = () => {
-    setIsAutoLabellingOpen((open) => !open);
+    setIsAutoLabellingOpen(open => !open);
     setIsManualLabellingOpen(false);
   };
 
@@ -55,7 +47,7 @@ export default function DataLabels({
     setEditableOutcomes(updatedOutcomes);
   };
 
-  const handleSaveLabelsClick = async (e) => {
+  const handleSaveLabelsClick = async e => {
     setIsSavingLabels(true);
     await Backend.saveLabels(
       keycloak.token,
@@ -80,11 +72,11 @@ export default function DataLabels({
     setLabelCategories(labelCategories);
 
     setSelectedLabelCategory(
-      labelCategories.find((c) => c.id === selectedLabelCategory.id)
+      labelCategories.find(c => c.id === selectedLabelCategory.id)
     );
   };
 
-  const updateEditableOutcomes = (labels) => {
+  const updateEditableOutcomes = labels => {
     let outcomesToUpdate = { ...editableOutcomes };
 
     for (let patientID in labels) {
@@ -117,10 +109,10 @@ export default function DataLabels({
     for (let dataPoint of [
       ...dataPoints.sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
-      ),
+      )
     ]) {
       let existingLabel = selectedLabelCategory.labels.find(
-        (l) => l.patient_id === dataPoint
+        l => l.patient_id === dataPoint
       );
 
       if (existingLabel)
@@ -129,7 +121,7 @@ export default function DataLabels({
         formattedOutcomes[dataPoint] = Object.assign(
           {},
           {},
-          ...outcomeColumns.map((o) => '')
+          ...outcomeColumns.map(o => '')
         );
 
       setEditableOutcomes(formattedOutcomes);
@@ -159,16 +151,16 @@ export default function DataLabels({
             <tr>
               <th>PatientID</th>
               {/*<th>ROI</th>*/}
-              {outcomeColumns.map((outcomeColumn) => (
+              {outcomeColumns.map(outcomeColumn => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>
           </thead>
           <tbody className="data-points">
-            {dataPoints.map((dataPoint) => (
+            {dataPoints.map(dataPoint => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {outcomeColumns.map((outcomeColumn) => (
+                {outcomeColumns.map(outcomeColumn => (
                   <td key={outcomeColumn} className="data-label">
                     <Input
                       type="text"
@@ -179,7 +171,7 @@ export default function DataLabels({
                           ? editableOutcomes[dataPoint][outcomeColumn]
                           : ''
                       }
-                      onChange={(e) => {
+                      onChange={e => {
                         handleOutcomeInputChange(e, dataPoint, outcomeColumn);
                       }}
                     />
@@ -215,7 +207,7 @@ export default function DataLabels({
           <thead>
             <tr>
               <th>PatientID</th>
-              {outcomeColumns.map((outcomeColumn) => (
+              {outcomeColumns.map(outcomeColumn => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>

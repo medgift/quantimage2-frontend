@@ -2,7 +2,6 @@ import { pythonBackendBaseURL } from './config';
 
 import { downloadFile, rawRequest, request } from './common';
 import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
-import { DATA_SPLITTING_TYPES } from '../config/constants';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -49,6 +48,20 @@ class Backend {
     try {
       const url = `${endpoints.extractions}/${extractionID}`;
       return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async updateExtraction(token, extractionID, fields) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}`;
+
+      return await request(url, {
+        method: 'PATCH',
+        data: fields,
+        token: token
+      });
     } catch (err) {
       throw err; // Just throw it for now
     }

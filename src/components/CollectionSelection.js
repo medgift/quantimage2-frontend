@@ -1,19 +1,18 @@
 import React from 'react';
-import { ListGroup, ListGroupItem, Button } from 'reactstrap';
+import { ListGroup, ListGroupItem } from 'reactstrap';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useHistory, useParams } from 'react-router-dom';
 
 export default function CollectionSelection({
   album,
   collections,
-  setIsLoading,
+  setIsLoading
 }) {
   const history = useHistory();
 
   const { albumID, collectionID, tab } = useParams();
 
-  const handleCollectionClick = (e) => {
+  const handleCollectionClick = e => {
     setIsLoading(true);
 
     e.preventDefault();
@@ -25,11 +24,6 @@ export default function CollectionSelection({
         `/features/${albumID}/collection/${e.target.id}/${tabToShow}`
       );
     else history.push(`/features/${albumID}/${tabToShow}`);
-  };
-
-  const handleCreateCollectionClick = (e) => {
-    e.preventDefault();
-    history.push(`/features/${albumID}/create`);
   };
 
   return collections ? (
@@ -47,7 +41,7 @@ export default function CollectionSelection({
         >
           {'<original>'}
         </ListGroupItem>
-        {collections.map((c) => (
+        {collections.map(c => (
           <ListGroupItem
             id={c.collection.id}
             key={c.collection.id}

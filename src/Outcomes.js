@@ -6,7 +6,7 @@ import {
   Input,
   InputGroup,
   InputGroupAddon,
-  Label,
+  Label
 } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DataLabels from './components/DataLabels';
@@ -14,7 +14,7 @@ import React, { useState } from 'react';
 import {
   CLASSIFICATION_OUTCOMES,
   MODEL_TYPES,
-  SURVIVAL_OUTCOMES,
+  SURVIVAL_OUTCOMES
 } from './config/constants';
 import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
@@ -34,9 +34,9 @@ export default function Outcomes({
   setSelectedLabelCategory,
   labelCategories,
   setLabelCategories,
-  setFeaturesChart,
+  setFeaturesChart
 }) {
-  const {keycloak} = useKeycloak();
+  const { keycloak } = useKeycloak();
 
   const [outcomeModalOpen, setOutcomeModalOpen] = useState(false);
   const [newOutcomeName, setNewOutcomeName] = useState('');
@@ -46,30 +46,30 @@ export default function Outcomes({
   const [isEditingOutcome, setIsEditingOutcome] = useState(false);
 
   // Handle outcome type change
-  const handleOutcomeTypeChange = (e) => {
+  const handleOutcomeTypeChange = e => {
     setNewOutcomeType(e.target.value);
   };
 
   // Handle outcome name change
-  const handleOutcomeNameChange = (e) => {
+  const handleOutcomeNameChange = e => {
     setNewOutcomeName(e.target.value);
   };
 
   // Handle outcome creation
-  const handleCreateOutcomeClick = (e) => {
+  const handleCreateOutcomeClick = e => {
     toggleOutcomeModal();
   };
 
   // Handle outcome selection
-  const handleOutcomeChange = async (e) => {
-    let selectedOutcome = labelCategories.find((c) => c.id === +e.target.value);
+  const handleOutcomeChange = async e => {
+    let selectedOutcome = labelCategories.find(c => c.id === +e.target.value);
     await saveCurrentOutcome(selectedOutcome ? selectedOutcome : null);
     setSelectedLabelCategory(selectedOutcome);
   };
 
   // Toggle outcome creation modal
   const toggleOutcomeModal = () => {
-    setOutcomeModalOpen((o) => {
+    setOutcomeModalOpen(o => {
       setNewOutcomeType(MODEL_TYPES.CLASSIFICATION);
       setNewOutcomeName('');
       setIsEditingOutcome(false);
@@ -78,7 +78,7 @@ export default function Outcomes({
   };
 
   // Handle create outcome form submission
-  const handleCreateOutcomeSubmit = async (e) => {
+  const handleCreateOutcomeSubmit = async e => {
     e.preventDefault();
 
     let newLabelCategory = await Backend.saveLabelCategory(
@@ -88,7 +88,7 @@ export default function Outcomes({
       newOutcomeName
     );
 
-    setLabelCategories((c) => [...c, newLabelCategory]);
+    setLabelCategories(c => [...c, newLabelCategory]);
 
     // Select the new label category as the active one
     await saveCurrentOutcome(newLabelCategory);
@@ -96,7 +96,7 @@ export default function Outcomes({
     toggleOutcomeModal();
   };
 
-  const handleEditOutcomeSubmit = async (e) => {
+  const handleEditOutcomeSubmit = async e => {
     e.preventDefault();
 
     let updatedLabelCategory = await Backend.editLabelCategory(
@@ -107,7 +107,7 @@ export default function Outcomes({
 
     // Update category name in the list of label categories
     let categoryToUpdateIndex = labelCategories.findIndex(
-      (c) => c.id === updatedLabelCategory.id
+      c => c.id === updatedLabelCategory.id
     );
     let categories = [...labelCategories];
     categories[categoryToUpdateIndex] = updatedLabelCategory;
@@ -133,7 +133,7 @@ export default function Outcomes({
     await Backend.deleteLabelCategory(keycloak.token, categoryToDelete.id);
 
     let categoryToRemoveIndex = labelCategories.findIndex(
-      (c) => c.id === categoryToDelete.id
+      c => c.id === categoryToDelete.id
     );
     let categories = [...labelCategories];
     categories.splice(categoryToRemoveIndex, 1);
@@ -144,7 +144,7 @@ export default function Outcomes({
 
   if (labelCategories === null) return <div>Loading...</div>;
 
-  const saveCurrentOutcome = async (outcome) => {
+  const saveCurrentOutcome = async outcome => {
     await Backend.saveCurrentOutcome(
       keycloak.token,
       albumID,
@@ -162,10 +162,10 @@ export default function Outcomes({
   };
 
   const classificationCategories = labelCategories.filter(
-    (c) => c.label_type === MODEL_TYPES.CLASSIFICATION
+    c => c.label_type === MODEL_TYPES.CLASSIFICATION
   );
   const survivalCategories = labelCategories.filter(
-    (c) => c.label_type === MODEL_TYPES.SURVIVAL
+    c => c.label_type === MODEL_TYPES.SURVIVAL
   );
 
   return (
@@ -196,7 +196,7 @@ export default function Outcomes({
               </option>
               {classificationCategories.length > 0 && (
                 <optgroup label={MODEL_TYPES.CLASSIFICATION}>
-                  {classificationCategories.map((category) => (
+                  {classificationCategories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -205,7 +205,7 @@ export default function Outcomes({
               )}
               {survivalCategories.length > 0 && (
                 <optgroup label={MODEL_TYPES.SURVIVAL}>
-                  {survivalCategories.map((category) => (
+                  {survivalCategories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -293,7 +293,7 @@ export default function Outcomes({
               onChange={handleOutcomeTypeChange}
               disabled={isEditingOutcome}
             >
-              {Object.keys(MODEL_TYPES).map((key) => (
+              {Object.keys(MODEL_TYPES).map(key => (
                 <option key={key} value={MODEL_TYPES[key]}>
                   {MODEL_TYPES[key]}
                 </option>
@@ -313,8 +313,6 @@ export default function Outcomes({
   );
 }
 
-function OutcomeCreateEditModal(isEdit) {}
-
 function validateFileType(file) {
   /* Validate metadata - file type */
   if (
@@ -323,7 +321,7 @@ function validateFileType(file) {
       'text/comma-separated-values',
       'text/tab-separated-values',
       'application/csv',
-      'application/x-csv',
+      'application/x-csv'
     ].includes(file.type)
   ) {
     if (
@@ -374,15 +372,13 @@ async function validateLabelFile(file, dataPoints, headerFieldNames) {
 
     let hasHeader =
       headerFields.length === fullHeaderFieldNames.length &&
-      fullHeaderFieldNames.every((fieldName) =>
-        headerFields.includes(fieldName)
-      );
+      fullHeaderFieldNames.every(fieldName => headerFields.includes(fieldName));
 
     let columns = hasHeader ? true : fullHeaderFieldNames;
 
     const records = parse(content, {
       columns: columns,
-      skip_empty_lines: true,
+      skip_empty_lines: true
     });
 
     // Match rows to data points
@@ -390,7 +386,7 @@ async function validateLabelFile(file, dataPoints, headerFieldNames) {
 
     for (let patientID of dataPoints) {
       let matchingRecord = records.find(
-        (record) => record.PatientID === patientID
+        record => record.PatientID === patientID
       );
 
       if (matchingRecord) {
@@ -416,6 +412,6 @@ async function validateLabelFile(file, dataPoints, headerFieldNames) {
   return [
     valid,
     `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
-    labels,
+    labels
   ];
 }
