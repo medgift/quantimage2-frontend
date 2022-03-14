@@ -21,7 +21,6 @@ import {
   CATEGORY_DEFINITIONS,
   FEATURE_CATEGORY_ALIASES
 } from './utils/feature-mapping';
-import FilterList from './components/FilterList';
 import MyModal from './components/MyModal';
 import {
   CLASSIFICATION_OUTCOMES,
@@ -90,7 +89,6 @@ export default function Visualisation({
   const [loading, setLoading] = useState(true);
 
   // Features
-  const [patients, setPatients] = useState([]);
   const [featureIDs, setFeatureIDs] = useState(null);
   const [selectedFeatureIDs, setSelectedFeatureIDs] = useState(null);
 
@@ -110,10 +108,15 @@ export default function Visualisation({
   const [newCollectionName, setNewCollectionName] = useState('');
 
   // Test Patients Modal
+  const [trainingPatientsOpen, setTrainingPatientsOpen] = useState(false);
   const [testPatientsOpen, setTestPatientsOpen] = useState(false);
 
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
+
+  const finalTrainingPatients = trainingPatients
+    ? trainingPatients
+    : dataPoints;
 
   // Determine outcome column to inspect for chart
   const outcomeField = useMemo(() => {
@@ -126,11 +129,6 @@ export default function Visualisation({
 
     return outcomeField;
   }, [selectedLabelCategory]);
-
-  // Filter selected patients
-  const selectedPatients = useMemo(() => {
-    return new Set(patients.filter(p => p.selected).map(p => p.name));
-  }, [patients]);
 
   // Sorted classes for the chart data
   const sortedClasses = useMemo(() => {
@@ -170,7 +168,7 @@ export default function Visualisation({
 
     let labels = selectedLabelCategory.labels;
     let patientOutcomes = [];
-    for (let patient of selectedPatients) {
+    for (let patient of finalTrainingPatients) {
       let patientOutcome = labels.find(l => l.patient_id === patient);
 
       if (!patientOutcome)
@@ -219,18 +217,23 @@ export default function Visualisation({
     });
 
     return patientOutcomes;
-  }, [selectedLabelCategory, selectedPatients, sortedClasses, outcomeField]);
+  }, [
+    selectedLabelCategory,
+    finalTrainingPatients,
+    sortedClasses,
+    outcomeField
+  ]);
 
   // Sort Patient IDs for the chart data
   const sortedPatientIDs = useMemo(() => {
     if (sortedOutcomes.length > 0) {
       return Array.from(new Set(sortedOutcomes.map(o => o.PatientID)));
     } else {
-      return Array.from(selectedPatients).sort((p1, p2) =>
+      return Array.from(finalTrainingPatients).sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
       );
     }
-  }, [sortedOutcomes, selectedPatients]);
+  }, [sortedOutcomes, finalTrainingPatients]);
 
   // Format survival times to correspond to the Highcharts requirements
   const formattedHighchartsDataSurvivalTime = useMemo(() => {
@@ -299,21 +302,6 @@ export default function Visualisation({
     }
   }, [featuresChart]);
 
-  // Initialize patient IDs
-  useEffect(() => {
-    let patients = trainingPatients ? trainingPatients : dataPoints;
-    setPatients(
-      patients
-        .map(p => ({ name: p, selected: true }))
-        .sort((p1, p2) =>
-          p1.name.localeCompare(p2.name, undefined, {
-            numeric: true,
-            sensitivity: 'base'
-          })
-        )
-    );
-  }, [dataPoints, trainingPatients]);
-
   // Calculate features to keep based on selections
   useEffect(() => {
     if (!featuresChart || selectedFeatureIDs === null) return undefined;
@@ -328,7 +316,7 @@ export default function Visualisation({
       return {
         FeatureID: featureObject.FeatureID,
         Ranking: +featureObject.Ranking,
-        ..._.pickBy(featureObject, (v, k) => selectedPatients.has(k))
+        ..._.pickBy(featureObject, (v, k) => finalTrainingPatients.includes(k))
       };
     });
     const end = Date.now();
@@ -341,9 +329,13 @@ export default function Visualisation({
     );
 
     setFilteredFeatures(filteredFeatures);
-  }, [featuresChart, selectedFeatureIDs, selectedPatients]);
+  }, [featuresChart, selectedFeatureIDs, finalTrainingPatients]);
 
-  // Toggle patients modal
+  // Toggle patients modals
+  const toggleTrainingPatientsOpen = () => {
+    setTrainingPatientsOpen(o => !o);
+  };
+
   const toggleTestPatientsOpen = () => {
     setTestPatientsOpen(o => !o);
   };
@@ -768,8 +760,7 @@ export default function Visualisation({
       keycloak.token,
       featureExtractionID,
       newCollectionName,
-      [...selectedFeatureIDs],
-      patients
+      [...selectedFeatureIDs]
     );
     toggleCollectionModal();
     setIsCollectionSaving(false);
@@ -818,17 +809,30 @@ export default function Visualisation({
                     disabled={dropCorrelatedFeatures}
                   />
                 )}
+                <h6>Show Patients</h6>
                 <h6>
-                  Filter {trainingPatients ? 'Training Patients' : 'Patients'}{' '}
-                  (Columns)
+                  <Button color="link" onClick={toggleTrainingPatientsOpen}>
+                    <FontAwesomeIcon icon="eye" /> Show{' '}
+                    {trainingPatients && 'Training'} Patient IDs
+                  </Button>
+                  <MyModal
+                    isOpen={trainingPatientsOpen}
+                    toggle={toggleTrainingPatientsOpen}
+                    title={
+                      <span>
+                        {trainingPatients
+                          ? 'Training Patient IDs'
+                          : 'Patient IDs'}
+                      </span>
+                    }
+                  >
+                    <ListValues
+                      values={finalTrainingPatients.sort((p1, p2) =>
+                        p1.localeCompare(p2, undefined, { numeric: true })
+                      )}
+                    />
+                  </MyModal>
                 </h6>
-                <div className="filter-visualization">
-                  <FilterList
-                    label="patient"
-                    values={patients}
-                    setter={setPatients}
-                  />
-                </div>
                 {testPatients && (
                   <h6>
                     <Button color="link" onClick={toggleTestPatientsOpen}>

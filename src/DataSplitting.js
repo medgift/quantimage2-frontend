@@ -36,25 +36,29 @@ export default function DataSplitting({
   };
 
   const patients = useMemo(() => {
+    let trainingPatients;
     if (!outcomes) {
-      return { trainingPatients: [], testPatients: [] };
-    }
+      trainingPatients = _.sampleSize(
+        dataPoints,
+        Math.floor(nbTrainingPatients)
+      );
+    } else {
+      let filteredOutcomes = outcomes.filter(o =>
+        dataPoints.includes(o.patient_id)
+      );
 
-    let filteredOutcomes = outcomes.filter(o =>
-      dataPoints.includes(o.patient_id)
-    );
-
-    let trainingPatients = _(filteredOutcomes)
-      .groupBy('label_content.Outcome')
-      .map(v =>
-        _.sampleSize(
-          v,
-          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+      trainingPatients = _(filteredOutcomes)
+        .groupBy('label_content.Outcome')
+        .map(v =>
+          _.sampleSize(
+            v,
+            Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+          )
         )
-      )
-      .flatten()
-      .map(v => v.patient_id)
-      .value();
+        .flatten()
+        .map(v => v.patient_id)
+        .value();
+    }
 
     // Fill up with another patient if split does not produce exact number of requested patients
     if (trainingPatients.length < nbTrainingPatients) {

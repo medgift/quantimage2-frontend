@@ -366,13 +366,7 @@ class Backend {
     }
   }
 
-  async saveCollectionNew(
-    token,
-    featureExtractionID,
-    name,
-    featureIDs,
-    patients
-  ) {
+  async saveCollectionNew(token, featureExtractionID, name, featureIDs) {
     try {
       const url = `${endpoints.collections}/new`;
 
@@ -381,8 +375,7 @@ class Backend {
         data: {
           featureExtractionID: featureExtractionID,
           name: name,
-          featureIDs: featureIDs,
-          patientIDs: patients.filter(p => p.selected).map(p => p.name)
+          featureIDs: featureIDs
         },
         token: token
       });
@@ -397,7 +390,6 @@ class Backend {
     name,
     modalities,
     rois,
-    patients,
     features
   ) {
     try {
@@ -410,7 +402,6 @@ class Backend {
           name: name,
           modalities: modalities,
           rois: rois,
-          patients: patients,
           features: features
         },
         token: token
