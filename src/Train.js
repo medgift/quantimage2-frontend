@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
-  Input,
-  Form,
   Table,
   Button,
-  Collapse,
-  Label,
-  FormGroup,
-  Badge,
-  Tooltip
+  Tooltip,
+  ListGroup,
+  ListGroupItem
 } from 'reactstrap';
-
-import { useTable, useSortBy } from 'react-table';
 
 import { DateTime } from 'luxon';
 
@@ -27,6 +21,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
 import { MODEL_TYPES, DATA_SPLITTING_TYPES } from './config/constants';
+import ModelsTable from './components/ModelsTable';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';
@@ -35,8 +30,6 @@ export const NON_FEATURE_FIELDS = [PATIENT_ID_FIELD, MODALITY_FIELD, ROI_FIELD];
 
 const CLASSIFICATION_ALGORITHMS = {
   LOGISTIC_REGRESSION: 'logistic_regression',
-  LASSO_REGRESSION: 'lasso_regression',
-  ELASTIC_NET: 'elastic_net',
   RANDOM_FOREST: 'random_forest',
   SVM: 'svm'
 };
@@ -44,339 +37,6 @@ const CLASSIFICATION_ALGORITHMS = {
 const SURVIVAL_ALGORITHMS = {
   COX_MODEL: 'cox'
 };
-
-function ModelsTable({
-  title,
-  columns,
-  data,
-  dataPoints,
-  albumExtraction,
-  collectionInfos,
-  handleDeleteModelClick,
-  handleShowFeatureNames,
-  handleShowPatientIDs,
-  formatMetrics,
-  bestModel
-}) {
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow
-  } = useTable(
-    {
-      columns,
-      data,
-      initialState: {
-        sortBy: [{ id: 'created_at', desc: true }]
-      }
-    },
-    useSortBy
-  );
-
-  const [openModelID, setOpenModelID] = useState(-1);
-
-  const toggleModel = modelID => {
-    setOpenModelID(m => (m !== modelID ? modelID : -1));
-  };
-
-  if (data.length === 0) return null;
-
-  return (
-    <>
-      <h4 className="mt-3">{title}</h4>
-      <Table {...getTableProps()} className="m-3 models-summary">
-        <thead>
-          {headerGroups.map(headerGroup => (
-            <tr {...headerGroup.getHeaderGroupProps()}>
-              <th> </th>
-              {headerGroup.headers.map(column => (
-                // Add the sorting props to control sorting. For this example
-                // we can add them into the header props
-                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
-                  {column.render('Header')}
-                  {/* Add a sort direction indicator */}
-                  <span>
-                    {column.isSorted ? (
-                      column.isSortedDesc ? (
-                        <>
-                          {' '}
-                          <FontAwesomeIcon
-                            style={{ color: 'grey' }}
-                            icon="caret-up"
-                          />
-                          <FontAwesomeIcon icon="caret-down" />
-                        </>
-                      ) : (
-                        <>
-                          {' '}
-                          <FontAwesomeIcon icon="caret-up" />
-                          <FontAwesomeIcon
-                            style={{ color: 'grey' }}
-                            icon="caret-down"
-                          />
-                        </>
-                      )
-                    ) : (
-                      <>
-                        {' '}
-                        <FontAwesomeIcon
-                          style={{ color: 'grey' }}
-                          icon="caret-up"
-                        />
-                        <FontAwesomeIcon
-                          style={{ color: 'grey' }}
-                          icon="caret-down"
-                        />
-                      </>
-                    )}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody {...getTableBodyProps()}>
-          {rows.map((row, i) => {
-            prepareRow(row);
-            return (
-              <React.Fragment key={row.getRowProps().key}>
-                <tr
-                  {...row.getRowProps()}
-                  className={`model-row ${row.original.id === bestModel.id &&
-                    'text-success'}`}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => toggleModel(row.original.id)}
-                >
-                  <td style={{ width: '40px' }} className="model-row-icon">
-                    <FontAwesomeIcon
-                      icon={
-                        openModelID === row.original.id
-                          ? 'minus-circle'
-                          : 'plus-circle'
-                      }
-                    />
-                  </td>
-                  {row.cells.map(cell => {
-                    return (
-                      <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
-                    );
-                  })}
-                </tr>
-                <tr>
-                  <td colSpan={columns.length + 1} style={{ padding: 0 }}>
-                    <Collapse isOpen={openModelID === row.original.id}>
-                      <div key={row.original.id} className="model-entry">
-                        <h3>{row.name}</h3>
-                        <div className="model-details-container">
-                          <Table bordered className="model-details-table">
-                            <tbody>
-                              <tr>
-                                <td>Created at</td>
-                                <td>{row.original.created_at}</td>
-                              </tr>
-                              <tr>
-                                <td>Model type</td>
-                                <td>{row.original.type}</td>
-                              </tr>
-                              <tr>
-                                <td>Algorithm Used</td>
-                                <td>{row.original.algorithm}</td>
-                              </tr>
-                              <tr>
-                                <td>Data Normalization</td>
-                                <td>
-                                  {row.data_normalization
-                                    ? row.data_normalization
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              {/* TODO - Put this back once it's implemented */}
-                              {/*
-                              <tr>
-                                <td>Feature Selection</td>
-                                <td>
-                                  {row.feature_selection
-                                    ? row.feature_selection
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              */}
-                              <tr>
-                                <td>Modalities Used</td>
-                                <td>
-                                  {row.original.modalities.map(modality => (
-                                    <Badge
-                                      style={{ marginRight: '0.5em' }}
-                                      color="primary"
-                                      key={modality}
-                                    >
-                                      {modality}
-                                    </Badge>
-                                  ))}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>ROIs Used</td>
-                                <td>
-                                  {row.original.rois.map(roi => (
-                                    <Badge
-                                      style={{ marginRight: '0.5em' }}
-                                      color="primary"
-                                      key={roi}
-                                    >
-                                      {roi}
-                                    </Badge>
-                                  ))}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>Features Used</td>
-                                <td>
-                                  {collectionInfos
-                                    ? collectionInfos.features.length
-                                    : albumExtraction.feature_definitions
-                                        .length}
-                                  {' - '}
-                                  <Button
-                                    color="link"
-                                    onClick={event => {
-                                      event.preventDefault();
-                                      handleShowFeatureNames(
-                                        collectionInfos
-                                          ? collectionInfos.features
-                                          : albumExtraction.feature_definitions
-                                      );
-                                    }}
-                                    className="p-0"
-                                  >
-                                    Show details
-                                  </Button>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>
-                                  Number of Observations
-                                  {row.original.validation_type ===
-                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
-                                    ' (Training)'}
-                                </td>
-                                <td>
-                                  {row.original.training_patient_ids.length}
-                                  {' - '}
-                                  <Button
-                                    color="link"
-                                    onClick={event => {
-                                      event.preventDefault();
-                                      handleShowPatientIDs(
-                                        row.original.training_patient_ids.sort(
-                                          (p1, p2) =>
-                                            p1.localeCompare(p2, undefined, {
-                                              numeric: true,
-                                              sensitivity: 'base'
-                                            })
-                                        )
-                                      );
-                                    }}
-                                    className="p-0"
-                                  >
-                                    Show details
-                                  </Button>
-                                </td>
-                              </tr>
-                              {row.original.validation_type ===
-                                DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                <tr>
-                                  <td>Number of Observations (Test)</td>
-                                  <td>
-                                    {row.original.test_patient_ids.length}
-                                    {' - '}
-                                    <Button
-                                      color="link"
-                                      onClick={event => {
-                                        event.preventDefault();
-                                        handleShowPatientIDs(
-                                          row.original.test_patient_ids.sort(
-                                            (p1, p2) =>
-                                              p1.localeCompare(p2, undefined, {
-                                                numeric: true,
-                                                sensitivity: 'base'
-                                              })
-                                          )
-                                        );
-                                      }}
-                                      className="p-0"
-                                    >
-                                      Show details
-                                    </Button>
-                                  </td>
-                                </tr>
-                              )}
-                              <tr>
-                                <td>Validation Type</td>
-                                <td>
-                                  {row.original.validation_type ===
-                                  DATA_SPLITTING_TYPES.FULL_DATASET
-                                    ? 'Cross-validation on Full Dataset'
-                                    : 'Train/Test Split'}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>
-                                  {row.original.validation_type ===
-                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
-                                    'Training '}
-                                  Validation Strategy
-                                </td>
-                                <td>
-                                  {row.original.training_validation
-                                    ? row.original.training_validation
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              {row.original.validation_type ===
-                                DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                <tr>
-                                  <td>Test Validation Strategy</td>
-                                  <td>
-                                    {row.original.test_validation
-                                      ? row.original.test_validation
-                                      : 'None'}
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </Table>
-                        </div>
-                        <hr />
-                        <div>
-                          <strong>Model Metrics</strong>
-                          {formatMetrics(row.original.metrics)}
-                        </div>
-                        <br />
-                        <p>
-                          <Button
-                            color="danger"
-                            onClick={() =>
-                              handleDeleteModelClick(row.original.id)
-                            }
-                          >
-                            Delete Model
-                          </Button>
-                        </p>
-                      </div>
-                    </Collapse>
-                  </td>
-                </tr>
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </Table>
-    </>
-  );
-}
 
 export default function Train({
   album,
@@ -411,9 +71,8 @@ export default function Train({
     'metrics.concordance_index'
   );
 
-  let [algorithmType, setAlgorithmType] = useState(
-    CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
-  );
+  let [currentAlgorithm, setCurrentAlgorithm] = useState(null);
+  let [algorithmDetailsOpen, setAlgorithmDetailsOpen] = useState(false);
 
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
@@ -428,23 +87,6 @@ export default function Train({
   let [showNewModel, setShowNewModel] = useState(false);
 
   let [ciTooltipOpen, setCITooltipOpen] = useState(false);
-
-  let [isAdvancedConfigOpen, setIsAdvancedConfigOpen] = useState(true);
-
-  // Advanced configuration parameters
-  let [dataNormalization, setDataNormalization] = useState('none');
-  //let [featureSelection, setFeatureSelection] = useState('none');
-
-  // Modify algorithm type on label category switch
-  useEffect(() => {
-    if (!selectedLabelCategory) return;
-
-    if (selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION)
-      setAlgorithmType(CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION);
-
-    if (selectedLabelCategory.label_type === MODEL_TYPES.SURVIVAL)
-      setAlgorithmType(SURVIVAL_ALGORITHMS.COX_MODEL);
-  }, [selectedLabelCategory]);
 
   // Model table header
   const columnsClassification = React.useMemo(
@@ -465,7 +107,7 @@ export default function Train({
         Header: 'Model Validation',
         accessor: r => {
           let isTrainTest =
-            r.validation_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
+            r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
 
           if (isTrainTest) {
             let trainingProportion =
@@ -519,16 +161,10 @@ export default function Train({
 
   const toggleCITooltip = () => setCITooltipOpen(open => !open);
 
-  const toggleAdvancedConfig = () => {
-    setIsAdvancedConfigOpen(o => !o);
-  };
-
-  const handleNormalizationChange = e => {
-    setDataNormalization(e.target.value);
-  };
-
-  const handleAlgorithmTypeChange = e => {
-    setAlgorithmType(e.target.value);
+  const toggleAlgorithmDetails = algorithm => {
+    setAlgorithmDetailsOpen(o => !o);
+    if (!algorithm) setCurrentAlgorithm(null);
+    else setCurrentAlgorithm(algorithm);
   };
 
   const toggleFeatureNames = () => {
@@ -573,8 +209,6 @@ export default function Train({
         albumStudies,
         album,
         labels,
-        algorithmType,
-        dataNormalization,
         dataSplittingType,
         trainingPatients,
         testPatients,
@@ -659,119 +293,78 @@ export default function Train({
 
       {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
         <>
-          <h4>Model configuration</h4>
-          <div>Choose the classification algorithm</div>
-          <div className="form-container">
-            <Form>
-              <Input
-                type="select"
-                id="algorithm-type"
-                name="algorithm-type"
-                value={algorithmType}
-                onChange={handleAlgorithmTypeChange}
+          <h4>Model Parameters</h4>
+          <h5>Classification Algorithms</h5>
+          <div>The following classification algorithms will be used</div>
+          <ListGroup horizontal={true} className="justify-content-center">
+            <ListGroupItem>
+              <a
+                href="https://en.wikipedia.org/wiki/Logistic_regression"
+                target="_blank"
+                rel="noreferrer"
               >
-                {Object.keys(CLASSIFICATION_ALGORITHMS).map(key => (
-                  <option key={key} value={CLASSIFICATION_ALGORITHMS[key]}>
-                    {_.startCase(
-                      CLASSIFICATION_ALGORITHMS[key].replace('_', ' ')
-                    )}
-                  </option>
-                ))}
-              </Input>
-            </Form>
-          </div>
-          <div>
-            <Button color="link" onClick={toggleAdvancedConfig}>
-              {isAdvancedConfigOpen ? '-' : '+'} Advanced Parameters
-            </Button>
-            <Collapse isOpen={isAdvancedConfigOpen}>
-              <Form>
-                <h4>Data normalization</h4>
-                <FormGroup tag="fieldset">
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="data-normalization"
-                        value="none"
-                        checked={dataNormalization === 'none'}
-                        onChange={handleNormalizationChange}
-                      />{' '}
-                      None
-                    </Label>
-                  </FormGroup>
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="data-normalization"
-                        value="l2norm"
-                        checked={dataNormalization === 'l2norm'}
-                        onChange={handleNormalizationChange}
-                      />{' '}
-                      L2 Normalization
-                    </Label>
-                  </FormGroup>
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="data-normalization"
-                        value="standardization"
-                        checked={dataNormalization === 'standardization'}
-                        onChange={handleNormalizationChange}
-                      />{' '}
-                      Standardization
-                    </Label>
-                  </FormGroup>
-                </FormGroup>
-                {/* TODO - Put this back once it's implemented */}
-                {/*<h4>Feature selection</h4>
-                <FormGroup tag="fieldset">
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="feature-selection"
-                        value="none"
-                        checked={featureSelection === 'none'}
-                        onChange={handleFeatureSelectionChange}
-                      />{' '}
-                      None
-                    </Label>
-                  </FormGroup>
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="feature-selection"
-                        value="drop-correlated"
-                        checked={featureSelection === 'drop-correlated'}
-                        onChange={handleFeatureSelectionChange}
-                      />{' '}
-                      Drop highly correlated features
-                    </Label>
-                  </FormGroup>
-                  <FormGroup check inline>
-                    <Label check>
-                      <Input
-                        type="radio"
-                        name="feature-selection"
-                        value="rfe"
-                        checked={featureSelection === 'rfe'}
-                        onChange={handleFeatureSelectionChange}
-                      />{' '}
-                      Recursive Feature Elimination (RFE)
-                    </Label>
-                  </FormGroup>
-                </FormGroup>*/}
-              </Form>
-            </Collapse>
-          </div>
+                Logistic Regression
+              </a>
+              <br />
+              <div>
+                <Button
+                  color="link"
+                  onClick={() =>
+                    toggleAlgorithmDetails(
+                      CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION
+                    )
+                  }
+                >
+                  <small>+ Parameters used</small>
+                </Button>
+              </div>
+            </ListGroupItem>
+            <ListGroupItem>
+              <a
+                href="https://en.wikipedia.org/wiki/Support-vector_machine"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Support-Vector Machines
+              </a>
+            </ListGroupItem>
+            <ListGroupItem>
+              <a
+                href="https://en.wikipedia.org/wiki/Random_forest"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Random Forest
+              </a>
+            </ListGroupItem>
+          </ListGroup>
+          <h5 className="mt-3">Data Normalization Algorithms</h5>
+          <div>The following data standardization techniques will be used</div>
+          <ListGroup horizontal={true} className="justify-content-center">
+            <ListGroupItem>None</ListGroupItem>
+            <ListGroupItem>
+              <a
+                href="https://en.wikipedia.org/wiki/Standard_score"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Standardization
+              </a>
+            </ListGroupItem>
+            <ListGroupItem>
+              <a
+                href="https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm"
+                target="_blank"
+                rel="noreferrer"
+              >
+                L2 Normalization
+              </a>
+            </ListGroupItem>
+          </ListGroup>
           <hr />
           <div>
             <h4>Model Validation</h4>
-            <p>
+            <div>
               {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
                 <p>
                   All the available features & patients will be used to train
@@ -788,8 +381,15 @@ export default function Train({
                   splits.
                 </p>
               )}
-            </p>
+            </div>
           </div>
+          <MyModal
+            isOpen={algorithmDetailsOpen}
+            toggle={toggleAlgorithmDetails}
+            title={<span>Algorithm Parameters used</span>}
+          >
+            {generateDetails(currentAlgorithm)}
+          </MyModal>
         </>
       )}
       {albumExtraction && (
@@ -819,43 +419,6 @@ export default function Train({
       </tr>
     ));
 
-    /*let confusionMatrix = (
-      <>
-        <tr>
-          <td>
-            <span>
-              <strong>True Positives</strong>
-            </span>
-            <br />
-            <span>{true_pos}</span>
-          </td>
-          <td>
-            <span>
-              <strong>False Positives</strong>
-            </span>
-            <br />
-            <span>{false_pos}</span>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <span>
-              <strong>False Negatives</strong>
-            </span>
-            <br />
-            <span>{false_neg}</span>
-          </td>
-          <td>
-            <span>
-              <strong>True Negatives</strong>
-            </span>
-            <br />
-            <span>{true_neg}</span>
-          </td>
-        </tr>
-      </>
-    );*/
-
     return (
       <>
         <Table className="metrics-table">
@@ -882,16 +445,39 @@ export default function Train({
           </thead>
           <tbody>{formattedOtherMetrics}</tbody>
         </Table>
-        {/* Remove confusion matrix for now, focus on having confidence intervals}
-        {true_pos !== undefined && (
-          <>
-            <strong>Confusion Matrix</strong>
-            <Table className="confusion-matrix">
-              <tbody>{confusionMatrix}</tbody>
-            </Table>
-          </>*/}
       </>
     );
+  };
+
+  const generateDetails = algorithm => {
+    switch (algorithm) {
+      case CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION:
+        return (
+          <div>
+            <h5>Solver</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>lbgfs</ListGroupItem>
+              <ListGroupItem>saga</ListGroupItem>
+            </ListGroup>
+            <h5 className="mt-3">Penalty</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>L1 (saga solver only)</ListGroupItem>
+              <ListGroupItem>L2</ListGroupItem>
+              <ListGroupItem>ElasticNet (saga solver only)</ListGroupItem>
+            </ListGroup>
+            <h5 className="mt-3">L1 Ratio (for ElasticNet penalty)</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>0.5</ListGroupItem>
+            </ListGroup>
+            <h5 className="mt-3">Maximum Iterations</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>1000</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      default:
+        return 'Unsupported Algorithm';
+    }
   };
 
   const modelsList = (

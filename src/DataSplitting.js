@@ -99,7 +99,7 @@ export default function DataSplitting({
     setTrainingPatients(null);
     setTestPatients(null);
     setNbTrainingPatients(
-      Math.floor(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
+      Math.round(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
     );
   }, [
     keycloak.token,

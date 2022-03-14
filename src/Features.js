@@ -350,7 +350,7 @@ function Features({ history }) {
 
     if (trainingPatients === null || trainingPatients === undefined) {
       setNbTrainingPatients(
-        Math.floor(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
+        Math.round(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
       );
     } else {
       setTrainingPatients(trainingPatients);
