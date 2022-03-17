@@ -36,6 +36,16 @@ export const DATA_SPLITTING_TYPES = {
   TRAIN_TEST_SPLIT: 'traintest'
 };
 
+export const TRAIN_TEST_SPLIT_TYPES = {
+  AUTO: 'automatic',
+  MANUAL: 'manual'
+};
+
+export const PATIENT_FIELDS = {
+  TRAINING: 'training_patients',
+  TEST: 'test_patients'
+};
+
 export const DATA_SPLITTING_DEFAULT_TRAINING_SPLIT = 0.8;
 
 export const OUTCOME_CLASSIFICATION = 'Outcome';

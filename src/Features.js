@@ -21,6 +21,8 @@ import {
   TabPane
 } from 'reactstrap';
 
+import _ from 'lodash';
+
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -35,7 +37,8 @@ import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
-  DATA_SPLITTING_TYPES
+  DATA_SPLITTING_TYPES,
+  PATIENT_FIELDS
 } from './config/constants';
 import DataSplitting from './DataSplitting';
 
@@ -70,9 +73,9 @@ function Features({ history }) {
   const [models, setModels] = useState([]);
 
   // Train/Test split
-  let [nbTrainingPatients, setNbTrainingPatients] = useState(null);
-  let [trainingPatients, setTrainingPatients] = useState(null);
-  let [testPatients, setTestPatients] = useState(null);
+  const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
+  const [trainingPatients, setTrainingPatients] = useState(null);
+  const [testPatients, setTestPatients] = useState(null);
 
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
@@ -384,23 +387,8 @@ function Features({ history }) {
   const handleSaveCollectionNameClick = async e => {
     e.preventDefault();
     setIsSavingCollectionName(true);
-    let updatedCollection = await Backend.updateCollection(
-      keycloak.token,
-      collectionID,
-      { name: activeCollectionName }
-    );
 
-    // Update collections with new name
-    setCollections(c => {
-      let collections = [...c];
-
-      let collectionToUpdate = collections.find(
-        c => c.collection.id === +collectionID
-      );
-      collectionToUpdate.collection.name = updatedCollection.name;
-
-      return collections;
-    });
+    await updateCollectionOrExtraction({ name: activeCollectionName });
 
     setIsSavingCollectionName(false);
   };
@@ -485,11 +473,62 @@ function Features({ history }) {
       : null;
 
   const updateDataSplittingType = async newDataSplittingType => {
+    await updateCollectionOrExtraction({
+      dataSplittingType: newDataSplittingType
+    });
+  };
+
+  // Define train/test splitting type based on extraction or collection
+  const trainTestSplitType =
+    collectionID && currentCollection
+      ? currentCollection.collection.train_test_split_type
+      : featureExtraction
+      ? featureExtraction.train_test_split_type
+      : null;
+
+  const updateTrainTestSplitType = async newTrainTestSplitType => {
+    await updateCollectionOrExtraction({
+      train_test_split_type: newTrainTestSplitType
+    });
+  };
+
+  // Transfer patients manually between training <-> test
+  const transferPatients = async (patientsToTransfer, source, destination) => {
+    console.log(
+      `transferring`,
+      patientsToTransfer,
+      'from',
+      source,
+      'to',
+      destination
+    );
+
+    let newTrainingPatients;
+    let newTestPatients;
+
+    if (source === PATIENT_FIELDS.TRAINING) {
+      newTrainingPatients = _.difference(trainingPatients, patientsToTransfer);
+      newTestPatients = [...testPatients, ...patientsToTransfer];
+    } else if (source === PATIENT_FIELDS.TEST) {
+      newTestPatients = _.difference(testPatients, patientsToTransfer);
+      newTrainingPatients = [...trainingPatients, ...patientsToTransfer];
+    } else {
+      console.log('Invalid source for patient transfer');
+    }
+
+    await updateCollectionOrExtraction({
+      [PATIENT_FIELDS.TRAINING]: newTrainingPatients,
+      [PATIENT_FIELDS.TEST]: newTestPatients
+    });
+  };
+
+  // Update fields in collection or extraction
+  const updateCollectionOrExtraction = async fields => {
     if (collectionID && currentCollection) {
       let updatedCollection = await Backend.updateCollection(
         keycloak.token,
         collectionID,
-        { data_splitting_type: newDataSplittingType }
+        fields
       );
 
       setCollections(c => {
@@ -506,7 +545,7 @@ function Features({ history }) {
       let updatedExtraction = await Backend.updateExtraction(
         keycloak.token,
         featureExtractionID,
-        { data_splitting_type: newDataSplittingType }
+        fields
       );
 
       setFeatureExtraction(extraction => ({
@@ -768,12 +807,15 @@ function Features({ history }) {
                       collectionID={collectionID}
                       dataSplittingType={dataSplittingType}
                       updateDataSplittingType={updateDataSplittingType}
+                      trainTestSplitType={trainTestSplitType}
+                      updateTrainTestSplitType={updateTrainTestSplitType}
                       nbTrainingPatients={nbTrainingPatients}
                       setNbTrainingPatients={setNbTrainingPatients}
                       trainingPatients={trainingPatients}
                       testPatients={testPatients}
                       setTrainingPatients={setTrainingPatients}
                       setTestPatients={setTestPatients}
+                      transferPatients={transferPatients}
                       dataPoints={dataPoints}
                       outcomes={outcomes}
                     />
@@ -856,6 +898,7 @@ function Features({ history }) {
                           dataPoints={dataPoints}
                           unlabelledDataPoints={unlabelledDataPoints}
                           dataSplittingType={dataSplittingType}
+                          trainTestSplitType={trainTestSplitType}
                           trainingPatients={trainingPatients}
                           testPatients={testPatients}
                         />

@@ -52,6 +52,7 @@ export default function Train({
   models,
   setModels,
   dataSplittingType,
+  trainTestSplitType,
   trainingPatients,
   testPatients
 }) {
@@ -210,6 +211,7 @@ export default function Train({
         album,
         labels,
         dataSplittingType,
+        trainTestSplitType,
         trainingPatients,
         testPatients,
         metadataColumns[MODALITY_FIELD],
