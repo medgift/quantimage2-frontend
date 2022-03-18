@@ -38,7 +38,8 @@ import Outcomes from './Outcomes';
 import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
-  PATIENT_FIELDS
+  PATIENT_FIELDS,
+  TRAIN_TEST_SPLIT_TYPES
 } from './config/constants';
 import DataSplitting from './DataSplitting';
 
@@ -388,7 +389,7 @@ function Features({ history }) {
     e.preventDefault();
     setIsSavingCollectionName(true);
 
-    await updateCollectionOrExtraction({ name: activeCollectionName });
+    await updateExtractionOrCollection({ name: activeCollectionName });
 
     setIsSavingCollectionName(false);
   };
@@ -473,8 +474,9 @@ function Features({ history }) {
       : null;
 
   const updateDataSplittingType = async newDataSplittingType => {
-    await updateCollectionOrExtraction({
-      dataSplittingType: newDataSplittingType
+    await updateExtractionOrCollection({
+      data_splitting_type: newDataSplittingType,
+      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO
     });
   };
 
@@ -487,7 +489,7 @@ function Features({ history }) {
       : null;
 
   const updateTrainTestSplitType = async newTrainTestSplitType => {
-    await updateCollectionOrExtraction({
+    await updateExtractionOrCollection({
       train_test_split_type: newTrainTestSplitType
     });
   };
@@ -516,14 +518,14 @@ function Features({ history }) {
       console.log('Invalid source for patient transfer');
     }
 
-    await updateCollectionOrExtraction({
+    await updateExtractionOrCollection({
       [PATIENT_FIELDS.TRAINING]: newTrainingPatients,
       [PATIENT_FIELDS.TEST]: newTestPatients
     });
   };
 
   // Update fields in collection or extraction
-  const updateCollectionOrExtraction = async fields => {
+  const updateExtractionOrCollection = async fields => {
     if (collectionID && currentCollection) {
       let updatedCollection = await Backend.updateCollection(
         keycloak.token,

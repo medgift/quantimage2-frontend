@@ -202,7 +202,7 @@ export default function DataSplitting({
           <h4>Training & Test Set Split</h4>
 
           <FormGroup tag="fieldset">
-            <p>Split Type</p>
+            <p>Splitting Method</p>
             <FormGroup check inline>
               <Input
                 id={TRAIN_TEST_SPLIT_TYPES.AUTO}
@@ -346,7 +346,9 @@ function PatientSelectList({
               p1.localeCompare(p2, undefined, { numeric: true })
             )
             .map(p => (
-              <option value={p}>{p}</option>
+              <option value={p} key={p}>
+                {p}
+              </option>
             ))}
         </Input>
       </Label>
