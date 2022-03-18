@@ -9,13 +9,11 @@ export default function ModelsTable({
   columns,
   data,
   dataPoints,
-  albumExtraction,
-  collectionInfos,
   handleDeleteModelClick,
   handleShowFeatureNames,
   handleShowPatientIDs,
   formatMetrics,
-  bestModel
+  bestModelTraining
 }) {
   const {
     getTableProps,
@@ -171,8 +169,8 @@ export default function ModelsTable({
               <React.Fragment key={row.getRowProps().key}>
                 <tr
                   {...row.getRowProps()}
-                  className={`model-row ${row.original.id === bestModel.id &&
-                    'text-success'}`}
+                  className={`model-row ${row.original.id ===
+                    bestModelTraining.id && 'text-success'}`}
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
                 >
@@ -208,14 +206,14 @@ export default function ModelsTable({
                                 <td>{row.original.type}</td>
                               </tr>
                               <tr>
-                                <td>Algorithm Used</td>
-                                <td>{row.original.algorithm}</td>
+                                <td>Best Algorithm</td>
+                                <td>{row.original.best_algorithm}</td>
                               </tr>
                               <tr>
-                                <td>Data Normalization</td>
+                                <td>Best Data Normalization</td>
                                 <td>
-                                  {row.data_normalization
-                                    ? row.data_normalization
+                                  {row.original.best_data_normalization
+                                    ? row.original.best_data_normalization
                                     : 'None'}
                                 </td>
                               </tr>
@@ -231,49 +229,16 @@ export default function ModelsTable({
                               </tr>
                               */}
                               <tr>
-                                <td>Modalities Used</td>
-                                <td>
-                                  {row.original.modalities.map(modality => (
-                                    <Badge
-                                      style={{ marginRight: '0.5em' }}
-                                      color="primary"
-                                      key={modality}
-                                    >
-                                      {modality}
-                                    </Badge>
-                                  ))}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>ROIs Used</td>
-                                <td>
-                                  {row.original.rois.map(roi => (
-                                    <Badge
-                                      style={{ marginRight: '0.5em' }}
-                                      color="primary"
-                                      key={roi}
-                                    >
-                                      {roi}
-                                    </Badge>
-                                  ))}
-                                </td>
-                              </tr>
-                              <tr>
                                 <td>Features Used</td>
                                 <td>
-                                  {collectionInfos
-                                    ? collectionInfos.features.length
-                                    : albumExtraction.feature_definitions
-                                        .length}
+                                  {row.original.feature_names.length}
                                   {' - '}
                                   <Button
                                     color="link"
                                     onClick={event => {
                                       event.preventDefault();
                                       handleShowFeatureNames(
-                                        collectionInfos
-                                          ? collectionInfos.features
-                                          : albumExtraction.feature_definitions
+                                        row.original.feature_names
                                       );
                                     }}
                                     className="p-0"
@@ -320,9 +285,18 @@ export default function ModelsTable({
                           </Table>
                         </div>
                         <hr />
-                        <div>
-                          <strong>Model Metrics</strong>
-                          {formatMetrics(row.original.metrics)}
+                        <div className="d-flex justify-content-center">
+                          <div>
+                            <strong>Model Metrics (Training)</strong>
+                            {formatMetrics(row.original.training_metrics)}
+                          </div>
+                          {row.original.data_splitting_type ===
+                            DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                            <div className="ml-5">
+                              <strong>Model Metrics (Test)</strong>
+                              {formatMetrics(row.original.test_metrics)}
+                            </div>
+                          )}
                         </div>
                         <br />
                         <p>

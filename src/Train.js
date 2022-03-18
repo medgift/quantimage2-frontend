@@ -58,12 +58,12 @@ export default function Train({
 }) {
   let { keycloak } = useKeycloak();
 
-  const maxAUCModel = _.maxBy(
+  const maxAUCModelTraining = _.maxBy(
     models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION),
     model => {
-      return _.isPlainObject(model.metrics.auc)
-        ? model.metrics.auc.mean
-        : model.metrics.auc;
+      return _.isPlainObject(model.training_metrics.auc)
+        ? model.training_metrics.auc.mean
+        : model.training_metrics.auc;
     }
   );
 
@@ -102,8 +102,11 @@ export default function Train({
         id: 'created_at'
       },
       { Header: 'Outcome', accessor: 'label_category' },
-      { Header: 'Algorithm', accessor: 'algorithm' },
-      { Header: 'Data Normalization', accessor: 'data_normalization' },
+      { Header: 'Best Algorithm', accessor: 'best_algorithm' },
+      {
+        Header: 'Best Data Normalization',
+        accessor: 'best_data_normalization'
+      },
       {
         Header: 'Model Validation',
         accessor: r => {
@@ -126,9 +129,22 @@ export default function Train({
         }
       },
       {
-        Header: 'Mean AUC (green is highest)',
+        Header: 'Mean AUC Training (green is highest)',
         accessor: r =>
-          _.isPlainObject(r.metrics.auc) ? r.metrics.auc.mean : r.metrics.auc,
+          _.isPlainObject(r.training_metrics.auc)
+            ? r.training_metrics.auc.mean
+            : r.training_metrics.auc,
+        sortDescFirst: true,
+        sortType: 'number'
+      },
+      {
+        Header: 'Mean AUC Test',
+        accessor: r =>
+          r.test_metrics
+            ? _.isPlainObject(r.test_metrics.auc)
+              ? r.test_metrics.auc.mean
+              : r.test_metrics.auc
+            : 'N/A',
         sortDescFirst: true,
         sortType: 'number'
       }
@@ -148,8 +164,11 @@ export default function Train({
         id: 'created_at'
       },
       { Header: 'Outcome', accessor: 'label_category' },
-      { Header: 'Algorithm', accessor: 'algorithm' },
-      { Header: 'Data Normalization', accessor: 'data_normalization' },
+      { Header: 'Best Algorithm', accessor: 'best_algorithm' },
+      {
+        Header: 'Best Data Normalization',
+        accessor: 'best_data_normalization'
+      },
       {
         Header: 'c-index (green is highest)',
         accessor: 'metrics.concordance_index',
@@ -288,9 +307,11 @@ export default function Train({
         Train a new <strong>{selectedLabelCategory.label_type}</strong> model on
         album "{album.name}"
         {collectionInfos ? (
-          <span>, collection "{collectionInfos.collection.name}"</span>
+          <span>
+            , collection <strong>"{collectionInfos.collection.name}"</strong>
+          </span>
         ) : null}{' '}
-        using current outcome "{selectedLabelCategory.name}"
+        using current outcome <strong>"{selectedLabelCategory.name}"</strong>
       </h2>
 
       {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
@@ -491,26 +512,22 @@ export default function Train({
             columns={columnsClassification}
             data={models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION)}
             dataPoints={dataPoints}
-            albumExtraction={albumExtraction}
-            collectionInfos={collectionInfos}
             handleDeleteModelClick={handleDeleteModelClick}
             handleShowFeatureNames={handleShowFeatureNames}
             handleShowPatientIDs={handleShowPatientIDs}
             formatMetrics={formatMetrics}
-            bestModel={maxAUCModel}
+            bestModelTraining={maxAUCModelTraining}
           />
           <ModelsTable
             title="Survival Models"
             columns={columnsSurvival}
             data={models.filter(m => m.type === MODEL_TYPES.SURVIVAL)}
             dataPoints={dataPoints}
-            albumExtraction={albumExtraction}
-            collectionInfos={collectionInfos}
             handleDeleteModelClick={handleDeleteModelClick}
             handleShowFeatureNames={handleShowFeatureNames}
             handleShowPatientIDs={handleShowPatientIDs}
             formatMetrics={formatMetrics}
-            bestModel={maxCIndexModel}
+            bestModelTraining={maxCIndexModel}
           />
         </>
       )}
@@ -590,7 +607,8 @@ export default function Train({
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
               <span>
                 Train a new <strong>{selectedLabelCategory.label_type}</strong>{' '}
-                model using current outcome "{selectedLabelCategory.name}"
+                model using current outcome{' '}
+                <strong>"{selectedLabelCategory.name}"</strong>
               </span>
             </Button>
           </div>
