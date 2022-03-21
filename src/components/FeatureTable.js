@@ -43,7 +43,6 @@ function SelectColumnFilter({
 
 export default function FeatureTable({ featuresTabular }) {
   const data = featuresTabular;
-  const header = Object.keys(featuresTabular[0]) || [];
 
   const COLUMN_GROUP_METADATA = 'Metadata';
   const COLUMN_GROUP_FEATURES = 'Features';
@@ -51,6 +50,7 @@ export default function FeatureTable({ featuresTabular }) {
   const columnsDefinitions = useMemo(() => {
     let featureGroups = {};
     let currentFeatureGroup = '';
+    const header = Object.keys(featuresTabular[0]) || [];
 
     // Make groups of features
     for (let featureName of header.filter(
@@ -110,7 +110,7 @@ export default function FeatureTable({ featuresTabular }) {
     ];
 
     return columnsDefinitions;
-  }, [header]);
+  }, [featuresTabular]);
 
   const columns = useMemo(() => columnsDefinitions, [columnsDefinitions]);
 
@@ -211,7 +211,7 @@ export default function FeatureTable({ featuresTabular }) {
           </Button>{' '}
           <Button
             color="link"
-            onClick={() => previousPage()}
+            onClick={previousPage}
             disabled={!canPreviousPage}
           >
             <FontAwesomeIcon icon="angle-left" />
@@ -220,11 +220,7 @@ export default function FeatureTable({ featuresTabular }) {
             Page <strong>{pageIndex + 1}</strong> of{' '}
             <strong>{pageOptions.length}</strong>{' '}
           </span>
-          <Button
-            color="link"
-            onClick={() => nextPage()}
-            disabled={!canNextPage}
-          >
+          <Button color="link" onClick={nextPage} disabled={!canNextPage}>
             <FontAwesomeIcon icon="angle-right" />
           </Button>{' '}
           <Button
