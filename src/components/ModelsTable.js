@@ -288,13 +288,16 @@ export default function ModelsTable({
                             <strong>
                               Model Metrics (Training - Cross-Validation)
                             </strong>
-                            {formatMetrics(row.original.training_metrics)}
+                            {formatMetrics(
+                              row.original.training_metrics,
+                              'training'
+                            )}
                           </div>
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
                             <div className="ml-5">
                               <strong>Model Metrics (Test - Bootstrap)</strong>
-                              {formatMetrics(row.original.test_metrics)}
+                              {formatMetrics(row.original.test_metrics, 'test')}
                             </div>
                           )}
                         </div>

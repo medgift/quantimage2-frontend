@@ -191,8 +191,8 @@ export default function DataSplitting({
               <span>
                 Using this mode, you will be able to visualize the features of{' '}
                 <strong>all patients</strong>. When creating machine learning
-                models, evaluation metrics will be based on a{' '}
-                <strong>cross-validation</strong> of all available data.
+                models, evaluation metrics will be based on a stratified K-fold
+                cross-validation of all available data.
               </span>
             </Alert>
           </FormGroup>

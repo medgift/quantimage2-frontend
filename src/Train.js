@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Table,
   Button,
-  Tooltip,
   ListGroup,
-  ListGroupItem
+  ListGroupItem,
+  UncontrolledTooltip
 } from 'reactstrap';
 
 import { DateTime } from 'luxon';
@@ -58,20 +58,6 @@ export default function Train({
 }) {
   let { keycloak } = useKeycloak();
 
-  const maxAUCModelTraining = _.maxBy(
-    models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION),
-    model => {
-      return _.isPlainObject(model.training_metrics.auc)
-        ? model.training_metrics.auc.mean
-        : model.training_metrics.auc;
-    }
-  );
-
-  const maxCIndexModel = _.maxBy(
-    models.filter(m => m.type === MODEL_TYPES.SURVIVAL),
-    'metrics.concordance_index'
-  );
-
   let [currentAlgorithm, setCurrentAlgorithm] = useState(null);
   let [algorithmDetailsOpen, setAlgorithmDetailsOpen] = useState(false);
 
@@ -86,8 +72,6 @@ export default function Train({
   let [trainingError, setTrainingError] = useState(null);
 
   let [showNewModel, setShowNewModel] = useState(false);
-
-  let [ciTooltipOpen, setCITooltipOpen] = useState(false);
 
   // Model table header
   const columnsClassification = React.useMemo(
@@ -145,13 +129,11 @@ export default function Train({
         Header: 'Test AUC (bootstrap)',
         accessor: r =>
           r.test_metrics
-            ? _.isPlainObject(r.test_metrics.auc)
-              ? `${r.test_metrics.auc.mean.toFixed(
-                  4
-                )} (${r.test_metrics.auc.inf_value.toFixed(
-                  4
-                )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
-              : r.test_metrics.auc.toFixed(4)
+            ? `${r.test_metrics.auc.mean.toFixed(
+                4
+              )} (${r.test_metrics.auc.inf_value.toFixed(
+                4
+              )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
             : 'N/A',
         sortDescFirst: true,
         sortType: (r1, r2) => {
@@ -193,8 +175,6 @@ export default function Train({
     ],
     []
   );
-
-  const toggleCITooltip = () => setCITooltipOpen(open => !open);
 
   const toggleAlgorithmDetails = algorithm => {
     setAlgorithmDetailsOpen(o => !o);
@@ -379,7 +359,6 @@ export default function Train({
           <h5 className="mt-3">Data Normalization Algorithms</h5>
           <div>The following data standardization techniques will be used</div>
           <ListGroup horizontal={true} className="justify-content-center">
-            <ListGroupItem>None</ListGroupItem>
             <ListGroupItem>
               <a
                 href="https://en.wikipedia.org/wiki/Standard_score"
@@ -406,16 +385,16 @@ export default function Train({
               {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
                 <p>
                   All the available features & patients will be used to train
-                  the model. A 5-fold stratified cross-validation is used to
+                  the model. A stratified K-fold cross-validation is used to
                   estimate the generalization performance.
                 </p>
               ) : (
                 <p>
                   Only the training data will be used for the creation of the
-                  model, which uses a stratified cross-validation method to
-                  select the model with the best AUC metric. Subsequently, this
-                  model is then applied on the test data, using the Bootstrap
-                  method to give a range of performance metrics.
+                  model, which uses a stratified K-fold cross-validation method
+                  to select the model with the best AUC metric. Subsequently,
+                  this model is then applied on the test data, using the
+                  Bootstrap method to give a range of performance metrics.
                 </p>
               )}
             </div>
@@ -446,7 +425,7 @@ export default function Train({
     </div>
   );
 
-  const formatMetrics = metrics => {
+  const formatMetrics = (metrics, mode) => {
     let formattedOtherMetrics = Object.keys(metrics).map(metricName => (
       <tr key={metricName}>
         <td>
@@ -464,19 +443,17 @@ export default function Train({
               <th>Metric Name</th>
               <th>
                 Metric Value{' '}
-                {_.isPlainObject(Object.values(metrics)[0]) && (
-                  <>
-                    <FontAwesomeIcon icon="question-circle" id="ciTooltip" />
-                    <Tooltip
-                      placement="right"
-                      isOpen={ciTooltipOpen}
-                      target="ciTooltip"
-                      toggle={toggleCITooltip}
-                    >
-                      Shows the mean value & 95% confidence interval
-                    </Tooltip>
-                  </>
-                )}
+                <FontAwesomeIcon
+                  icon="question-circle"
+                  id={`ciTooltip-${mode}`}
+                  style={{ cursor: 'pointer' }}
+                />
+                <UncontrolledTooltip
+                  placement="right"
+                  target={`ciTooltip-${mode}`}
+                >
+                  Shows the mean value & 95% confidence interval
+                </UncontrolledTooltip>
               </th>
             </tr>
           </thead>
@@ -631,11 +608,9 @@ export default function Train({
 }
 
 function formatMetric(metric) {
-  if (!_.isPlainObject(metric)) return metric;
-
   return (
     <>
-      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(3) : metric['mean']}{' '}
+      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(4) : metric['mean']}{' '}
       (
       {_.isNumber(metric['inf_value'])
         ? metric['inf_value'].toFixed(3)
