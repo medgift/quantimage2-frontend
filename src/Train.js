@@ -120,7 +120,7 @@ export default function Train({
               100;
             let testProportion = 100 - trainingProportion;
 
-            return `Train/Test split (${Math.round(
+            return `Training/Test split (${Math.round(
               trainingProportion
             )}%/${Math.round(testProportion)}%)`;
           } else {
@@ -129,24 +129,39 @@ export default function Train({
         }
       },
       {
-        Header: 'Mean AUC Training (green is highest)',
+        Header: 'Training AUC (cross-validation)',
         accessor: r =>
-          _.isPlainObject(r.training_metrics.auc)
-            ? r.training_metrics.auc.mean
-            : r.training_metrics.auc,
+          `${r.training_metrics.auc.mean.toFixed(
+            4
+          )} (${r.training_metrics.auc.inf_value.toFixed(
+            4
+          )}-${r.training_metrics.auc.sup_value.toFixed(4)})`,
         sortDescFirst: true,
-        sortType: 'number'
+        sortType: (r1, r2) =>
+          +r1.original.training_metrics.auc.mean -
+          +r2.original.training_metrics.auc.mean
       },
       {
-        Header: 'Mean AUC Test',
+        Header: 'Test AUC (bootstrap)',
         accessor: r =>
           r.test_metrics
             ? _.isPlainObject(r.test_metrics.auc)
-              ? r.test_metrics.auc.mean
-              : r.test_metrics.auc
+              ? `${r.test_metrics.auc.mean.toFixed(
+                  4
+                )} (${r.test_metrics.auc.inf_value.toFixed(
+                  4
+                )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
+              : r.test_metrics.auc.toFixed(4)
             : 'N/A',
         sortDescFirst: true,
-        sortType: 'number'
+        sortType: (r1, r2) => {
+          if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
+
+          return (
+            +r1.original.test_metrics.auc.mean -
+            +r2.original.test_metrics.auc.mean
+          );
+        }
       }
     ],
     []
@@ -391,17 +406,16 @@ export default function Train({
               {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
                 <p>
                   All the available features & patients will be used to train
-                  the model, with a cross-validation method to provide more
-                  balanced & representative metrics.
+                  the model. A 5-fold stratified cross-validation is used to
+                  estimate the generalization performance.
                 </p>
               ) : (
                 <p>
                   Only the training data will be used for the creation of the
-                  model, which uses a cross-validation method to select the
-                  model with the best AUC metric. Subsequently, this model is
-                  then applied on the test data, using the Bootstrap method to
-                  give a range of performance metrics across different data
-                  splits.
+                  model, which uses a stratified cross-validation method to
+                  select the model with the best AUC metric. Subsequently, this
+                  model is then applied on the test data, using the Bootstrap
+                  method to give a range of performance metrics.
                 </p>
               )}
             </div>
@@ -516,7 +530,6 @@ export default function Train({
             handleShowFeatureNames={handleShowFeatureNames}
             handleShowPatientIDs={handleShowPatientIDs}
             formatMetrics={formatMetrics}
-            bestModelTraining={maxAUCModelTraining}
           />
           <ModelsTable
             title="Survival Models"
@@ -527,7 +540,6 @@ export default function Train({
             handleShowFeatureNames={handleShowFeatureNames}
             handleShowPatientIDs={handleShowPatientIDs}
             formatMetrics={formatMetrics}
-            bestModelTraining={maxCIndexModel}
           />
         </>
       )}

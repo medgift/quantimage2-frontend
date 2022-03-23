@@ -12,8 +12,7 @@ export default function ModelsTable({
   handleDeleteModelClick,
   handleShowFeatureNames,
   handleShowPatientIDs,
-  formatMetrics,
-  bestModelTraining
+  formatMetrics
 }) {
   const {
     getTableProps,
@@ -169,8 +168,7 @@ export default function ModelsTable({
               <React.Fragment key={row.getRowProps().key}>
                 <tr
                   {...row.getRowProps()}
-                  className={`model-row ${row.original.id ===
-                    bestModelTraining.id && 'text-success'}`}
+                  className="model-row"
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
                 >
@@ -254,7 +252,7 @@ export default function ModelsTable({
                                   {row.original.data_splitting_type ===
                                   DATA_SPLITTING_TYPES.FULL_DATASET
                                     ? 'Cross-validation on Full Dataset'
-                                    : 'Train/Test Split'}
+                                    : 'Training/Test Split'}
                                 </td>
                               </tr>
                               <tr>
@@ -287,13 +285,15 @@ export default function ModelsTable({
                         <hr />
                         <div className="d-flex justify-content-center">
                           <div>
-                            <strong>Model Metrics (Training)</strong>
+                            <strong>
+                              Model Metrics (Training - Cross-Validation)
+                            </strong>
                             {formatMetrics(row.original.training_metrics)}
                           </div>
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
                             <div className="ml-5">
-                              <strong>Model Metrics (Test)</strong>
+                              <strong>Model Metrics (Test - Bootstrap)</strong>
                               {formatMetrics(row.original.test_metrics)}
                             </div>
                           )}

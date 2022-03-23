@@ -73,7 +73,7 @@ function Features({ history }) {
   // Models management
   const [models, setModels] = useState([]);
 
-  // Train/Test split
+  // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
   const [trainingPatients, setTrainingPatients] = useState(null);
   const [testPatients, setTestPatients] = useState(null);

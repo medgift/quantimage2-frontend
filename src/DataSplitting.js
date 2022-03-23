@@ -167,9 +167,10 @@ export default function DataSplitting({
                 Using this mode, the data will be split into{' '}
                 <strong>training</strong> & <strong>test</strong> sets. Test
                 patients will not be shown in the visualization tab. Machine
-                learning models are created using only the training set and are
-                subsequently evaluated on the unseen test set using the
-                Bootstrap method.
+                learning models are created using the training set only and are
+                subsequently evaluated on the unseen test patients. Confidence
+                Intervals (CIs) at 95 % are computed using bootstrap resampling
+                (with N=1000 bootstraps).
               </span>
             </Alert>
           </FormGroup>
@@ -184,7 +185,7 @@ export default function DataSplitting({
                 }
                 onChange={handleDataSplitChange}
               />{' '}
-              Explore whole dataset/collection ({dataPoints.length} patients)
+              Explore entire dataset/collection ({dataPoints.length} patients)
             </Label>
             <Alert color="secondary">
               <span>
