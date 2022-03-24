@@ -313,7 +313,7 @@ export default function Train({
         <>
           <h4>Model Parameters</h4>
           <h5>Classification Algorithms</h5>
-          <div>The following classification algorithms will be used</div>
+          <div>The following classification algorithms will be explored</div>
           <ListGroup horizontal={true} className="justify-content-center">
             <ListGroupItem>
               <a
@@ -357,7 +357,9 @@ export default function Train({
             </ListGroupItem>
           </ListGroup>
           <h5 className="mt-3">Data Normalization Algorithms</h5>
-          <div>The following data standardization techniques will be used</div>
+          <div>
+            The following data standardization techniques will be explored
+          </div>
           <ListGroup horizontal={true} className="justify-content-center">
             <ListGroupItem>
               <a
