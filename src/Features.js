@@ -819,6 +819,7 @@ function Features({ history }) {
                       setTestPatients={setTestPatients}
                       transferPatients={transferPatients}
                       dataPoints={dataPoints}
+                      selectedLabelCategory={selectedLabelCategory}
                       outcomes={outcomes}
                     />
                   )}

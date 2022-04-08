@@ -167,10 +167,58 @@ export default function Train({
         accessor: 'best_data_normalization'
       },
       {
-        Header: 'c-index (green is highest)',
-        accessor: 'metrics.concordance_index',
+        Header: 'Model Validation',
+        accessor: r => {
+          let isTrainTest =
+            r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
+
+          if (isTrainTest) {
+            let trainingProportion =
+              (r.training_patient_ids.length /
+                (r.training_patient_ids.length + r.test_patient_ids.length)) *
+              100;
+            let testProportion = 100 - trainingProportion;
+
+            return `Training/Test split (${Math.round(
+              trainingProportion
+            )}%/${Math.round(testProportion)}%)`;
+          } else {
+            return 'Cross-validation (Full Dataset)';
+          }
+        }
+      },
+      {
+        Header: 'Training c-index (cross-validation)',
+        accessor: r =>
+          `${r.training_metrics['c-index'].mean.toFixed(
+            4
+          )} (${r.training_metrics['c-index'].inf_value.toFixed(
+            4
+          )}-${r.training_metrics['c-index'].sup_value.toFixed(4)})`,
         sortDescFirst: true,
-        sortType: 'number'
+        sortType: (r1, r2) =>
+          +r1.original.training_metrics['c-index'].mean -
+          +r2.original.training_metrics['c-index'].mean
+      },
+      {
+        Header: 'Test c-index (bootstrap)',
+        accessor: r =>
+          r.test_metrics
+            ? `${r.test_metrics['c-index'].mean.toFixed(4)} (${r.test_metrics[
+                'c-index'
+              ].inf_value.toFixed(4)}-${r.test_metrics[
+                'c-index'
+              ].sup_value.toFixed(4)})`
+            : 'N/A',
+        sortDescFirst: true,
+        sortType: (r1, r2) => {
+          if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
+
+          return (
+            +r1.original.test_metrics['c-index'].mean -
+            +r2.original.test_metrics['c-index'].mean
+          );
+        }
       }
     ],
     []
@@ -308,10 +356,9 @@ export default function Train({
         ) : null}{' '}
         using current outcome <strong>"{selectedLabelCategory.name}"</strong>
       </h2>
-
+      <h4>Model Parameters</h4>
       {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION && (
         <>
-          <h4>Model Parameters</h4>
           <h5>Classification Algorithms</h5>
           <div>The following classification algorithms will be explored</div>
           <ListGroup horizontal={true} className="justify-content-center">
@@ -356,60 +403,95 @@ export default function Train({
               </a>
             </ListGroupItem>
           </ListGroup>
-          <h5 className="mt-3">Data Normalization Algorithms</h5>
-          <div>
-            The following data standardization techniques will be explored
-          </div>
+        </>
+      )}
+      {selectedLabelCategory.label_type === MODEL_TYPES.SURVIVAL && (
+        <>
+          <h5>Survival Analysis Algorithms</h5>
+          <div>The following survival analysis algorithms will be explored</div>
           <ListGroup horizontal={true} className="justify-content-center">
             <ListGroupItem>
               <a
-                href="https://en.wikipedia.org/wiki/Standard_score"
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxPHSurvivalAnalysis.html"
                 target="_blank"
                 rel="noreferrer"
               >
-                Standardization
+                Cox Proportional Hazards Model
               </a>
             </ListGroupItem>
             <ListGroupItem>
               <a
-                href="https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm"
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxnetSurvivalAnalysis.html"
                 target="_blank"
                 rel="noreferrer"
               >
-                L2 Normalization
+                Cox Proportional Hazards Model with Elastic Net Penalty
+              </a>
+            </ListGroupItem>
+            <ListGroupItem>
+              <a
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.IPCRidge.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Accelerated failure time model with inverse probability of
+                censoring weights
               </a>
             </ListGroupItem>
           </ListGroup>
-          <hr />
-          <div>
-            <h4>Model Validation</h4>
-            <div>
-              {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
-                <p>
-                  All the available features & patients will be used to train
-                  the model. A stratified K-fold cross-validation is used to
-                  estimate the generalization performance.
-                </p>
-              ) : (
-                <p>
-                  Only the training data will be used for the creation of the
-                  model, which uses a stratified K-fold cross-validation method
-                  to select the model with the best AUC metric. Subsequently,
-                  this model is then applied on the test data, using the
-                  Bootstrap method to give a range of performance metrics.
-                </p>
-              )}
-            </div>
-          </div>
-          <MyModal
-            isOpen={algorithmDetailsOpen}
-            toggle={toggleAlgorithmDetails}
-            title={<span>Algorithm Parameters used</span>}
-          >
-            {generateDetails(currentAlgorithm)}
-          </MyModal>
         </>
       )}
+      <h5 className="mt-3">Data Normalization Algorithms</h5>
+      <div>The following data standardization techniques will be explored</div>
+      <ListGroup horizontal={true} className="justify-content-center">
+        <ListGroupItem>
+          <a
+            href="https://en.wikipedia.org/wiki/Standard_score"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Standardization
+          </a>
+        </ListGroupItem>
+        <ListGroupItem>
+          <a
+            href="https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm"
+            target="_blank"
+            rel="noreferrer"
+          >
+            L2 Normalization
+          </a>
+        </ListGroupItem>
+      </ListGroup>
+      <hr />
+      <div>
+        <h4>Model Validation</h4>
+        <div>
+          {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET ? (
+            <p>
+              All the available features & patients will be used to train the
+              model. A stratified K-fold cross-validation is used to estimate
+              the generalization performance.
+            </p>
+          ) : (
+            <p>
+              Only the training data will be used for the creation of the model,
+              which uses a stratified K-fold cross-validation method to select
+              the model with the best AUC metric. Subsequently, this model is
+              then applied on the test data, using the Bootstrap method to give
+              a range of performance metrics.
+            </p>
+          )}
+        </div>
+      </div>
+      <MyModal
+        isOpen={algorithmDetailsOpen}
+        toggle={toggleAlgorithmDetails}
+        title={<span>Algorithm Parameters used</span>}
+      >
+        {generateDetails(currentAlgorithm)}
+      </MyModal>
+
       {albumExtraction && (
         <>
           <h3>Train Model</h3>

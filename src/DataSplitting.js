@@ -3,6 +3,7 @@ import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
 import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
+  MODEL_TYPES,
   PATIENT_FIELDS,
   TRAIN_TEST_SPLIT_TYPES
 } from './config/constants';
@@ -24,6 +25,7 @@ export default function DataSplitting({
   nbTrainingPatients,
   setNbTrainingPatients,
   dataPoints,
+  selectedLabelCategory,
   outcomes,
   trainingPatients,
   testPatients,
@@ -57,8 +59,14 @@ export default function DataSplitting({
         dataPoints.includes(o.patient_id)
       );
 
+      // Stratify selection of patients (by Outcome for Classification, Event for Survival)
+      let groupByCriteria =
+        selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+          ? 'label_content.Outcome'
+          : 'label_content.Event';
+
       trainingPatients = _(filteredOutcomes)
-        .groupBy('label_content.Outcome')
+        .groupBy(groupByCriteria)
         .map(v =>
           _.sampleSize(
             v,
