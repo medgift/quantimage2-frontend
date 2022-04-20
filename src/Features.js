@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
 import {
@@ -18,7 +18,7 @@ import {
   Spinner,
   TabContent,
   Table,
-  TabPane
+  TabPane,
 } from 'reactstrap';
 
 import _ from 'lodash';
@@ -39,7 +39,7 @@ import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
   PATIENT_FIELDS,
-  TRAIN_TEST_SPLIT_TYPES
+  TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 import DataSplitting from './DataSplitting';
 
@@ -98,7 +98,7 @@ function Features({ history }) {
   let dataPoints = useMemo(() => {
     if (!featuresTabular) return null;
 
-    return Array.from(new Set(featuresTabular.map(f => f.PatientID)));
+    return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
   }, [featuresTabular]);
 
   // Compute unlabelled data points
@@ -109,12 +109,12 @@ function Features({ history }) {
     let dataLabels = selectedLabelCategory.labels;
 
     for (let patientID of dataPoints) {
-      let patientLabel = dataLabels.find(l => l.patient_id === patientID);
+      let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
 
       if (
         !patientLabel ||
         Object.keys(patientLabel.label_content).every(
-          column => patientLabel.label_content[column] === ''
+          (column) => patientLabel.label_content[column] === ''
         )
       )
         unlabelled++;
@@ -126,7 +126,7 @@ function Features({ history }) {
   // Get current collection
   const currentCollection =
     collections && collectionID
-      ? collections.find(c => c.collection.id === +collectionID)
+      ? collections.find((c) => c.collection.id === +collectionID)
       : null;
 
   // Get album
@@ -165,7 +165,7 @@ function Features({ history }) {
 
       if (collectionDetails) {
         let collectionToReplaceIndex = finalCollections.findIndex(
-          c => c.collection.id === +collectionID
+          (c) => c.collection.id === +collectionID
         );
         finalCollections.splice(collectionToReplaceIndex, 1, collectionDetails);
       }
@@ -231,22 +231,18 @@ function Features({ history }) {
       let featuresTabular = [];
       let featuresChart = [];
       if (!collectionID) {
-        ({
-          featuresChart,
-          featuresTabular
-        } = await Backend.extractionFeatureDetails(
-          keycloak.token,
-          featureExtractionID
-        ));
+        ({ featuresChart, featuresTabular } =
+          await Backend.extractionFeatureDetails(
+            keycloak.token,
+            featureExtractionID
+          ));
       } else {
-        ({
-          featuresChart,
-          featuresTabular
-        } = await Backend.extractionCollectionFeatureDetails(
-          keycloak.token,
-          featureExtractionID,
-          +collectionID
-        ));
+        ({ featuresChart, featuresTabular } =
+          await Backend.extractionCollectionFeatureDetails(
+            keycloak.token,
+            featureExtractionID,
+            +collectionID
+          ));
       }
       setFeaturesTabular(featuresTabular);
       setFeaturesChart(featuresChart);
@@ -264,8 +260,8 @@ function Features({ history }) {
 
       // Filter out models that are not for this collection / original feature set
       let filteredModels = collectionID
-        ? models.filter(m => m.feature_collection_id === +collectionID)
-        : models.filter(m => m.feature_collection_id === null);
+        ? models.filter((m) => m.feature_collection_id === +collectionID)
+        : models.filter((m) => m.feature_collection_id === null);
 
       let sortedModels = filteredModels.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
@@ -277,13 +273,13 @@ function Features({ history }) {
   }, [keycloak.token, albumID, collectionID]);
 
   // Get classes of a tab
-  const getTabClassName = targetTab => {
+  const getTabClassName = (targetTab) => {
     return classnames({
       active: tab === targetTab,
       'text-danger':
         unlabelledDataPoints > 0 && unlabelledDataPoints === dataPoints.length,
       'text-warning':
-        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length
+        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length,
     });
   };
 
@@ -303,7 +299,7 @@ function Features({ history }) {
   };
 
   // Toggle active
-  const toggle = newTab => {
+  const toggle = (newTab) => {
     if (newTab !== tab) {
       if (!collectionID) history.push(`/features/${albumID}/${newTab}`);
       else
@@ -364,7 +360,7 @@ function Features({ history }) {
   }, [featureExtraction, collectionID, currentCollection, dataPoints]);
 
   // Handle download click
-  const handleDownloadClick = async e => {
+  const handleDownloadClick = async (e) => {
     e.preventDefault();
     setIsDownloading(true);
 
@@ -380,12 +376,12 @@ function Features({ history }) {
   };
 
   // Handle change of active collection name
-  const handleActiveCollectionNameChange = e => {
+  const handleActiveCollectionNameChange = (e) => {
     setActiveCollectionName(e.target.value);
   };
 
   // Handle renaming of existing collection
-  const handleSaveCollectionNameClick = async e => {
+  const handleSaveCollectionNameClick = async (e) => {
     e.preventDefault();
     setIsSavingCollectionName(true);
 
@@ -395,18 +391,18 @@ function Features({ history }) {
   };
 
   // Handle deleting collection
-  const handleDeleteCollectionClick = async e => {
+  const handleDeleteCollectionClick = async (e) => {
     e.preventDefault();
     setIsDeletingCollection(true);
     await Backend.deleteCollection(keycloak.token, collectionID);
     setIsDeletingCollection(false);
 
     // Remove deleted collection and redirect to original feature set
-    setCollections(c => {
+    setCollections((c) => {
       let collections = [...c];
 
       let collectionToDeleteIndex = collections.findIndex(
-        c => c.collection.id === +collectionID
+        (c) => c.collection.id === +collectionID
       );
       collections.splice(collectionToDeleteIndex, 1);
 
@@ -425,7 +421,7 @@ function Features({ history }) {
 
     if (!modalities) return null;
 
-    return modalities.map(modality => (
+    return modalities.map((modality) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
         {modality}
       </Badge>
@@ -441,7 +437,7 @@ function Features({ history }) {
 
     if (!rois) return null;
 
-    return rois.map(roi => (
+    return rois.map((roi) => (
       <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
         {roi}
       </Badge>
@@ -473,10 +469,10 @@ function Features({ history }) {
       ? featureExtraction.data_splitting_type
       : null;
 
-  const updateDataSplittingType = async newDataSplittingType => {
+  const updateDataSplittingType = async (newDataSplittingType) => {
     await updateExtractionOrCollection({
       data_splitting_type: newDataSplittingType,
-      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO
+      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
     });
   };
 
@@ -488,9 +484,9 @@ function Features({ history }) {
       ? featureExtraction.train_test_split_type
       : null;
 
-  const updateTrainTestSplitType = async newTrainTestSplitType => {
+  const updateTrainTestSplitType = async (newTrainTestSplitType) => {
     await updateExtractionOrCollection({
-      train_test_split_type: newTrainTestSplitType
+      train_test_split_type: newTrainTestSplitType,
     });
   };
 
@@ -520,12 +516,12 @@ function Features({ history }) {
 
     await updateExtractionOrCollection({
       [PATIENT_FIELDS.TRAINING]: newTrainingPatients,
-      [PATIENT_FIELDS.TEST]: newTestPatients
+      [PATIENT_FIELDS.TEST]: newTestPatients,
     });
   };
 
   // Update fields in collection or extraction
-  const updateExtractionOrCollection = async fields => {
+  const updateExtractionOrCollection = async (fields) => {
     if (collectionID && currentCollection) {
       let updatedCollection = await Backend.updateCollection(
         keycloak.token,
@@ -533,11 +529,11 @@ function Features({ history }) {
         fields
       );
 
-      setCollections(c => {
+      setCollections((c) => {
         let collections = [...c];
 
         let collectionToUpdateIndex = collections.findIndex(
-          col => col.collection.id === currentCollection.collection.id
+          (col) => col.collection.id === currentCollection.collection.id
         );
         collections[collectionToUpdateIndex].collection = updatedCollection;
 
@@ -550,9 +546,9 @@ function Features({ history }) {
         fields
       );
 
-      setFeatureExtraction(extraction => ({
+      setFeatureExtraction((extraction) => ({
         ...extraction,
-        ...updatedExtraction
+        ...updatedExtraction,
       }));
     }
   };
@@ -579,6 +575,13 @@ function Features({ history }) {
                 collectionID={collectionID}
                 setIsLoading={setIsLoading}
               />
+              <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
+              <Button
+                color="link"
+                onClick={() => history.push(`/models/${albumID}`)}
+              >
+                <FontAwesomeIcon icon="table" /> See All Models
+              </Button>
             </div>
             <div className="feature-tabs">
               <Nav tabs>
@@ -622,6 +625,7 @@ function Features({ history }) {
                       toggle('split');
                     }}
                   >
+                    {getTabSymbol()}
                     Data Splitting (Current -{' '}
                     {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
                       ? 'Full'
@@ -804,24 +808,32 @@ function Features({ history }) {
                 </TabPane>
                 <TabPane tabId="split">
                   {dataPoints && (
-                    <DataSplitting
-                      featureExtractionID={featureExtractionID}
-                      collectionID={collectionID}
-                      dataSplittingType={dataSplittingType}
-                      updateDataSplittingType={updateDataSplittingType}
-                      trainTestSplitType={trainTestSplitType}
-                      updateTrainTestSplitType={updateTrainTestSplitType}
-                      nbTrainingPatients={nbTrainingPatients}
-                      setNbTrainingPatients={setNbTrainingPatients}
-                      trainingPatients={trainingPatients}
-                      testPatients={testPatients}
-                      setTrainingPatients={setTrainingPatients}
-                      setTestPatients={setTestPatients}
-                      transferPatients={transferPatients}
-                      dataPoints={dataPoints}
-                      selectedLabelCategory={selectedLabelCategory}
-                      outcomes={outcomes}
-                    />
+                    <>
+                      {unlabelledDataPoints > 0 && (
+                        <Alert color="warning">
+                          There are {unlabelledDataPoints} unlabelled
+                          PatientIDs!
+                        </Alert>
+                      )}
+                      <DataSplitting
+                        featureExtractionID={featureExtractionID}
+                        collectionID={collectionID}
+                        dataSplittingType={dataSplittingType}
+                        updateDataSplittingType={updateDataSplittingType}
+                        trainTestSplitType={trainTestSplitType}
+                        updateTrainTestSplitType={updateTrainTestSplitType}
+                        nbTrainingPatients={nbTrainingPatients}
+                        setNbTrainingPatients={setNbTrainingPatients}
+                        trainingPatients={trainingPatients}
+                        testPatients={testPatients}
+                        setTrainingPatients={setTrainingPatients}
+                        setTestPatients={setTestPatients}
+                        transferPatients={transferPatients}
+                        dataPoints={dataPoints}
+                        selectedLabelCategory={selectedLabelCategory}
+                        outcomes={outcomes}
+                      />
+                    </>
                   )}
                 </TabPane>
                 <TabPane tabId="visualize">

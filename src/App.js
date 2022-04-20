@@ -15,7 +15,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import {
   KEYCLOAK_ADMIN_ROLE,
   KEYCLOAK_FRONTEND_CLIENT_ID,
-  KEYCLOAK_RESOURCE_ACCESS
+  KEYCLOAK_RESOURCE_ACCESS,
 } from './config/constants';
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
@@ -25,6 +25,7 @@ import Visualisation from './Visualisation';
 import Dashboard from './Dashboard';
 
 import Backend from './services/backend';
+import ModelOverview from './ModelOverview';
 
 // Register the FontAwesome Icons
 registerFontAwesomeIcons();
@@ -48,7 +49,7 @@ function App({ setUser, setIsAdmin }) {
   // Manage admin status
   useEffect(() => {
     if (keycloak && initialized) {
-      keycloak.loadUserProfile().then(profile => {
+      keycloak.loadUserProfile().then((profile) => {
         setUser(profile);
       });
       let isAdmin =
@@ -103,10 +104,17 @@ function App({ setUser, setIsAdmin }) {
               <PropsRoute
                 path={[
                   '/features/:albumID/:tab',
-                  '/features/:albumID/collection/:collectionID/:tab'
+                  '/features/:albumID/collection/:collectionID/:tab',
                 ]}
                 exact
                 component={Features}
+                kheopsError={kheopsError}
+              />
+              <PropsRoute
+                path="/models/:albumID"
+                exact
+                component={ModelOverview}
+                albums={albums}
                 kheopsError={kheopsError}
               />
               <PropsRoute

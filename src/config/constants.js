@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 export const DICOM_DATE_FORMAT = 'DD.MM.YYYY';
 export const DB_DATE_FORMAT = 'DD.MM.YYYY HH:mm';
 
@@ -62,6 +64,118 @@ export const TRAINING_PHASES = {
   TRAINING: 'training',
   TESTING: 'testing',
 };
+
+export const MODEL_COLUMNS = [
+  {
+    Header: 'Date created',
+    accessor: (r) =>
+      DateTime.fromJSDate(new Date(r.created_at)).toFormat(
+        'yyyy-MM-dd HH:mm:ss'
+      ),
+    sortDescFirst: true,
+    id: 'created_at',
+  },
+  { Header: 'Outcome', accessor: 'label_category' },
+  { Header: 'Best Algorithm', accessor: 'best_algorithm' },
+  {
+    Header: 'Best Data Normalization',
+    accessor: 'best_data_normalization',
+  },
+  {
+    Header: 'Model Validation',
+    accessor: (r) => {
+      let isTrainTest =
+        r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
+
+      if (isTrainTest) {
+        let trainingProportion =
+          (r.training_patient_ids.length /
+            (r.training_patient_ids.length + r.test_patient_ids.length)) *
+          100;
+        let testProportion = 100 - trainingProportion;
+
+        return `Training/Test split (${Math.round(
+          trainingProportion
+        )}%/${Math.round(testProportion)}%)`;
+      } else {
+        return 'Cross-validation (Full Dataset)';
+      }
+    },
+  },
+];
+
+export const CLASSIFICATION_COLUMNS = [
+  ...MODEL_COLUMNS,
+  {
+    Header: 'Training AUC (cross-validation)',
+    accessor: (r) =>
+      `${r.training_metrics.auc.mean.toFixed(
+        4
+      )} (${r.training_metrics.auc.inf_value.toFixed(
+        4
+      )}-${r.training_metrics.auc.sup_value.toFixed(4)})`,
+    sortDescFirst: true,
+    sortType: (r1, r2) =>
+      +r1.original.training_metrics.auc.mean -
+      +r2.original.training_metrics.auc.mean,
+  },
+  {
+    Header: 'Test AUC (bootstrap)',
+    accessor: (r) =>
+      r.test_metrics
+        ? `${r.test_metrics.auc.mean.toFixed(
+            4
+          )} (${r.test_metrics.auc.inf_value.toFixed(
+            4
+          )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
+        : 'N/A',
+    sortDescFirst: true,
+    sortType: (r1, r2) => {
+      if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
+
+      return (
+        +r1.original.test_metrics.auc.mean - +r2.original.test_metrics.auc.mean
+      );
+    },
+  },
+];
+
+export const SURVIVAL_COLUMNS = [
+  ...MODEL_COLUMNS,
+  {
+    Header: 'Training c-index (cross-validation)',
+    accessor: (r) =>
+      `${r.training_metrics['c-index'].mean.toFixed(4)} (${r.training_metrics[
+        'c-index'
+      ].inf_value.toFixed(4)}-${r.training_metrics['c-index'].sup_value.toFixed(
+        4
+      )})`,
+    sortDescFirst: true,
+    sortType: (r1, r2) =>
+      +r1.original.training_metrics['c-index'].mean -
+      +r2.original.training_metrics['c-index'].mean,
+  },
+  {
+    Header: 'Test c-index (bootstrap)',
+    accessor: (r) =>
+      r.test_metrics
+        ? `${r.test_metrics['c-index'].mean.toFixed(4)} (${r.test_metrics[
+            'c-index'
+          ].inf_value.toFixed(4)}-${r.test_metrics['c-index'].sup_value.toFixed(
+            4
+          )})`
+        : 'N/A',
+    sortDescFirst: true,
+    sortType: (r1, r2) => {
+      if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
+
+      return (
+        +r1.original.test_metrics['c-index'].mean -
+        +r2.original.test_metrics['c-index'].mean
+      );
+    },
+  },
+];
 
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
 export const KEYCLOAK_FRONTEND_CLIENT_ID = 'imagine-frontend';

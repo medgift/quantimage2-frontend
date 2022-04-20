@@ -1,50 +1,110 @@
 import { useSortBy, useTable } from 'react-table';
 import React, { useState } from 'react';
-import { Badge, Button, Collapse, Table } from 'reactstrap';
+import {
+  Badge,
+  Button,
+  Collapse,
+  Table,
+  UncontrolledTooltip,
+} from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
+import _ from 'lodash';
+import MyModal from './MyModal';
+import ListValues from './ListValues';
 
 export default function ModelsTable({
   title,
   columns,
   data,
-  dataPoints,
   handleDeleteModelClick,
-  handleShowFeatureNames,
-  handleShowPatientIDs,
-  formatMetrics
 }) {
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow
-  } = useTable(
-    {
-      columns,
-      data,
-      initialState: {
-        sortBy: [{ id: 'created_at', desc: true }]
-      }
-    },
-    useSortBy
-  );
+  let [featureNames, setFeatureNames] = useState(null);
+  let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
+
+  let [patientIDs, setPatientIDs] = useState(null);
+  let [patientIDsOpen, setPatientIDsOpen] = useState(false);
+
+  const toggleFeatureNames = () => {
+    setFeatureNamesOpen((open) => !open);
+  };
+
+  const togglePatientIDs = () => {
+    setPatientIDsOpen((open) => !open);
+  };
+
+  const handleShowFeatureNames = (names) => {
+    setFeatureNames(names);
+    toggleFeatureNames();
+  };
+
+  const handleShowPatientIDs = (ids) => {
+    setPatientIDs(ids);
+    togglePatientIDs();
+  };
+
+  const formatMetrics = (metrics, mode) => {
+    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
+      <tr key={metricName}>
+        <td>
+          <strong>{metricName}</strong>
+        </td>
+        <td>{formatMetric(metrics[metricName])}</td>
+      </tr>
+    ));
+
+    return (
+      <>
+        <Table className="metrics-table">
+          <thead>
+            <tr>
+              <th>Metric Name</th>
+              <th>
+                Metric Value{' '}
+                <FontAwesomeIcon
+                  icon="question-circle"
+                  id={`ciTooltip-${mode}`}
+                  style={{ cursor: 'pointer' }}
+                />
+                <UncontrolledTooltip
+                  placement="right"
+                  target={`ciTooltip-${mode}`}
+                >
+                  Shows the mean value & 95% confidence interval
+                </UncontrolledTooltip>
+              </th>
+            </tr>
+          </thead>
+          <tbody>{formattedOtherMetrics}</tbody>
+        </Table>
+      </>
+    );
+  };
+
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
+    useTable(
+      {
+        columns,
+        data,
+        initialState: {
+          sortBy: [{ id: 'created_at', desc: true }],
+        },
+      },
+      useSortBy
+    );
 
   const [openModelID, setOpenModelID] = useState(-1);
 
-  const toggleModel = modelID => {
-    setOpenModelID(m => (m !== modelID ? modelID : -1));
+  const toggleModel = (modelID) => {
+    setOpenModelID((m) => (m !== modelID ? modelID : -1));
   };
 
-  const generateNbObservations = row => {
+  const generateNbObservations = (row) => {
     let isTrainTest =
       row.original.data_splitting_type ===
       DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
 
-    let trainingPatientIDs = isTrainTest
-      ? row.original.training_patient_ids
-      : dataPoints;
+    let trainingPatientIDs = row.original.training_patient_ids;
 
     return (
       <>
@@ -58,13 +118,13 @@ export default function ModelsTable({
             {' - '}
             <Button
               color="link"
-              onClick={event => {
+              onClick={(event) => {
                 event.preventDefault();
                 handleShowPatientIDs(
                   trainingPatientIDs.sort((p1, p2) =>
                     p1.localeCompare(p2, undefined, {
                       numeric: true,
-                      sensitivity: 'base'
+                      sensitivity: 'base',
                     })
                   )
                 );
@@ -83,13 +143,13 @@ export default function ModelsTable({
               {' - '}
               <Button
                 color="link"
-                onClick={event => {
+                onClick={(event) => {
                   event.preventDefault();
                   handleShowPatientIDs(
                     row.original.test_patient_ids.sort((p1, p2) =>
                       p1.localeCompare(p2, undefined, {
                         numeric: true,
-                        sensitivity: 'base'
+                        sensitivity: 'base',
                       })
                     )
                   );
@@ -112,10 +172,10 @@ export default function ModelsTable({
       <h4 className="mt-3">{title}</h4>
       <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
-          {headerGroups.map(headerGroup => (
+          {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               <th> </th>
-              {headerGroup.headers.map(column => (
+              {headerGroup.headers.map((column) => (
                 // Add the sorting props to control sorting. For this example
                 // we can add them into the header props
                 <th {...column.getHeaderProps(column.getSortByToggleProps())}>
@@ -181,7 +241,7 @@ export default function ModelsTable({
                       }
                     />
                   </td>
-                  {row.cells.map(cell => {
+                  {row.cells.map((cell) => {
                     return (
                       <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
                     );
@@ -233,7 +293,7 @@ export default function ModelsTable({
                                   {' - '}
                                   <Button
                                     color="link"
-                                    onClick={event => {
+                                    onClick={(event) => {
                                       event.preventDefault();
                                       handleShowFeatureNames(
                                         row.original.feature_names
@@ -321,6 +381,37 @@ export default function ModelsTable({
           })}
         </tbody>
       </Table>
+      <MyModal
+        isOpen={featureNamesOpen}
+        toggle={toggleFeatureNames}
+        title={<span>Feature Names</span>}
+      >
+        <ListValues values={featureNames} />
+      </MyModal>
+      <MyModal
+        isOpen={patientIDsOpen}
+        toggle={togglePatientIDs}
+        title={<span>Patient IDs</span>}
+      >
+        <ListValues values={patientIDs} />
+      </MyModal>
+    </>
+  );
+}
+
+function formatMetric(metric) {
+  return (
+    <>
+      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(4) : metric['mean']}{' '}
+      (
+      {_.isNumber(metric['inf_value'])
+        ? metric['inf_value'].toFixed(3)
+        : metric['inf_value']}{' '}
+      -{' '}
+      {_.isNumber(metric['sup_value'])
+        ? metric['sup_value'].toFixed(3)
+        : metric['sup_value']}
+      )
     </>
   );
 }

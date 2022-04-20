@@ -24,6 +24,8 @@ import {
   MODEL_TYPES,
   DATA_SPLITTING_TYPES,
   TRAINING_PHASES,
+  CLASSIFICATION_COLUMNS,
+  SURVIVAL_COLUMNS,
 } from './config/constants';
 import ModelsTable from './components/ModelsTable';
 import SocketContext from './context/SocketContext';
@@ -66,12 +68,6 @@ export default function Train({
   let [currentAlgorithm, setCurrentAlgorithm] = useState(null);
   let [algorithmDetailsOpen, setAlgorithmDetailsOpen] = useState(false);
 
-  let [featureNames, setFeatureNames] = useState(null);
-  let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
-
-  let [patientIDs, setPatientIDs] = useState(null);
-  let [patientIDsOpen, setPatientIDsOpen] = useState(false);
-
   let [isTraining, setIsTraining] = useState(false);
   let [currentTrainingID, setCurrentTrainingID] = useState(null);
   let [nSteps, setNSteps] = useState(0);
@@ -85,155 +81,8 @@ export default function Train({
   let socket = useContext(SocketContext);
 
   // Model table header
-  const columnsClassification = React.useMemo(
-    () => [
-      {
-        Header: 'Date created',
-        accessor: (r) =>
-          DateTime.fromJSDate(new Date(r.created_at)).toFormat(
-            'yyyy-MM-dd HH:mm:ss'
-          ),
-        sortDescFirst: true,
-        id: 'created_at',
-      },
-      { Header: 'Outcome', accessor: 'label_category' },
-      { Header: 'Best Algorithm', accessor: 'best_algorithm' },
-      {
-        Header: 'Best Data Normalization',
-        accessor: 'best_data_normalization',
-      },
-      {
-        Header: 'Model Validation',
-        accessor: (r) => {
-          let isTrainTest =
-            r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
-
-          if (isTrainTest) {
-            let trainingProportion =
-              (r.training_patient_ids.length /
-                (r.training_patient_ids.length + r.test_patient_ids.length)) *
-              100;
-            let testProportion = 100 - trainingProportion;
-
-            return `Training/Test split (${Math.round(
-              trainingProportion
-            )}%/${Math.round(testProportion)}%)`;
-          } else {
-            return 'Cross-validation (Full Dataset)';
-          }
-        },
-      },
-      {
-        Header: 'Training AUC (cross-validation)',
-        accessor: (r) =>
-          `${r.training_metrics.auc.mean.toFixed(
-            4
-          )} (${r.training_metrics.auc.inf_value.toFixed(
-            4
-          )}-${r.training_metrics.auc.sup_value.toFixed(4)})`,
-        sortDescFirst: true,
-        sortType: (r1, r2) =>
-          +r1.original.training_metrics.auc.mean -
-          +r2.original.training_metrics.auc.mean,
-      },
-      {
-        Header: 'Test AUC (bootstrap)',
-        accessor: (r) =>
-          r.test_metrics
-            ? `${r.test_metrics.auc.mean.toFixed(
-                4
-              )} (${r.test_metrics.auc.inf_value.toFixed(
-                4
-              )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
-            : 'N/A',
-        sortDescFirst: true,
-        sortType: (r1, r2) => {
-          if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
-
-          return (
-            +r1.original.test_metrics.auc.mean -
-            +r2.original.test_metrics.auc.mean
-          );
-        },
-      },
-    ],
-    []
-  );
-
-  const columnsSurvival = React.useMemo(
-    () => [
-      {
-        Header: 'Date created',
-        accessor: (r) =>
-          DateTime.fromJSDate(new Date(r.created_at)).toFormat(
-            'yyyy-MM-dd HH:mm:ss'
-          ),
-        sortDescFirst: true,
-        id: 'created_at',
-      },
-      { Header: 'Outcome', accessor: 'label_category' },
-      { Header: 'Best Algorithm', accessor: 'best_algorithm' },
-      {
-        Header: 'Best Data Normalization',
-        accessor: 'best_data_normalization',
-      },
-      {
-        Header: 'Model Validation',
-        accessor: (r) => {
-          let isTrainTest =
-            r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
-
-          if (isTrainTest) {
-            let trainingProportion =
-              (r.training_patient_ids.length /
-                (r.training_patient_ids.length + r.test_patient_ids.length)) *
-              100;
-            let testProportion = 100 - trainingProportion;
-
-            return `Training/Test split (${Math.round(
-              trainingProportion
-            )}%/${Math.round(testProportion)}%)`;
-          } else {
-            return 'Cross-validation (Full Dataset)';
-          }
-        },
-      },
-      {
-        Header: 'Training c-index (cross-validation)',
-        accessor: (r) =>
-          `${r.training_metrics['c-index'].mean.toFixed(
-            4
-          )} (${r.training_metrics['c-index'].inf_value.toFixed(
-            4
-          )}-${r.training_metrics['c-index'].sup_value.toFixed(4)})`,
-        sortDescFirst: true,
-        sortType: (r1, r2) =>
-          +r1.original.training_metrics['c-index'].mean -
-          +r2.original.training_metrics['c-index'].mean,
-      },
-      {
-        Header: 'Test c-index (bootstrap)',
-        accessor: (r) =>
-          r.test_metrics
-            ? `${r.test_metrics['c-index'].mean.toFixed(4)} (${r.test_metrics[
-                'c-index'
-              ].inf_value.toFixed(4)}-${r.test_metrics[
-                'c-index'
-              ].sup_value.toFixed(4)})`
-            : 'N/A',
-        sortDescFirst: true,
-        sortType: (r1, r2) => {
-          if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
-
-          return (
-            +r1.original.test_metrics['c-index'].mean -
-            +r2.original.test_metrics['c-index'].mean
-          );
-        },
-      },
-    ],
-    []
-  );
+  const columnsClassification = React.useMemo(() => CLASSIFICATION_COLUMNS, []);
+  const columnsSurvival = React.useMemo(() => SURVIVAL_COLUMNS, []);
 
   const reinitTraining = () => {
     setIsTraining(false);
@@ -284,14 +133,6 @@ export default function Train({
     else setCurrentAlgorithm(algorithm);
   };
 
-  const toggleFeatureNames = () => {
-    setFeatureNamesOpen((open) => !open);
-  };
-
-  const togglePatientIDs = () => {
-    setPatientIDsOpen((open) => !open);
-  };
-
   const transformLabelsToTabular = (outcomes) => {
     let tabularLabels = [];
 
@@ -328,7 +169,7 @@ export default function Train({
         labels,
         dataSplittingType,
         trainTestSplitType,
-        trainingPatients,
+        trainingPatients ? trainingPatients : dataPoints,
         testPatients,
         metadataColumns[MODALITY_FIELD],
         metadataColumns[ROI_FIELD],
@@ -354,16 +195,6 @@ export default function Train({
 
   const handleBackToModelsClick = () => {
     setShowNewModel(false);
-  };
-
-  const handleShowFeatureNames = (names) => {
-    setFeatureNames(names);
-    toggleFeatureNames();
-  };
-
-  const handleShowPatientIDs = (ids) => {
-    setPatientIDs(ids);
-    togglePatientIDs();
   };
 
   if (!album) return <span>Loading...</span>;
@@ -568,44 +399,6 @@ export default function Train({
     </div>
   );
 
-  const formatMetrics = (metrics, mode) => {
-    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
-      <tr key={metricName}>
-        <td>
-          <strong>{metricName}</strong>
-        </td>
-        <td>{formatMetric(metrics[metricName])}</td>
-      </tr>
-    ));
-
-    return (
-      <>
-        <Table className="metrics-table">
-          <thead>
-            <tr>
-              <th>Metric Name</th>
-              <th>
-                Metric Value{' '}
-                <FontAwesomeIcon
-                  icon="question-circle"
-                  id={`ciTooltip-${mode}`}
-                  style={{ cursor: 'pointer' }}
-                />
-                <UncontrolledTooltip
-                  placement="right"
-                  target={`ciTooltip-${mode}`}
-                >
-                  Shows the mean value & 95% confidence interval
-                </UncontrolledTooltip>
-              </th>
-            </tr>
-          </thead>
-          <tbody>{formattedOtherMetrics}</tbody>
-        </Table>
-      </>
-    );
-  };
-
   const generateDetails = (algorithm) => {
     switch (algorithm) {
       case CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION:
@@ -645,38 +438,16 @@ export default function Train({
             title="Classification Models"
             columns={columnsClassification}
             data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
-            dataPoints={dataPoints}
             handleDeleteModelClick={handleDeleteModelClick}
-            handleShowFeatureNames={handleShowFeatureNames}
-            handleShowPatientIDs={handleShowPatientIDs}
-            formatMetrics={formatMetrics}
           />
           <ModelsTable
             title="Survival Models"
             columns={columnsSurvival}
             data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
-            dataPoints={dataPoints}
             handleDeleteModelClick={handleDeleteModelClick}
-            handleShowFeatureNames={handleShowFeatureNames}
-            handleShowPatientIDs={handleShowPatientIDs}
-            formatMetrics={formatMetrics}
           />
         </>
       )}
-      <MyModal
-        isOpen={featureNamesOpen}
-        toggle={toggleFeatureNames}
-        title={<span>Feature Names</span>}
-      >
-        <ListValues values={featureNames} />
-      </MyModal>
-      <MyModal
-        isOpen={patientIDsOpen}
-        toggle={togglePatientIDs}
-        title={<span>Patient IDs</span>}
-      >
-        <ListValues values={patientIDs} />
-      </MyModal>
     </>
   );
 
@@ -748,21 +519,4 @@ export default function Train({
         </>
       );
   }
-}
-
-function formatMetric(metric) {
-  return (
-    <>
-      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(4) : metric['mean']}{' '}
-      (
-      {_.isNumber(metric['inf_value'])
-        ? metric['inf_value'].toFixed(3)
-        : metric['inf_value']}{' '}
-      -{' '}
-      {_.isNumber(metric['sup_value'])
-        ? metric['sup_value'].toFixed(3)
-        : metric['sup_value']}
-      )
-    </>
-  );
 }
