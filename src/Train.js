@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import {
   Alert,
   Table,
   Button,
   ListGroup,
   ListGroupItem,
-  UncontrolledTooltip
+  UncontrolledTooltip,
 } from 'reactstrap';
 
 import { DateTime } from 'luxon';
@@ -20,8 +20,13 @@ import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import ListValues from './components/ListValues';
-import { MODEL_TYPES, DATA_SPLITTING_TYPES } from './config/constants';
+import {
+  MODEL_TYPES,
+  DATA_SPLITTING_TYPES,
+  TRAINING_PHASES,
+} from './config/constants';
 import ModelsTable from './components/ModelsTable';
+import SocketContext from './context/SocketContext';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';
@@ -31,11 +36,11 @@ export const NON_FEATURE_FIELDS = [PATIENT_ID_FIELD, MODALITY_FIELD, ROI_FIELD];
 const CLASSIFICATION_ALGORITHMS = {
   LOGISTIC_REGRESSION: 'logistic_regression',
   RANDOM_FOREST: 'random_forest',
-  SVM: 'svm'
+  SVM: 'svm',
 };
 
 const SURVIVAL_ALGORITHMS = {
-  COX_MODEL: 'cox'
+  COX_MODEL: 'cox',
 };
 
 export default function Train({
@@ -54,7 +59,7 @@ export default function Train({
   dataSplittingType,
   trainTestSplitType,
   trainingPatients,
-  testPatients
+  testPatients,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -68,32 +73,38 @@ export default function Train({
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
 
   let [isTraining, setIsTraining] = useState(false);
+  let [currentTrainingID, setCurrentTrainingID] = useState(null);
+  let [nSteps, setNSteps] = useState(0);
+  let [currentPhase, setCurrentPhase] = useState(TRAINING_PHASES.TRAINING);
+  let [currentStep, setCurrentStep] = useState(0);
 
   let [trainingError, setTrainingError] = useState(null);
 
   let [showNewModel, setShowNewModel] = useState(false);
+
+  let socket = useContext(SocketContext);
 
   // Model table header
   const columnsClassification = React.useMemo(
     () => [
       {
         Header: 'Date created',
-        accessor: r =>
+        accessor: (r) =>
           DateTime.fromJSDate(new Date(r.created_at)).toFormat(
             'yyyy-MM-dd HH:mm:ss'
           ),
         sortDescFirst: true,
-        id: 'created_at'
+        id: 'created_at',
       },
       { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Best Algorithm', accessor: 'best_algorithm' },
       {
         Header: 'Best Data Normalization',
-        accessor: 'best_data_normalization'
+        accessor: 'best_data_normalization',
       },
       {
         Header: 'Model Validation',
-        accessor: r => {
+        accessor: (r) => {
           let isTrainTest =
             r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
 
@@ -110,11 +121,11 @@ export default function Train({
           } else {
             return 'Cross-validation (Full Dataset)';
           }
-        }
+        },
       },
       {
         Header: 'Training AUC (cross-validation)',
-        accessor: r =>
+        accessor: (r) =>
           `${r.training_metrics.auc.mean.toFixed(
             4
           )} (${r.training_metrics.auc.inf_value.toFixed(
@@ -123,11 +134,11 @@ export default function Train({
         sortDescFirst: true,
         sortType: (r1, r2) =>
           +r1.original.training_metrics.auc.mean -
-          +r2.original.training_metrics.auc.mean
+          +r2.original.training_metrics.auc.mean,
       },
       {
         Header: 'Test AUC (bootstrap)',
-        accessor: r =>
+        accessor: (r) =>
           r.test_metrics
             ? `${r.test_metrics.auc.mean.toFixed(
                 4
@@ -143,8 +154,8 @@ export default function Train({
             +r1.original.test_metrics.auc.mean -
             +r2.original.test_metrics.auc.mean
           );
-        }
-      }
+        },
+      },
     ],
     []
   );
@@ -153,22 +164,22 @@ export default function Train({
     () => [
       {
         Header: 'Date created',
-        accessor: r =>
+        accessor: (r) =>
           DateTime.fromJSDate(new Date(r.created_at)).toFormat(
             'yyyy-MM-dd HH:mm:ss'
           ),
         sortDescFirst: true,
-        id: 'created_at'
+        id: 'created_at',
       },
       { Header: 'Outcome', accessor: 'label_category' },
       { Header: 'Best Algorithm', accessor: 'best_algorithm' },
       {
         Header: 'Best Data Normalization',
-        accessor: 'best_data_normalization'
+        accessor: 'best_data_normalization',
       },
       {
         Header: 'Model Validation',
-        accessor: r => {
+        accessor: (r) => {
           let isTrainTest =
             r.data_splitting_type === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
 
@@ -185,11 +196,11 @@ export default function Train({
           } else {
             return 'Cross-validation (Full Dataset)';
           }
-        }
+        },
       },
       {
         Header: 'Training c-index (cross-validation)',
-        accessor: r =>
+        accessor: (r) =>
           `${r.training_metrics['c-index'].mean.toFixed(
             4
           )} (${r.training_metrics['c-index'].inf_value.toFixed(
@@ -198,11 +209,11 @@ export default function Train({
         sortDescFirst: true,
         sortType: (r1, r2) =>
           +r1.original.training_metrics['c-index'].mean -
-          +r2.original.training_metrics['c-index'].mean
+          +r2.original.training_metrics['c-index'].mean,
       },
       {
         Header: 'Test c-index (bootstrap)',
-        accessor: r =>
+        accessor: (r) =>
           r.test_metrics
             ? `${r.test_metrics['c-index'].mean.toFixed(4)} (${r.test_metrics[
                 'c-index'
@@ -218,33 +229,76 @@ export default function Train({
             +r1.original.test_metrics['c-index'].mean -
             +r2.original.test_metrics['c-index'].mean
           );
-        }
-      }
+        },
+      },
     ],
     []
   );
 
-  const toggleAlgorithmDetails = algorithm => {
-    setAlgorithmDetailsOpen(o => !o);
+  const reinitTraining = () => {
+    setIsTraining(false);
+    setCurrentTrainingID(null);
+    setNSteps(0);
+    setCurrentPhase(TRAINING_PHASES.TRAINING);
+    setCurrentStep(0);
+  };
+
+  const handleTrainingStatus = useCallback(
+    (trainingStatus) => {
+      const trainingID = trainingStatus['training-id'];
+      console.log(`STATUS for Training ${trainingID} !!!`, trainingStatus);
+
+      if (trainingID === currentTrainingID) {
+        if (trainingStatus.complete) {
+          reinitTraining();
+          setModels([trainingStatus.model, ...models]);
+          setShowNewModel(false);
+        } else {
+          if (trainingStatus.phase === TRAINING_PHASES.TESTING) {
+            setCurrentPhase(TRAINING_PHASES.TESTING);
+            setNSteps(trainingStatus.total);
+            setCurrentStep(trainingStatus.current);
+          } else {
+            setCurrentStep((s) => s + 1);
+          }
+        }
+      }
+    },
+    [models, setModels, currentTrainingID]
+  );
+
+  // Subscribe to Socket messages
+  useEffect(() => {
+    if (!currentTrainingID) return;
+
+    socket.on('training-status', handleTrainingStatus);
+
+    return () => {
+      socket.off('training-status', handleTrainingStatus);
+    };
+  }, [socket, handleTrainingStatus, currentTrainingID]);
+
+  const toggleAlgorithmDetails = (algorithm) => {
+    setAlgorithmDetailsOpen((o) => !o);
     if (!algorithm) setCurrentAlgorithm(null);
     else setCurrentAlgorithm(algorithm);
   };
 
   const toggleFeatureNames = () => {
-    setFeatureNamesOpen(open => !open);
+    setFeatureNamesOpen((open) => !open);
   };
 
   const togglePatientIDs = () => {
-    setPatientIDsOpen(open => !open);
+    setPatientIDsOpen((open) => !open);
   };
 
-  const transformLabelsToTabular = outcomes => {
+  const transformLabelsToTabular = (outcomes) => {
     let tabularLabels = [];
 
     for (let outcome of outcomes) {
       let tabularLabel = [
         outcome.patient_id,
-        ...Object.values(outcome.label_content)
+        ...Object.values(outcome.label_content),
       ];
 
       tabularLabels.push(tabularLabel);
@@ -265,7 +319,7 @@ export default function Train({
       // or [ [PatientID,Time,Event], ... ]
       let labels = transformLabelsToTabular(outcomes);
 
-      let model = await trainModel(
+      let { trainingID, nSteps } = await trainModel(
         featureExtractionID,
         collectionInfos ? collectionInfos.collection.id : null,
         selectedLabelCategory.id,
@@ -281,18 +335,17 @@ export default function Train({
         keycloak.token
       );
 
-      setIsTraining(false);
-      setModels([model, ...models]);
-      setShowNewModel(false);
+      setCurrentTrainingID(trainingID);
+      setNSteps(nSteps);
     } catch (e) {
-      setIsTraining(false);
+      reinitTraining();
       setTrainingError(e.message);
     }
   };
 
-  const handleDeleteModelClick = async id => {
+  const handleDeleteModelClick = async (id) => {
     await Backend.deleteModel(keycloak.token, id);
-    setModels(models.filter(model => model.id !== id));
+    setModels(models.filter((model) => model.id !== id));
   };
 
   const handleShowNewModelClick = () => {
@@ -303,12 +356,12 @@ export default function Train({
     setShowNewModel(false);
   };
 
-  const handleShowFeatureNames = names => {
+  const handleShowFeatureNames = (names) => {
     setFeatureNames(names);
     toggleFeatureNames();
   };
 
-  const handleShowPatientIDs = ids => {
+  const handleShowPatientIDs = (ids) => {
     setPatientIDs(ids);
     togglePatientIDs();
   };
@@ -319,12 +372,18 @@ export default function Train({
 
   let trainingButton = () => {
     let buttonText = isTraining
-      ? dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
-        ? 'Training Model...'
-        : 'Training & Testing Model...'
+      ? currentPhase === TRAINING_PHASES.TRAINING
+        ? 'Training Model'
+        : 'Testing Model'
       : dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
       ? 'Train Model'
       : 'Train & Test Model';
+
+    if (nSteps > 0 && currentStep > 0) {
+      buttonText += ` (${Math.floor((currentStep / nSteps) * 100)}%)`;
+    }
+
+    if (isTraining) buttonText += '...';
 
     return (
       <Button
@@ -510,7 +569,7 @@ export default function Train({
   );
 
   const formatMetrics = (metrics, mode) => {
-    let formattedOtherMetrics = Object.keys(metrics).map(metricName => (
+    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
       <tr key={metricName}>
         <td>
           <strong>{metricName}</strong>
@@ -547,7 +606,7 @@ export default function Train({
     );
   };
 
-  const generateDetails = algorithm => {
+  const generateDetails = (algorithm) => {
     switch (algorithm) {
       case CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION:
         return (
@@ -585,7 +644,7 @@ export default function Train({
           <ModelsTable
             title="Classification Models"
             columns={columnsClassification}
-            data={models.filter(m => m.type === MODEL_TYPES.CLASSIFICATION)}
+            data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
             dataPoints={dataPoints}
             handleDeleteModelClick={handleDeleteModelClick}
             handleShowFeatureNames={handleShowFeatureNames}
@@ -595,7 +654,7 @@ export default function Train({
           <ModelsTable
             title="Survival Models"
             columns={columnsSurvival}
-            data={models.filter(m => m.type === MODEL_TYPES.SURVIVAL)}
+            data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
             dataPoints={dataPoints}
             handleDeleteModelClick={handleDeleteModelClick}
             handleShowFeatureNames={handleShowFeatureNames}

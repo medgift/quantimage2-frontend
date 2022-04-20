@@ -32,13 +32,13 @@ export async function downloadFeatureSet(token, tasks) {
   let data = assembleCSVData(allFeatures);
 
   const parser = new Parser({
-    fields: fields
+    fields: fields,
   });
 
   let parsedData = parser.parse(data);
 
   const fileContent = new Blob([parsedData], {
-    type: 'text/csv'
+    type: 'text/csv',
   });
 
   const filename = `features.csv`;
@@ -50,11 +50,11 @@ function assembleCSVHeader(allFeatures) {
   let fields = [];
   for (let features of allFeatures) {
     Object.keys(features)
-      .filter(key => key !== PATIENT_ID_FIELD)
+      .filter((key) => key !== PATIENT_ID_FIELD)
       // eslint-disable-next-line no-loop-func
-      .forEach(modality => {
-        Object.keys(features[modality]).forEach(label => {
-          Object.keys(features[modality][label]).forEach(featureName => {
+      .forEach((modality) => {
+        Object.keys(features[modality]).forEach((label) => {
+          Object.keys(features[modality][label]).forEach((featureName) => {
             if (!fields.includes(featureName)) fields.push(featureName);
           });
         });
@@ -72,9 +72,9 @@ function assembleCSVData(allFeatures, fields) {
     let patientID = features[PATIENT_ID_FIELD];
 
     Object.keys(features)
-      .filter(key => key !== PATIENT_ID_FIELD)
-      .forEach(modality => {
-        Object.keys(features[modality]).forEach(label => {
+      .filter((key) => key !== PATIENT_ID_FIELD)
+      .forEach((modality) => {
+        Object.keys(features[modality]).forEach((label) => {
           let dataLine = {};
 
           dataLine[PATIENT_ID_FIELD] = patientID;
@@ -106,7 +106,7 @@ export async function trainModel(
   usedROIs,
   token
 ) {
-  let createdModel = await Backend.trainModel(
+  let response = await Backend.trainModel(
     token,
     extractionID,
     collection,
@@ -122,7 +122,10 @@ export async function trainModel(
     usedROIs
   );
 
-  return createdModel;
+  let trainingID = response['training-id'];
+  let nSteps = response['n-steps'];
+
+  return { trainingID, nSteps };
 }
 
 export function assembleFeatures(extraction, studies, album) {
@@ -150,7 +153,9 @@ export function assembleFeatures(extraction, studies, album) {
         ]
       }_${studyUID}`;
 
-      let tasks = extraction.tasks.filter(task => task.study_uid === studyUID);
+      let tasks = extraction.tasks.filter(
+        (task) => task.study_uid === studyUID
+      );
 
       let studyFeatures = getFeaturesFromTasks(patientID, tasks);
 
@@ -166,13 +171,13 @@ function getFeaturesFromTasks(patientID, tasks) {
 
   let filteredFeatures = { [PATIENT_ID_FIELD]: patientID };
 
-  tasks.map(task => {
+  tasks.map((task) => {
     // Go through modalities
-    Object.keys(task.payload).forEach(modality => {
+    Object.keys(task.payload).forEach((modality) => {
       if (!filteredFeatures[modality]) filteredFeatures[modality] = {};
 
       // Go through labelCategories
-      Object.keys(task.payload[modality]).forEach(label => {
+      Object.keys(task.payload[modality]).forEach((label) => {
         //if (!filteredFeatures[modality][label]) filteredFeatures[modality][label] = {};
         filteredFeatures[modality][label] = {
           ...filteredFeatures[modality][label],
@@ -180,7 +185,7 @@ function getFeaturesFromTasks(patientID, tasks) {
             Object.entries(task.payload[modality][label]).filter(
               ([key, val]) => !key.startsWith(leaveOutPrefix)
             )
-          )
+          ),
         };
       });
     });
