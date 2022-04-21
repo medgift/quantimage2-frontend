@@ -110,10 +110,10 @@ export const CLASSIFICATION_COLUMNS = [
     Header: 'Training AUC (cross-validation)',
     accessor: (r) =>
       `${r.training_metrics.auc.mean.toFixed(
-        4
+        3
       )} (${r.training_metrics.auc.inf_value.toFixed(
-        4
-      )}-${r.training_metrics.auc.sup_value.toFixed(4)})`,
+        3
+      )}-${r.training_metrics.auc.sup_value.toFixed(3)})`,
     sortDescFirst: true,
     sortType: (r1, r2) =>
       +r1.original.training_metrics.auc.mean -
@@ -124,10 +124,10 @@ export const CLASSIFICATION_COLUMNS = [
     accessor: (r) =>
       r.test_metrics
         ? `${r.test_metrics.auc.mean.toFixed(
-            4
+            3
           )} (${r.test_metrics.auc.inf_value.toFixed(
-            4
-          )}-${r.test_metrics.auc.sup_value.toFixed(4)})`
+            3
+          )}-${r.test_metrics.auc.sup_value.toFixed(3)})`
         : 'N/A',
     sortDescFirst: true,
     sortType: (r1, r2) => {
@@ -145,10 +145,10 @@ export const SURVIVAL_COLUMNS = [
   {
     Header: 'Training c-index (cross-validation)',
     accessor: (r) =>
-      `${r.training_metrics['c-index'].mean.toFixed(4)} (${r.training_metrics[
+      `${r.training_metrics['c-index'].mean.toFixed(3)} (${r.training_metrics[
         'c-index'
-      ].inf_value.toFixed(4)}-${r.training_metrics['c-index'].sup_value.toFixed(
-        4
+      ].inf_value.toFixed(3)}-${r.training_metrics['c-index'].sup_value.toFixed(
+        3
       )})`,
     sortDescFirst: true,
     sortType: (r1, r2) =>
@@ -159,10 +159,10 @@ export const SURVIVAL_COLUMNS = [
     Header: 'Test c-index (bootstrap)',
     accessor: (r) =>
       r.test_metrics
-        ? `${r.test_metrics['c-index'].mean.toFixed(4)} (${r.test_metrics[
+        ? `${r.test_metrics['c-index'].mean.toFixed(3)} (${r.test_metrics[
             'c-index'
-          ].inf_value.toFixed(4)}-${r.test_metrics['c-index'].sup_value.toFixed(
-            4
+          ].inf_value.toFixed(3)}-${r.test_metrics['c-index'].sup_value.toFixed(
+            3
           )})`
         : 'N/A',
     sortDescFirst: true,

@@ -402,7 +402,7 @@ export default function ModelsTable({
 function formatMetric(metric) {
   return (
     <>
-      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(4) : metric['mean']}{' '}
+      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(3) : metric['mean']}{' '}
       (
       {_.isNumber(metric['inf_value'])
         ? metric['inf_value'].toFixed(3)
