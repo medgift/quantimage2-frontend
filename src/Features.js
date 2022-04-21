@@ -357,7 +357,13 @@ function Features({ history }) {
       setTestPatients(testPatients);
       setNbTrainingPatients(trainingPatients.length);
     }
-  }, [featureExtraction, collectionID, currentCollection, dataPoints]);
+  }, [
+    featureExtraction,
+    collectionID,
+    currentCollection,
+    collections,
+    dataPoints,
+  ]);
 
   // Handle download click
   const handleDownloadClick = async (e) => {
