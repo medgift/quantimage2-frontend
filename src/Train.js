@@ -1,25 +1,14 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import {
-  Alert,
-  Table,
-  Button,
-  ListGroup,
-  ListGroupItem,
-  UncontrolledTooltip,
-} from 'reactstrap';
-
-import { DateTime } from 'luxon';
+import { Alert, Button, ListGroup, ListGroupItem } from 'reactstrap';
 
 import './Train.css';
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
-import _ from 'lodash';
 import Kheops from './services/kheops';
 import { trainModel } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
-import ListValues from './components/ListValues';
 import {
   MODEL_TYPES,
   DATA_SPLITTING_TYPES,
@@ -43,6 +32,8 @@ const CLASSIFICATION_ALGORITHMS = {
 
 const SURVIVAL_ALGORITHMS = {
   COX_MODEL: 'cox',
+  COX_MODEL_ELASTIC: 'cox_elastic',
+  IPC: 'ipc',
 };
 
 export default function Train({
@@ -270,7 +261,7 @@ export default function Train({
                     )
                   }
                 >
-                  <small>+ Parameters used</small>
+                  <small>+ Parameters</small>
                 </Button>
               </div>
             </ListGroupItem>
@@ -282,6 +273,17 @@ export default function Train({
               >
                 Support-Vector Machines
               </a>
+              <br />
+              <div>
+                <Button
+                  color="link"
+                  onClick={() =>
+                    toggleAlgorithmDetails(CLASSIFICATION_ALGORITHMS.SVM)
+                  }
+                >
+                  <small>+ Parameters</small>
+                </Button>
+              </div>
             </ListGroupItem>
             <ListGroupItem>
               <a
@@ -291,6 +293,19 @@ export default function Train({
               >
                 Random Forest
               </a>
+              <br />
+              <div>
+                <Button
+                  color="link"
+                  onClick={() =>
+                    toggleAlgorithmDetails(
+                      CLASSIFICATION_ALGORITHMS.RANDOM_FOREST
+                    )
+                  }
+                >
+                  <small>+ Parameters</small>
+                </Button>
+              </div>
             </ListGroupItem>
           </ListGroup>
         </>
@@ -308,6 +323,15 @@ export default function Train({
               >
                 Cox Proportional Hazards Model
               </a>
+              <br />
+              <Button
+                color="link"
+                onClick={() =>
+                  toggleAlgorithmDetails(SURVIVAL_ALGORITHMS.COX_MODEL)
+                }
+              >
+                <small>+ Parameters</small>
+              </Button>
             </ListGroupItem>
             <ListGroupItem>
               <a
@@ -317,6 +341,15 @@ export default function Train({
               >
                 Cox Proportional Hazards Model with Elastic Net Penalty
               </a>
+              <br />
+              <Button
+                color="link"
+                onClick={() =>
+                  toggleAlgorithmDetails(SURVIVAL_ALGORITHMS.COX_MODEL_ELASTIC)
+                }
+              >
+                <small>+ Parameters</small>
+              </Button>
             </ListGroupItem>
             <ListGroupItem>
               <a
@@ -327,6 +360,13 @@ export default function Train({
                 Accelerated failure time model with inverse probability of
                 censoring weights
               </a>
+              <br />
+              <Button
+                color="link"
+                onClick={() => toggleAlgorithmDetails(SURVIVAL_ALGORITHMS.IPC)}
+              >
+                <small>+ Parameters</small>
+              </Button>
             </ListGroupItem>
           </ListGroup>
         </>
@@ -377,7 +417,7 @@ export default function Train({
       <MyModal
         isOpen={algorithmDetailsOpen}
         toggle={toggleAlgorithmDetails}
-        title={<span>Algorithm Parameters used</span>}
+        title={<span>Algorithm Parameters explored</span>}
       >
         {generateDetails(currentAlgorithm)}
       </MyModal>
@@ -403,7 +443,7 @@ export default function Train({
     switch (algorithm) {
       case CLASSIFICATION_ALGORITHMS.LOGISTIC_REGRESSION:
         return (
-          <div>
+          <div className="algorithm-details">
             <h5>Solver</h5>
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>lbgfs</ListGroupItem>
@@ -422,6 +462,83 @@ export default function Train({
             <h5 className="mt-3">Maximum Iterations</h5>
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>1000</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      case CLASSIFICATION_ALGORITHMS.SVM:
+        return (
+          <div className="algorithm-details">
+            <h5>C</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>0.1</ListGroupItem>
+              <ListGroupItem>1</ListGroupItem>
+              <ListGroupItem>10</ListGroupItem>
+              <ListGroupItem>100</ListGroupItem>
+            </ListGroup>
+            <h5 className="mt-3">Gamma</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>1</ListGroupItem>
+              <ListGroupItem>0.1</ListGroupItem>
+              <ListGroupItem>0.01</ListGroupItem>
+              <ListGroupItem>0.001</ListGroupItem>
+            </ListGroup>
+            <h5 className="mt-3">Kernel</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>RBF</ListGroupItem>
+              <ListGroupItem>Poly</ListGroupItem>
+              <ListGroupItem>Sigmoid</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      case CLASSIFICATION_ALGORITHMS.RANDOM_FOREST:
+        return (
+          <div className="algorithm-details">
+            <h5>Maximum Tree Depth</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>10</ListGroupItem>
+              <ListGroupItem>100</ListGroupItem>
+              <ListGroupItem>∞</ListGroupItem>
+            </ListGroup>
+            <h5>Number of Estimators</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>10</ListGroupItem>
+              <ListGroupItem>100</ListGroupItem>
+              <ListGroupItem>1000</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      case SURVIVAL_ALGORITHMS.COX_MODEL:
+        return (
+          <div className="algorithm-details">
+            <h5>Alpha</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>0.1</ListGroupItem>
+            </ListGroup>
+            <h5>Max Number of Iterations</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>100</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      case SURVIVAL_ALGORITHMS.COX_MODEL_ELASTIC:
+        return (
+          <div className="algorithm-details">
+            <h5>Number of Alphas</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>100</ListGroupItem>
+            </ListGroup>
+            <h5>L1 Ratio</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>0.5</ListGroupItem>
+            </ListGroup>
+          </div>
+        );
+      case SURVIVAL_ALGORITHMS.IPC:
+        return (
+          <div className="algorithm-details">
+            <h5>Alpha</h5>
+            <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>1</ListGroupItem>
             </ListGroup>
           </div>
         );

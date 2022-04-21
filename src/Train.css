@@ -60,3 +60,7 @@
 .model-row:hover .model-row-icon {
   color: #666;
 }
+
+.algorithm-details h5 {
+  margin: 0.5em;
+}
