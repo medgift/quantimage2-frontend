@@ -44,7 +44,11 @@ export default function ModelsTable({
   };
 
   const formatMetrics = (metrics, mode) => {
-    let formattedOtherMetrics = Object.keys(metrics).map((metricName) => (
+    let sortedMetrics = Object.fromEntries(
+      Object.entries(metrics).sort(([k1, v1], [k2, v2]) => v1.order - v2.order)
+    );
+
+    let formattedOtherMetrics = Object.keys(sortedMetrics).map((metricName) => (
       <tr key={metricName}>
         <td>
           <strong>{metricName}</strong>

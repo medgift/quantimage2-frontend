@@ -98,20 +98,26 @@ export default function ModelOverview({ albums }) {
             <FontAwesomeIcon icon="arrow-left" /> Go Back
           </Button>
 
-          <div style={{ width: '98%' }}>
-            <ModelsTable
-              title="Classification Models"
-              columns={columnsClassification}
-              data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
-              handleDeleteModelClick={handleDeleteModelClick}
-            />
-            <ModelsTable
-              title="Survival Models"
-              columns={columnsSurvival}
-              data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
-              handleDeleteModelClick={handleDeleteModelClick}
-            />
-          </div>
+          {models.length > 0 ? (
+            <div style={{ width: '98%' }}>
+              <ModelsTable
+                title="Classification Models"
+                columns={columnsClassification}
+                data={models.filter(
+                  (m) => m.type === MODEL_TYPES.CLASSIFICATION
+                )}
+                handleDeleteModelClick={handleDeleteModelClick}
+              />
+              <ModelsTable
+                title="Survival Models"
+                columns={columnsSurvival}
+                data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
+                handleDeleteModelClick={handleDeleteModelClick}
+              />
+            </div>
+          ) : (
+            <h2 className="align-self-stretch">No Models Created Yet</h2>
+          )}
         </div>
       </div>
     )
