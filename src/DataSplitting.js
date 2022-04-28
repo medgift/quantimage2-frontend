@@ -5,7 +5,7 @@ import {
   DATA_SPLITTING_TYPES,
   MODEL_TYPES,
   PATIENT_FIELDS,
-  TRAIN_TEST_SPLIT_TYPES
+  TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 
 import _ from 'lodash';
@@ -31,19 +31,19 @@ export default function DataSplitting({
   testPatients,
   setTrainingPatients,
   setTestPatients,
-  transferPatients
+  transferPatients,
 }) {
   const { keycloak } = useKeycloak();
 
-  const handleSplitTypeChange = async e => {
+  const handleSplitTypeChange = async (e) => {
     await updateTrainTestSplitType(e.target.id);
   };
 
-  const handleDataSplitChange = async e => {
+  const handleDataSplitChange = async (e) => {
     await updateDataSplittingType(e.target.value);
   };
 
-  const handleNbTrainingPatientsChange = async e => {
+  const handleNbTrainingPatientsChange = async (e) => {
     setNbTrainingPatients(+e.target.value);
   };
 
@@ -55,7 +55,7 @@ export default function DataSplitting({
         Math.floor(nbTrainingPatients)
       );
     } else {
-      let filteredOutcomes = outcomes.filter(o =>
+      let filteredOutcomes = outcomes.filter((o) =>
         dataPoints.includes(o.patient_id)
       );
 
@@ -67,14 +67,14 @@ export default function DataSplitting({
 
       trainingPatients = _(filteredOutcomes)
         .groupBy(groupByCriteria)
-        .map(v =>
+        .map((v) =>
           _.sampleSize(
             v,
             Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
           )
         )
         .flatten()
-        .map(v => v.patient_id)
+        .map((v) => v.patient_id)
         .value();
     }
 
@@ -110,7 +110,7 @@ export default function DataSplitting({
     collectionID,
     patients,
     setTrainingPatients,
-    setTestPatients
+    setTestPatients,
   ]);
 
   const resetPatients = useCallback(async () => {
@@ -133,7 +133,7 @@ export default function DataSplitting({
     setTrainingPatients,
     setTestPatients,
     setNbTrainingPatients,
-    dataPoints
+    dataPoints,
   ]);
 
   useEffect(() => {
@@ -330,14 +330,16 @@ function PatientSelectList({
   title,
   patients,
   selectedPatients,
-  setSelectedPatients
+  setSelectedPatients,
 }) {
-  const handleSelectionChange = e => {
-    setSelectedPatients([...e.target.selectedOptions].map(p => p.value));
+  const handleSelectionChange = (e) => {
+    setSelectedPatients([...e.target.selectedOptions].map((p) => p.value));
   };
 
   const selectAll = () => setSelectedPatients(patients);
   const deselectAll = () => setSelectedPatients([]);
+
+  if (!patients) return <div>Loading...</div>;
 
   return (
     <FormGroup>
@@ -354,7 +356,7 @@ function PatientSelectList({
             .sort((p1, p2) =>
               p1.localeCompare(p2, undefined, { numeric: true })
             )
-            .map(p => (
+            .map((p) => (
               <option value={p} key={p}>
                 {p}
               </option>
