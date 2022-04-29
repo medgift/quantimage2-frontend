@@ -463,6 +463,17 @@ export default function Train({
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>1000</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       case CLASSIFICATION_ALGORITHMS.SVM:
@@ -470,6 +481,7 @@ export default function Train({
           <div className="algorithm-details">
             <h5>C</h5>
             <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>0.01</ListGroupItem>
               <ListGroupItem>0.1</ListGroupItem>
               <ListGroupItem>1</ListGroupItem>
               <ListGroupItem>10</ListGroupItem>
@@ -477,6 +489,8 @@ export default function Train({
             </ListGroup>
             <h5 className="mt-3">Gamma</h5>
             <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>scale</ListGroupItem>
+              <ListGroupItem>auto</ListGroupItem>
               <ListGroupItem>1</ListGroupItem>
               <ListGroupItem>0.1</ListGroupItem>
               <ListGroupItem>0.01</ListGroupItem>
@@ -484,10 +498,22 @@ export default function Train({
             </ListGroup>
             <h5 className="mt-3">Kernel</h5>
             <ListGroup horizontal={true} className="justify-content-center">
+              <ListGroupItem>Linear</ListGroupItem>
               <ListGroupItem>RBF</ListGroupItem>
               <ListGroupItem>Poly</ListGroupItem>
               <ListGroupItem>Sigmoid</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       case CLASSIFICATION_ALGORITHMS.RANDOM_FOREST:
@@ -505,6 +531,17 @@ export default function Train({
               <ListGroupItem>100</ListGroupItem>
               <ListGroupItem>1000</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       case SURVIVAL_ALGORITHMS.COX_MODEL:
@@ -518,6 +555,17 @@ export default function Train({
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>100</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxPHSurvivalAnalysis.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       case SURVIVAL_ALGORITHMS.COX_MODEL_ELASTIC:
@@ -531,6 +579,17 @@ export default function Train({
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>0.5</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxnetSurvivalAnalysis.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       case SURVIVAL_ALGORITHMS.IPC:
@@ -540,6 +599,17 @@ export default function Train({
             <ListGroup horizontal={true} className="justify-content-center">
               <ListGroupItem>1</ListGroupItem>
             </ListGroup>
+            <hr />
+            <p>
+              More information{' '}
+              <a
+                href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.IPCRidge.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                here
+              </a>
+            </p>
           </div>
         );
       default:
