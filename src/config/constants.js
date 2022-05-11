@@ -15,6 +15,7 @@ export const FEATURE_STATUS = {
   },
 };
 
+export const ZRAD_FEATURE_PREFIXES = ['zrad', 'ZRad'];
 export const RIESZ_FEATURE_PREFIXES = ['tex'];
 export const PYRADIOMICS_FEATURE_PREFIXES = [
   'original',

@@ -3,8 +3,7 @@ import { FEATURE_DEFINITIONS } from './feature-mapping';
 export const MODALITIES = ['CT', 'PET', 'MR'];
 const FILTERS = ['log'];
 const RIESZ_PREFIX = 'tex';
-
-export const MODALITIES_MAP = { CT: 'CT', PET: 'PT', MR: 'MR' };
+const ZRAD_PREFIX = 'zrad';
 
 export function getFeatureDescription(featureName) {
   let match = featureName.match(PYRADIOMICS_PATTERN);
@@ -33,16 +32,24 @@ export function groupFeatures(featureNames) {
     let featureModality = MODALITIES.find((m) => name.startsWith(m));
     let featureFilter = FILTERS.find((f) => name.startsWith(f));
     let isRiesz = name.startsWith(RIESZ_PREFIX);
+    let isZrad = name.startsWith(ZRAD_PREFIX);
 
     //let [featureGroupName, subGroupName, subsubGroupName] = getGroupName(
-    let groups = getGroupName(name, featureModality, featureFilter, isRiesz);
+    let groups = getGroupName(
+      name,
+      featureModality,
+      featureFilter,
+      isRiesz,
+      isZrad
+    );
 
     let targetObject = initGroups(featureGroups, groups);
     let shortFeatureName = getShortFeatureName(
       name,
       featureModality,
       featureFilter,
-      isRiesz
+      isRiesz,
+      isZrad
     );
     targetObject[shortFeatureName] = {
       shortName: shortFeatureName,
@@ -78,12 +85,27 @@ function initGroups(featureGroups, groups) {
   }
 }
 
-const FILTER_PATTERN = /(?<filter>.*?)-(?<parameters>.*?)_(?<category>.*)_(?<name>.*)/;
+const FILTER_PATTERN =
+  /(?<filter>.*?)-(?<parameters>.*?)_(?<category>.*)_(?<name>.*)/;
 const MODALITY_PATTERN = /(?<modality>.*?)_(?<name>.*)/;
 const PYRADIOMICS_PATTERN = /(?<image>)_(?<category>.*?)_(?<name>.*)/;
 const RIESZ_PATTERN = /(?<category>.*?)_(?<name>.*)/;
 
-function getGroupName(fullName, modality, filter, isRiesz) {
+const ZRAD_CATEGORIES = [
+  'GLCM',
+  'GLDZM',
+  'GLRLM',
+  'GLSZM',
+  'NGLDM',
+  'mGLCM',
+  'mGLRLM',
+];
+const ZRAD_PATTERN = `zrad(?:_(?<category>(${ZRAD_CATEGORIES.join(
+  '|'
+)})))?_(?<name>.*)`;
+const ZRAD_REGEX = new RegExp(ZRAD_PATTERN);
+
+function getGroupName(fullName, modality, filter, isRiesz, isZrad) {
   if (modality) return [modality];
 
   if (filter) {
@@ -92,6 +114,13 @@ function getGroupName(fullName, modality, filter, isRiesz) {
   }
 
   if (isRiesz) return ['Texture', 'Riesz'];
+
+  if (isZrad) {
+    let { category, name } = fullName.match(ZRAD_REGEX).groups;
+
+    if (category) return ['ZRad', 'Texture', category];
+    else return ['ZRad', 'Misc'];
+  }
 
   // Group is category if a feature definition exists
   let { category, name } = fullName.match(PYRADIOMICS_PATTERN).groups;
@@ -105,7 +134,7 @@ function getGroupName(fullName, modality, filter, isRiesz) {
   return [category];
 }
 
-function getShortFeatureName(fullName, modality, filter, isRiesz) {
+function getShortFeatureName(fullName, modality, filter, isRiesz, isZrad) {
   let pattern;
   if (filter) {
     pattern = FILTER_PATTERN;
@@ -113,6 +142,8 @@ function getShortFeatureName(fullName, modality, filter, isRiesz) {
     pattern = MODALITY_PATTERN;
   } else if (isRiesz) {
     pattern = RIESZ_PATTERN;
+  } else if (isZrad) {
+    pattern = ZRAD_REGEX;
   } else {
     pattern = PYRADIOMICS_PATTERN;
   }
