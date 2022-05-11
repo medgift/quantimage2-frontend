@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { formatMetric, formatMetricDisplay } from '../utils/feature-utils';
 
 export const DICOM_DATE_FORMAT = 'DD.MM.YYYY';
 export const DB_DATE_FORMAT = 'DD.MM.YYYY HH:mm';
@@ -109,12 +110,7 @@ export const CLASSIFICATION_COLUMNS = [
   ...MODEL_COLUMNS,
   {
     Header: 'Training AUC (cross-validation)',
-    accessor: (r) =>
-      `${r.training_metrics.auc.mean.toFixed(
-        3
-      )} (${r.training_metrics.auc.inf_value.toFixed(
-        3
-      )}-${r.training_metrics.auc.sup_value.toFixed(3)})`,
+    accessor: (r) => formatMetric(r.training_metrics.auc),
     sortDescFirst: true,
     sortType: (r1, r2) =>
       +r1.original.training_metrics.auc.mean -
@@ -123,13 +119,7 @@ export const CLASSIFICATION_COLUMNS = [
   {
     Header: 'Test AUC (bootstrap)',
     accessor: (r) =>
-      r.test_metrics
-        ? `${r.test_metrics.auc.mean.toFixed(
-            3
-          )} (${r.test_metrics.auc.inf_value.toFixed(
-            3
-          )}-${r.test_metrics.auc.sup_value.toFixed(3)})`
-        : 'N/A',
+      r.test_metrics ? formatMetric(r.test_metrics.auc) : 'N/A',
     sortDescFirst: true,
     sortType: (r1, r2) => {
       if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
@@ -145,12 +135,7 @@ export const SURVIVAL_COLUMNS = [
   ...MODEL_COLUMNS,
   {
     Header: 'Training c-index (cross-validation)',
-    accessor: (r) =>
-      `${r.training_metrics['c-index'].mean.toFixed(3)} (${r.training_metrics[
-        'c-index'
-      ].inf_value.toFixed(3)}-${r.training_metrics['c-index'].sup_value.toFixed(
-        3
-      )})`,
+    accessor: (r) => formatMetric(r.training_metrics['c-index']),
     sortDescFirst: true,
     sortType: (r1, r2) =>
       +r1.original.training_metrics['c-index'].mean -
@@ -159,13 +144,7 @@ export const SURVIVAL_COLUMNS = [
   {
     Header: 'Test c-index (bootstrap)',
     accessor: (r) =>
-      r.test_metrics
-        ? `${r.test_metrics['c-index'].mean.toFixed(3)} (${r.test_metrics[
-            'c-index'
-          ].inf_value.toFixed(3)}-${r.test_metrics['c-index'].sup_value.toFixed(
-            3
-          )})`
-        : 'N/A',
+      r.test_metrics ? formatMetric(r.test_metrics['c-index']) : 'N/A',
     sortDescFirst: true,
     sortType: (r1, r2) => {
       if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;

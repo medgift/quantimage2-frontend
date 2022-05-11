@@ -1,17 +1,11 @@
 import { useSortBy, useTable } from 'react-table';
 import React, { useState } from 'react';
-import {
-  Badge,
-  Button,
-  Collapse,
-  Table,
-  UncontrolledTooltip,
-} from 'reactstrap';
+import { Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
-import _ from 'lodash';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
+import { formatMetric } from '../utils/feature-utils';
 
 export default function ModelsTable({
   title,
@@ -399,23 +393,6 @@ export default function ModelsTable({
       >
         <ListValues values={patientIDs} />
       </MyModal>
-    </>
-  );
-}
-
-function formatMetric(metric) {
-  return (
-    <>
-      {_.isNumber(metric['mean']) ? metric['mean'].toFixed(3) : metric['mean']}{' '}
-      (
-      {_.isNumber(metric['inf_value'])
-        ? metric['inf_value'].toFixed(3)
-        : metric['inf_value']}{' '}
-      -{' '}
-      {_.isNumber(metric['sup_value'])
-        ? metric['sup_value'].toFixed(3)
-        : metric['sup_value']}
-      )
     </>
   );
 }

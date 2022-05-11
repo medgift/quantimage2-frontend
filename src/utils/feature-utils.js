@@ -3,6 +3,8 @@ import { Parser } from 'json2csv';
 import DicomFields from '../dicom/fields';
 import Backend from '../services/backend';
 import Kheops from '../services/kheops';
+import _ from 'lodash';
+import React from 'react';
 
 const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';
@@ -208,4 +210,31 @@ function downloadContent(content, filename) {
   document.body.appendChild(a);
   a.click();
   windowUrl.revokeObjectURL(url);
+}
+
+export function formatMetric(metric) {
+  return (
+    <>
+      {_.isNumber(metric['mean'])
+        ? formatMetricDisplay(metric['mean'])
+        : metric['mean']}{' '}
+      (
+      {_.isNumber(metric['inf_value'])
+        ? formatMetricDisplay(metric['inf_value'])
+        : metric['inf_value']}{' '}
+      -{' '}
+      {_.isNumber(metric['sup_value'])
+        ? formatMetricDisplay(metric['sup_value'])
+        : metric['sup_value']}
+      )
+    </>
+  );
+}
+
+export function formatMetricDisplay(value) {
+  return clamp(value).toFixed(3);
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.min(Math.max(value, min), max);
 }
