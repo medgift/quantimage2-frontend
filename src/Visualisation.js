@@ -33,6 +33,7 @@ import {
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
   ZRAD_FEATURE_PREFIXES,
+  ZRAD_GROUP_PREFIXES,
 } from './config/constants';
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
 
@@ -60,7 +61,7 @@ let featureCategories = Array.from(
 featureCategories = [
   ...featureCategories,
   ...PET_SPECIFIC_PREFIXES,
-  ...ZRAD_FEATURE_PREFIXES,
+  ...ZRAD_GROUP_PREFIXES,
 ];
 let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
   '|'

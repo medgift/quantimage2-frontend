@@ -91,18 +91,21 @@ const MODALITY_PATTERN = /(?<modality>.*?)_(?<name>.*)/;
 const PYRADIOMICS_PATTERN = /(?<image>)_(?<category>.*?)_(?<name>.*)/;
 const RIESZ_PATTERN = /(?<category>.*?)_(?<name>.*)/;
 
-const ZRAD_CATEGORIES = [
+const ZRAD_TEXTURE_CATEGORIES = [
   'GLCM',
   'GLDZM',
   'GLRLM',
   'GLSZM',
+  'NGTDM',
   'NGLDM',
   'mGLCM',
   'mGLRLM',
 ];
-const ZRAD_PATTERN = `zrad(?:_(?<category>(${ZRAD_CATEGORIES.join(
-  '|'
-)})))?_(?<name>.*)`;
+const ZRAD_INTENSITY_CATEGORIES = ['hist'];
+const ZRAD_PATTERN = `zrad_(?<category>(${[
+  ...ZRAD_TEXTURE_CATEGORIES,
+  ...ZRAD_INTENSITY_CATEGORIES,
+].join('|')}))?_?(?<name>.*)`;
 const ZRAD_REGEX = new RegExp(ZRAD_PATTERN);
 
 function getGroupName(fullName, modality, filter, isRiesz, isZrad) {
@@ -118,8 +121,12 @@ function getGroupName(fullName, modality, filter, isRiesz, isZrad) {
   if (isZrad) {
     let { category, name } = fullName.match(ZRAD_REGEX).groups;
 
-    if (category) return ['ZRad', 'Texture', category];
-    else return ['ZRad', 'Misc'];
+    if (category) {
+      if (ZRAD_TEXTURE_CATEGORIES.includes(category))
+        return ['ZRad', '_Texture'];
+      else if (ZRAD_INTENSITY_CATEGORIES.includes(category))
+        return ['ZRad', '_Histogram'];
+    } else return ['ZRad', '_Misc'];
   }
 
   // Group is category if a feature definition exists

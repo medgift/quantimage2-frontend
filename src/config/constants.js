@@ -16,7 +16,7 @@ export const FEATURE_STATUS = {
   },
 };
 
-export const ZRAD_FEATURE_PREFIXES = ['zrad', 'ZRad'];
+export const ZRAD_FEATURE_PREFIXES = ['zrad'];
 export const RIESZ_FEATURE_PREFIXES = ['tex'];
 export const PYRADIOMICS_FEATURE_PREFIXES = [
   'original',
@@ -29,6 +29,7 @@ export const PYRADIOMICS_FEATURE_PREFIXES = [
   'logarithm',
 ];
 export const PET_SPECIFIC_PREFIXES = ['PET'];
+export const ZRAD_GROUP_PREFIXES = ['ZRad'];
 
 export const MODEL_TYPES = {
   CLASSIFICATION: 'Classification',
