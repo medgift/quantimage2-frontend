@@ -85,21 +85,23 @@ function Features({ history }) {
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Get outcomes based on the current label category
-  let outcomes = useMemo(() => {
-    if (selectedLabelCategory) {
-      return selectedLabelCategory.labels;
-    }
-
-    return null;
-  }, [selectedLabelCategory]);
-
   // Compute data points based on outcomes
   let dataPoints = useMemo(() => {
     if (!featuresTabular) return null;
 
     return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
   }, [featuresTabular]);
+
+  // Get outcomes based on the current label category & filter by data points
+  let outcomes = useMemo(() => {
+    if (selectedLabelCategory && dataPoints) {
+      return selectedLabelCategory.labels.filter((l) =>
+        dataPoints.includes(l.patient_id)
+      );
+    }
+
+    return null;
+  }, [selectedLabelCategory, dataPoints]);
 
   // Compute unlabelled data points
   const unlabelledDataPoints = useMemo(() => {
