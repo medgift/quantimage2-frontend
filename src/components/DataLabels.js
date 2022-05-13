@@ -1,10 +1,11 @@
 import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './DataLabels.css';
+import { OUTCOME_CLASSIFICATION } from '../config/constants';
 
 export default function DataLabels({
   albumID,
@@ -15,7 +16,7 @@ export default function DataLabels({
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  dataPoints
+  dataPoints,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -24,17 +25,19 @@ export default function DataLabels({
   let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(true);
   let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
 
+  let [posLabel, setPosLabel] = useState('');
+
   let [isLabelFileValid, setIsLabelFileValid] = useState(null);
   let [labelFileMessage, setLabelFileMessage] = useState(null);
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
-    setIsManualLabellingOpen(open => !open);
+    setIsManualLabellingOpen((open) => !open);
     setIsAutoLabellingOpen(false);
   };
 
   const toggleAutoLabelling = () => {
-    setIsAutoLabellingOpen(open => !open);
+    setIsAutoLabellingOpen((open) => !open);
     setIsManualLabellingOpen(false);
   };
 
@@ -47,12 +50,13 @@ export default function DataLabels({
     setEditableOutcomes(updatedOutcomes);
   };
 
-  const handleSaveLabelsClick = async e => {
+  const handleSaveLabelsClick = async (e) => {
     setIsSavingLabels(true);
     await Backend.saveLabels(
       keycloak.token,
       selectedLabelCategory.id,
-      editableOutcomes
+      editableOutcomes,
+      posLabel !== '' ? posLabel : null
     );
     setIsSavingLabels(false);
 
@@ -72,11 +76,11 @@ export default function DataLabels({
     setLabelCategories(labelCategories);
 
     setSelectedLabelCategory(
-      labelCategories.find(c => c.id === selectedLabelCategory.id)
+      labelCategories.find((c) => c.id === selectedLabelCategory.id)
     );
   };
 
-  const updateEditableOutcomes = labels => {
+  const updateEditableOutcomes = (labels) => {
     let outcomesToUpdate = { ...editableOutcomes };
 
     for (let patientID in labels) {
@@ -101,6 +105,30 @@ export default function DataLabels({
     setLabelFileMessage(message);
   };
 
+  const classes = useMemo(() => {
+    if (!outcomeColumns.includes(OUTCOME_CLASSIFICATION)) return [];
+
+    if (
+      Object.values(editableOutcomes).length > 0 &&
+      !Object.keys(Object.values(editableOutcomes)[0]).includes(
+        OUTCOME_CLASSIFICATION
+      )
+    )
+      return [];
+
+    return [
+      ...new Set(
+        Object.values(editableOutcomes)
+          .map((o) => o[OUTCOME_CLASSIFICATION])
+          .filter((o) => o)
+      ),
+    ];
+  }, [outcomeColumns, editableOutcomes]);
+
+  const hasTextualLabels = (classes) => {
+    return classes.some((c) => isNaN(c));
+  };
+
   useEffect(() => {
     if (!selectedLabelCategory) return [];
 
@@ -109,10 +137,10 @@ export default function DataLabels({
     for (let dataPoint of [
       ...dataPoints.sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
-      )
+      ),
     ]) {
       let existingLabel = selectedLabelCategory.labels.find(
-        l => l.patient_id === dataPoint
+        (l) => l.patient_id === dataPoint
       );
 
       if (existingLabel)
@@ -121,7 +149,7 @@ export default function DataLabels({
         formattedOutcomes[dataPoint] = Object.assign(
           {},
           {},
-          ...outcomeColumns.map(o => '')
+          ...outcomeColumns.map((o) => '')
         );
 
       setEditableOutcomes(formattedOutcomes);
@@ -134,6 +162,22 @@ export default function DataLabels({
 
     setEditableOutcomes(formattedOutcomes);
   }, [selectedLabelCategory, dataPoints, outcomeColumns]);
+
+  // Reset positive label on category change
+  useEffect(() => {
+    if (selectedLabelCategory.pos_label)
+      setPosLabel(selectedLabelCategory.pos_label);
+  }, [selectedLabelCategory]);
+
+  // Reset positive label on classes change
+  useEffect(() => {
+    if (
+      classes.length > 0 &&
+      hasTextualLabels(classes) &&
+      !classes.includes(posLabel)
+    )
+      setPosLabel(classes[0]);
+  }, [posLabel, classes]);
 
   return (
     <>
@@ -151,16 +195,16 @@ export default function DataLabels({
             <tr>
               <th>PatientID</th>
               {/*<th>ROI</th>*/}
-              {outcomeColumns.map(outcomeColumn => (
+              {outcomeColumns.map((outcomeColumn) => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>
           </thead>
           <tbody className="data-points">
-            {dataPoints.map(dataPoint => (
+            {dataPoints.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {outcomeColumns.map(outcomeColumn => (
+                {outcomeColumns.map((outcomeColumn) => (
                   <td key={outcomeColumn} className="data-label">
                     <Input
                       type="text"
@@ -171,7 +215,7 @@ export default function DataLabels({
                           ? editableOutcomes[dataPoint][outcomeColumn]
                           : ''
                       }
-                      onChange={e => {
+                      onChange={(e) => {
                         handleOutcomeInputChange(e, dataPoint, outcomeColumn);
                       }}
                     />
@@ -181,6 +225,27 @@ export default function DataLabels({
             ))}
           </tbody>
         </Table>
+
+        {outcomeColumns.includes(OUTCOME_CLASSIFICATION) &&
+          classes.length > 0 &&
+          hasTextualLabels(classes) && (
+            <div className="mb-2">
+              <h3>
+                Textual labels detected - Please define the positive label
+              </h3>
+              <p>Positive Label : {posLabel}</p>
+              <Input
+                type="select"
+                value={posLabel}
+                onChange={(e) => setPosLabel(e.target.value)}
+              >
+                {classes.map((c) => {
+                  console.log('Class', c);
+                  return <option key={c}>{c}</option>;
+                })}
+              </Input>
+            </div>
+          )}
 
         <Button
           color="success"
@@ -207,7 +272,7 @@ export default function DataLabels({
           <thead>
             <tr>
               <th>PatientID</th>
-              {outcomeColumns.map(outcomeColumn => (
+              {outcomeColumns.map((outcomeColumn) => (
                 <th key={outcomeColumn}>{outcomeColumn}</th>
               ))}
             </tr>

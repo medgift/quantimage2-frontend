@@ -18,7 +18,7 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   annotations: `${baseEndpoint}/annotations`,
   navigation: `${baseEndpoint}/navigation`,
-  albums: `${baseEndpoint}/albums`
+  albums: `${baseEndpoint}/albums`,
 };
 
 class Backend {
@@ -60,7 +60,7 @@ class Backend {
       return await request(url, {
         method: 'PATCH',
         data: fields,
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -73,13 +73,11 @@ class Backend {
 
       let response = await rawRequest(url, {
         token: token,
-        headers: new Headers({ Accept: 'multipart/form-data' })
+        headers: new Headers({ Accept: 'multipart/form-data' }),
       });
 
-      let {
-        featuresTabular,
-        featuresChart
-      } = await parseFeatureDetailsResponse(response);
+      let { featuresTabular, featuresChart } =
+        await parseFeatureDetailsResponse(response);
 
       return { featuresTabular, featuresChart };
     } catch (err) {
@@ -93,13 +91,11 @@ class Backend {
 
       let response = await rawRequest(url, {
         token: token,
-        headers: new Headers({ Accept: 'multipart/form-data' })
+        headers: new Headers({ Accept: 'multipart/form-data' }),
       });
 
-      let {
-        featuresTabular,
-        featuresChart
-      } = await parseFeatureDetailsResponse(response);
+      let { featuresTabular, featuresChart } =
+        await parseFeatureDetailsResponse(response);
 
       return { featuresTabular, featuresChart };
     } catch (err) {
@@ -116,7 +112,7 @@ class Backend {
       return await request(url, {
         token: token,
         data: data,
-        method: 'POST'
+        method: 'POST',
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -132,7 +128,7 @@ class Backend {
       return await request(url, {
         token: token,
         data: data,
-        method: 'PATCH'
+        method: 'PATCH',
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -145,7 +141,7 @@ class Backend {
 
       return await request(url, {
         token: token,
-        method: 'DELETE'
+        method: 'DELETE',
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -157,22 +153,21 @@ class Backend {
       const url = `${endpoints.labelCategories}/${albumID}`;
 
       return await request(url, {
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
     }
   }
 
-  async saveLabels(token, labelCollectionID, labelMap) {
+  async saveLabels(token, labelCollectionID, labelMap, posLabel) {
     try {
       const url = `${endpoints.labels}/${labelCollectionID}`;
 
-      return await request(url, {
-        method: 'POST',
-        data: labelMap,
-        token: token
-      });
+      let data = { label_map: labelMap };
+      if (posLabel) data.pos_label = posLabel;
+
+      return await request(url, { method: 'POST', data: data, token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }
@@ -194,9 +189,9 @@ class Backend {
         method: 'PATCH',
         data: {
           training_patients: trainingPatients,
-          test_patients: testPatients
+          test_patients: testPatients,
         },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -264,7 +259,7 @@ class Backend {
       return await request(url, {
         method: 'POST',
         data: { config: featureExtractionConfig, rois: rois },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -302,9 +297,9 @@ class Backend {
           'training-patients': trainingPatients,
           'test-patients': testPatients,
           modalities: usedModalities,
-          rois: usedROIs
+          rois: usedROIs,
         },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -346,7 +341,7 @@ class Backend {
         method: 'POST',
         data: formData,
         token: token,
-        multipart: true
+        multipart: true,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -361,7 +356,7 @@ class Backend {
         method: 'PATCH',
         data: formData,
         token: token,
-        multipart: true
+        multipart: true,
       });
     } catch (err) {
       throw err;
@@ -377,9 +372,9 @@ class Backend {
         data: {
           featureExtractionID: featureExtractionID,
           name: name,
-          featureIDs: featureIDs
+          featureIDs: featureIDs,
         },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -404,9 +399,9 @@ class Backend {
           name: name,
           modalities: modalities,
           rois: rois,
-          features: features
+          features: features,
         },
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -420,7 +415,7 @@ class Backend {
       return await request(url, {
         method: 'PATCH',
         data: fields,
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -441,7 +436,7 @@ class Backend {
       const url = `${endpoints.collections}/extraction/${featureExtractionID}`;
 
       return await request(url, {
-        token: token
+        token: token,
       });
     } catch (err) {
       throw err; // Just throw it for now
@@ -475,7 +470,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'POST',
-        data: annotation
+        data: annotation,
       });
     } catch (err) {
       throw err;
@@ -489,7 +484,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'PATCH',
-        data: annotation
+        data: annotation,
       });
     } catch (err) {
       throw err;
@@ -503,7 +498,7 @@ class Backend {
       return await request(url, {
         token: token,
         method: 'POST',
-        data: { path: path }
+        data: { path: path },
       });
     } catch (err) {
       throw err;
