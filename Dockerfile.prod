@@ -1,20 +1,19 @@
 ### STAGE 1: Build ###
 
 # Build and compile app
-FROM node:14 as build
+FROM node:16 as build
 MAINTAINER Roger Schaer <roger.schaer@hevs.ch>
 
 # Create app directory
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY package.json ./
-COPY yarn.lock ./
+COPY package.json yarn.lock ./
 RUN yarn
 RUN yarn global add react-scripts
 
 # Copy app source
-COPY . /usr/src/app
+COPY . .
 
 # Run the build
 RUN yarn run build
