@@ -8,7 +8,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.19",
     "@fortawesome/free-solid-svg-icons": "^5.9.0",
     "@fortawesome/react-fontawesome": "^0.1.4",
-    "@monaco-editor/react": "^4.3.1",
+    "@monaco-editor/react": "^4.4.5",
     "@mui/core": "^5.0.0-alpha.54",
     "@mui/icons-material": "^5.2.0",
     "@mui/lab": "^5.0.0-alpha.58",
@@ -31,6 +31,8 @@
     "lodash": "^4.17.15",
     "luxon": "^1.26.0",
     "moment": "^2.24.0",
+    "monaco-editor": "0.31.0",
+    "monaco-editor-webpack-plugin": "^7.0.1",
     "papaparse": "^5.3.1",
     "react": "^16.9.0-alpha.0",
     "react-alert": "^6.0.0",
@@ -53,9 +55,9 @@
     "yup": "^0.27.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test --env=jsdom",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -78,8 +80,10 @@
   },
   "devDependencies": {
     "@testing-library/react": "^8.0.1",
+    "copy-webpack-plugin": "^11.0.0",
     "faker": "^4.1.0",
     "jest-dom": "^3.5.0",
-    "prettier": "^2.6.2"
+    "prettier": "^2.6.2",
+    "react-app-rewired": "^2.2.1"
   }
 }

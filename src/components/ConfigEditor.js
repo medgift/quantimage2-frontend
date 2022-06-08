@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import * as monaco from 'monaco-editor';
+import { loader } from '@monaco-editor/react';
 import Editor from '@monaco-editor/react';
 
 import './ConfigEditor.css';
+
+loader.config({ monaco });
 
 export const ConfigEditor = ({ config, setCustomConfig, error }) => {
   const [configText, setConfigText] = useState(config);
