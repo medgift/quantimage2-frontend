@@ -928,14 +928,12 @@ export default function Visualisation({
               </div>
               <div className="d-flex justify-content-around">
                 <CorrelatedFeatures
-                  featuresChart={featuresChart}
-                  filteringItems={filteringItems}
+                  allFeatures={featuresChart}
                   leafItems={leafItems}
-                  loading={loading}
-                  setIsRecomputingChart={setIsRecomputingChart}
-                  featureIDs={featureIDs}
                   selected={selected}
                   setSelected={setSelected}
+                  selectedFeatureIDs={selectedFeatureIDs}
+                  setIsRecomputingChart={setIsRecomputingChart}
                   dropCorrelatedFeatures={dropCorrelatedFeatures}
                   setDropCorrelatedFeatures={setDropCorrelatedFeatures}
                 />

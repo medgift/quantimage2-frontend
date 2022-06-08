@@ -10,56 +10,66 @@ if (window.Worker) {
 }
 
 export default function CorrelatedFeatures({
-  featuresChart,
+  allFeatures,
   leafItems,
   selected,
   setSelected,
+  selectedFeatureIDs,
   setIsRecomputingChart,
   dropCorrelatedFeatures,
-  setDropCorrelatedFeatures
+  setDropCorrelatedFeatures,
 }) {
   const [corrThreshold, setCorrThreshold] = useState(0.5);
 
   const [selectedBeforeDropping, setSelectedBeforeDropping] = useState([]);
+  const [featuresValuesBeforeDropping, setFeatureValuesBeforeDropping] =
+    useState([]);
   const [
-    featuresValuesBeforeDropping,
-    setFeatureValuesBeforeDropping
+    selectedFeatureIDsBeforeDropping,
+    setSelectedFeatureIDsBeforeDropping,
   ] = useState([]);
 
   const getFeatures = useCallback(() => {
-    // Get list of feature values for each feature name
-    const features = featuresChart.reduce((acc, curr) => {
-      const { FeatureID, Ranking, ...patients } = curr;
-      acc[FeatureID] = Object.values(patients).map(v => +v);
-      return acc;
-    }, {});
+    if (selectedFeatureIDsBeforeDropping.size > 0) {
+      // Get list of feature values for each selected feature name
+      const features = allFeatures
+        .filter((f) => selectedFeatureIDsBeforeDropping.has(f.FeatureID))
+        .reduce((acc, curr) => {
+          const { FeatureID, Ranking, ...patients } = curr;
+          acc[FeatureID] = Object.values(patients).map((v) => +v);
+          return acc;
+        }, {});
 
-    return features;
-  }, [featuresChart]);
+      return features;
+    } else {
+      return [];
+    }
+  }, [allFeatures, selectedFeatureIDsBeforeDropping]);
 
   useEffect(() => {
-    //if (selectedBeforeDropping.length === 0 && selected.length > 0)
-    //  setSelectedBeforeDropping(selected);
-    if (!dropCorrelatedFeatures) setSelectedBeforeDropping(selected);
-  }, [selected, dropCorrelatedFeatures]);
+    if (!dropCorrelatedFeatures) {
+      setSelectedBeforeDropping(selected);
+      setSelectedFeatureIDsBeforeDropping(selectedFeatureIDs);
+    }
+  }, [selected, selectedFeatureIDs, dropCorrelatedFeatures]);
 
   useEffect(() => {
     if (
       featuresValuesBeforeDropping.length === 0 &&
-      featuresChart &&
-      featuresChart.length > 0
+      allFeatures &&
+      allFeatures.length > 0
     ) {
       let features = getFeatures();
       setFeatureValuesBeforeDropping(features);
     }
-  }, [featuresChart, featuresValuesBeforeDropping.length, getFeatures]);
+  }, [allFeatures, featuresValuesBeforeDropping.length, getFeatures]);
 
-  const dropFeatures = drop => {
+  const dropFeatures = (drop) => {
     if (drop) {
       let features = getFeatures();
       correlatedFeaturesWorker.postMessage({
         features: features,
-        corrThreshold: corrThreshold
+        corrThreshold: corrThreshold,
       });
       setIsRecomputingChart(true);
     } else {
@@ -70,16 +80,17 @@ export default function CorrelatedFeatures({
 
   const adjustThreshold = () => {
     setIsRecomputingChart(true);
+    let features = getFeatures();
     correlatedFeaturesWorker.postMessage({
-      features: featuresValuesBeforeDropping,
-      corrThreshold: corrThreshold
+      features: features,
+      corrThreshold: corrThreshold,
     });
   };
 
   const deselectFeatures = useCallback(
-    nodesToDeselect => {
+    (nodesToDeselect) => {
       setSelected(
-        selectedBeforeDropping.filter(s => !nodesToDeselect.includes(s))
+        selectedBeforeDropping.filter((s) => !nodesToDeselect.includes(s))
       );
     },
     [setSelected, selectedBeforeDropping]
@@ -87,7 +98,7 @@ export default function CorrelatedFeatures({
 
   // Bind web worker
   useEffect(() => {
-    correlatedFeaturesWorker.onmessage = m => {
+    correlatedFeaturesWorker.onmessage = (m) => {
       setIsRecomputingChart(false);
 
       // Features to drop are returned by the worker
@@ -104,7 +115,7 @@ export default function CorrelatedFeatures({
         {}
       );
 
-      let featureIDsToDrop = Object.keys(featureIDToNodeID).filter(fID => {
+      let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
         for (let featureToDrop of featuresToDrop) {
           if (fID.endsWith(featureToDrop)) return true;
         }
@@ -112,7 +123,7 @@ export default function CorrelatedFeatures({
       });
 
       let nodeIDsToDeselect = featureIDsToDrop.map(
-        fID => featureIDToNodeID[fID]
+        (fID) => featureIDToNodeID[fID]
       );
 
       deselectFeatures(nodeIDsToDeselect);
@@ -129,7 +140,7 @@ export default function CorrelatedFeatures({
           id="drop-corr"
           type="checkbox"
           value={dropCorrelatedFeatures}
-          onChange={e => {
+          onChange={(e) => {
             setDropCorrelatedFeatures(e.target.checked);
             dropFeatures(e.target.checked);
           }}
@@ -161,10 +172,10 @@ export default function CorrelatedFeatures({
           max={0.9}
           step={0.1}
           disabled={!dropCorrelatedFeatures}
-          onChange={e => {
+          onChange={(e) => {
             setCorrThreshold(+e.target.value);
           }}
-          onMouseUp={e => {
+          onMouseUp={(e) => {
             if (dropCorrelatedFeatures) adjustThreshold();
           }}
           value={corrThreshold}
