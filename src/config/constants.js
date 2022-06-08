@@ -123,7 +123,8 @@ export const CLASSIFICATION_COLUMNS = [
       r.test_metrics ? formatMetric(r.test_metrics.auc) : 'N/A',
     sortDescFirst: true,
     sortType: (r1, r2) => {
-      if (!r1.original.test_metrics || !r2.original.test_metrics) return 1;
+      if (!r1.original.test_metrics) return -1;
+      if (!r2.original.test_metrics) return 1;
 
       return (
         +r1.original.test_metrics.auc.mean - +r2.original.test_metrics.auc.mean
