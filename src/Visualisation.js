@@ -495,7 +495,7 @@ export default function Visualisation({
     ]
   );
 
-  // Define the Highcharts options dynamically (outcomes)
+  // Define the Highcharts options dynamically (classification outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
     let colors = ['#0b84a5', '#94e3d5', '#666666'];
 
@@ -568,6 +568,7 @@ export default function Visualisation({
     });
   }, [formattedHighchartsDataOutcomes, outcomeField, sortedClasses]);
 
+  // Define the Highcharts options dynamically (survival outcomes)
   const highchartsOptionsSurvival = useMemo(() => {
     if (!formattedHighchartsDataSurvivalTime) return {};
 
@@ -939,6 +940,7 @@ export default function Visualisation({
                 />
                 {selectedLabelCategory && (
                   <FeatureRanking
+                    modelType={selectedLabelCategory.label_type}
                     rankFeatures={rankFeatures}
                     setRankFeatures={setRankFeatures}
                   />
