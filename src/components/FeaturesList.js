@@ -28,6 +28,7 @@ import _ from 'lodash';
 
 import './FeaturesList.css';
 import { ConfigEditor } from './ConfigEditor';
+import ConfigImport from './ConfigImport';
 
 const EXTRACTION_CONFIG_TREE_TITLE = 'Extraction Configuration';
 
@@ -40,7 +41,7 @@ export default function FeaturesList({
   forceUpdate,
   nbStudies,
 }) {
-  let {keycloak} = useKeycloak();
+  let { keycloak } = useKeycloak();
 
   // Data
   let [featurePresets, setFeaturePresets] = useState([]);
@@ -57,6 +58,7 @@ export default function FeaturesList({
 
   // Configuration
   let [showEditor, setShowEditor] = useState(false);
+  let [showImport, setShowImport] = useState(false);
   let [customConfig, setCustomConfig] = useState(null);
 
   let socket = useContext(SocketContext);
@@ -188,7 +190,24 @@ export default function FeaturesList({
 
   let handleEditConfigClick = () => {
     setShowEditor((s) => {
-      if (s === true) setCustomConfig(null);
+      if (s === true) {
+        setCustomConfig(null);
+      }
+      if (s === false) {
+        setShowImport(false);
+      }
+      return !s;
+    });
+  };
+
+  let handleImportClick = () => {
+    setShowImport((s) => {
+      if (s === true) {
+        setCustomConfig(null);
+      }
+      if (s === false) {
+        setShowEditor(false);
+      }
       return !s;
     });
   };
@@ -257,11 +276,27 @@ export default function FeaturesList({
               <FontAwesomeIcon icon="pencil-alt" /> Edit Configuration
               (Advanced)
             </Button>
+            <Button
+              color="primary"
+              onClick={handleImportClick}
+              size="sm"
+              className="ml-3"
+            >
+              <FontAwesomeIcon icon="file-import" /> Import Configuration
+              (Expert)
+            </Button>
             {showEditor && (
               <ConfigEditor
-                config={selectedPreset['config-raw']}
+                config={customConfig || selectedPreset['config-raw']}
                 setCustomConfig={setCustomConfig}
                 error={parsedCustomConfig?.error}
+              />
+            )}
+            {showImport && (
+              <ConfigImport
+                setCustomConfig={setCustomConfig}
+                setShowImport={setShowImport}
+                setShowEditor={setShowEditor}
               />
             )}
           </ListGroupItem>
