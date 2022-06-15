@@ -119,9 +119,13 @@ export default function Visualisation({
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
 
-  const finalTrainingPatients = trainingPatients
-    ? trainingPatients
-    : dataPoints;
+  // Chart loaded
+  const [chartLoaded, setChartLoaded] = useState(false);
+
+  const finalTrainingPatients = useMemo(() => {
+    if (trainingPatients) return trainingPatients;
+    else return dataPoints;
+  }, [trainingPatients, dataPoints]);
 
   // Determine outcome column to inspect for chart
   const outcomeField = useMemo(() => {
@@ -298,12 +302,22 @@ export default function Visualisation({
     return formattedFeatures;
   }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
 
+  // Update Highcharts heatmap
+  useEffect(() => {
+    if (!chartLoaded) return;
+
+    console.log('Features recomputed!', formattedHighchartsDataFeatures.length);
+    setHighchartsOptionsFeatures({
+      series: [{ data: formattedHighchartsDataFeatures }],
+    });
+  }, [chartLoaded, formattedHighchartsDataFeatures]);
+
   // Initialize feature IDs
   useEffect(() => {
     if (featuresChart) {
       let featureIDs = new Set(featuresChart.map((f) => f.FeatureID));
       setFeatureIDs(featureIDs);
-      setSelectedFeatureIDs(featureIDs);
+      //setSelectedFeatureIDs(featureIDs);
     }
   }, [featuresChart]);
 
@@ -410,16 +424,90 @@ export default function Visualisation({
     return {};
   }, [treeData]);
 
-  // Update chart
+  // Update chart loading state
   useEffect(() => {
     if (featuresChart && featureIDs && loading === true) {
       setLoading(false);
-      console.log('chart loaded');
     }
   }, [featuresChart, featureIDs, loading]);
 
   // Define the Highcharts options dynamically (features)
-  const highchartsOptionsFeatures = useMemo(
+  const [highchartsOptionsFeatures, setHighchartsOptionsFeatures] = useState(
+    _.merge(COMMON_CHART_OPTIONS, {
+      chart: {
+        height: 350,
+        events: {
+          load: function () {
+            console.log('The Chart has loaded');
+            setChartLoaded(true);
+          },
+        },
+      },
+      xAxis: {
+        categories: sortedPatientIDs,
+      },
+      yAxis: {
+        categories: rankFeatures
+          ? _.sortBy(filteredFeatures, 'Ranking').map((f) => f.FeatureID)
+          : filteredFeatures.map((f) => f.FeatureID),
+        title: { text: 'Features' },
+      },
+      legend: {
+        layout: 'vertical',
+        verticalAlign: 'top',
+        align: 'right',
+        title: {
+          text: 'Feature Value*',
+        },
+      },
+      tooltip: {
+        formatter: function () {
+          let chart = this.series.chart;
+          let yIndex = this.y;
+
+          let { modality, roi, featureName } =
+            chart.yAxis[0].categories[yIndex].match(featureIDRegex).groups;
+
+          return (
+            `<strong>Patient:</strong> ${
+              chart.xAxis[0].categories[this.point.options.x]
+            }<br />` +
+            `<strong>Modality:</strong> ${modality}<br />` +
+            `<strong>ROI:</strong> ${roi}<br />` +
+            `<strong>Feature:</strong> ${featureName}<br />` +
+            `<strong>Value:</strong> ${this.point.options.value}`
+          );
+        },
+      },
+      colorAxis: {
+        stops: [
+          [0, '#0000ff'],
+          [0.005, '#2066ac'],
+          [0.5, '#f7f7f7'],
+          [0.995, '#b2182b'],
+          [1, '#ff0000'],
+        ],
+        min: -2.01,
+        max: 2.01,
+        startOnTick: false,
+        endOnTick: false,
+      },
+      series: [
+        {
+          data: [],
+          boostThreshold: 100,
+          turboThreshold: Number.MAX_VALUE,
+          nullColor: '#666',
+        },
+      ],
+      boost: {
+        useGPUTranslations: true,
+        usePreallocated: true,
+      },
+    })
+  );
+
+  /*const highchartsOptionsFeatures = useMemo(
     () =>
       _.merge({}, COMMON_CHART_OPTIONS, {
         chart: {
@@ -493,7 +581,7 @@ export default function Visualisation({
       sortedPatientIDs,
       rankFeatures,
     ]
-  );
+  );*/
 
   // Define the Highcharts options dynamically (classification outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
@@ -858,14 +946,16 @@ export default function Visualisation({
               </div>
             </td>
             <td className="chart-cell">
-              <Button
-                color="success"
-                onClick={handleCreateCollectionClick}
-                disabled={selectedFeatureIDs.size === 0}
-              >
-                + Create new collection with these settings (
-                {selectedFeatureIDs.size} features)
-              </Button>
+              {selectedFeatureIDs && (
+                <Button
+                  color="success"
+                  onClick={handleCreateCollectionClick}
+                  disabled={selectedFeatureIDs.size === 0}
+                >
+                  + Create new collection with these settings (
+                  {selectedFeatureIDs.size} features)
+                </Button>
+              )}
 
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
                 <div>
@@ -883,7 +973,6 @@ export default function Visualisation({
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={highchartsOptionsFeatures}
-                      updateArgs={[true, false, false]}
                     />
                   </div>
                   {selectedLabelCategory && (
@@ -960,7 +1049,8 @@ export default function Visualisation({
         }
       >
         <p>
-          The collection contains <strong>{selectedFeatureIDs.size}</strong>{' '}
+          The collection contains{' '}
+          <strong>{selectedFeatureIDs ? selectedFeatureIDs.size : '?'}</strong>{' '}
           different features (combining modalities, ROIs & feature types)
         </p>
         <Form>

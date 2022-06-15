@@ -30,7 +30,7 @@ export default function CorrelatedFeatures({
   ] = useState([]);
 
   const getFeatures = useCallback(() => {
-    if (selectedFeatureIDsBeforeDropping.size > 0) {
+    if (selectedFeatureIDsBeforeDropping?.size > 0) {
       // Get list of feature values for each selected feature name
       const features = allFeatures
         .filter((f) => selectedFeatureIDsBeforeDropping.has(f.FeatureID))
