@@ -15,48 +15,26 @@ export default function FilterTree({
   treeData,
   getNodeAndAllChildrenIDs,
   filteringItems,
-  leafItems,
-  setSelectedFeatureIDs,
   selected,
   setSelected,
-  disabled
+  disabled,
 }) {
-  //const [expanded, setExpanded] = useState([]);
-  const selectedFeatureIDs = useMemo(() => {
-    if (!leafItems) return [];
-
-    return new Set(
-      Object.keys(leafItems)
-        .filter(n => selected.includes(n))
-        .map(n => leafItems[n])
-    );
-  }, [leafItems, selected]);
-
-  // TODO - Put it back once it works
-  useEffect(() => {
-    setSelectedFeatureIDs(selectedFeatureIDs);
-  }, [selectedFeatureIDs, setSelectedFeatureIDs]);
-
-  // const handleToggle = (event, nodeIds) => {
-  //   setExpanded(nodeIds);
-  // };
-
   const selectNode = (event, node) => {
     let nodeAndChildren = getNodeAndAllChildrenIDs(node, []);
     event.persist();
 
-    setSelected(s => {
+    setSelected((s) => {
       let newSelections = [...s];
 
       console.log('event target is', event.target);
 
       if (event.target.checked) {
         newSelections.push(
-          ...nodeAndChildren.filter(n => !newSelections.includes(n))
+          ...nodeAndChildren.filter((n) => !newSelections.includes(n))
         );
       } else {
         newSelections = newSelections.filter(
-          ns => !nodeAndChildren.includes(ns)
+          (ns) => !nodeAndChildren.includes(ns)
         );
       }
 
@@ -83,21 +61,21 @@ export default function FilterTree({
       ? nodeIDComponents[nodeIDComponents.length - 1]
       : [
           nodeIDComponents[nodeIDComponents.length - 2],
-          nodeIDComponents[nodeIDComponents.length - 1]
+          nodeIDComponents[nodeIDComponents.length - 1],
         ].join('-');
 
-    setSelected(s => {
+    setSelected((s) => {
       let newSelections = [...s];
 
       if (!newSelections.includes(node.id)) {
         let nodesToSelect = allNodeIDs
-          .filter(n =>
+          .filter((n) =>
             node.value ? n.endsWith(stringToCheck) : n.includes(stringToCheck)
           )
-          .filter(n => !newSelections.includes(n));
+          .filter((n) => !newSelections.includes(n));
         newSelections.push(...nodesToSelect);
       } else {
-        newSelections = newSelections.filter(n =>
+        newSelections = newSelections.filter((n) =>
           node.value ? !n.endsWith(stringToCheck) : !n.includes(stringToCheck)
         );
       }
@@ -132,15 +110,15 @@ function RecursiveTreeView({
   selectNodeAll,
   expanded,
   selected,
-  disabled
+  disabled,
 }) {
-  const renderTree = nodes => {
+  const renderTree = (nodes) => {
     return Array.isArray(nodes)
-      ? nodes.map(n => renderItem(n))
+      ? nodes.map((n) => renderItem(n))
       : renderItem(nodes);
   };
 
-  const renderItem = n => {
+  const renderItem = (n) => {
     let checkAllTitle = `${
       selected.includes(n.id) ? 'Uncheck' : 'Check'
     } everywhere`;
@@ -169,13 +147,13 @@ function RecursiveTreeView({
                   : selected.includes(n.id)
               }
               onChange={
-                event => {
+                (event) => {
                   event.stopPropagation();
                   selectNode(event, n);
                 }
                 //getOnChange(event.currentTarget.checked, nodes)
               }
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation();
               }}
               disabled={disabled}
@@ -193,7 +171,7 @@ function RecursiveTreeView({
               <Button
                 color="link"
                 className="Check-All"
-                onClick={e => selectNodeAll(e, n)}
+                onClick={(e) => selectNodeAll(e, n)}
                 title={checkAllTitle}
               >
                 <small>{checkAllTitle}</small>
@@ -203,7 +181,7 @@ function RecursiveTreeView({
         }
       >
         {Array.isArray(n.children)
-          ? n.children.map(node => renderTree(node))
+          ? n.children.map((node) => renderTree(node))
           : null}
       </TreeItem>
     );
@@ -229,7 +207,7 @@ function noChildrenSelected(node, selected) {
   return (
     _.intersection(
       selected,
-      node.children.map(c => c.id)
+      node.children.map((c) => c.id)
     ).length === 0
   );
 }
@@ -237,18 +215,18 @@ function noChildrenSelected(node, selected) {
 function allChildrenSelected(node, selected, getNodeAndAllChildrenIDs) {
   let nodeAndAllChildrenIDs = getNodeAndAllChildrenIDs(node, []);
 
-  let childrenIDs = nodeAndAllChildrenIDs.filter(n => n !== node.id);
+  let childrenIDs = nodeAndAllChildrenIDs.filter((n) => n !== node.id);
 
-  return childrenIDs.every(c => selected.includes(c));
+  return childrenIDs.every((c) => selected.includes(c));
 }
 
 function someChildrenSelected(node, selected, getNodeAndAllChildrenIDs) {
   let nodeAndAllChildrenIDs = getNodeAndAllChildrenIDs(node, []);
 
-  let childrenIDs = nodeAndAllChildrenIDs.filter(n => n !== node.id);
+  let childrenIDs = nodeAndAllChildrenIDs.filter((n) => n !== node.id);
 
   return (
-    !childrenIDs.every(c => selected.includes(c)) &&
-    childrenIDs.some(c => selected.includes(c))
+    !childrenIDs.every((c) => selected.includes(c)) &&
+    childrenIDs.some((c) => selected.includes(c))
   );
 }

@@ -13,8 +13,6 @@ import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
 import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
-import CorrelatedFeatures from './components/CorrelatedFeatures';
-import FeatureRanking from './components/FeatureRanking';
 import { groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
@@ -39,6 +37,7 @@ import { COMMON_CHART_OPTIONS } from './assets/charts/common';
 
 import './Visualisation.css';
 import ListValues from './components/ListValues';
+import FeatureSelection from './components/FeatureSelection';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -95,10 +94,10 @@ export default function Visualisation({
 
   // Features
   const [featureIDs, setFeatureIDs] = useState(null);
-  const [selectedFeatureIDs, setSelectedFeatureIDs] = useState(null);
 
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
+  const [keepNFeatures, setKeepNFeatures] = useState(false);
 
   // Drop correlated features
   const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
@@ -317,38 +316,8 @@ export default function Visualisation({
     if (featuresChart) {
       let featureIDs = new Set(featuresChart.map((f) => f.FeatureID));
       setFeatureIDs(featureIDs);
-      //setSelectedFeatureIDs(featureIDs);
     }
   }, [featuresChart]);
-
-  // Calculate features to keep based on selections
-  useEffect(() => {
-    if (!featuresChart || selectedFeatureIDs === null) return undefined;
-
-    const start = Date.now();
-    // Filter out non-selected feature IDs
-    let filteredFeatures = featuresChart.filter((f) => {
-      return selectedFeatureIDs.has(f.FeatureID);
-    });
-    // For each remaining feature ID, keep only selected patients
-    filteredFeatures = filteredFeatures.map((featureObject) => {
-      return {
-        FeatureID: featureObject.FeatureID,
-        Ranking: +featureObject.Ranking,
-        ..._.pickBy(featureObject, (v, k) => finalTrainingPatients.includes(k)),
-      };
-    });
-    const end = Date.now();
-    console.log(
-      `Filtering features took ${end - start}ms `,
-      filteredFeatures.length > 0
-        ? filteredFeatures.length *
-            (Object.keys(filteredFeatures[0]).length - 1)
-        : 0
-    );
-
-    setFilteredFeatures(filteredFeatures);
-  }, [featuresChart, selectedFeatureIDs, finalTrainingPatients]);
 
   // Toggle patients modals
   const toggleTrainingPatientsOpen = () => {
@@ -423,6 +392,46 @@ export default function Visualisation({
 
     return {};
   }, [treeData]);
+
+  // Compute selected feature IDs based on the selected leaf items
+  const selectedFeatureIDs = useMemo(() => {
+    if (!leafItems) return [];
+
+    return new Set(
+      Object.keys(leafItems)
+        .filter((n) => selected.includes(n))
+        .map((n) => leafItems[n])
+    );
+  }, [leafItems, selected]);
+
+  // Calculate features to keep based on selections
+  useEffect(() => {
+    if (!featuresChart || selectedFeatureIDs === null) return undefined;
+
+    const start = Date.now();
+    // Filter out non-selected feature IDs
+    let filteredFeatures = featuresChart.filter((f) => {
+      return selectedFeatureIDs.has(f.FeatureID);
+    });
+    // For each remaining feature ID, keep only selected patients
+    filteredFeatures = filteredFeatures.map((featureObject) => {
+      return {
+        FeatureID: featureObject.FeatureID,
+        Ranking: +featureObject.Ranking,
+        ..._.pickBy(featureObject, (v, k) => finalTrainingPatients.includes(k)),
+      };
+    });
+    const end = Date.now();
+    console.log(
+      `Filtering features took ${end - start}ms `,
+      filteredFeatures.length > 0
+        ? filteredFeatures.length *
+            (Object.keys(filteredFeatures[0]).length - 1)
+        : 0
+    );
+
+    setFilteredFeatures(filteredFeatures);
+  }, [featuresChart, selectedFeatureIDs, finalTrainingPatients]);
 
   // Update chart loading state
   useEffect(() => {
@@ -895,10 +904,9 @@ export default function Visualisation({
                     treeData={treeData}
                     leafItems={leafItems}
                     getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
-                    setSelectedFeatureIDs={setSelectedFeatureIDs}
                     selected={selected}
                     setSelected={setSelected}
-                    disabled={dropCorrelatedFeatures}
+                    disabled={dropCorrelatedFeatures || keepNFeatures}
                   />
                 )}
                 <h6>Show Patients</h6>
@@ -958,18 +966,18 @@ export default function Visualisation({
               )}
 
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
-                <div>
-                  <div style={{ position: 'relative' }}>
-                    {isRecomputingChart && (
-                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
-                        <FontAwesomeIcon
-                          icon="sync"
-                          spin
-                          color="white"
-                          size="4x"
-                        />
-                      </div>
-                    )}
+                <div style={{ position: 'relative' }}>
+                  {isRecomputingChart && (
+                    <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+                      <FontAwesomeIcon
+                        icon="sync"
+                        spin
+                        color="white"
+                        size="4x"
+                      />
+                    </div>
+                  )}
+                  <div>
                     <HighchartsReact
                       highcharts={Highcharts}
                       options={highchartsOptionsFeatures}
@@ -1017,23 +1025,20 @@ export default function Visualisation({
                 </small>
               </div>
               <div className="d-flex justify-content-around">
-                <CorrelatedFeatures
+                <FeatureSelection
                   allFeatures={featuresChart}
+                  modelType={selectedLabelCategory.label_type}
                   leafItems={leafItems}
-                  selected={selected}
-                  setSelected={setSelected}
-                  selectedFeatureIDs={selectedFeatureIDs}
-                  setIsRecomputingChart={setIsRecomputingChart}
                   dropCorrelatedFeatures={dropCorrelatedFeatures}
                   setDropCorrelatedFeatures={setDropCorrelatedFeatures}
+                  rankFeatures={rankFeatures}
+                  setRankFeatures={setRankFeatures}
+                  keepNFeatures={keepNFeatures}
+                  setKeepNFeatures={setKeepNFeatures}
+                  selected={selected}
+                  setSelected={setSelected}
+                  setIsRecomputingChart={setIsRecomputingChart}
                 />
-                {selectedLabelCategory && (
-                  <FeatureRanking
-                    modelType={selectedLabelCategory.label_type}
-                    rankFeatures={rankFeatures}
-                    setRankFeatures={setRankFeatures}
-                  />
-                )}
               </div>
             </td>
           </tr>
