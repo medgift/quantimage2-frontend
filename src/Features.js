@@ -367,8 +367,8 @@ function Features({ history }) {
     dataPoints,
   ]);
 
-  // Handle download click
-  const handleDownloadClick = async (e) => {
+  // Handle download features click
+  const handleDownloadFeaturesClick = async (e) => {
     e.preventDefault();
     setIsDownloading(true);
 
@@ -381,6 +381,16 @@ function Features({ history }) {
     //window.location.href = url;
 
     setIsDownloading(false);
+  };
+
+  // Handle download configuration click
+  const handleDownloadConfigurationClick = async () => {
+    let { filename, content } = await Backend.downloadConfiguration(
+      keycloak.token,
+      featureExtractionID
+    );
+
+    fileDownload(content, filename);
   };
 
   // Handle change of active collection name
@@ -712,19 +722,39 @@ function Features({ history }) {
                         </tr>
                       </tbody>
                     </Table>
-                    <FormGroup>
-                      <Label for="selected-collection-name">
-                        <strong>
-                          <FontAwesomeIcon icon="download" /> Download features
-                        </strong>
-                      </Label>
-                      <br />
-                      <Button color="success" onClick={handleDownloadClick}>
-                        {isDownloading
-                          ? 'Downloading features...'
-                          : 'Download features'}
-                      </Button>
-                    </FormGroup>
+                    <div className="d-flex flex-row align-items-center justify-content-center">
+                      <FormGroup className="mr-5">
+                        <Label for="selected-collection-name">
+                          <strong>
+                            <FontAwesomeIcon icon="download" /> Features
+                          </strong>
+                        </Label>
+                        <br />
+                        <Button
+                          color="success"
+                          onClick={handleDownloadFeaturesClick}
+                        >
+                          {isDownloading
+                            ? 'Downloading features...'
+                            : 'Download features'}
+                        </Button>
+                      </FormGroup>
+                      <FormGroup>
+                        <Label for="selected-collection-name">
+                          <strong>
+                            <FontAwesomeIcon icon="download" /> Extraction
+                            Configuration
+                          </strong>
+                        </Label>
+                        <br />
+                        <Button
+                          color="primary"
+                          onClick={handleDownloadConfigurationClick}
+                        >
+                          Download Configuration
+                        </Button>
+                      </FormGroup>
+                    </div>
                     {collectionID && (
                       <Form onSubmit={handleSaveCollectionNameClick}>
                         <FormGroup>

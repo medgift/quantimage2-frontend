@@ -219,6 +219,12 @@ class Backend {
     }
   }
 
+  async downloadConfiguration(token, extractionID) {
+    let url = `${endpoints.extractions}/${extractionID}/download-configuration`;
+
+    return downloadFile(url, token);
+  }
+
   async downloadExtraction(token, extractionID) {
     let url = `${endpoints.extractions}/${extractionID}/download`;
 
