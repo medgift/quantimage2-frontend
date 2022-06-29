@@ -301,16 +301,6 @@ export default function Visualisation({
     return formattedFeatures;
   }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
 
-  // Update Highcharts heatmap
-  useEffect(() => {
-    if (!chartLoaded) return;
-
-    console.log('Features recomputed!', formattedHighchartsDataFeatures.length);
-    setHighchartsOptionsFeatures({
-      series: [{ data: formattedHighchartsDataFeatures }],
-    });
-  }, [chartLoaded, formattedHighchartsDataFeatures]);
-
   // Initialize feature IDs
   useEffect(() => {
     if (featuresChart) {
@@ -440,83 +430,7 @@ export default function Visualisation({
     }
   }, [featuresChart, featureIDs, loading]);
 
-  // Define the Highcharts options dynamically (features)
-  const [highchartsOptionsFeatures, setHighchartsOptionsFeatures] = useState(
-    _.merge(COMMON_CHART_OPTIONS, {
-      chart: {
-        height: 350,
-        events: {
-          load: function () {
-            console.log('The Chart has loaded');
-            setChartLoaded(true);
-          },
-        },
-      },
-      xAxis: {
-        categories: sortedPatientIDs,
-      },
-      yAxis: {
-        categories: rankFeatures
-          ? _.sortBy(filteredFeatures, 'Ranking').map((f) => f.FeatureID)
-          : filteredFeatures.map((f) => f.FeatureID),
-        title: { text: 'Features' },
-      },
-      legend: {
-        layout: 'vertical',
-        verticalAlign: 'top',
-        align: 'right',
-        title: {
-          text: 'Feature Value*',
-        },
-      },
-      tooltip: {
-        formatter: function () {
-          let chart = this.series.chart;
-          let yIndex = this.y;
-
-          let { modality, roi, featureName } =
-            chart.yAxis[0].categories[yIndex].match(featureIDRegex).groups;
-
-          return (
-            `<strong>Patient:</strong> ${
-              chart.xAxis[0].categories[this.point.options.x]
-            }<br />` +
-            `<strong>Modality:</strong> ${modality}<br />` +
-            `<strong>ROI:</strong> ${roi}<br />` +
-            `<strong>Feature:</strong> ${featureName}<br />` +
-            `<strong>Value:</strong> ${this.point.options.value}`
-          );
-        },
-      },
-      colorAxis: {
-        stops: [
-          [0, '#0000ff'],
-          [0.005, '#2066ac'],
-          [0.5, '#f7f7f7'],
-          [0.995, '#b2182b'],
-          [1, '#ff0000'],
-        ],
-        min: -2.01,
-        max: 2.01,
-        startOnTick: false,
-        endOnTick: false,
-      },
-      series: [
-        {
-          data: [],
-          boostThreshold: 100,
-          turboThreshold: Number.MAX_VALUE,
-          nullColor: '#666',
-        },
-      ],
-      boost: {
-        useGPUTranslations: true,
-        usePreallocated: true,
-      },
-    })
-  );
-
-  /*const highchartsOptionsFeatures = useMemo(
+  const highchartsOptionsFeatures = useMemo(
     () =>
       _.merge({}, COMMON_CHART_OPTIONS, {
         chart: {
@@ -590,7 +504,7 @@ export default function Visualisation({
       sortedPatientIDs,
       rankFeatures,
     ]
-  );*/
+  );
 
   // Define the Highcharts options dynamically (classification outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
@@ -1027,7 +941,7 @@ export default function Visualisation({
               <div className="d-flex justify-content-around">
                 <FeatureSelection
                   allFeatures={featuresChart}
-                  modelType={selectedLabelCategory.label_type}
+                  modelType={selectedLabelCategory?.label_type}
                   leafItems={leafItems}
                   dropCorrelatedFeatures={dropCorrelatedFeatures}
                   setDropCorrelatedFeatures={setDropCorrelatedFeatures}
