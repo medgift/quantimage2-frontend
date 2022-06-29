@@ -228,86 +228,92 @@ export default function FeatureSelection({
             )}
           </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <div className="tools">
-            <p className="mt-4">
-              <strong>Feature ranking</strong>
-            </p>
-            <div>
-              <input
-                id="rank-feats"
-                type="checkbox"
-                value={rankFeatures}
-                onChange={(e) => {
-                  setRankFeatures(e.target.checked);
-                }}
-              />{' '}
-              <label htmlFor="rank-feats">
-                Rank by F-value{' '}
-                <FontAwesomeIcon icon="info-circle" id="ranking-explanation" />
-                <UncontrolledTooltip
-                  placement="right"
-                  target="ranking-explanation"
-                >
-                  Sort the features (lines of the chart) so that more predictive
-                  features (when taken individually) will appear at the top and
-                  less predictive features will appear at the bottom.
-                  {modelType === MODEL_TYPES.SURVIVAL &&
-                    'With Survival models, the features are ranked by the Event column.'}
-                </UncontrolledTooltip>
-              </label>
-              {rankFeatures && (
-                <div>
-                  <input
-                    id="keep-n-feats"
-                    type="checkbox"
-                    checked={keepNFeatures}
-                    onChange={(e) => {
-                      setKeepNFeatures(e.target.checked);
-                      filterFeatures(
-                        dropCorrelatedFeatures,
-                        e.target.checked,
-                        corrThreshold,
-                        nFeatures
-                      );
-                    }}
-                    disabled={!rankFeatures}
-                  />{' '}
-                  <label htmlFor="keep-n-feats">
-                    Keep N Best-Ranked Features
-                  </label>
-                  <br />
-                  <input
-                    id="corr-threshold"
-                    type="range"
-                    min={1}
-                    max={Math.min(
-                      droppedFeatureIDsCorrelation.length > 0
-                        ? selectedBeforeFiltering
-                            .filter((s) => leafItems[s])
-                            .map((f) => leafItems[f]).length -
-                            droppedFeatureIDsCorrelation.length
-                        : selectedBeforeFiltering
-                            .filter((s) => leafItems[s])
-                            .map((f) => leafItems[f]).length,
-                      MAX_FEATURES_TO_KEEP
-                    )}
-                    step={1}
-                    disabled={!keepNFeatures}
-                    onChange={(e) => {
-                      setNFeatures(+e.target.value);
-                    }}
-                    onMouseUp={adjustNFeatures}
-                    onKeyUp={adjustNFeatures}
-                    value={nFeatures}
-                    className="slider"
+        {modelType && (
+          <div style={{ flex: 1 }}>
+            <div className="tools">
+              <p className="mt-4">
+                <strong>Feature ranking</strong>
+              </p>
+              <div>
+                <input
+                  id="rank-feats"
+                  type="checkbox"
+                  value={rankFeatures}
+                  onChange={(e) => {
+                    setRankFeatures(e.target.checked);
+                  }}
+                />{' '}
+                <label htmlFor="rank-feats">
+                  Rank by F-value{' '}
+                  <FontAwesomeIcon
+                    icon="info-circle"
+                    id="ranking-explanation"
                   />
-                  <span>{nFeatures}</span>
-                </div>
-              )}
+                  <UncontrolledTooltip
+                    placement="right"
+                    target="ranking-explanation"
+                  >
+                    Sort the features (lines of the chart) so that more
+                    predictive features (when taken individually) will appear at
+                    the top and less predictive features will appear at the
+                    bottom.
+                    {modelType === MODEL_TYPES.SURVIVAL &&
+                      'With Survival models, the features are ranked by the Event column.'}
+                  </UncontrolledTooltip>
+                </label>
+                {rankFeatures && (
+                  <div>
+                    <input
+                      id="keep-n-feats"
+                      type="checkbox"
+                      checked={keepNFeatures}
+                      onChange={(e) => {
+                        setKeepNFeatures(e.target.checked);
+                        filterFeatures(
+                          dropCorrelatedFeatures,
+                          e.target.checked,
+                          corrThreshold,
+                          nFeatures
+                        );
+                      }}
+                      disabled={!rankFeatures}
+                    />{' '}
+                    <label htmlFor="keep-n-feats">
+                      Keep N Best-Ranked Features
+                    </label>
+                    <br />
+                    <input
+                      id="corr-threshold"
+                      type="range"
+                      min={1}
+                      max={Math.min(
+                        droppedFeatureIDsCorrelation.length > 0
+                          ? selectedBeforeFiltering
+                              .filter((s) => leafItems[s])
+                              .map((f) => leafItems[f]).length -
+                              droppedFeatureIDsCorrelation.length
+                          : selectedBeforeFiltering
+                              .filter((s) => leafItems[s])
+                              .map((f) => leafItems[f]).length,
+                        MAX_FEATURES_TO_KEEP
+                      )}
+                      step={1}
+                      disabled={!keepNFeatures}
+                      onChange={(e) => {
+                        setNFeatures(+e.target.value);
+                      }}
+                      onMouseUp={adjustNFeatures}
+                      onKeyUp={adjustNFeatures}
+                      value={nFeatures}
+                      className="slider"
+                    />
+                    <span>{nFeatures}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
