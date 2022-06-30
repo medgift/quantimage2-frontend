@@ -896,6 +896,8 @@ function Features({ history }) {
                           featuresChart={featuresChart}
                           outcomes={outcomes}
                           dataPoints={dataPoints}
+                          dataSplittingType={dataSplittingType}
+                          trainTestSplitType={trainTestSplitType}
                           trainingPatients={trainingPatients}
                           testPatients={testPatients}
                           featureExtractionID={featureExtractionID}

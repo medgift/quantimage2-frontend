@@ -2,6 +2,10 @@ import { pythonBackendBaseURL } from './config';
 
 import { downloadFile, rawRequest, request } from './common';
 import { parseFeatureDetailsResponse } from '../utils/multipart-parser';
+import {
+  DATA_SPLITTING_TYPES,
+  TRAIN_TEST_SPLIT_TYPES,
+} from '../config/constants';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -369,44 +373,35 @@ class Backend {
     }
   }
 
-  async saveCollectionNew(token, featureExtractionID, name, featureIDs) {
-    try {
-      const url = `${endpoints.collections}/new`;
-
-      return await request(url, {
-        method: 'POST',
-        data: {
-          featureExtractionID: featureExtractionID,
-          name: name,
-          featureIDs: featureIDs,
-        },
-        token: token,
-      });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
-  async saveCollection(
+  async saveCollectionNew(
     token,
     featureExtractionID,
     name,
-    modalities,
-    rois,
-    features
+    featureIDs,
+    dataSplittingType,
+    trainTestSplitType,
+    trainingPatients,
+    testPatients
   ) {
     try {
-      const url = `${endpoints.collections}`;
+      const url = `${endpoints.collections}/new`;
+
+      let body = {
+        featureExtractionID: featureExtractionID,
+        name: name,
+        featureIDs: featureIDs,
+        dataSplittingType: dataSplittingType,
+        trainTestSplitType:
+          dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
+            ? trainTestSplitType
+            : TRAIN_TEST_SPLIT_TYPES.AUTO,
+        trainingPatients: trainingPatients,
+        testPatients: testPatients,
+      };
 
       return await request(url, {
         method: 'POST',
-        data: {
-          featureExtractionID: featureExtractionID,
-          name: name,
-          modalities: modalities,
-          rois: rois,
-          features: features,
-        },
+        data: body,
         token: token,
       });
     } catch (err) {

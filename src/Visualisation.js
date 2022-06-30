@@ -75,6 +75,8 @@ export default function Visualisation({
   featuresChart,
   outcomes,
   dataPoints,
+  dataSplittingType,
+  trainTestSplitType,
   trainingPatients,
   testPatients,
   featureExtractionID,
@@ -775,7 +777,11 @@ export default function Visualisation({
       keycloak.token,
       featureExtractionID,
       newCollectionName,
-      [...selectedFeatureIDs]
+      [...selectedFeatureIDs],
+      dataSplittingType,
+      trainTestSplitType,
+      trainingPatients,
+      testPatients
     );
     toggleCollectionModal();
     setIsCollectionSaving(false);
