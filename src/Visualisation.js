@@ -81,6 +81,7 @@ export default function Visualisation({
   testPatients,
   featureExtractionID,
   setCollections,
+  unlabelledDataPoints,
 }) {
   // Route
   const { albumID } = useParams();
@@ -958,6 +959,7 @@ export default function Visualisation({
                   selected={selected}
                   setSelected={setSelected}
                   setIsRecomputingChart={setIsRecomputingChart}
+                  unlabelledDataPoints={unlabelledDataPoints}
                 />
               </div>
             </td>

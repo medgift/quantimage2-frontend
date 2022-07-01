@@ -16,6 +16,7 @@ export default function ModelOverview({ albums }) {
 
   const { keycloak } = useKeycloak();
 
+  const [featureExtractionID, setFeatureExtractionID] = useState(null);
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
 
@@ -45,15 +46,38 @@ export default function ModelOverview({ albums }) {
     [collectionColumn]
   );
 
+  // Get feature extraction
+  useEffect(() => {
+    async function getExtraction() {
+      const latestExtraction = await Backend.extractions(
+        keycloak.token,
+        albumID
+      );
+
+      setFeatureExtractionID(latestExtraction.id);
+    }
+
+    getExtraction();
+  }, [albumID, keycloak.token]);
+
   useEffect(() => {
     async function fetchModels() {
       let models = await Backend.models(keycloak.token, albumID);
 
-      setModels(models);
+      // Filter out models that are not for this collection / original feature set
+      let filteredModels = models.filter(
+        (m) => m.feature_extraction_id === featureExtractionID
+      );
+
+      let sortedModels = filteredModels.sort(
+        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+      );
+
+      setModels(sortedModels);
     }
 
-    fetchModels();
-  }, [keycloak.token, albumID]);
+    if (featureExtractionID) fetchModels();
+  }, [keycloak.token, albumID, featureExtractionID]);
 
   // Get collections
   useEffect(() => {

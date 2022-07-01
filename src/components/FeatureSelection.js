@@ -25,6 +25,7 @@ export default function FeatureSelection({
   selected,
   setSelected,
   setIsRecomputingChart,
+  unlabelledDataPoints,
 }) {
   const [nFeatures, setNFeatures] = useState(1);
 
@@ -228,7 +229,7 @@ export default function FeatureSelection({
             )}
           </div>
         </div>
-        {modelType && (
+        {modelType && unlabelledDataPoints === 0 && (
           <div style={{ flex: 1 }}>
             <div className="tools">
               <p className="mt-4">

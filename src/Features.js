@@ -260,10 +260,17 @@ function Features({ history }) {
     async function getModels() {
       let models = await Backend.models(keycloak.token, albumID);
 
+      // Keep only models of the latest feature extraction
+      let filteredModels = models.filter(
+        (m) => m.feature_extraction_id === featureExtractionID
+      );
+
       // Filter out models that are not for this collection / original feature set
-      let filteredModels = collectionID
-        ? models.filter((m) => m.feature_collection_id === +collectionID)
-        : models.filter((m) => m.feature_collection_id === null);
+      filteredModels = collectionID
+        ? filteredModels.filter(
+            (m) => m.feature_collection_id === +collectionID
+          )
+        : filteredModels.filter((m) => m.feature_collection_id === null);
 
       let sortedModels = filteredModels.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
@@ -903,6 +910,7 @@ function Features({ history }) {
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
+                          unlabelledDataPoints={unlabelledDataPoints}
                         />
                       </>
                     ) : (
