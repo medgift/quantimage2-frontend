@@ -85,12 +85,21 @@ function Features({ history }) {
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Compute data points based on outcomes
+  // Get current collection
+  const currentCollection =
+    collections && collectionID
+      ? collections.find((c) => c.collection.id === +collectionID)
+      : null;
+
+  // Compute data points based on features
   let dataPoints = useMemo(() => {
     if (!featuresTabular) return null;
 
+    if (currentCollection && trainingPatients && testPatients)
+      return [...trainingPatients, ...testPatients];
+
     return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
-  }, [featuresTabular]);
+  }, [trainingPatients, testPatients, featuresTabular, currentCollection]);
 
   // Get outcomes based on the current label category & filter by data points
   let outcomes = useMemo(() => {
@@ -124,12 +133,6 @@ function Features({ history }) {
 
     return unlabelled;
   }, [selectedLabelCategory, dataPoints]);
-
-  // Get current collection
-  const currentCollection =
-    collections && collectionID
-      ? collections.find((c) => c.collection.id === +collectionID)
-      : null;
 
   // Get album
   useEffect(() => {
@@ -278,8 +281,8 @@ function Features({ history }) {
       setModels(sortedModels);
     }
 
-    if (albumID) getModels();
-  }, [keycloak.token, albumID, collectionID]);
+    if (albumID && featureExtractionID) getModels();
+  }, [keycloak.token, albumID, collectionID, featureExtractionID]);
 
   // Get classes of a tab
   const getTabClassName = (targetTab) => {
@@ -861,8 +864,6 @@ function Features({ history }) {
                         </Alert>
                       )}
                       <DataSplitting
-                        featureExtractionID={featureExtractionID}
-                        collectionID={collectionID}
                         dataSplittingType={dataSplittingType}
                         updateDataSplittingType={updateDataSplittingType}
                         trainTestSplitType={trainTestSplitType}
@@ -871,12 +872,13 @@ function Features({ history }) {
                         setNbTrainingPatients={setNbTrainingPatients}
                         trainingPatients={trainingPatients}
                         testPatients={testPatients}
-                        setTrainingPatients={setTrainingPatients}
-                        setTestPatients={setTestPatients}
                         transferPatients={transferPatients}
                         dataPoints={dataPoints}
                         selectedLabelCategory={selectedLabelCategory}
                         outcomes={outcomes}
+                        updateExtractionOrCollection={
+                          updateExtractionOrCollection
+                        }
                       />
                     </>
                   )}

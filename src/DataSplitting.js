@@ -11,13 +11,8 @@ import {
 import _ from 'lodash';
 
 import './DataSplitting.css';
-import backend from './services/backend';
-import { useKeycloak } from '@react-keycloak/web';
-import Backend from './services/backend';
 
 export default function DataSplitting({
-  featureExtractionID,
-  collectionID,
   dataSplittingType,
   updateDataSplittingType,
   trainTestSplitType,
@@ -29,12 +24,9 @@ export default function DataSplitting({
   outcomes,
   trainingPatients,
   testPatients,
-  setTrainingPatients,
-  setTestPatients,
+  updateExtractionOrCollection,
   transferPatients,
 }) {
-  const { keycloak } = useKeycloak();
-
   const handleSplitTypeChange = async (e) => {
     await updateTrainTestSplitType(e.target.id);
   };
@@ -88,53 +80,32 @@ export default function DataSplitting({
     let testPatients = _.difference(dataPoints, trainingPatients);
 
     return { trainingPatients, testPatients };
-  }, [dataPoints, outcomes, nbTrainingPatients]);
+  }, [
+    dataPoints,
+    outcomes,
+    nbTrainingPatients,
+    selectedLabelCategory.label_type,
+  ]);
 
   const [selectedTrainingPatients, setSelectedTrainingPatients] = useState([]);
   const [selectedTestPatients, setSelectedTestPatients] = useState([]);
 
   const savePatients = useCallback(async () => {
-    await backend.saveTrainingTestPatients(
-      keycloak.token,
-      featureExtractionID,
-      collectionID,
-      patients.trainingPatients,
-      patients.testPatients
-    );
-
-    setTrainingPatients(patients.trainingPatients);
-    setTestPatients(patients.testPatients);
-  }, [
-    keycloak.token,
-    featureExtractionID,
-    collectionID,
-    patients,
-    setTrainingPatients,
-    setTestPatients,
-  ]);
+    await updateExtractionOrCollection({
+      [PATIENT_FIELDS.TRAINING]: patients.trainingPatients,
+      [PATIENT_FIELDS.TEST]: patients.testPatients,
+    });
+  }, [patients, updateExtractionOrCollection]);
 
   const resetPatients = useCallback(async () => {
-    await backend.saveTrainingTestPatients(
-      keycloak.token,
-      featureExtractionID,
-      collectionID,
-      null,
-      null
-    );
-    setTrainingPatients(null);
-    setTestPatients(null);
+    await updateExtractionOrCollection({
+      [PATIENT_FIELDS.TRAINING]: null,
+      [PATIENT_FIELDS.TEST]: null,
+    });
     setNbTrainingPatients(
       Math.round(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
     );
-  }, [
-    keycloak.token,
-    featureExtractionID,
-    collectionID,
-    setTrainingPatients,
-    setTestPatients,
-    setNbTrainingPatients,
-    dataPoints,
-  ]);
+  }, [updateExtractionOrCollection, setNbTrainingPatients, dataPoints]);
 
   useEffect(() => {
     async function initPatients() {
