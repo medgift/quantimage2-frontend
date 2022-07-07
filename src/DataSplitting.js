@@ -4,6 +4,8 @@ import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
   MODEL_TYPES,
+  OUTCOME_CLASSIFICATION,
+  OUTCOME_SURVIVAL_EVENT,
   PATIENT_FIELDS,
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
@@ -11,6 +13,7 @@ import {
 import _ from 'lodash';
 
 import './DataSplitting.css';
+import { usePrevious } from './utils/usePrevious';
 
 export default function DataSplitting({
   dataSplittingType,
@@ -39,9 +42,29 @@ export default function DataSplitting({
     setNbTrainingPatients(+e.target.value);
   };
 
+  const prevOutcomes = usePrevious(outcomes);
+
+  const outcomesComplete = useMemo(() => {
+    let outcomeField =
+      selectedLabelCategory?.label_type === MODEL_TYPES.CLASSIFICATION
+        ? OUTCOME_CLASSIFICATION
+        : selectedLabelCategory?.label_type === MODEL_TYPES.SURVIVAL
+        ? OUTCOME_SURVIVAL_EVENT
+        : null;
+
+    return outcomeField && outcomes.length === dataPoints.length
+      ? outcomes.every(
+          (o) =>
+            o.label_content[outcomeField] &&
+            o.label_content[outcomeField] !== ''
+        )
+      : false;
+  }, [outcomes, dataPoints, selectedLabelCategory]);
+
   const patients = useMemo(() => {
     let trainingPatients;
-    if (!outcomes) {
+
+    if (!outcomesComplete) {
       trainingPatients = _.sampleSize(
         dataPoints,
         Math.floor(nbTrainingPatients)
@@ -84,7 +107,8 @@ export default function DataSplitting({
     dataPoints,
     outcomes,
     nbTrainingPatients,
-    selectedLabelCategory.label_type,
+    selectedLabelCategory,
+    outcomesComplete,
   ]);
 
   const [selectedTrainingPatients, setSelectedTrainingPatients] = useState([]);
@@ -122,6 +146,17 @@ export default function DataSplitting({
       reinitPatients();
     }
   }, [savePatients, resetPatients, trainingPatients, dataSplittingType]);
+
+  useEffect(() => {
+    async function updatePatients() {
+      await savePatients();
+    }
+
+    if (!_.isEqual(outcomes, prevOutcomes)) {
+      console.log("outcomes changed, let's redo the patients");
+      updatePatients();
+    }
+  }, [outcomes, prevOutcomes, savePatients]);
 
   return (
     <div>
