@@ -27,7 +27,6 @@ import {
   OUTCOME_SURVIVAL_EVENT,
   OUTCOME_SURVIVAL_TIME,
   SURVIVAL_OUTCOMES,
-  PET_SPECIFIC_PREFIXES,
   PYRADIOMICS_FEATURE_PREFIXES,
   RIESZ_FEATURE_PREFIXES,
   ZRAD_FEATURE_PREFIXES,
@@ -49,7 +48,6 @@ let featureIDPattern = `(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:${[
   ...ZRAD_FEATURE_PREFIXES,
   ...RIESZ_FEATURE_PREFIXES,
   ...PYRADIOMICS_FEATURE_PREFIXES,
-  ...PET_SPECIFIC_PREFIXES,
 ].join('|')}).*)`;
 
 let featureIDRegex = new RegExp(featureIDPattern);
@@ -57,11 +55,7 @@ let featureIDRegex = new RegExp(featureIDPattern);
 let featureCategories = Array.from(
   new Set(FEATURE_DEFINITIONS.map((fd) => fd.category))
 );
-featureCategories = [
-  ...featureCategories,
-  ...PET_SPECIFIC_PREFIXES,
-  ...ZRAD_GROUP_PREFIXES,
-];
+featureCategories = [...featureCategories, ...ZRAD_GROUP_PREFIXES];
 let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
   '|'
 )}).*)`;
@@ -335,13 +329,18 @@ export default function Visualisation({
 
     // Go through feature IDs to build the tree items
     for (let featureID of featureIDs) {
-      let { modality, roi, featureName } =
-        featureID.match(featureIDRegex).groups;
+      try {
+        let { modality, roi, featureName } =
+          featureID.match(featureIDRegex).groups;
 
-      if (!ungroupedTree[modality]) ungroupedTree[modality] = {};
-      if (!ungroupedTree[modality][roi]) ungroupedTree[modality][roi] = [];
+        if (!ungroupedTree[modality]) ungroupedTree[modality] = {};
+        if (!ungroupedTree[modality][roi]) ungroupedTree[modality][roi] = [];
 
-      ungroupedTree[modality][roi].push(featureName);
+        ungroupedTree[modality][roi].push(featureName);
+      } catch (e) {
+        console.log('Problem with feature ID', featureID);
+        throw e;
+      }
     }
 
     let groupedTree = _.cloneDeep(ungroupedTree);

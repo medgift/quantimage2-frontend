@@ -28,7 +28,6 @@ export const PYRADIOMICS_FEATURE_PREFIXES = [
   'exponential',
   'logarithm',
 ];
-export const PET_SPECIFIC_PREFIXES = ['PET'];
 export const ZRAD_GROUP_PREFIXES = ['ZRad'];
 
 export const MODEL_TYPES = {

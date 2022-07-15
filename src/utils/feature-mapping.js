@@ -132,6 +132,30 @@ export const FEATURE_DEFINITIONS = [
     subcategory: '',
   },
   {
+    id: 'firstorder_MTV',
+    url: '',
+    description:
+      'Metabolic tumor volume (MTV) refers to the metabolically active volume of the tumor segmented using FDG PET',
+    category: 'Intensity',
+    subcategory: '',
+  },
+  {
+    id: 'firstorder_TLG',
+    url: '',
+    description:
+      'Total lesion glycolysis (TLG) is the product of mean SUV and MTV',
+    category: 'Intensity',
+    subcategory: '',
+  },
+  {
+    id: 'firstorder_SUVpeak',
+    url: '',
+    description:
+      'SUVpeak is defined as the average SUV within a small, fixed-size region of interest (ROIpeak) centered on a high-uptake part of the tumor',
+    category: 'Intensity',
+    subcategory: '',
+  },
+  {
     id: 'glcm_Autocorrelation',
     url: 'www.radiomics.org/RO/QWB0',
     description:
@@ -778,17 +802,13 @@ export const CATEGORY_DEFINITIONS = {
   // Families
   Intensity:
     'Features based on the grey levels of the pixels in the image (maximum, minimum, mean, etc.)',
-  SUV:
-    'Features based on the grey levels of the pixels in the image (maximum, minimum, mean, etc.)',
+  SUV: 'Features based on the grey levels of the pixels in the image (maximum, minimum, mean, etc.)',
   Texture:
     'The textural features describe patterns or the spatial distribution of voxel intensities',
   Shape:
     'Morphological features describe geometric aspects of a region of interest (ROI), such as area and volume. Morphological features are based on ROI voxel representations of the volume.',
   // Sub-families
-  GLCM:
-    'The grey level co-occurrence matrix (GLCM) is a matrix that expresses how combinations of discretised grey levels of neighbouring pixels, or voxels in a 3D volume, are distributed along one of the image directions. In a 3 dimensional approach to texture analysis, the direct neighbourhood of a voxel consists of the 26 directly neighbouring voxels. Thus, there are 13 unique direction vectors within a neighbourhood volume for distance',
-  PET:
-    'Features calculated specifically from PET images, concerning properties of a tumor',
+  GLCM: 'The grey level co-occurrence matrix (GLCM) is a matrix that expresses how combinations of discretised grey levels of neighbouring pixels, or voxels in a 3D volume, are distributed along one of the image directions. In a 3 dimensional approach to texture analysis, the direct neighbourhood of a voxel consists of the 26 directly neighbouring voxels. Thus, there are 13 unique direction vectors within a neighbourhood volume for distance',
 };
 
 export const FEATURE_CATEGORY_ALIASES = {
