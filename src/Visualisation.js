@@ -980,7 +980,12 @@ export default function Visualisation({
           <strong>{selectedFeatureIDs ? selectedFeatureIDs.size : '?'}</strong>{' '}
           different features (combining modalities, ROIs & feature types)
         </p>
-        <Form>
+        <Form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleSaveCollectionClick();
+          }}
+        >
           <FormGroup>
             <Label for="exampleEmail">New Collection Name</Label>
             <Input
