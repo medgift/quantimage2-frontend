@@ -6,13 +6,13 @@ import { useHistory, useParams } from 'react-router-dom';
 export default function CollectionSelection({
   album,
   collections,
-  setIsLoading
+  setIsLoading,
 }) {
   const history = useHistory();
 
   const { albumID, collectionID, tab } = useParams();
 
-  const handleCollectionClick = e => {
+  const handleCollectionClick = (e) => {
     setIsLoading(true);
 
     e.preventDefault();
@@ -37,18 +37,24 @@ export default function CollectionSelection({
           tag="a"
           href="#"
           active={!collectionID ? true : null}
-          onClick={handleCollectionClick}
+          onClick={
+            collectionID ? handleCollectionClick : (e) => e.preventDefault()
+          }
         >
           {'<original>'}
         </ListGroupItem>
-        {collections.map(c => (
+        {collections.map((c) => (
           <ListGroupItem
             id={c.collection.id}
             key={c.collection.id}
             tag="a"
             href="#"
             active={+collectionID === c.collection.id ? true : null}
-            onClick={handleCollectionClick}
+            onClick={
+              +collectionID !== c.collection.id
+                ? handleCollectionClick
+                : (e) => e.preventDefault()
+            }
           >
             {c.collection.name}
           </ListGroupItem>
