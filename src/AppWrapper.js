@@ -14,11 +14,11 @@ import { KEYCLOAK_FRONTEND_CLIENT_ID } from './config/constants';
 const keycloak = new Keycloak({
   url: process.env.REACT_APP_KEYCLOAK_URL,
   clientId: KEYCLOAK_FRONTEND_CLIENT_ID,
-  realm: process.env.REACT_APP_KEYCLOAK_REALM
+  realm: process.env.REACT_APP_KEYCLOAK_REALM,
 });
 
 const keycloakProviderInitConfig = {
-  onLoad: 'login-required'
+  onLoad: 'login-required',
 };
 
 // Connect to Socket.IO
@@ -34,7 +34,7 @@ const options = {
   timeout: 4000,
   offset: '30px',
   // you can also just use 'scale'
-  transition: transitions.FADE
+  transition: transitions.FADE,
 };
 
 function AppWrapper(props) {
@@ -45,7 +45,7 @@ function AppWrapper(props) {
     console.log('onKeycloakEvent', event, error);
   };
 
-  const tokenLogger = tokens => {
+  const tokenLogger = (tokens) => {
     console.log('onKeycloakTokens', tokens);
   };
 

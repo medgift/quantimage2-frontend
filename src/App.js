@@ -41,7 +41,7 @@ function App({ setUser, setIsAdmin }) {
 
   // Log location changes
   useEffect(() => {
-    if (initialized) {
+    if (initialized && keycloak.token && location) {
       Backend.saveNavigation(keycloak.token, location.pathname);
     }
   }, [initialized, location, keycloak.token]);
