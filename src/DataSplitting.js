@@ -152,11 +152,14 @@ export default function DataSplitting({
       await savePatients();
     }
 
-    if (!_.isEqual(outcomes, prevOutcomes)) {
+    if (
+      dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET &&
+      !_.isEqual(outcomes, prevOutcomes)
+    ) {
       console.log("outcomes changed, let's redo the patients");
       updatePatients();
     }
-  }, [outcomes, prevOutcomes, savePatients]);
+  }, [dataSplittingType, outcomes, prevOutcomes, savePatients]);
 
   return (
     <div>
