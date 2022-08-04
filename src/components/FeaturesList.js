@@ -8,7 +8,7 @@ import {
   Label,
   ListGroupItem,
 } from 'reactstrap';
-import { FEATURE_STATUS } from '../config/constants';
+import { FEATURE_STATUS, SOCKETIO_MESSAGES } from '../config/constants';
 
 import yaml from 'js-yaml';
 
@@ -142,12 +142,12 @@ export default function FeaturesList({
   useEffect(() => {
     console.log('Configure Socket Listeners');
 
-    socket.on('feature-status', handleFeatureStatus);
-    socket.on('extraction-status', handleExtractionStatus);
+    socket.on(SOCKETIO_MESSAGES.FEATURE_STATUS, handleFeatureStatus);
+    socket.on(SOCKETIO_MESSAGES.EXTRACTION_STATUS, handleExtractionStatus);
 
     return () => {
-      socket.off('feature-status', handleFeatureStatus);
-      socket.off('extraction-status', handleExtractionStatus);
+      socket.off(SOCKETIO_MESSAGES.FEATURE_STATUS, handleFeatureStatus);
+      socket.off(SOCKETIO_MESSAGES.EXTRACTION_STATUS, handleExtractionStatus);
     };
   }, [socket]);
 

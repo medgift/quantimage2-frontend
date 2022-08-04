@@ -15,6 +15,7 @@ import {
   TRAINING_PHASES,
   CLASSIFICATION_COLUMNS,
   SURVIVAL_COLUMNS,
+  SOCKETIO_MESSAGES,
 } from './config/constants';
 import ModelsTable from './components/ModelsTable';
 import SocketContext from './context/SocketContext';
@@ -94,7 +95,10 @@ export default function Train({
           setModels([trainingStatus.model, ...models]);
           setShowNewModel(false);
         } else {
-          if (trainingStatus.phase === TRAINING_PHASES.TESTING) {
+          if (trainingStatus.failed) {
+            reinitTraining();
+            setTrainingError(trainingStatus.error);
+          } else if (trainingStatus.phase === TRAINING_PHASES.TESTING) {
             setCurrentPhase(TRAINING_PHASES.TESTING);
             setNSteps(trainingStatus.total);
             setCurrentStep(trainingStatus.current);
@@ -111,10 +115,10 @@ export default function Train({
   useEffect(() => {
     if (!currentTrainingID) return;
 
-    socket.on('training-status', handleTrainingStatus);
+    socket.on(SOCKETIO_MESSAGES.TRAINING_STATUS, handleTrainingStatus);
 
     return () => {
-      socket.off('training-status', handleTrainingStatus);
+      socket.off(SOCKETIO_MESSAGES.TRAINING_STATUS, handleTrainingStatus);
     };
   }, [socket, handleTrainingStatus, currentTrainingID]);
 
@@ -202,7 +206,10 @@ export default function Train({
       : 'Train & Test Model';
 
     if (nSteps > 0 && currentStep > 0) {
-      buttonText += ` (${Math.floor((currentStep / nSteps) * 100)}%)`;
+      buttonText += ` (${Math.min(
+        Math.floor((currentStep / nSteps) * 100),
+        100
+      )}%)`;
     }
 
     if (isTraining) buttonText += '...';

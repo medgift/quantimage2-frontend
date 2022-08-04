@@ -62,6 +62,13 @@ export const SURVIVAL_OUTCOMES = [
   OUTCOME_SURVIVAL_EVENT,
 ];
 
+export const SOCKETIO_MESSAGES = {
+  CONNECT: 'connect',
+  EXTRACTION_STATUS: 'extraction-status',
+  FEATURE_STATUS: 'feature-status',
+  TRAINING_STATUS: 'training-status',
+};
+
 export const TRAINING_PHASES = {
   TRAINING: 'training',
   TESTING: 'testing',

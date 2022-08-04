@@ -8,7 +8,10 @@ import { ReactKeycloakProvider } from '@react-keycloak/web';
 import { transitions, positions, Provider as AlertProvider } from 'react-alert';
 import AlertTemplate from './components/AlertTemplate';
 import UserContext from './context/UserContext';
-import { KEYCLOAK_FRONTEND_CLIENT_ID } from './config/constants';
+import {
+  KEYCLOAK_FRONTEND_CLIENT_ID,
+  SOCKETIO_MESSAGES,
+} from './config/constants';
 
 // Setup Keycloak instance
 const keycloak = new Keycloak({
@@ -23,7 +26,7 @@ const keycloakProviderInitConfig = {
 
 // Connect to Socket.IO
 const socket = io(pythonBackendBaseURL, {});
-socket.on('connect', () => {
+socket.on(SOCKETIO_MESSAGES.CONNECT, () => {
   console.log('Successfully connected to Socket.IO server!');
 });
 
