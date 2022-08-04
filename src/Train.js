@@ -16,6 +16,7 @@ import {
   CLASSIFICATION_COLUMNS,
   SURVIVAL_COLUMNS,
   SOCKETIO_MESSAGES,
+  CV_SPLITS,
 } from './config/constants';
 import ModelsTable from './components/ModelsTable';
 import SocketContext from './context/SocketContext';
@@ -192,9 +193,93 @@ export default function Train({
     setShowNewModel(false);
   };
 
+  const computeElementsPerClass = (patients) => {
+    return outcomes
+      ? transformLabelsToTabular(
+          dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
+            patients
+            ? outcomes.filter((o) => patients.includes(o.patient_id))
+            : outcomes
+        )
+          .map((o) => o.pop())
+          .reduce((acc, curr) => {
+            const count = acc[curr] || 0;
+            acc[curr] = count + 1;
+            return acc;
+          }, {})
+      : {};
+  };
+
+  const elementsPerClassTraining = computeElementsPerClass(trainingPatients);
+  const elementsPerClassTest = computeElementsPerClass(testPatients);
+
+  const nbClassesTraining = Object.keys(elementsPerClassTraining).length;
+  const nbClassesTest = Object.keys(elementsPerClassTest).length;
+
+  const minElementPerClassTraining = Math.min(
+    ...Object.values(elementsPerClassTraining)
+  );
+
   if (!album) return <span>Loading...</span>;
 
-  //let album = albums.find((a) => a.album_id === albumID);
+  let impossibleToTrain =
+    nbClassesTest <= 1 ||
+    nbClassesTraining <= 1 ||
+    nbClassesTraining > 2 ||
+    minElementPerClassTraining === 1;
+
+  let trainingWarning = () => {
+    if (nbClassesTraining <= 1 || nbClassesTest <= 1) {
+      let isTraining = nbClassesTraining <= 1;
+
+      return (
+        <Alert color="danger" fade={false}>
+          <strong>WARNING :</strong> The outcomes of the{' '}
+          {isTraining ? 'training' : 'test'} set contain only a single class, it
+          is not possible to train a model. Increase the number of{' '}
+          {isTraining ? 'training' : 'test'} patients or define outcomes with 2
+          different classes.
+        </Alert>
+      );
+    }
+
+    if (nbClassesTraining > 2 || nbClassesTest > 2) {
+      let isTraining = nbClassesTraining > 2;
+
+      return (
+        <Alert color="danger" fade={false}>
+          <strong>WARNING :</strong> The outcomes of the{' '}
+          {isTraining ? 'training' : 'test'} set contain more than 2 classes.
+          QuantImage v2 is currently restricted to binary classification
+          (Outcome for Classification, Event for Survival).
+        </Alert>
+      );
+    }
+
+    if (
+      minElementPerClassTraining < CV_SPLITS &&
+      minElementPerClassTraining > 1
+    )
+      return (
+        <Alert color="warning" fade={false}>
+          <strong>WARNING :</strong> The training set contains a class with only{' '}
+          {minElementPerClassTraining} samples. Instead of doing the standard{' '}
+          <strong>{CV_SPLITS}-fold</strong> Cross-Validation, it will be
+          restricted to a <strong>{minElementPerClassTraining}-fold</strong>{' '}
+          Cross-Validation.
+        </Alert>
+      );
+
+    if (minElementPerClassTraining === 1)
+      return (
+        <Alert color="danger" fade={false}>
+          <strong>WARNING :</strong> The training set contains a class with only{' '}
+          {minElementPerClassTraining} sample, it is therefore not possible to
+          perform a Cross-Validation. Increase the number of training patients
+          present in each class.
+        </Alert>
+      );
+  };
 
   let trainingButton = () => {
     let buttonText = isTraining
@@ -218,7 +303,7 @@ export default function Train({
       <Button
         color="info"
         onClick={handleTrainModelClick}
-        disabled={isTraining}
+        disabled={isTraining || impossibleToTrain}
       >
         <>
           {isTraining && (
@@ -432,6 +517,7 @@ export default function Train({
       {albumExtraction && (
         <>
           <h3>Train Model</h3>
+          {trainingWarning()}
           {trainingButton()}
           {trainingError && (
             <Alert color="danger" className="mt-3">

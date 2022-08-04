@@ -74,6 +74,8 @@ export const TRAINING_PHASES = {
   TESTING: 'testing',
 };
 
+export const CV_SPLITS = 10;
+
 export const MODEL_COLUMNS = [
   {
     Header: 'Date created',

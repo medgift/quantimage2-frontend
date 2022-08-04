@@ -131,6 +131,7 @@ export default function DataSplitting({
     );
   }, [updateExtractionOrCollection, setNbTrainingPatients, dataPoints]);
 
+  // Initialize training & test patients as required
   useEffect(() => {
     async function initPatients() {
       if (trainingPatients === null) await savePatients();
@@ -147,6 +148,7 @@ export default function DataSplitting({
     }
   }, [savePatients, resetPatients, trainingPatients, dataSplittingType]);
 
+  // Update patients when outcomes change
   useEffect(() => {
     async function updatePatients() {
       await savePatients();
@@ -154,7 +156,8 @@ export default function DataSplitting({
 
     if (
       dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET &&
-      !_.isEqual(outcomes, prevOutcomes)
+      !_.isEqual(outcomes, prevOutcomes) &&
+      prevOutcomes !== undefined
     ) {
       console.log("outcomes changed, let's redo the patients");
       updatePatients();
