@@ -76,6 +76,7 @@ export default function Visualisation({
   featureExtractionID,
   setCollections,
   unlabelledDataPoints,
+  setHasPendingChanges,
 }) {
   // Route
   const { albumID } = useParams();
@@ -114,9 +115,6 @@ export default function Visualisation({
 
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
-
-  // Chart loaded
-  const [chartLoaded, setChartLoaded] = useState(false);
 
   const finalTrainingPatients = useMemo(() => {
     if (trainingPatients) return trainingPatients;
@@ -395,6 +393,19 @@ export default function Visualisation({
         .map((n) => leafItems[n])
     );
   }, [leafItems, selected]);
+
+  // Selected feature IDs !== feature IDs
+  useEffect(() => {
+    if (
+      featureIDs &&
+      selectedFeatureIDs &&
+      featureIDs.size !== selectedFeatureIDs.size
+    ) {
+      setHasPendingChanges(true);
+    } else {
+      setHasPendingChanges(false);
+    }
+  }, [featureIDs, selectedFeatureIDs, setHasPendingChanges]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
@@ -787,6 +798,8 @@ export default function Visualisation({
     setIsCollectionSaving(false);
 
     setCollections((c) => [...c, newCollection]);
+
+    setHasPendingChanges(false);
 
     history.push(
       `/features/${albumID}/collection/${newCollection.collection.id}/visualize`

@@ -1,30 +1,12 @@
 import React from 'react';
 import { ListGroup, ListGroupItem } from 'reactstrap';
 
-import { useHistory, useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 
-export default function CollectionSelection({
-  album,
-  collections,
-  setIsLoading,
-}) {
-  const history = useHistory();
-
+export default function CollectionSelection({ album, collections }) {
   const { albumID, collectionID, tab } = useParams();
 
-  const handleCollectionClick = (e) => {
-    setIsLoading(true);
-
-    e.preventDefault();
-
-    let tabToShow = tab ? tab : 'overview';
-
-    if (e.target.id)
-      history.push(
-        `/features/${albumID}/collection/${e.target.id}/${tabToShow}`
-      );
-    else history.push(`/features/${albumID}/${tabToShow}`);
-  };
+  const tabToShow = tab ? tab : 'overview';
 
   return collections ? (
     <div style={{ margin: '0.5em' }}>
@@ -34,12 +16,9 @@ export default function CollectionSelection({
       <ListGroup>
         <ListGroupItem
           key="original"
-          tag="a"
-          href="#"
+          tag={Link}
+          to={`/features/${albumID}/${tabToShow}`}
           active={!collectionID ? true : null}
-          onClick={
-            collectionID ? handleCollectionClick : (e) => e.preventDefault()
-          }
         >
           {'<original>'}
         </ListGroupItem>
@@ -47,14 +26,9 @@ export default function CollectionSelection({
           <ListGroupItem
             id={c.collection.id}
             key={c.collection.id}
-            tag="a"
-            href="#"
+            tag={Link}
+            to={`/features/${albumID}/collection/${c.collection.id}/${tabToShow}`}
             active={+collectionID === c.collection.id ? true : null}
-            onClick={
-              +collectionID !== c.collection.id
-                ? handleCollectionClick
-                : (e) => e.preventDefault()
-            }
           >
             {c.collection.name}
           </ListGroupItem>

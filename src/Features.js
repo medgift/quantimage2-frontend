@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useParams, Prompt } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
 import {
@@ -84,6 +84,9 @@ function Features({ history }) {
   const [isSavingCollectionName, setIsSavingCollectionName] = useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Pending Changes
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   // Get current collection
   const currentCollection =
@@ -233,6 +236,7 @@ function Features({ history }) {
   // Get features
   useEffect(() => {
     async function getFeatures() {
+      setIsLoading(true);
       let featuresTabular = [];
       let featuresChart = [];
       if (!collectionID) {
@@ -601,7 +605,6 @@ function Features({ history }) {
                 album={album.name}
                 collections={collections}
                 collectionID={collectionID}
-                setIsLoading={setIsLoading}
               />
               <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
               <Button
@@ -669,7 +672,11 @@ function Features({ history }) {
                     }}
                   >
                     {getTabSymbol()}
-                    {isAlternativeUser ? 'Collections' : 'Visualization'}
+                    {isAlternativeUser
+                      ? 'Collections'
+                      : !hasPendingChanges
+                      ? 'Visualization'
+                      : 'Visualization*'}
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -913,6 +920,7 @@ function Features({ history }) {
                           setCollections={setCollections}
                           album={album.name}
                           unlabelledDataPoints={unlabelledDataPoints}
+                          setHasPendingChanges={setHasPendingChanges}
                         />
                       </>
                     ) : (
@@ -988,6 +996,32 @@ function Features({ history }) {
           <Spinner />
         </div>
       )}
+      <Prompt
+        message={(location, action) => {
+          let movingAway = false;
+
+          console.log('location', location);
+          console.log('action', action);
+
+          if (
+            collectionID &&
+            !location.pathname.match(
+              `\/features\/${albumID}\/collection\/${collectionID}\/.*`
+            )
+          )
+            movingAway = true;
+
+          if (
+            !collectionID &&
+            !location.pathname.match(`\/features\/${albumID}\/(?!collection).*`)
+          )
+            movingAway = true;
+
+          return movingAway && hasPendingChanges
+            ? 'You have unsaved changes to the selected features, are you sure you want to leave and lose these changes?'
+            : true;
+        }}
+      />
     </>
   );
 }
