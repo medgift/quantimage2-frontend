@@ -181,14 +181,17 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     // Completely successful extraction
     if (albumExtraction.status.successful) return null;
 
-    // Partially failed extraction
+    // Partially/Completely failed extraction
     if (
       albumExtraction.status.ready &&
       albumExtraction.status.failed_tasks > 0
     ) {
       return (
         <span>
-          Partially Failed! ({albumExtraction.status.completed_tasks}/
+          {albumExtraction.completed_tasks > 0
+            ? 'Partially Failed!'
+            : 'Completely Failed!'}{' '}
+          ({albumExtraction.status.completed_tasks}/
           {albumExtraction.status.total_tasks} tasks successful)
         </span>
       );
