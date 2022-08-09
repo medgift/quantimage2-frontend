@@ -899,40 +899,66 @@ export default function Visualisation({
               )}
 
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
-                <div style={{ position: 'relative' }}>
-                  {isRecomputingChart && (
-                    <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
-                      <FontAwesomeIcon
-                        icon="sync"
-                        spin
-                        color="white"
-                        size="4x"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <HighchartsReact
-                      highcharts={Highcharts}
-                      options={highchartsOptionsFeatures}
-                    />
-                  </div>
-                  {selectedLabelCategory && (
-                    <HighchartsReact
-                      highcharts={Highcharts}
-                      options={highchartsOptionsOutcome}
-                    />
-                  )}
-                  {selectedLabelCategory &&
-                    selectedLabelCategory.label_type ===
-                      MODEL_TYPES.SURVIVAL && (
-                      <div className="mt-3">
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={highchartsOptionsSurvival}
+                <>
+                  <div style={{ position: 'relative' }}>
+                    {isRecomputingChart && (
+                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+                        <FontAwesomeIcon
+                          icon="sync"
+                          spin
+                          color="white"
+                          size="4x"
                         />
                       </div>
                     )}
-                </div>
+                    <div>
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={highchartsOptionsFeatures}
+                      />
+                    </div>
+                    {selectedLabelCategory && (
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={highchartsOptionsOutcome}
+                      />
+                    )}
+                    {selectedLabelCategory &&
+                      selectedLabelCategory.label_type ===
+                        MODEL_TYPES.SURVIVAL && (
+                        <div className="mt-3">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={highchartsOptionsSurvival}
+                          />
+                        </div>
+                      )}
+                  </div>
+                  <div>
+                    <small>
+                      * Feature values are standardized and the scale is clipped
+                      to [-2, 2]. Extreme values appear either in 100% blue (
+                      {'<-2'}) or 100% red (>2).
+                    </small>
+                  </div>
+                  <div className="d-flex justify-content-around">
+                    <FeatureSelection
+                      allFeatures={featuresChart}
+                      modelType={selectedLabelCategory?.label_type}
+                      leafItems={leafItems}
+                      dropCorrelatedFeatures={dropCorrelatedFeatures}
+                      setDropCorrelatedFeatures={setDropCorrelatedFeatures}
+                      rankFeatures={rankFeatures}
+                      setRankFeatures={setRankFeatures}
+                      keepNFeatures={keepNFeatures}
+                      setKeepNFeatures={setKeepNFeatures}
+                      selected={selected}
+                      setSelected={setSelected}
+                      setIsRecomputingChart={setIsRecomputingChart}
+                      unlabelledDataPoints={unlabelledDataPoints}
+                    />
+                  </div>
+                </>
               ) : (
                 <Alert
                   color="warning"
@@ -944,36 +970,11 @@ export default function Visualisation({
                     chart.
                   </p>
                   <span>
-                    Deselect some features or patients on the left in order to
-                    reduce the number of data points to display.
+                    Deselect some features on the left in order to reduce the
+                    number of data points to display.
                   </span>
                 </Alert>
               )}
-
-              <div>
-                <small>
-                  * Feature values are standardized and the scale is clipped to
-                  [-2, 2]. Extreme values appear either in 100% blue ({'<-2'})
-                  or 100% red (>2).
-                </small>
-              </div>
-              <div className="d-flex justify-content-around">
-                <FeatureSelection
-                  allFeatures={featuresChart}
-                  modelType={selectedLabelCategory?.label_type}
-                  leafItems={leafItems}
-                  dropCorrelatedFeatures={dropCorrelatedFeatures}
-                  setDropCorrelatedFeatures={setDropCorrelatedFeatures}
-                  rankFeatures={rankFeatures}
-                  setRankFeatures={setRankFeatures}
-                  keepNFeatures={keepNFeatures}
-                  setKeepNFeatures={setKeepNFeatures}
-                  selected={selected}
-                  setSelected={setSelected}
-                  setIsRecomputingChart={setIsRecomputingChart}
-                  unlabelledDataPoints={unlabelledDataPoints}
-                />
-              </div>
             </td>
           </tr>
         </tbody>
