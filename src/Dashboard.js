@@ -152,6 +152,24 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
         } else {
           return <div>{updateButton}</div>;
         }
+      } else {
+        // Completely failed
+        if (album.number_of_studies === albumExtraction.tasks.length) {
+          return (
+            <div>
+              <span className="text-danger">
+                {featureExtractionStatusText(albumExtraction)}
+              </span>
+              {/*exploreButton*/}
+              {/*downloadButton*/}
+              {reextractionButton}
+              {/*visualizeButton*/}
+              {/*analyzeButton(album, albumModels)*/}
+            </div>
+          );
+        } else {
+          return <div>{updateButton}</div>;
+        }
       }
     } else {
       // Loading
