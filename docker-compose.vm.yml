@@ -2,6 +2,8 @@ version: '3.6'
 
 services:
   web:
+    build:
+      dockerfile: Dockerfile.prod
     restart: unless-stopped
     ports:
-      - 3000:3000
+      - 3000:80
