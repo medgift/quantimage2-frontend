@@ -213,8 +213,12 @@ export default function Train({
   const elementsPerClassTraining = computeElementsPerClass(trainingPatients);
   const elementsPerClassTest = computeElementsPerClass(testPatients);
 
-  const nbClassesTraining = Object.keys(elementsPerClassTraining).length;
-  const nbClassesTest = Object.keys(elementsPerClassTest).length;
+  const nbClassesTraining = Object.keys(elementsPerClassTraining).filter(
+    (c) => c
+  ).length;
+  const nbClassesTest = Object.keys(elementsPerClassTest).filter(
+    (c) => c
+  ).length;
 
   const minElementPerClassTraining = Math.min(
     ...Object.values(elementsPerClassTraining)
