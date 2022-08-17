@@ -194,20 +194,30 @@ export default function Train({
   };
 
   const computeElementsPerClass = (patients) => {
-    return outcomes
-      ? transformLabelsToTabular(
-          dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
-            patients
-            ? outcomes.filter((o) => patients.includes(o.patient_id))
-            : outcomes
-        )
-          .map((o) => o.pop())
-          .reduce((acc, curr) => {
-            const count = acc[curr] || 0;
-            acc[curr] = count + 1;
-            return acc;
-          }, {})
-      : {};
+    if (!outcomes) return {};
+
+    let transformedLabels = transformLabelsToTabular(
+      dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && patients
+        ? outcomes.filter((o) => patients.includes(o.patient_id))
+        : outcomes
+    );
+
+    // Filter out empty labels
+    let filteredLabels = transformedLabels.filter(
+      (o) => o.length > 1 && [...o].pop() !== ''
+    );
+
+    // Keep only label value (Outcome for Classification, Event for Survival)
+    let labelsOnly = filteredLabels.map((o) => [...o].pop());
+
+    // Compute elements per class
+    let elementsPerClass = labelsOnly.reduce((acc, curr) => {
+      const count = acc[curr] || 0;
+      acc[curr] = count + 1;
+      return acc;
+    }, {});
+
+    return elementsPerClass;
   };
 
   const elementsPerClassTraining = computeElementsPerClass(trainingPatients);
