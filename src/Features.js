@@ -867,7 +867,8 @@ function Features({ history }) {
                       {unlabelledDataPoints > 0 && (
                         <Alert color="warning">
                           There are {unlabelledDataPoints} unlabelled
-                          PatientIDs!
+                          PatientIDs! The patients will not be stratified in the
+                          training & test sets.
                         </Alert>
                       )}
                       <DataSplitting
