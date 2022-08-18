@@ -190,7 +190,8 @@ export default function Visualisation({
             { PatientID: patient },
             ...outcomes.map((o) => ({
               [o]:
-                patientOutcome.label_content[o] !== ''
+                patientOutcome.label_content[o] !== '' &&
+                Object.keys(patientOutcome.label_content).includes(o)
                   ? patientOutcome.label_content[o]
                   : 'UNKNOWN',
             }))
