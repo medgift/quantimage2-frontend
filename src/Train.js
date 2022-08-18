@@ -17,6 +17,8 @@ import {
   SURVIVAL_COLUMNS,
   SOCKETIO_MESSAGES,
   CV_SPLITS,
+  CLASSIFICATION_OUTCOMES,
+  SURVIVAL_OUTCOMES,
 } from './config/constants';
 import ModelsTable from './components/ModelsTable';
 import SocketContext from './context/SocketContext';
@@ -132,10 +134,15 @@ export default function Train({
   const transformLabelsToTabular = (outcomes) => {
     let tabularLabels = [];
 
+    let outcomeColumns =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES;
+
     for (let outcome of outcomes) {
       let tabularLabel = [
         outcome.patient_id,
-        ...Object.values(outcome.label_content),
+        ...outcomeColumns.map((column) => outcome.label_content[column] || ''),
       ];
 
       tabularLabels.push(tabularLabel);
@@ -202,9 +209,9 @@ export default function Train({
         : outcomes
     );
 
-    // Filter out empty labels
-    let filteredLabels = transformedLabels.filter(
-      (o) => o.length > 1 && [...o].pop() !== ''
+    // Filter out empty/incomplete labels
+    let filteredLabels = transformedLabels.filter((o) =>
+      o.every((c) => c !== '')
     );
 
     // Keep only label value (Outcome for Classification, Event for Survival)

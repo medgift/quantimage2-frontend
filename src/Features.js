@@ -36,9 +36,12 @@ import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 import {
+  CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
+  MODEL_TYPES,
   PATIENT_FIELDS,
+  SURVIVAL_OUTCOMES,
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 import DataSplitting from './DataSplitting';
@@ -122,13 +125,24 @@ function Features({ history }) {
     let unlabelled = 0;
     let dataLabels = selectedLabelCategory.labels;
 
+    let outcomeColumns =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES;
+
     for (let patientID of dataPoints) {
       let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
 
+      // No label exists for the patient OR
+      // one of the outcome columns is an empty string OR
+      // one of the outcome columns is missing
       if (
         !patientLabel ||
-        Object.keys(patientLabel.label_content).every(
+        Object.keys(patientLabel.label_content).some(
           (column) => patientLabel.label_content[column] === ''
+        ) ||
+        outcomeColumns.some(
+          (column) => !Object.keys(patientLabel.label_content).includes(column)
         )
       )
         unlabelled++;
