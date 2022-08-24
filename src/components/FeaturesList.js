@@ -220,6 +220,14 @@ export default function FeaturesList({
     }
   }, [customConfig]);
 
+  const selectAllROIs = () => {
+    setSelectedROIs(Object.keys(albumROIs));
+  };
+
+  const selectNoROIs = () => {
+    setSelectedROIs([]);
+  };
+
   return (
     <>
       <ListGroup
@@ -301,7 +309,16 @@ export default function FeaturesList({
             )}
           </ListGroupItem>
         )}
-        <ListGroupItem>Select ROIs to extract</ListGroupItem>
+        <ListGroupItem>
+          Select ROIs to extract{' '}
+          <Button color="link" onClick={selectAllROIs}>
+            All
+          </Button>
+          |
+          <Button color="link" onClick={selectNoROIs}>
+            None
+          </Button>
+        </ListGroupItem>
         <ListGroupItem>
           {albumROIs !== null && selectedROIs !== null ? (
             <ROIsList
