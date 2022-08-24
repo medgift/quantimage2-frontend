@@ -40,15 +40,17 @@ function Home() {
             of medical images.
           </p>
           <h2>Demonstration</h2>
-          <iframe
-            width="640"
-            height="360"
-            src="https://www.youtube.com/embed/VCWANluZVsI"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+          <video
+            style={{ width: '640px', height: '360px' }}
+            controls
             title="QuantImage v2 Demonstration Video"
-          ></iframe>
+          >
+            <source
+              src="https://drive.switch.ch/index.php/s/3Tom8ZnIF8wl2r3/download"
+              type="video/mp4"
+            />
+            Video Not Supported
+          </video>
           <h2>Get Started</h2>
           <p>
             Go to the <RouterNavLink to="/dashboard">Dashboard</RouterNavLink>{' '}
