@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import Backend from './services/backend';
 import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
@@ -92,6 +92,7 @@ export default function Visualisation({
 
   // Features
   const [featureIDs, setFeatureIDs] = useState(null);
+  const hoveredFeatureRef = useRef(null);
 
   // Feature ranking
   const [rankFeatures, setRankFeatures] = useState(false);
@@ -449,6 +450,25 @@ export default function Visualisation({
       _.merge({}, COMMON_CHART_OPTIONS, {
         chart: {
           height: 350,
+          events: {
+            click: function (e) {
+              const featureToDisable = hoveredFeatureRef.current;
+              setSelected((selected) => {
+                let newSelected = [...selected];
+
+                // Map Feature ID from the Chart's Y Axis to node ID of the Filter Tree
+                let nodeIDToDisable = Object.entries(leafItems).find(
+                  ([nodeID, featureID]) => featureID === featureToDisable
+                )[0];
+
+                let selectedToDeleteIndex = newSelected.findIndex(
+                  (s) => s === nodeIDToDisable
+                );
+                newSelected.splice(selectedToDeleteIndex, 1);
+                return newSelected;
+              });
+            },
+          },
         },
         xAxis: {
           categories: sortedPatientIDs,
@@ -467,6 +487,22 @@ export default function Visualisation({
             text: 'Feature Value*',
           },
         },
+        plotOptions: {
+          series: {
+            point: {
+              events: {
+                mouseOver: function () {
+                  let chart = this.series.chart;
+                  let yIndex = this.y;
+                  let featureID = chart.yAxis[0].categories[yIndex];
+
+                  console.log('Targeting', featureID);
+                  hoveredFeatureRef.current = featureID;
+                },
+              },
+            },
+          },
+        },
         tooltip: {
           formatter: function () {
             let chart = this.series.chart;
@@ -482,7 +518,8 @@ export default function Visualisation({
               `<strong>Modality:</strong> ${modality}<br />` +
               `<strong>ROI:</strong> ${roi}<br />` +
               `<strong>Feature:</strong> ${featureName}<br />` +
-              `<strong>Value:</strong> ${this.point.options.value}`
+              `<strong>Value:</strong> ${this.point.options.value}<br /><br />` +
+              `<strong>INFO : Click to disable this feature</strong>`
             );
           },
         },
