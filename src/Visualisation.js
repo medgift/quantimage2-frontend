@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+} from 'react';
 import Backend from './services/backend';
 import { useHistory, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
@@ -116,6 +122,9 @@ export default function Visualisation({
 
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
+
+  // Chart
+  const chartRef = useRef(null);
 
   const finalTrainingPatients = useMemo(() => {
     if (trainingPatients) return trainingPatients;
@@ -305,6 +314,18 @@ export default function Visualisation({
       setFeatureIDs(featureIDs);
     }
   }, [featuresChart]);
+
+  // Re-render chart on resize
+  useLayoutEffect(() => {
+    function handleResize() {
+      console.log('Updating chart');
+      chartRef.current.chart.update({});
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Toggle patients modals
   const toggleTrainingPatientsOpen = () => {
@@ -496,7 +517,7 @@ export default function Visualisation({
                   let yIndex = this.y;
                   let featureID = chart.yAxis[0].categories[yIndex];
 
-                  console.log('Targeting', featureID);
+                  // Update currently hovered feature
                   hoveredFeatureRef.current = featureID;
                 },
               },
@@ -953,6 +974,7 @@ export default function Visualisation({
                       <HighchartsReact
                         highcharts={Highcharts}
                         options={highchartsOptionsFeatures}
+                        ref={chartRef}
                       />
                     </div>
                     {selectedLabelCategory && (
