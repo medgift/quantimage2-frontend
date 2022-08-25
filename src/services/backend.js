@@ -20,7 +20,6 @@ const endpoints = {
   labels: `${baseEndpoint}/labels`,
   tasks: `${baseEndpoint}/tasks`,
   charts: `${baseEndpoint}/charts`,
-  annotations: `${baseEndpoint}/annotations`,
   navigation: `${baseEndpoint}/navigation`,
   albums: `${baseEndpoint}/albums`,
 };
@@ -449,44 +448,6 @@ class Backend {
       const url = `${endpoints.collections}/${collectionID}`;
 
       return await request(url, { token: token });
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async annotations(token, albumID) {
-    try {
-      const url = `${endpoints.annotations}/${albumID}`;
-
-      return await request(url, { token: token });
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async createAnnotation(token, albumID, annotation) {
-    try {
-      const url = `${endpoints.annotations}/${albumID}`;
-
-      return await request(url, {
-        token: token,
-        method: 'POST',
-        data: annotation,
-      });
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async updateAnnotation(token, annotation) {
-    try {
-      const url = `${endpoints.annotations}/${annotation.id}`;
-
-      return await request(url, {
-        token: token,
-        method: 'PATCH',
-        data: annotation,
-      });
     } catch (err) {
       throw err;
     }
