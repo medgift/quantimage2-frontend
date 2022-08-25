@@ -25,7 +25,6 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
   let [studies, setStudies] = useState({});
   let [currentAlbum, setCurrentAlbum] = useState(null);
-  let [forceUpdate, setForceUpdate] = useState(false);
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
   let { keycloak } = useKeycloak();
@@ -33,9 +32,8 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
   let socket = useContext(SocketContext);
 
-  let handleExtractAlbumClick = (album, force) => {
+  let handleExtractAlbumClick = (album) => {
     setModal(true);
-    if (force) setForceUpdate(true);
     setCurrentAlbum(album);
   };
 
@@ -562,7 +560,6 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
               toggleModal();
               replaceExtraction(newExtraction.album_id, newExtraction);
             }}
-            forceUpdate={forceUpdate}
             nbStudies={currentAlbum.number_of_studies}
           />
         </MyModal>

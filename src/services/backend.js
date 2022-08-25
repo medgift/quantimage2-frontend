@@ -467,11 +467,9 @@ class Backend {
     }
   }
 
-  async albumROIs(token, albumID, force) {
+  async albumROIs(token, albumID) {
     try {
       let url = `${endpoints.albums}/${albumID}`;
-
-      if (force) url += '/force';
 
       return await request(url, { token: token, method: 'GET' });
     } catch (err) {

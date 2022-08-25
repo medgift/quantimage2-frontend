@@ -38,7 +38,6 @@ export default function FeaturesList({
   patientID,
   setMinWidth,
   extractionCallback,
-  forceUpdate,
   nbStudies,
 }) {
   let { keycloak } = useKeycloak();
@@ -122,11 +121,7 @@ export default function FeaturesList({
 
   useEffect(() => {
     async function getAlbumROIs() {
-      const albumROIs = await Backend.albumROIs(
-        keycloak.token,
-        albumID,
-        forceUpdate
-      );
+      const albumROIs = await Backend.albumROIs(keycloak.token, albumID);
 
       setAlbumROIs(albumROIs);
 
@@ -136,7 +131,7 @@ export default function FeaturesList({
     }
 
     getAlbumROIs();
-  }, [albumID, keycloak, forceUpdate, nbStudies]);
+  }, [albumID, keycloak, nbStudies]);
 
   /* Manage Socket.IO events */
   useEffect(() => {
