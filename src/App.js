@@ -14,7 +14,6 @@ import Kheops from './services/kheops';
 import { useKeycloak } from '@react-keycloak/web';
 import {
   KEYCLOAK_ADMIN_ROLE,
-  KEYCLOAK_FRONTEND_CLIENT_ID,
   KEYCLOAK_RESOURCE_ACCESS,
 } from './config/constants';
 import FeaturePresets from './FeaturePresets';
@@ -54,10 +53,10 @@ function App({ setUser, setIsAdmin }) {
       });
       let isAdmin =
         Object.keys(keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS]).includes(
-          KEYCLOAK_FRONTEND_CLIENT_ID
+          process.env.REACT_APP_KEYCLOAK_FRONTEND_CLIENT_ID
         ) &&
         keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS][
-          KEYCLOAK_FRONTEND_CLIENT_ID
+          process.env.REACT_APP_KEYCLOAK_FRONTEND_CLIENT_ID
         ].roles.includes(KEYCLOAK_ADMIN_ROLE);
       setIsAdmin(isAdmin);
     }

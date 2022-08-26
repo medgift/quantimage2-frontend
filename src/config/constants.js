@@ -168,5 +168,4 @@ export const SURVIVAL_COLUMNS = [
 ];
 
 export const KEYCLOAK_RESOURCE_ACCESS = 'resource_access';
-export const KEYCLOAK_FRONTEND_CLIENT_ID = 'imagine-frontend';
 export const KEYCLOAK_ADMIN_ROLE = 'admin';

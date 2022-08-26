@@ -8,15 +8,12 @@ import { ReactKeycloakProvider } from '@react-keycloak/web';
 import { transitions, positions, Provider as AlertProvider } from 'react-alert';
 import AlertTemplate from './components/AlertTemplate';
 import UserContext from './context/UserContext';
-import {
-  KEYCLOAK_FRONTEND_CLIENT_ID,
-  SOCKETIO_MESSAGES,
-} from './config/constants';
+import { SOCKETIO_MESSAGES } from './config/constants';
 
 // Setup Keycloak instance
 const keycloak = new Keycloak({
   url: process.env.REACT_APP_KEYCLOAK_URL,
-  clientId: KEYCLOAK_FRONTEND_CLIENT_ID,
+  clientId: process.env.REACT_APP_KEYCLOAK_FRONTEND_CLIENT_ID,
   realm: process.env.REACT_APP_KEYCLOAK_REALM,
 });
 
