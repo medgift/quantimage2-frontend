@@ -223,6 +223,19 @@ export default function FeaturesList({
     setSelectedROIs([]);
   };
 
+  const refreshROIs = async () => {
+    setAlbumROIs(null);
+    setSelectedROIs(null);
+
+    const albumROIs = await Backend.albumROIs(keycloak.token, albumID, true);
+
+    setAlbumROIs(albumROIs);
+
+    setSelectedROIs(
+      Object.keys(albumROIs).filter((r) => albumROIs[r] === nbStudies)
+    );
+  };
+
   return (
     <>
       <ListGroup
@@ -305,14 +318,24 @@ export default function FeaturesList({
           </ListGroupItem>
         )}
         <ListGroupItem>
-          Select ROIs to extract{' '}
-          <Button color="link" onClick={selectAllROIs}>
-            All
-          </Button>
-          |
-          <Button color="link" onClick={selectNoROIs}>
-            None
-          </Button>
+          <div>
+            Select ROIs to extract{' '}
+            <Button color="link" onClick={selectAllROIs}>
+              All
+            </Button>
+            |
+            <Button color="link" onClick={selectNoROIs}>
+              None
+            </Button>
+            <Button
+              style={{ position: 'absolute', right: 0 }}
+              color="link"
+              onClick={refreshROIs}
+              title="Click here if ROIs are missing or otherwise inconsistent"
+            >
+              <FontAwesomeIcon icon="sync" /> Refresh ROIs
+            </Button>
+          </div>
         </ListGroupItem>
         <ListGroupItem>
           {albumROIs !== null && selectedROIs !== null ? (
