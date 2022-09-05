@@ -319,7 +319,7 @@ export default function Visualisation({
   useLayoutEffect(() => {
     function handleResize() {
       console.log('Updating chart');
-      chartRef.current.chart.update({});
+      if (chartRef.current) chartRef.current.chart.update({});
     }
 
     window.addEventListener('resize', handleResize);
