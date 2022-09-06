@@ -1,6 +1,7 @@
 {
   "name": "quantimage2-frontend",
   "version": "1.0.0",
+  "license": "MIT",
   "private": false,
   "dependencies": {
     "@emotion/react": "^11.7.0",
