@@ -1,7 +1,7 @@
 {
-  "name": "imagine-web",
-  "version": "0.1.0",
-  "private": true,
+  "name": "quantimage2-frontend",
+  "version": "1.0.0",
+  "private": false,
   "dependencies": {
     "@emotion/react": "^11.7.0",
     "@emotion/styled": "^11.6.0",

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/imagine-web.iml" filepath="$PROJECT_DIR$/.idea/imagine-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/quantimage2-frontend.iml" filepath="$PROJECT_DIR$/.idea/quantimage2-frontend.iml" />
     </modules>
   </component>
 </project>
