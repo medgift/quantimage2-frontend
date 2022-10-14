@@ -1,68 +1,46 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# QuantImage v2 - Frontend
 
-## Available Scripts
+## Context
 
-In the project directory, you can run:
+This repository is part of the QuantImage v2 platform, which includes the following repositories:
 
-### `npm start`
+- https://github.com/medgift/quantimage2-setup - Setup script for the platform
+- https://github.com/medgift/quantimage2-frontend - Frontend in React
+- https://github.com/medgift/quantimage2_backend - Backend in Python
+- https://github.com/medgift/quantimage2-kheops - Custom configuration for the [Kheops](https://kheops.online) platform
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Project Structure
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+### Docker
 
-### `npm test`
+The project uses Docker for easy build & deployment, using the following files :
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- `Dockerfile` : Installs the project dependencies and starts the development server
+- `Dockerfile.prod` : Builds the production version of the app and serves it using nginx
+- `docker-compose.yml` : Base Docker Compose file
+- `docker-compose.override.yml` : Override file for local development, exposing port 3000 & mapping the source directory to the container.
+- `docker-compose.prod.yml` : Production file for use with Traefik
+- `docker-compose.local.yml` : File for testing the production build locally without Traefik
+- `docker-compose.vm.yml` : File for the [QuantImage v2 VM](https://medgift.github.io/quantimage-v2-info/#getting-started), restarting the container automatically on reboot or crash
 
-### `npm run build`
+### Code Structure
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
+│   App.js & all pages of the application
+│
+├───assets    : Images & Common options for charts
+│
+├───components : Reusable components that are part of pages
+│
+├───config     : Constants used for feature mapping, outcome fields etc.
+│
+├───context    : Global data for the app (User & Socket.IO)
+│
+├───dicom      : DICOM field mappings (name -> tag)
+│
+├───services   : Functions for making calls to the Kheops & Backend APIs
+|
+└───utils      : Utility functions (feature mapping, parsing files, etc.)
+```
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+> NOTE : This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
