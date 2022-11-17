@@ -186,7 +186,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
     ) {
       return (
         <span>
-          {albumExtraction.completed_tasks > 0
+          {albumExtraction.status.completed_tasks > 0
             ? 'Partially Failed!'
             : 'Completely Failed!'}{' '}
           ({albumExtraction.status.completed_tasks}/
