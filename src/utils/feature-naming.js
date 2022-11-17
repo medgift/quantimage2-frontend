@@ -1,4 +1,5 @@
 import { FEATURE_DEFINITIONS } from './feature-mapping';
+import { FEATURE_ID_SEPARATOR } from '../Visualisation';
 
 export const MODALITIES = ['CT', 'PET', 'MR'];
 const FILTERS = ['log'];
@@ -113,7 +114,11 @@ function getGroupName(fullName, modality, filter, isRiesz, isZrad) {
 
   if (filter) {
     let { filter, parameters } = fullName.match(FILTER_PATTERN).groups;
-    return ['Texture', filter, `${parameters.replaceAll('-', ' ')}`];
+    return [
+      'Texture',
+      filter,
+      `${parameters.replaceAll(FEATURE_ID_SEPARATOR, ' ')}`,
+    ];
   }
 
   if (isRiesz) return ['Texture', 'Riesz'];

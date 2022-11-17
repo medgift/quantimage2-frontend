@@ -29,6 +29,7 @@ import _ from 'lodash';
 import './FeaturesList.css';
 import { ConfigEditor } from './ConfigEditor';
 import ConfigImport from './ConfigImport';
+import { FEATURE_ID_SEPARATOR } from '../Visualisation';
 
 const EXTRACTION_CONFIG_TREE_TITLE = 'Extraction Configuration';
 
@@ -401,7 +402,7 @@ export default function FeaturesList({
 
 function formatTreeData(object, prefix = '') {
   return Object.entries(object).map(([key, value]) => {
-    let fullKey = `${prefix}${prefix && '-'}${key}`;
+    let fullKey = `${prefix}${prefix && FEATURE_ID_SEPARATOR}${key}`;
 
     return value && _.isPlainObject(value)
       ? {

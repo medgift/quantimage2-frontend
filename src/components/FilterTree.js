@@ -9,6 +9,7 @@ import _ from 'lodash';
 import './FilterTree.css';
 import MyCheckbox from './MyCheckbox';
 import { Button } from 'reactstrap';
+import { FEATURE_ID_SEPARATOR } from '../Visualisation';
 
 export default function FilterTree({
   formatTreeData,
@@ -54,7 +55,7 @@ export default function FilterTree({
       allNodeIDs.push(...nodeAndChildrenIds);
     }
 
-    let nodeIDComponents = node.id.split('-');
+    let nodeIDComponents = node.id.split(FEATURE_ID_SEPARATOR);
 
     // For leaf items, check the immediate parent as well
     let stringToCheck = !node.value
@@ -62,7 +63,7 @@ export default function FilterTree({
       : [
           nodeIDComponents[nodeIDComponents.length - 2],
           nodeIDComponents[nodeIDComponents.length - 1],
-        ].join('-');
+        ].join(FEATURE_ID_SEPARATOR);
 
     setSelected((s) => {
       let newSelections = [...s];
@@ -167,7 +168,7 @@ function RecursiveTreeView({
             >
               {n.name}{' '}
             </span>
-            {!disabled && n.id.split('-').length > 1 && (
+            {!disabled && n.id.split(FEATURE_ID_SEPARATOR).length > 1 && (
               <Button
                 color="link"
                 className="Check-All"

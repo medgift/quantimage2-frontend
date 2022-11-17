@@ -50,7 +50,9 @@ HighchartsBoost(Highcharts);
 
 const MAX_DISPLAYED_FEATURES = 200000;
 
-let featureIDPattern = `(?<modality>.*?)-(?<roi>.*?)-(?<featureName>(?:${[
+export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+
+let featureIDPattern = `(?<modality>.*?)${FEATURE_ID_SEPARATOR}(?<roi>.*?)${FEATURE_ID_SEPARATOR}(?<featureName>(?:${[
   ...ZRAD_FEATURE_PREFIXES,
   ...RIESZ_FEATURE_PREFIXES,
   ...PYRADIOMICS_FEATURE_PREFIXES,
@@ -62,7 +64,7 @@ let featureCategories = Array.from(
   new Set(FEATURE_DEFINITIONS.map((fd) => fd.category))
 );
 featureCategories = [...featureCategories, ...ZRAD_GROUP_PREFIXES];
-let featureNamePattern = `(?<modality>.*?)-(?<roi>.*)-(?<featureName>(?:${featureCategories.join(
+let featureNamePattern = `(?<modality>.*?)${FEATURE_ID_SEPARATOR}(?<roi>.*)${FEATURE_ID_SEPARATOR}(?<featureName>(?:${featureCategories.join(
   '|'
 )}).*)`;
 
@@ -1087,7 +1089,9 @@ function formatTreeData(object, prefix) {
   if (!prefix) prefix = '';
 
   let firstPrefixPart =
-    prefix.split('-').length > 1 ? prefix.split('-')[0] : null;
+    prefix.split(FEATURE_ID_SEPARATOR).length > 1
+      ? prefix.split(FEATURE_ID_SEPARATOR)[0]
+      : null;
 
   return Object.entries(object).map(([key, value]) => {
     let alias =
@@ -1099,7 +1103,10 @@ function formatTreeData(object, prefix) {
       ? {
           id: `${prefix}${key}`,
           name: alias ? alias : key,
-          children: formatTreeData(value, `${prefix}${key}-`),
+          children: formatTreeData(
+            value,
+            `${prefix}${key}${FEATURE_ID_SEPARATOR}`
+          ),
           description: CATEGORY_DEFINITIONS[alias ? alias : key]
             ? CATEGORY_DEFINITIONS[alias ? alias : key]
             : null,
@@ -1149,6 +1156,8 @@ function getLeafItems(node, collector) {
       console.error(nodeId, 'DOES NOT MATCH THE PATTERN, WHY?');
 
     let { modality, roi } = nodeId.match(featureNameRegex).groups;
-    collector[node.id] = `${modality}-${roi}-${node.value.id}`;
+    collector[
+      node.id
+    ] = `${modality}${FEATURE_ID_SEPARATOR}${roi}${FEATURE_ID_SEPARATOR}${node.value.id}`;
   }
 }
