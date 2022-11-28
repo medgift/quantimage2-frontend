@@ -3,17 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
 
-// Instantiate web worker
-let filterFeaturesWorker;
-if (window.Worker) {
-  filterFeaturesWorker = new Worker('/workers/filter-features.js');
-}
-
-const DEFAULT_CORRELATION_THRESHOLD = 0.5;
-const MAX_FEATURES_TO_KEEP = 50;
+export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
+export const DEFAULT_FEATURES_TO_KEEP = 10;
 
 export default function FeatureSelection({
-  allFeatures,
   modelType,
   dropCorrelatedFeatures,
   setDropCorrelatedFeatures,
@@ -21,39 +14,30 @@ export default function FeatureSelection({
   setRankFeatures,
   keepNFeatures,
   setKeepNFeatures,
+  maxNFeatures,
   leafItems,
-  selected,
-  setSelected,
-  setIsRecomputingChart,
+  selectedBeforeFiltering,
+  filterFeatures,
+  nFeatures,
+  setNFeatures,
+  corrThreshold,
+  setCorrThreshold,
+  droppedFeatureIDsCorrelation,
   unlabelledDataPoints,
 }) {
-  const [nFeatures, setNFeatures] = useState(1);
-
-  const [corrThreshold, setCorrThreshold] = useState(
-    DEFAULT_CORRELATION_THRESHOLD
-  );
-
-  const [selectedBeforeFiltering, setSelectedBeforeFiltering] = useState(null);
-  const [droppedFeatureIDsCorrelation, setDroppedFeatureIDsCorrelation] =
-    useState([]);
-
-  // Sync selected features (when not dropping)
-  useEffect(() => {
-    if (!dropCorrelatedFeatures && !keepNFeatures)
-      setSelectedBeforeFiltering([...selected]);
-  }, [selected, dropCorrelatedFeatures, keepNFeatures]);
-
   // Define default n° of features to keep
   useEffect(() => {
     if (selectedBeforeFiltering) {
       console.log(
         'min features to keep',
-        Math.min(10, selectedBeforeFiltering.length - 1)
+        Math.min(maxNFeatures, selectedBeforeFiltering.length - 1)
       );
 
-      setNFeatures(Math.min(10, selectedBeforeFiltering.length - 1));
+      setNFeatures((n) =>
+        Math.min(n, maxNFeatures, selectedBeforeFiltering.length - 1)
+      );
     }
-  }, [selectedBeforeFiltering]);
+  }, [maxNFeatures, setNFeatures, selectedBeforeFiltering]);
 
   // Adjust N features when dropped features change
   useEffect(() => {
@@ -71,32 +55,12 @@ export default function FeatureSelection({
         return remainingFeatures;
       else return n;
     });
-  }, [leafItems, droppedFeatureIDsCorrelation, selectedBeforeFiltering]);
-
-  // Filter features (drop and/or keep)
-  const filterFeatures = (drop, keep, threshold, nFeatures) => {
-    // We unchecked the box -> go back to previous state
-    if (!drop && !keep) {
-      setSelected(selectedBeforeFiltering);
-      return;
-    }
-
-    setIsRecomputingChart(true);
-
-    if (drop) console.log('Dropping features with threshold', threshold);
-
-    if (keep) console.log('Keeping features with n°', nFeatures);
-
-    filterFeaturesWorker.postMessage({
-      features: allFeatures,
-      leafItems: leafItems,
-      selectedBeforeFiltering: selectedBeforeFiltering,
-      drop: drop,
-      keep: keep,
-      corrThreshold: corrThreshold,
-      nFeatures: nFeatures,
-    });
-  };
+  }, [
+    setNFeatures,
+    leafItems,
+    droppedFeatureIDsCorrelation,
+    selectedBeforeFiltering,
+  ]);
 
   // Adjust correlation threshold
   const adjustThreshold = (e) => {
@@ -114,49 +78,9 @@ export default function FeatureSelection({
       dropCorrelatedFeatures,
       keepNFeatures,
       corrThreshold,
-      e.target.value
+      +e.target.value
     );
   };
-
-  // Bind web worker
-  useEffect(() => {
-    if (!selectedBeforeFiltering) return;
-
-    filterFeaturesWorker.onmessage = (m) => {
-      const deselectFeatures = (nodeIDsToDeselect) =>
-        setSelected(
-          selectedBeforeFiltering.filter((s) => !nodeIDsToDeselect.includes(s))
-        );
-
-      setIsRecomputingChart(false);
-
-      // Features to drop are returned by the worker
-      let [featuresToDrop, featuresToDropCorrelation] = m.data;
-      setDroppedFeatureIDsCorrelation(featuresToDropCorrelation);
-
-      // Make a map of feature ID -> node ID
-      let featureIDToNodeID = Object.entries(leafItems).reduce(
-        (acc, [key, value]) => {
-          acc[value] = key;
-          return acc;
-        },
-        {}
-      );
-
-      let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
-        for (let featureToDrop of featuresToDrop) {
-          if (fID.endsWith(featureToDrop)) return true;
-        }
-        return false;
-      });
-
-      let nodeIDsToDeselect = featureIDsToDrop.map(
-        (fID) => featureIDToNodeID[fID]
-      );
-
-      deselectFeatures(nodeIDsToDeselect);
-    };
-  }, [leafItems, selectedBeforeFiltering, setSelected, setIsRecomputingChart]);
 
   return (
     <div style={{ flex: 1 }}>
@@ -239,7 +163,7 @@ export default function FeatureSelection({
                 <input
                   id="rank-feats"
                   type="checkbox"
-                  value={rankFeatures}
+                  checked={rankFeatures}
                   onChange={(e) => {
                     setRankFeatures(e.target.checked);
                   }}
@@ -284,7 +208,7 @@ export default function FeatureSelection({
                     </label>
                     <br />
                     <input
-                      id="corr-threshold"
+                      id="n-feats-to-keep"
                       type="range"
                       min={1}
                       max={Math.min(
@@ -296,7 +220,7 @@ export default function FeatureSelection({
                           : selectedBeforeFiltering
                               .filter((s) => leafItems[s])
                               .map((f) => leafItems[f]).length,
-                        MAX_FEATURES_TO_KEEP
+                        maxNFeatures
                       )}
                       step={1}
                       disabled={!keepNFeatures}

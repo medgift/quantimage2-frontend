@@ -2,7 +2,7 @@ self.importScripts('spearson.js');
 
 self.onmessage = function (event) {
   // The object that the web page sent is stored in the event.data property.
-  // Calculate features to drop based on the correlation threshold
+  // Calculate features to drop based on the correlation threshold & n features to keep
   let featuresToDrop = getFeaturesToDrop(...Object.values(event.data));
 
   // Now the search is finished. Send back the results.
@@ -65,8 +65,6 @@ function getFeaturesToDrop(
       +corrThreshold,
       featureNames
     );
-
-    featuresToDrop = [...featuresToDropCorrelation];
   }
 
   if (keep) {
