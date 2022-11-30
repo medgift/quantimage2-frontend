@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React from 'react';
 
 import TreeView from '@mui/lab/TreeView';
 import TreeItem from '@mui/lab/TreeItem';
@@ -123,11 +123,6 @@ function RecursiveTreeView({
     let checkAllTitle = `${
       selected.includes(n.id) ? 'Uncheck' : 'Check'
     } everywhere`;
-
-    // TODO - Remove this alternative way of labelling the "uncheck for all" link
-    // for all ${n.id.split('-').length === 2 ? ' Modalities' : ''} ${
-    //       n.id.split('-').length > 2 ? ' Modalities & Regions' : ''
-    //     }
 
     return (
       <TreeItem

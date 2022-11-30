@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { formatMetric, formatMetricDisplay } from '../utils/feature-utils';
+import { formatMetric } from '../utils/feature-utils';
 
 export const DICOM_DATE_FORMAT = 'DD.MM.YYYY';
 export const DB_DATE_FORMAT = 'DD.MM.YYYY HH:mm';

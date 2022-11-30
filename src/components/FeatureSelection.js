@@ -1,5 +1,5 @@
-import { UncontrolledTooltip } from 'reactstrap';
-import React, { useEffect, useState } from 'react';
+import { Button, UncontrolledTooltip } from 'reactstrap';
+import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
 
@@ -8,79 +8,33 @@ export const DEFAULT_FEATURES_TO_KEEP = 10;
 
 export default function FeatureSelection({
   modelType,
-  dropCorrelatedFeatures,
-  setDropCorrelatedFeatures,
   rankFeatures,
   setRankFeatures,
-  keepNFeatures,
-  setKeepNFeatures,
   maxNFeatures,
+  selected,
   leafItems,
-  selectedBeforeFiltering,
-  filterFeatures,
   nFeatures,
   setNFeatures,
+  keepNFeatures,
+  dropCorrelatedFeatures,
   corrThreshold,
   setCorrThreshold,
-  droppedFeatureIDsCorrelation,
   unlabelledDataPoints,
+  isRecomputingChart,
 }) {
-  // Define default n° of features to keep
-  useEffect(() => {
-    if (selectedBeforeFiltering) {
-      console.log(
-        'min features to keep',
-        Math.min(maxNFeatures, selectedBeforeFiltering.length - 1)
-      );
-
-      setNFeatures((n) =>
-        Math.min(n, maxNFeatures, selectedBeforeFiltering.length - 1)
-      );
-    }
-  }, [maxNFeatures, setNFeatures, selectedBeforeFiltering]);
-
   // Adjust N features when dropped features change
   useEffect(() => {
-    if (!selectedBeforeFiltering) return;
+    if (!selected) return;
 
-    const nbSelectedFeatures = selectedBeforeFiltering
+    const nbSelectedFeatures = selected
       .filter((s) => leafItems[s])
       .map((f) => leafItems[f]).length;
 
-    const remainingFeatures =
-      nbSelectedFeatures - droppedFeatureIDsCorrelation.length;
-
     setNFeatures((n) => {
-      if (droppedFeatureIDsCorrelation.length > 0 && n > remainingFeatures)
-        return remainingFeatures;
+      if (n > nbSelectedFeatures) return nbSelectedFeatures;
       else return n;
     });
-  }, [
-    setNFeatures,
-    leafItems,
-    droppedFeatureIDsCorrelation,
-    selectedBeforeFiltering,
-  ]);
-
-  // Adjust correlation threshold
-  const adjustThreshold = (e) => {
-    filterFeatures(
-      dropCorrelatedFeatures,
-      keepNFeatures,
-      +e.target.value,
-      nFeatures
-    );
-  };
-
-  // Adjust number of features to keep
-  const adjustNFeatures = (e) => {
-    filterFeatures(
-      dropCorrelatedFeatures,
-      keepNFeatures,
-      corrThreshold,
-      +e.target.value
-    );
-  };
+  }, [setNFeatures, leafItems, selected]);
 
   return (
     <div style={{ flex: 1 }}>
@@ -91,25 +45,8 @@ export default function FeatureSelection({
         <div style={{ flex: 1 }}>
           <div className="tools">
             <p className="mt-4">
-              <strong>Correlation</strong>
-            </p>
-            <div>
-              <input
-                id="drop-corr"
-                type="checkbox"
-                value={dropCorrelatedFeatures}
-                onChange={(e) => {
-                  setDropCorrelatedFeatures(e.target.checked);
-                  filterFeatures(
-                    e.target.checked,
-                    keepNFeatures,
-                    corrThreshold,
-                    nFeatures
-                  );
-                }}
-              />{' '}
-              <label htmlFor="drop-corr">
-                Drop correlated features{' '}
+              <strong>
+                Correlation{' '}
                 <FontAwesomeIcon icon="info-circle" id="corr-explanation" />
                 <UncontrolledTooltip
                   placement="right"
@@ -118,39 +55,51 @@ export default function FeatureSelection({
                   Allows to deselect highly correlated features (with redundant
                   information).
                 </UncontrolledTooltip>
+              </strong>
+            </p>
+            <div>
+              <label htmlFor="corr-threshold">
+                Correlation Threshold{' '}
+                <FontAwesomeIcon icon="info-circle" id="thresh-explanation" />
+                <UncontrolledTooltip
+                  placement="right"
+                  target="thresh-explanation"
+                >
+                  With a lower threshold, fewer features will be kept.
+                  <br />
+                  With a higher threshold, more features will be kept.
+                </UncontrolledTooltip>
               </label>
-            </div>
-            {dropCorrelatedFeatures && (
+              <br />
+              <input
+                id="corr-threshold"
+                type="range"
+                min={0.1}
+                max={0.9}
+                step={0.1}
+                value={corrThreshold}
+                onChange={(e) => setCorrThreshold(e.target.value)}
+                className="slider"
+              />
+              <span>{corrThreshold}</span>
               <div>
-                <label htmlFor="corr-threshold">
-                  Correlation Threshold{' '}
-                  <FontAwesomeIcon icon="info-circle" id="thresh-explanation" />
-                  <UncontrolledTooltip
-                    placement="right"
-                    target="thresh-explanation"
-                  >
-                    With a lower threshold, fewer features will be kept.
-                    <br />
-                    With a higher threshold, more features will be kept.
-                  </UncontrolledTooltip>
-                </label>
-                <br />
-                <input
-                  id="corr-threshold"
-                  type="range"
-                  min={0.1}
-                  max={0.9}
-                  step={0.1}
-                  value={corrThreshold}
-                  disabled={!dropCorrelatedFeatures}
-                  onChange={(e) => setCorrThreshold(e.target.value)}
-                  onMouseUp={adjustThreshold}
-                  onKeyUp={adjustThreshold}
-                  className="slider"
-                />
-                <span>{corrThreshold}</span>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    console.log('Drop now', corrThreshold);
+                    dropCorrelatedFeatures();
+                  }}
+                  disabled={isRecomputingChart}
+                >
+                  {isRecomputingChart && (
+                    <>
+                      <FontAwesomeIcon icon="sync" spin />{' '}
+                    </>
+                  )}
+                  Drop correlated features{' '}
+                </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
         {modelType && unlabelledDataPoints === 0 && (
@@ -188,23 +137,8 @@ export default function FeatureSelection({
                 </label>
                 {rankFeatures && (
                   <div>
-                    <input
-                      id="keep-n-feats"
-                      type="checkbox"
-                      checked={keepNFeatures}
-                      onChange={(e) => {
-                        setKeepNFeatures(e.target.checked);
-                        filterFeatures(
-                          dropCorrelatedFeatures,
-                          e.target.checked,
-                          corrThreshold,
-                          nFeatures
-                        );
-                      }}
-                      disabled={!rankFeatures}
-                    />{' '}
                     <label htmlFor="keep-n-feats">
-                      Keep N Best-Ranked Features
+                      Number of features to keep
                     </label>
                     <br />
                     <input
@@ -212,27 +146,26 @@ export default function FeatureSelection({
                       type="range"
                       min={1}
                       max={Math.min(
-                        droppedFeatureIDsCorrelation.length > 0
-                          ? selectedBeforeFiltering
-                              .filter((s) => leafItems[s])
-                              .map((f) => leafItems[f]).length -
-                              droppedFeatureIDsCorrelation.length
-                          : selectedBeforeFiltering
-                              .filter((s) => leafItems[s])
-                              .map((f) => leafItems[f]).length,
+                        selected
+                          .filter((s) => leafItems[s])
+                          .map((f) => leafItems[f]).length,
                         maxNFeatures
                       )}
+                      onChange={(e) => setNFeatures(+e.target.value)}
                       step={1}
-                      disabled={!keepNFeatures}
-                      onChange={(e) => {
-                        setNFeatures(+e.target.value);
-                      }}
-                      onMouseUp={adjustNFeatures}
-                      onKeyUp={adjustNFeatures}
                       value={nFeatures}
                       className="slider"
                     />
                     <span>{nFeatures}</span>
+                    <div>
+                      <Button
+                        color="primary"
+                        onClick={keepNFeatures}
+                        disabled={isRecomputingChart}
+                      >
+                        Keep {nFeatures} Best-Ranked Features
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

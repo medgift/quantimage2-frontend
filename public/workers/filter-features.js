@@ -9,21 +9,29 @@ self.onmessage = function (event) {
   postMessage(featuresToDrop);
 };
 
-self.correlationMatrix = null;
+//self.correlationMatrix = null;
 
-function getFeaturesToDrop(
-  features,
-  leafItems,
-  selectedBeforeFiltering,
-  drop,
-  keep,
-  corrThreshold,
-  nFeatures
-) {
+function getFeaturesToDrop(features, leafItems, selected, corrThreshold) {
   let selectedFeatureIDs = new Set(
-    selectedBeforeFiltering.filter((s) => leafItems[s]).map((f) => leafItems[f])
+    selected.filter((s) => leafItems[s]).map((f) => leafItems[f])
   );
 
+  // Get feature names & selected feature IDs
+  let featureNames = features
+    .filter((f) => selectedFeatureIDs.has(f.FeatureID))
+    .map((f) => f.FeatureID);
+
+  console.log('Filtering features', featureNames.length);
+
+  /*if (
+    self.featureNames &&
+    self.correlationMatrix &&
+    self.featureNames.length === featureNames.length &&
+    self.featureNames.every((value, index) => value === featureNames[index])
+  ) {
+    // Skip to the threshold
+    console.log('Ok, already have the correlations!');
+  } else {*/
   const featuresFormattedForCorrelation = features
     .filter((f) => selectedFeatureIDs.has(f.FeatureID))
     .reduce((acc, curr) => {
@@ -32,74 +40,18 @@ function getFeaturesToDrop(
       return acc;
     }, {});
 
-  // Get feature names & selected feature IDs
-  let featureNames = Object.keys(featuresFormattedForCorrelation);
+  // Build correlation matrix
+  //self.featureNames = Object.keys(featuresFormattedForCorrelation);
+  let corrMatrix = buildCorrelationMatrix(
+    featuresFormattedForCorrelation,
+    featureNames
+  );
+  //self.correlationMatrix = corrMatrix;
+  //}
 
-  console.log('Filtering features', featureNames.length);
+  let featuresToDrop = applyThreshold(corrMatrix, +corrThreshold, featureNames);
 
-  let featuresToDropCorrelation = [];
-  let featuresToDropRanking = [];
-
-  // Build correlation matrix (if necessary)
-  if (drop) {
-    if (
-      self.featureNames &&
-      self.correlationMatrix &&
-      self.featureNames.length === featureNames.length &&
-      self.featureNames.every((value, index) => value === featureNames[index])
-    ) {
-      // Skip to the threshold
-      console.log('Ok, already have the correlations!');
-    } else {
-      // Build correlation matrix
-      self.featureNames = Object.keys(featuresFormattedForCorrelation);
-      let corrMatrix = buildCorrelationMatrix(
-        featuresFormattedForCorrelation,
-        featureNames
-      );
-      self.correlationMatrix = corrMatrix;
-    }
-
-    featuresToDropCorrelation = applyThreshold(
-      self.correlationMatrix,
-      +corrThreshold,
-      featureNames
-    );
-  }
-
-  if (keep) {
-    // Make a map of feature ID -> rank
-    let featureIDToRank = features.reduce((acc, curr) => {
-      acc[curr.FeatureID] = +curr.Ranking;
-      return acc;
-    }, {});
-
-    // Rank selected features to determine which to keep
-    // (and optionally among the already dropped ones!)
-    let selectedFeatures = selectedBeforeFiltering
-      .filter((s) => leafItems[s])
-      .map((f) => leafItems[f]);
-
-    let remainingFeatures = selectedFeatures;
-
-    if (featuresToDropCorrelation.length > 0) {
-      remainingFeatures = selectedFeatures.filter(
-        (f) => !featuresToDropCorrelation.includes(f)
-      );
-    }
-
-    remainingFeatures.sort(
-      (f1, f2) => featureIDToRank[f1] - featureIDToRank[f2]
-    );
-
-    // Drop all features after the N best ones
-    featuresToDropRanking = remainingFeatures.slice(nFeatures);
-  }
-
-  return [
-    [...featuresToDropCorrelation, ...featuresToDropRanking],
-    featuresToDropCorrelation,
-  ];
+  return featuresToDrop;
 }
 
 function buildCorrelationMatrix(features, featureNames) {

@@ -124,7 +124,7 @@ function getGroupName(fullName, modality, filter, isRiesz, isZrad) {
   if (isRiesz) return ['Texture', 'Riesz'];
 
   if (isZrad) {
-    let { category, name } = fullName.match(ZRAD_REGEX).groups;
+    let { category } = fullName.match(ZRAD_REGEX).groups; // "name" is omitted here in the destructuring as it is not needed
 
     if (category) {
       if (ZRAD_TEXTURE_CATEGORIES.includes(category))

@@ -52,7 +52,7 @@ HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
 HighchartsBoost(Highcharts);
 
-const MAX_DISPLAYED_FEATURES = 2000;
+const MAX_DISPLAYED_FEATURES = 200000;
 const DEFAULT_CORRELATION_THRESHOLD = 0.5;
 
 // Instantiate web worker
@@ -114,25 +114,19 @@ export default function Visualisation({
   const hoveredFeatureRef = useRef(null);
 
   // Feature ranking
-  const [rankFeatures, setRankFeatures] = useState(false);
-  const [keepNFeatures, setKeepNFeatures] = useState(false);
+  const [rankFeatures, setRankFeatures] = useState(true);
 
   // Manage feature selection values
   const [nFeatures, setNFeatures] = useState(DEFAULT_FEATURES_TO_KEEP);
 
   // Drop correlated features
-  const [dropCorrelatedFeatures, setDropCorrelatedFeatures] = useState(false);
   const [isRecomputingChart, setIsRecomputingChart] = useState(false);
 
   // Manage feature selections (checkboxes)
   const [selected, setSelected] = useState([]);
 
-  // Manage selected features before filtering is enabled (correlation or f-value)
-  const [selectedBeforeFiltering, setSelectedBeforeFiltering] = useState(null);
-
-  // Keep track of dropped correlated feature IDs
-  const [droppedFeatureIDsCorrelation, setDroppedFeatureIDsCorrelation] =
-    useState([]);
+  // Manage filtering history
+  const [selectedFeaturesHistory, setSelectedFeaturesHistory] = useState([]);
 
   const [corrThreshold, setCorrThreshold] = useState(
     DEFAULT_CORRELATION_THRESHOLD
@@ -152,17 +146,6 @@ export default function Visualisation({
 
   // Chart
   const chartRef = useRef(null);
-
-  // Manage maximum n° of features to keep
-  const maxNFeatures = useMemo(() => {
-    return trainingPatients && selectedBeforeFiltering
-      ? Math.min(
-          DEFAULT_MAX_FEATURES_TO_KEEP,
-          selectedBeforeFiltering.length - 1,
-          Math.floor(MAX_DISPLAYED_FEATURES / trainingPatients.length)
-        )
-      : DEFAULT_MAX_FEATURES_TO_KEEP;
-  }, [trainingPatients, selectedBeforeFiltering]);
 
   const finalTrainingPatients = useMemo(() => {
     if (trainingPatients) return trainingPatients;
@@ -352,18 +335,6 @@ export default function Visualisation({
       : 0;
   }, [filteredFeatures]);
 
-  // Sync selected features (when not dropping or keeping)
-  useEffect(() => {
-    if (
-      !dropCorrelatedFeatures &&
-      !keepNFeatures &&
-      nbFeatures < MAX_DISPLAYED_FEATURES
-    ) {
-      console.log('Setting selected before filtering to ', selected.length);
-      setSelectedBeforeFiltering([...selected]);
-    }
-  }, [selected, dropCorrelatedFeatures, keepNFeatures, nbFeatures]);
-
   // Initialize feature IDs
   useEffect(() => {
     if (featuresChart) {
@@ -447,6 +418,14 @@ export default function Visualisation({
     return [];
   }, [filteringItems]);
 
+  // Build history of selected features
+  useEffect(() => {
+    if (treeData.length > 0) {
+      console.log('selected is now', selected);
+      setSelectedFeaturesHistory((h) => [...h, selected]);
+    }
+  }, [selected, treeData]);
+
   const leafItems = useMemo(() => {
     if (treeData.length > 0) {
       let items = getAllLeafItems(treeData);
@@ -467,6 +446,19 @@ export default function Visualisation({
         .map((n) => leafItems[n])
     );
   }, [leafItems, selected]);
+
+  // Manage maximum n° of features to keep
+  const maxNFeatures = useMemo(() => {
+    if (!trainingPatients) return DEFAULT_MAX_FEATURES_TO_KEEP;
+
+    if (!selected) return DEFAULT_MAX_FEATURES_TO_KEEP;
+
+    return Math.min(
+      DEFAULT_MAX_FEATURES_TO_KEEP,
+      selected.length - 1,
+      Math.floor(MAX_DISPLAYED_FEATURES / trainingPatients.length)
+    );
+  }, [trainingPatients, selected]);
 
   // Selected feature IDs !== feature IDs
   useEffect(() => {
@@ -523,15 +515,16 @@ export default function Visualisation({
 
     filterFeaturesWorker.onmessage = (m) => {
       const deselectFeatures = (nodeIDsToDeselect) =>
-        setSelected(
-          selectedBeforeFiltering.filter((s) => !nodeIDsToDeselect.includes(s))
+        setSelected((selected) =>
+          selected.filter((s) => !nodeIDsToDeselect.includes(s))
         );
 
       setIsRecomputingChart(false);
 
       // Features to drop are returned by the worker
-      let [featuresToDrop, featuresToDropCorrelation] = m.data;
-      setDroppedFeatureIDsCorrelation(featuresToDropCorrelation);
+      let featuresToDrop = m.data;
+
+      if (featuresToDrop === undefined) return;
 
       // Make a map of feature ID -> node ID
       let featureIDToNodeID = Object.entries(leafItems).reduce(
@@ -555,13 +548,7 @@ export default function Visualisation({
 
       deselectFeatures(nodeIDsToDeselect);
     };
-  }, [
-    leafItems,
-    selected,
-    setSelected,
-    setIsRecomputingChart,
-    selectedBeforeFiltering,
-  ]);
+  }, [leafItems, selected, setSelected, setIsRecomputingChart]);
 
   const highchartsOptionsFeatures = useMemo(
     () =>
@@ -832,15 +819,80 @@ export default function Visualisation({
     });
   }, [formattedHighchartsDataSurvivalTime]);
 
-  // Filter features (drop and/or keep)
-  const filterFeatures = useCallback(
-    (drop, keep, threshold, nFeatures) => {
-      // We unchecked the box -> go back to previous state
-      if (!drop && !keep) {
-        setSelected(selectedBeforeFiltering);
-        return;
-      }
+  const getNodeIDsFromFeatureIDs = useCallback(
+    (featureIDs) => {
+      // Make a map of feature ID -> node ID
+      let featureIDToNodeID = Object.entries(leafItems).reduce(
+        (acc, [key, value]) => {
+          acc[value] = key;
+          return acc;
+        },
+        {}
+      );
 
+      let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
+        for (let featureID of featureIDs) {
+          if (fID.endsWith(featureID)) return true;
+        }
+        return false;
+      });
+
+      let nodeIDs = featureIDsToDrop.map((fID) => featureIDToNodeID[fID]);
+
+      return nodeIDs;
+    },
+    [leafItems]
+  );
+
+  const deselectFeatures = useCallback(
+    (nodeIDsToDeselect) =>
+      setSelected((selected) =>
+        selected.filter((s) => !nodeIDsToDeselect.includes(s))
+      ),
+    []
+  );
+
+  const keepNFeatures = useCallback(() => {
+    let selectedFeatures = selected
+      .filter((s) => leafItems[s])
+      .map((f) => leafItems[f]);
+
+    // Make a map of feature ID -> rank
+    let featureIDToRank = featuresChart.reduce((acc, curr) => {
+      acc[curr.FeatureID] = +curr.Ranking;
+      return acc;
+    }, {});
+
+    selectedFeatures.sort(
+      (f1, f2) => featureIDToRank[f1] - featureIDToRank[f2]
+    );
+
+    // Drop all features after the N best ones
+    let featuresToDrop = selectedFeatures.slice(nFeatures);
+
+    deselectFeatures(getNodeIDsFromFeatureIDs(featuresToDrop));
+  }, [
+    nFeatures,
+    selected,
+    featuresChart,
+    leafItems,
+    getNodeIDsFromFeatureIDs,
+    deselectFeatures,
+  ]);
+
+  const dropCorrelatedFeatures = useCallback(() => {
+    setIsRecomputingChart(true);
+    filterFeaturesWorker.postMessage({
+      features: filteredFeatures,
+      leafItems: leafItems,
+      selected: selected,
+      corrThreshold: corrThreshold,
+    });
+  }, [filteredFeatures, leafItems, selected, corrThreshold]);
+
+  // Filter features (drop and/or keep)
+  /*const filterFeatures = useCallback(
+    (drop, keep, threshold, nFeatures) => {
       setIsRecomputingChart(true);
 
       if (drop) console.log('Dropping features with threshold', threshold);
@@ -850,15 +902,16 @@ export default function Visualisation({
       filterFeaturesWorker.postMessage({
         features: featuresChart,
         leafItems: leafItems,
-        selectedBeforeFiltering: selectedBeforeFiltering,
+        selected: selected,
+        droppedFeatureIDsCorrelation: droppedFeatureIDsCorrelation,
         drop: drop,
         keep: keep,
         corrThreshold: corrThreshold,
         nFeatures: nFeatures,
       });
     },
-    [corrThreshold, featuresChart, leafItems, selectedBeforeFiltering]
-  );
+    [corrThreshold, featuresChart, leafItems, droppedFeatureIDsCorrelation]
+  );*/
 
   function getPointCategoryName(point, dimension) {
     const series = point.series;
@@ -998,12 +1051,25 @@ export default function Visualisation({
 
   const handleAutoDeselect = () => {
     setRankFeatures(true);
-    setKeepNFeatures(true);
 
     let nFeaturesToKeep = Math.min(nFeatures, maxNFeatures);
 
-    filterFeatures(false, true, DEFAULT_CORRELATION_THRESHOLD, nFeaturesToKeep);
     setNFeatures(nFeaturesToKeep);
+    keepNFeatures();
+  };
+
+  const handleUndo = () => {
+    let historyCopy = [...selectedFeaturesHistory];
+
+    // Pop the current state from history
+    historyCopy.pop();
+
+    // Get the previous state from history
+    let previous = historyCopy.pop();
+    console.log('Previously selected was', previous);
+
+    setSelected(previous);
+    setSelectedFeaturesHistory(historyCopy);
   };
 
   if (loading) {
@@ -1026,16 +1092,28 @@ export default function Visualisation({
               <div>
                 <h6>Filter Features (Lines)</h6>
                 {active && (
-                  <FilterTree
-                    filteringItems={filteringItems}
-                    formatTreeData={formatTreeData}
-                    treeData={treeData}
-                    leafItems={leafItems}
-                    getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
-                    selected={selected}
-                    setSelected={setSelected}
-                    disabled={dropCorrelatedFeatures || keepNFeatures}
-                  />
+                  <>
+                    <FilterTree
+                      filteringItems={filteringItems}
+                      formatTreeData={formatTreeData}
+                      treeData={treeData}
+                      leafItems={leafItems}
+                      getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
+                      selected={selected}
+                      setSelected={setSelected}
+                      disabled={isRecomputingChart}
+                    />
+                    {selectedFeaturesHistory.length > 1 && (
+                      <Button
+                        color="link"
+                        size="sm"
+                        className="mb-2"
+                        onClick={handleUndo}
+                      >
+                        <FontAwesomeIcon icon="arrow-left" /> Revert selection
+                      </Button>
+                    )}
+                  </>
                 )}
                 <h6>Show Patients</h6>
                 <h6>
@@ -1092,9 +1170,6 @@ export default function Visualisation({
                   {selectedFeatureIDs.size} features)
                 </Button>
               )}
-
-              <span>{nbFeatures}</span>
-
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
                 <>
                   <div style={{ position: 'relative' }}>
@@ -1144,27 +1219,21 @@ export default function Visualisation({
                       allFeatures={featuresChart}
                       modelType={selectedLabelCategory?.label_type}
                       leafItems={leafItems}
-                      dropCorrelatedFeatures={dropCorrelatedFeatures}
-                      setDropCorrelatedFeatures={setDropCorrelatedFeatures}
                       rankFeatures={rankFeatures}
                       setRankFeatures={setRankFeatures}
-                      keepNFeatures={keepNFeatures}
-                      setKeepNFeatures={setKeepNFeatures}
                       maxNFeatures={maxNFeatures}
+                      featureIDs={featureIDs}
                       selected={selected}
                       setSelected={setSelected}
-                      selectedBeforeFiltering={selectedBeforeFiltering}
-                      setSelectedBeforeFiltering={setSelectedBeforeFiltering}
-                      filterFeatures={filterFeatures}
+                      keepNFeatures={keepNFeatures}
+                      dropCorrelatedFeatures={dropCorrelatedFeatures}
                       nFeatures={nFeatures}
                       setNFeatures={setNFeatures}
                       corrThreshold={corrThreshold}
                       setCorrThreshold={setCorrThreshold}
-                      droppedFeatureIDsCorrelation={
-                        droppedFeatureIDsCorrelation
-                      }
                       setIsRecomputingChart={setIsRecomputingChart}
                       unlabelledDataPoints={unlabelledDataPoints}
+                      isRecomputingChart={isRecomputingChart}
                     />
                   </div>
                 </>

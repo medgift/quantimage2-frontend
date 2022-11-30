@@ -1,11 +1,14 @@
 import { useSortBy, useTable } from 'react-table';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
 import { formatMetric } from '../utils/feature-utils';
+import { saveAs } from 'file-saver';
+
+import './ModelsTable.css';
 
 export default function ModelsTable({
   title,
@@ -79,19 +82,33 @@ export default function ModelsTable({
     );
   };
 
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
-    useTable(
-      {
-        columns,
-        data,
-        initialState: {
-          sortBy: [{ id: 'created_at', desc: true }],
-        },
+  const {
+    flatHeaders,
+    flatRows,
+    getTableProps,
+    getTableBodyProps,
+    headerGroups,
+    rows,
+    prepareRow,
+  } = useTable(
+    {
+      columns,
+      data,
+      initialState: {
+        sortBy: [{ id: 'created_at', desc: true }],
       },
-      useSortBy
-    );
+    },
+    useSortBy
+  );
 
   const [openModelID, setOpenModelID] = useState(-1);
+
+  // If only a single model, expand it by default
+  useEffect(() => {
+    if (rows.length === 1) {
+      toggleModel(rows[0].original.id);
+    }
+  }, [rows]);
 
   const toggleModel = (modelID) => {
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
@@ -163,11 +180,42 @@ export default function ModelsTable({
     );
   };
 
+  const handleExportCSV = () => {
+    let header = flatHeaders.map((h) => h.Header);
+    let rows = flatRows.map((row) =>
+      flatHeaders.map((header) =>
+        row.values[header.id].props
+          ? `"${row.values[header.id].props.children.join('')}"`
+          : `"${row.values[header.id]}"`
+      )
+    );
+
+    let data = [header, ...rows];
+
+    let dataString = data.map((row) => row.join(',')).join('\n');
+
+    let blob = new Blob([dataString], {
+      type: 'text/csv;charset=utf-8',
+    });
+
+    saveAs(blob, 'models-export.csv');
+  };
+
   if (data.length === 0) return null;
 
   return (
     <>
-      <h4 className="mt-3">{title}</h4>
+      <h4 className="mt-3">
+        {title}{' '}
+        <Button
+          size="sm"
+          color="link"
+          className="export-link"
+          onClick={handleExportCSV}
+        >
+          <FontAwesomeIcon icon="file-export" /> Export as CSV
+        </Button>
+      </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
           {headerGroups.map((headerGroup) => (

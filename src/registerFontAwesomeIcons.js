@@ -54,6 +54,7 @@ import {
   faPencilAlt,
   faFileImport,
   faFileUpload,
+  faFileExport,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -112,4 +113,5 @@ export default function registerIcons() {
   library.add(faPencilAlt);
   library.add(faFileImport);
   library.add(faFileUpload);
+  library.add(faFileExport);
 }

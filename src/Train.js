@@ -360,7 +360,7 @@ export default function Train({
               <a
                 href="https://en.wikipedia.org/wiki/Logistic_regression"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Logistic Regression
               </a>
@@ -382,7 +382,7 @@ export default function Train({
               <a
                 href="https://en.wikipedia.org/wiki/Support-vector_machine"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Support-Vector Machines
               </a>
@@ -402,7 +402,7 @@ export default function Train({
               <a
                 href="https://en.wikipedia.org/wiki/Random_forest"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Random Forest
               </a>
@@ -432,7 +432,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxPHSurvivalAnalysis.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Cox Proportional Hazards Model
               </a>
@@ -450,7 +450,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxnetSurvivalAnalysis.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Cox Proportional Hazards Model with Elastic Net Penalty
               </a>
@@ -468,7 +468,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.IPCRidge.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 Accelerated failure time model with inverse probability of
                 censoring weights
@@ -491,7 +491,7 @@ export default function Train({
           <a
             href="https://en.wikipedia.org/wiki/Standard_score"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
             Standardization
           </a>
@@ -500,7 +500,7 @@ export default function Train({
           <a
             href="https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
           >
             L2 Normalization
           </a>
@@ -583,7 +583,7 @@ export default function Train({
               <a
                 href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>
@@ -623,7 +623,7 @@ export default function Train({
               <a
                 href="https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>
@@ -651,7 +651,7 @@ export default function Train({
               <a
                 href="https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>
@@ -675,7 +675,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxPHSurvivalAnalysis.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>
@@ -699,7 +699,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.CoxnetSurvivalAnalysis.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>
@@ -719,7 +719,7 @@ export default function Train({
               <a
                 href="https://scikit-survival.readthedocs.io/en/stable/api/generated/sksurv.linear_model.IPCRidge.html"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 here
               </a>

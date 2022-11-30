@@ -1021,14 +1021,14 @@ function Features({ history }) {
           if (
             collectionID &&
             !location.pathname.match(
-              `\/features\/${albumID}\/collection\/${collectionID}\/.*`
+              `/features/${albumID}/collection/${collectionID}/.*`
             )
           )
             movingAway = true;
 
           if (
             !collectionID &&
-            !location.pathname.match(`\/features\/${albumID}\/(?!collection).*`)
+            !location.pathname.match(`/features/${albumID}/(?!collection).*`)
           )
             movingAway = true;
 
