@@ -148,7 +148,7 @@ function Features({ history }) {
       return [...trainingPatients, ...testPatients];
 
     // Remove unlabelled patients from the data points
-    if (unlabelledPatients) {
+    if (unlabelledPatients && unlabelledPatients.length > 0) {
       return allPatients.filter(
         (patientID) => !unlabelledPatients.includes(patientID)
       );
@@ -331,18 +331,14 @@ function Features({ history }) {
   const getTabClassName = (targetTab) => {
     return classnames({
       active: tab === targetTab,
-      'text-danger':
-        unlabelledPatients.length > 0 &&
-        unlabelledPatients.length === dataPoints.length,
-      'text-warning':
-        unlabelledPatients.length > 0 &&
-        unlabelledPatients.length < dataPoints.length,
+      'text-danger': unlabelledPatients?.length > 0 && dataPoints.length === 0,
+      'text-warning': unlabelledPatients?.length > 0 && dataPoints.length > 0,
     });
   };
 
   // Get symbol of a tab
   const getTabSymbol = () => {
-    return unlabelledPatients.length > 0 ? (
+    return unlabelledPatients?.length > 0 ? (
       unlabelledPatients.length === dataPoints.length ? (
         <>
           <FontAwesomeIcon icon="exclamation-circle" />{' '}
@@ -395,7 +391,11 @@ function Features({ history }) {
     let trainingPatients;
     let testPatients;
 
-    if (!dataPoints) return;
+    if (!dataPoints) {
+      setTrainingPatients(null);
+      setTestPatients(null);
+      return;
+    }
 
     if (!collectionID && featureExtraction) {
       trainingPatients = featureExtraction.training_patients;
@@ -704,7 +704,7 @@ function Features({ history }) {
                     ) : (
                       <>
                         (Current -{' '}
-                        {!selectedLabelCategory
+                        {!selectedLabelCategory || dataPoints.length === 0
                           ? 'None'
                           : dataSplittingType ===
                             DATA_SPLITTING_TYPES.FULL_DATASET
@@ -900,6 +900,7 @@ function Features({ history }) {
                         updateExtractionOrCollection={
                           updateExtractionOrCollection
                         }
+                        setNbTrainingPatients={setNbTrainingPatients}
                       />
                     </>
                   ) : (

@@ -107,9 +107,9 @@ export default function ModelsTable({
   useEffect(() => {
     if (rows.length === 1) {
       let modelID = rows[0].original.id;
-      if (openModelID === -1) toggleModel(modelID);
+      setOpenModelID(modelID);
     }
-  }, [rows, openModelID]);
+  }, [rows]);
 
   const toggleModel = (modelID) => {
     setOpenModelID((m) => (m !== modelID ? modelID : -1));

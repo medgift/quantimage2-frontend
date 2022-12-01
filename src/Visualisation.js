@@ -149,9 +149,9 @@ export default function Visualisation({
   const chartRef = useRef(null);
 
   const finalTrainingPatients = useMemo(() => {
-    if (trainingPatients) return trainingPatients;
+    if (selectedLabelCategory && trainingPatients) return trainingPatients;
     else return dataPoints;
-  }, [trainingPatients, dataPoints]);
+  }, [trainingPatients, dataPoints, selectedLabelCategory]);
 
   // Determine outcome column to inspect for chart
   const outcomeField = useMemo(() => {
@@ -1120,14 +1120,15 @@ export default function Visualisation({
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
-                    {trainingPatients && 'Training'} Patient IDs
+                    {selectedLabelCategory && trainingPatients && 'Training'}{' '}
+                    Patient IDs
                   </Button>
                   <MyModal
                     isOpen={trainingPatientsOpen}
                     toggle={toggleTrainingPatientsOpen}
                     title={
                       <span>
-                        {trainingPatients
+                        {selectedLabelCategory && trainingPatients
                           ? 'Training Patient IDs'
                           : 'Patient IDs'}
                       </span>
@@ -1140,7 +1141,7 @@ export default function Visualisation({
                     />
                   </MyModal>
                 </h6>
-                {testPatients && (
+                {selectedLabelCategory && testPatients && (
                   <h6>
                     <Button color="link" onClick={toggleTestPatientsOpen}>
                       <FontAwesomeIcon icon="eye" /> Show Test Patient IDs
@@ -1252,7 +1253,7 @@ export default function Visualisation({
                     Deselect some features on the left in order to reduce the
                     number of data points to display.{' '}
                     {selectedLabelCategory?.label_type &&
-                      unlabelledPatients.length === 0 && (
+                      unlabelledPatients?.length === 0 && (
                         <span>
                           Or automatically keep{' '}
                           {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP

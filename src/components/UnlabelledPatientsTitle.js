@@ -7,11 +7,7 @@ export function UnlabelledPatientsTitle({ unlabelledPatients, dataPoints }) {
     return null;
 
   return (
-    <Alert
-      color={
-        unlabelledPatients.length === dataPoints.length ? 'danger' : 'warning'
-      }
-    >
+    <Alert color={dataPoints.length === 0 ? 'danger' : 'warning'}>
       <span>
         {unlabelledPatients.length > 1 ? 'There are ' : 'There is '}
         <strong>

@@ -768,11 +768,12 @@ export default function Train({
     );
   }
 
-  if (!selectedLabelCategory) {
+  if (!selectedLabelCategory || dataPoints.length === 0) {
     return (
       <Alert color="info">
-        You have not defined a current outcome yet. Go to the "Outcomes" tab and
-        set an outcome as "current" using the "Set As Current" button.
+        You have not selected a current outcome or no patient has an outcome
+        assigned. Go to the "Outcomes" tab and create or select an existing
+        outcome from the list and assign outcomes to the patients.
       </Alert>
     );
   }
@@ -806,7 +807,7 @@ export default function Train({
             <Button
               color="primary"
               onClick={handleShowNewModelClick}
-              disabled={unlabelledPatients.length === dataPoints.length}
+              disabled={unlabelledPatients?.length === dataPoints.length}
             >
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
               <span>

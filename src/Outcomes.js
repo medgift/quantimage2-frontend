@@ -36,6 +36,7 @@ export default function Outcomes({
   setLabelCategories,
   setFeaturesChart,
   updateExtractionOrCollection,
+  setNbTrainingPatients,
 }) {
   const { keycloak } = useKeycloak();
 
@@ -251,6 +252,7 @@ export default function Outcomes({
               )
             }
             updateExtractionOrCollection={updateExtractionOrCollection}
+            setNbTrainingPatients={setNbTrainingPatients}
           />
         </>
       )}

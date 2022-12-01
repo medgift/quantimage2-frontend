@@ -44,57 +44,39 @@ export default function DataSplitting({
 
   const prevOutcomes = usePrevious(outcomes);
 
-  const outcomesComplete = useMemo(() => {
-    let outcomeField =
-      selectedLabelCategory?.label_type === MODEL_TYPES.CLASSIFICATION
-        ? OUTCOME_CLASSIFICATION
-        : selectedLabelCategory?.label_type === MODEL_TYPES.SURVIVAL
-        ? OUTCOME_SURVIVAL_EVENT
-        : null;
-
-    return outcomeField && outcomes.length === dataPoints.length
-      ? outcomes.every(
-          (o) =>
-            o.label_content[outcomeField] &&
-            o.label_content[outcomeField] !== ''
-        )
-      : false;
-  }, [outcomes, dataPoints, selectedLabelCategory]);
-
   const patients = useMemo(() => {
     let trainingPatients;
 
-    if (!outcomesComplete) {
-      trainingPatients = _.sampleSize(
-        dataPoints,
-        Math.floor(nbTrainingPatients)
-      );
-    } else {
-      let filteredOutcomes = outcomes.filter((o) =>
-        dataPoints.includes(o.patient_id)
-      );
-
-      // Stratify selection of patients (by Outcome for Classification, Event for Survival)
-      let groupByCriteria =
-        selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
-          ? 'label_content.Outcome'
-          : 'label_content.Event';
-
-      trainingPatients = _(filteredOutcomes)
-        .groupBy(groupByCriteria)
-        .map((v) =>
-          _.sampleSize(
-            v,
-            Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
-          )
-        )
-        .flatten()
-        .map((v) => v.patient_id)
-        .value();
+    if (nbTrainingPatients === 0 || !outcomes || outcomes.length === 0) {
+      return { trainingPatients: null, testPatients: null };
     }
 
+    let filteredOutcomes = outcomes.filter((o) =>
+      dataPoints.includes(o.patient_id)
+    );
+
+    // Stratify selection of patients (by Outcome for Classification, Event for Survival)
+    let groupByCriteria =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? 'label_content.Outcome'
+        : 'label_content.Event';
+
+    trainingPatients = _(filteredOutcomes)
+      .groupBy(groupByCriteria)
+      .map((v) =>
+        _.sampleSize(
+          v,
+          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+        )
+      )
+      .flatten()
+      .map((v) => v.patient_id)
+      .value();
+
+    let nbMaxTrainingPatients = Math.min(nbTrainingPatients, dataPoints.length);
+
     // Fill up with another patient if split does not produce exact number of requested patients
-    if (trainingPatients.length < nbTrainingPatients) {
+    if (trainingPatients.length < nbMaxTrainingPatients) {
       trainingPatients.push(
         _.sample(_.difference(dataPoints, trainingPatients))
       );
@@ -103,13 +85,7 @@ export default function DataSplitting({
     let testPatients = _.difference(dataPoints, trainingPatients);
 
     return { trainingPatients, testPatients };
-  }, [
-    dataPoints,
-    outcomes,
-    nbTrainingPatients,
-    selectedLabelCategory,
-    outcomesComplete,
-  ]);
+  }, [dataPoints, outcomes, nbTrainingPatients, selectedLabelCategory]);
 
   const [selectedTrainingPatients, setSelectedTrainingPatients] = useState([]);
   const [selectedTestPatients, setSelectedTestPatients] = useState([]);
@@ -164,13 +140,13 @@ export default function DataSplitting({
     }
   }, [dataSplittingType, outcomes, prevOutcomes, savePatients]);
 
-  if (!selectedLabelCategory)
+  if (!selectedLabelCategory || dataPoints.length === 0)
     return (
       <div>
         <h4>Data Splitting</h4>
         <Alert color="info">
-          No Outcome is currently selected, therefore no data splitting is
-          performed.
+          No Outcome is currently selected (or no patients have an outcome
+          defined), therefore no data splitting is performed.
         </Alert>
       </div>
     );
