@@ -94,7 +94,7 @@ export default function Visualisation({
   testPatients,
   featureExtractionID,
   setCollections,
-  unlabelledDataPoints,
+  unlabelledPatients,
   setHasPendingChanges,
 }) {
   // Route
@@ -114,12 +114,12 @@ export default function Visualisation({
   const hoveredFeatureRef = useRef(null);
 
   // Feature ranking
-  const [rankFeatures, setRankFeatures] = useState(true);
+  const [rankFeatures, setRankFeatures] = useState(false);
 
   // Manage feature selection values
   const [nFeatures, setNFeatures] = useState(DEFAULT_FEATURES_TO_KEEP);
 
-  // Drop correlated features
+  // Is chart being recomputed
   const [isRecomputingChart, setIsRecomputingChart] = useState(false);
 
   // Manage feature selections (checkboxes)
@@ -128,6 +128,7 @@ export default function Visualisation({
   // Manage filtering history
   const [selectedFeaturesHistory, setSelectedFeaturesHistory] = useState([]);
 
+  // Drop correlated features
   const [corrThreshold, setCorrThreshold] = useState(
     DEFAULT_CORRELATION_THRESHOLD
   );
@@ -1232,7 +1233,7 @@ export default function Visualisation({
                       corrThreshold={corrThreshold}
                       setCorrThreshold={setCorrThreshold}
                       setIsRecomputingChart={setIsRecomputingChart}
-                      unlabelledDataPoints={unlabelledDataPoints}
+                      unlabelledPatients={unlabelledPatients}
                       isRecomputingChart={isRecomputingChart}
                     />
                   </div>
@@ -1251,7 +1252,7 @@ export default function Visualisation({
                     Deselect some features on the left in order to reduce the
                     number of data points to display.{' '}
                     {selectedLabelCategory?.label_type &&
-                      unlabelledDataPoints === 0 && (
+                      unlabelledPatients.length === 0 && (
                         <span>
                           Or automatically keep{' '}
                           {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP

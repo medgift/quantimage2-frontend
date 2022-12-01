@@ -47,7 +47,7 @@ export default function Train({
   metadataColumns,
   featureExtractionID,
   dataPoints,
-  unlabelledDataPoints,
+  unlabelledPatients,
   outcomes,
   selectedLabelCategory,
   labelCategories,
@@ -806,7 +806,7 @@ export default function Train({
             <Button
               color="primary"
               onClick={handleShowNewModelClick}
-              disabled={unlabelledDataPoints === dataPoints.length}
+              disabled={unlabelledPatients.length === dataPoints.length}
             >
               <FontAwesomeIcon icon="plus"></FontAwesomeIcon>{' '}
               <span>

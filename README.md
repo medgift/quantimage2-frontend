@@ -1,4 +1,4 @@
-# QuantImage v2 - Frontend
+**# QuantImage v2 - Frontend
 
 ## Context
 
@@ -19,11 +19,11 @@ The project uses Docker for easy build & deployment, using the following files :
 - `Dockerfile.prod` : Builds the production version of the app and serves it using nginx
 - `docker-compose.yml` : Base Docker Compose file
 - `docker-compose.override.yml` : Override file for local development, exposing port 3000 & mapping the source directory to the container.
-- `docker-compose.prod.yml` : Production file for use with Traefik
 - `docker-compose.local.yml` : File for testing the production build locally without Traefik
-- `docker-compose.vm.yml` : File for the [QuantImage v2 VM](https://medgift.github.io/quantimage-v2-info/#getting-started), restarting the container automatically on reboot or crash
+- `docker-compose.vm.yml` : File for the [QuantImage v2 VM](https://medgift.github.io/quantimage-v2-info/#getting-started), restarting the container automatically on reboot or crash**
+- `docker-compose.prod.yml` : Production file for use with Traefik
 
-### Code Structure
+********### Code Structure********
 
 ```
 │   App.js & all pages of the application

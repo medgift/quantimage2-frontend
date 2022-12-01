@@ -164,6 +164,17 @@ export default function DataSplitting({
     }
   }, [dataSplittingType, outcomes, prevOutcomes, savePatients]);
 
+  if (!selectedLabelCategory)
+    return (
+      <div>
+        <h4>Data Splitting</h4>
+        <Alert color="info">
+          No Outcome is currently selected, therefore no data splitting is
+          performed.
+        </Alert>
+      </div>
+    );
+
   return (
     <div>
       <h4>Data Splitting</h4>
@@ -356,7 +367,7 @@ function PatientSelectList({
   return (
     <FormGroup>
       <Label>
-        {title}
+        {title} ({patients.length})
         <Input
           type="select"
           multiple

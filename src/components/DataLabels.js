@@ -5,7 +5,11 @@ import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './DataLabels.css';
-import { OUTCOME_CLASSIFICATION } from '../config/constants';
+import {
+  OUTCOME_CLASSIFICATION,
+  PATIENT_FIELDS,
+  TRAIN_TEST_SPLIT_TYPES,
+} from '../config/constants';
 
 export default function DataLabels({
   albumID,
@@ -17,6 +21,7 @@ export default function DataLabels({
   setIsSavingLabels,
   setLabelCategories,
   dataPoints,
+  updateExtractionOrCollection,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -51,6 +56,13 @@ export default function DataLabels({
   };
 
   const handleSaveLabelsClick = async (e) => {
+    // Reset train/test patients on outcome change
+    await updateExtractionOrCollection({
+      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
+      [PATIENT_FIELDS.TRAINING]: null,
+      [PATIENT_FIELDS.TEST]: null,
+    });
+
     setIsSavingLabels(true);
     await Backend.saveLabels(
       keycloak.token,

@@ -19,7 +19,7 @@ export default function FeatureSelection({
   dropCorrelatedFeatures,
   corrThreshold,
   setCorrThreshold,
-  unlabelledDataPoints,
+  unlabelledPatients,
   isRecomputingChart,
 }) {
   // Adjust N features when dropped features change
@@ -102,7 +102,7 @@ export default function FeatureSelection({
             </div>
           </div>
         </div>
-        {modelType && unlabelledDataPoints === 0 && (
+        {modelType && (
           <div style={{ flex: 1 }}>
             <div className="tools">
               <p className="mt-4">

@@ -35,6 +35,7 @@ export default function Outcomes({
   labelCategories,
   setLabelCategories,
   setFeaturesChart,
+  updateExtractionOrCollection,
 }) {
   const { keycloak } = useKeycloak();
 
@@ -184,7 +185,7 @@ export default function Outcomes({
               onChange={handleOutcomeChange}
             >
               <option key="EMPTY" value="">
-                --Select an outcome from the list--
+                No Outcome Selected
               </option>
               {classificationCategories.length > 0 && (
                 <optgroup label={MODEL_TYPES.CLASSIFICATION}>
@@ -249,6 +250,7 @@ export default function Outcomes({
                   : SURVIVAL_OUTCOMES
               )
             }
+            updateExtractionOrCollection={updateExtractionOrCollection}
           />
         </>
       )}

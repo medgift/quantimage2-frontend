@@ -45,6 +45,7 @@ import {
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 import DataSplitting from './DataSplitting';
+import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
 
 function Features({ history }) {
   const { keycloak } = useKeycloak();
@@ -97,32 +98,18 @@ function Features({ history }) {
       ? collections.find((c) => c.collection.id === +collectionID)
       : null;
 
-  // Compute data points based on features
-  let dataPoints = useMemo(() => {
+  // Get all patient IDs from the features
+  let allPatients = useMemo(() => {
     if (!featuresTabular) return null;
 
-    if (currentCollection && trainingPatients && testPatients)
-      return [...trainingPatients, ...testPatients];
-
     return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
-  }, [trainingPatients, testPatients, featuresTabular, currentCollection]);
+  }, [featuresTabular]);
 
-  // Get outcomes based on the current label category & filter by data points
-  let outcomes = useMemo(() => {
-    if (selectedLabelCategory && dataPoints) {
-      return selectedLabelCategory.labels.filter((l) =>
-        dataPoints.includes(l.patient_id)
-      );
-    }
+  // Compute unlabelled patients
+  const unlabelledPatients = useMemo(() => {
+    if (!selectedLabelCategory || !allPatients) return null;
 
-    return null;
-  }, [selectedLabelCategory, dataPoints]);
-
-  // Compute unlabelled data points
-  const unlabelledDataPoints = useMemo(() => {
-    if (!selectedLabelCategory || !dataPoints) return null;
-
-    let unlabelled = 0;
+    let unlabelled = [];
     let dataLabels = selectedLabelCategory.labels;
 
     let outcomeColumns =
@@ -130,7 +117,7 @@ function Features({ history }) {
         ? CLASSIFICATION_OUTCOMES
         : SURVIVAL_OUTCOMES;
 
-    for (let patientID of dataPoints) {
+    for (let patientID of allPatients) {
       let patientLabel = dataLabels.find((l) => l.patient_id === patientID);
 
       // No label exists for the patient OR
@@ -145,10 +132,48 @@ function Features({ history }) {
           (column) => !Object.keys(patientLabel.label_content).includes(column)
         )
       )
-        unlabelled++;
+        unlabelled.push(patientID);
     }
 
     return unlabelled;
+  }, [selectedLabelCategory, allPatients]);
+
+  // Compute data points based on features
+  let dataPoints = useMemo(() => {
+    if (!featuresTabular) return null;
+
+    if (!selectedLabelCategory) return allPatients;
+
+    if (currentCollection && trainingPatients && testPatients)
+      return [...trainingPatients, ...testPatients];
+
+    // Remove unlabelled patients from the data points
+    if (unlabelledPatients) {
+      return allPatients.filter(
+        (patientID) => !unlabelledPatients.includes(patientID)
+      );
+    }
+
+    return allPatients;
+  }, [
+    allPatients,
+    selectedLabelCategory,
+    trainingPatients,
+    testPatients,
+    featuresTabular,
+    currentCollection,
+    unlabelledPatients,
+  ]);
+
+  // Get outcomes based on the current label category & filter by data points
+  let outcomes = useMemo(() => {
+    if (selectedLabelCategory && dataPoints) {
+      return selectedLabelCategory.labels.filter((l) =>
+        dataPoints.includes(l.patient_id)
+      );
+    }
+
+    return null;
   }, [selectedLabelCategory, dataPoints]);
 
   // Get album
@@ -307,16 +332,18 @@ function Features({ history }) {
     return classnames({
       active: tab === targetTab,
       'text-danger':
-        unlabelledDataPoints > 0 && unlabelledDataPoints === dataPoints.length,
+        unlabelledPatients.length > 0 &&
+        unlabelledPatients.length === dataPoints.length,
       'text-warning':
-        unlabelledDataPoints > 0 && unlabelledDataPoints < dataPoints.length,
+        unlabelledPatients.length > 0 &&
+        unlabelledPatients.length < dataPoints.length,
     });
   };
 
   // Get symbol of a tab
   const getTabSymbol = () => {
-    return unlabelledDataPoints > 0 ? (
-      unlabelledDataPoints === dataPoints.length ? (
+    return unlabelledPatients.length > 0 ? (
+      unlabelledPatients.length === dataPoints.length ? (
         <>
           <FontAwesomeIcon icon="exclamation-circle" />{' '}
         </>
@@ -671,11 +698,21 @@ function Features({ history }) {
                     }}
                   >
                     {getTabSymbol()}
-                    Data Splitting (Current -{' '}
-                    {dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
-                      ? 'Full'
-                      : `Training/Test Split ${percentageTraining}%/${percentageTest}%`}
-                    )
+                    Data Splitting{' '}
+                    {isSavingLabels ? (
+                      '(Updating...)'
+                    ) : (
+                      <>
+                        (Current -{' '}
+                        {!selectedLabelCategory
+                          ? 'None'
+                          : dataSplittingType ===
+                            DATA_SPLITTING_TYPES.FULL_DATASET
+                          ? 'Full'
+                          : `Training/Test Split ${percentageTraining}%/${percentageTest}%`}
+                        )
+                      </>
+                    )}
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -844,31 +881,25 @@ function Features({ history }) {
                 <TabPane tabId="outcome">
                   {tab === 'outcome' && dataPoints ? (
                     <>
-                      {unlabelledDataPoints > 0 && (
-                        <Alert
-                          color={
-                            unlabelledDataPoints === dataPoints.length
-                              ? 'danger'
-                              : 'warning'
-                          }
-                        >
-                          {getFeatureTitleSingularOrPlural(
-                            unlabelledDataPoints
-                          )}
-                        </Alert>
-                      )}
+                      <UnlabelledPatientsTitle
+                        dataPoints={dataPoints}
+                        unlabelledPatients={unlabelledPatients}
+                      />
                       <Outcomes
                         albumID={albumID}
                         featureExtractionID={featureExtractionID}
                         isSavingLabels={isSavingLabels}
                         setIsSavingLabels={setIsSavingLabels}
-                        dataPoints={dataPoints}
+                        dataPoints={allPatients}
                         outcomes={outcomes}
                         selectedLabelCategory={selectedLabelCategory}
                         setSelectedLabelCategory={setSelectedLabelCategory}
                         labelCategories={labelCategories}
                         setLabelCategories={setLabelCategories}
                         setFeaturesChart={setFeaturesChart}
+                        updateExtractionOrCollection={
+                          updateExtractionOrCollection
+                        }
                       />
                     </>
                   ) : (
@@ -878,13 +909,10 @@ function Features({ history }) {
                 <TabPane tabId="split">
                   {dataPoints && (
                     <>
-                      {unlabelledDataPoints > 0 && (
-                        <Alert color="warning">
-                          There are {unlabelledDataPoints} unlabelled
-                          PatientIDs! The patients will not be stratified in the
-                          training & test sets.
-                        </Alert>
-                      )}
+                      <UnlabelledPatientsTitle
+                        dataPoints={dataPoints}
+                        unlabelledPatients={unlabelledPatients}
+                      />
                       <DataSplitting
                         dataSplittingType={dataSplittingType}
                         updateDataSplittingType={updateDataSplittingType}
@@ -909,12 +937,10 @@ function Features({ history }) {
                   {dataPoints ? (
                     !isSavingLabels ? (
                       <>
-                        {unlabelledDataPoints > 0 && (
-                          <Alert color="warning">
-                            There are {unlabelledDataPoints} unlabelled
-                            PatientIDs!
-                          </Alert>
-                        )}
+                        <UnlabelledPatientsTitle
+                          dataPoints={dataPoints}
+                          unlabelledPatients={unlabelledPatients}
+                        />
                         <Visualisation
                           isAlternativeUser={isAlternativeUser}
                           active={tab === 'visualize'}
@@ -934,7 +960,7 @@ function Features({ history }) {
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
-                          unlabelledDataPoints={unlabelledDataPoints}
+                          unlabelledPatients={unlabelledPatients}
                           setHasPendingChanges={setHasPendingChanges}
                         />
                       </>
@@ -952,22 +978,10 @@ function Features({ history }) {
                   {tab === 'train' && dataPoints ? (
                     !isSavingLabels ? (
                       <>
-                        {unlabelledDataPoints > 0 &&
-                          unlabelledDataPoints < dataPoints.length && (
-                            <Alert color="warning">
-                              There are {unlabelledDataPoints} unlabelled
-                              PatientIDs, these will be ignored for training! To
-                              include them, assign an outcome to them in the
-                              "Outcomes" tab.
-                            </Alert>
-                          )}
-                        {unlabelledDataPoints === dataPoints.length && (
-                          <Alert color="danger">
-                            No patient has any associated outcome, training a
-                            model is not possible. Please add outcomes to the
-                            patients in the "Outcomes" tab first.
-                          </Alert>
-                        )}
+                        <UnlabelledPatientsTitle
+                          dataPoints={dataPoints}
+                          unlabelledPatients={unlabelledPatients}
+                        />
                         <Train
                           album={album}
                           albumExtraction={featureExtraction}
@@ -984,7 +998,7 @@ function Features({ history }) {
                           outcomes={outcomes}
                           featureExtractionID={featureExtractionID}
                           dataPoints={dataPoints}
-                          unlabelledDataPoints={unlabelledDataPoints}
+                          unlabelledPatients={unlabelledPatients}
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
                           trainingPatients={trainingPatients}
@@ -1038,19 +1052,6 @@ function Features({ history }) {
         }}
       />
     </>
-  );
-}
-
-function getFeatureTitleSingularOrPlural(unlabelledDataPoints) {
-  return (
-    <span>
-      {unlabelledDataPoints > 1 ? 'There are ' : 'There is '}
-      <strong>
-        {unlabelledDataPoints} data{' '}
-        {unlabelledDataPoints > 1 ? 'points' : 'point'}
-      </strong>{' '}
-      missing an outcome!
-    </span>
   );
 }
 
