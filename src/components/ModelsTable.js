@@ -106,9 +106,10 @@ export default function ModelsTable({
   // If only a single model, expand it by default
   useEffect(() => {
     if (rows.length === 1) {
-      toggleModel(rows[0].original.id);
+      let modelID = rows[0].original.id;
+      if (openModelID === -1) toggleModel(modelID);
     }
-  }, [rows]);
+  }, [rows, openModelID]);
 
   const toggleModel = (modelID) => {
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
