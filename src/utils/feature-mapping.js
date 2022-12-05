@@ -16,7 +16,8 @@ export const FEATURE_DEFINITIONS = [
   {
     id: 'firstorder_Energy',
     url: 'www.radiomics.org/RO/8ZQL',
-    description: '',
+    description:
+      'It represents the energy of the probability matrix. Please note that this feature is also called Energy or Uniformity.',
     category: 'Intensity',
     subcategory: '',
   },
@@ -96,7 +97,8 @@ export const FEATURE_DEFINITIONS = [
   {
     id: 'firstorder_RootMeanSquared',
     url: 'www.radiomics.org/RO/5ZWQ',
-    description: '',
+    description:
+      'The square root of the arithmetic mean of the squares of the values',
     category: 'Intensity',
     subcategory: '',
   },
@@ -340,154 +342,171 @@ export const FEATURE_DEFINITIONS = [
   {
     id: 'gldm_DependenceEntropy',
     url: 'www.radiomics.org/RO/GBDU',
-    description: '',
+    description: 'Entropy for the zone distances',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_DependenceNonUniformity',
     url: 'www.radiomics.org/RO/V294',
-    description: '',
+    description:
+      'This features assesses the distribution of zone counts over the different zone distances. The feature value is low when zone counts are equally distributed along zone distances',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_DependenceNonUniformityNormalized',
     url: 'www.radiomics.org/RO/IATH',
-    description: '',
+    description:
+      'This is the normalised version of the zone distance non-uniformity feature',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_DependenceVariance',
     url: 'www.radiomics.org/RO/7WT1',
-    description: '',
+    description:
+      'This feature estimates the variance in zone counts for the different zone distances',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_GrayLevelNonUniformity',
     url: 'www.radiomics.org/RO/VFT7',
-    description: '',
+    description:
+      'This feature assesses the distribution of zone counts over the grey values. The feature value is low when zone counts are equally distributed along grey levels',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_GrayLevelVariance',
     url: 'www.radiomics.org/RO/QK93',
-    description: '',
+    description:
+      'This feature estimates the variance in zone counts for the grey levels',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_HighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/K26C',
-    description: '',
+    description: 'The feature emphasises high grey levels',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_LargeDependenceEmphasis',
     url: 'www.radiomics.org/RO/MB4I',
-    description: '',
+    description: 'This feature emphasises large distances',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_LargeDependenceHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/KLTH',
-    description: '',
+    description:
+      'This feature emphasises runs in the lower right quadrant of the GLDZM, where large zone distances and high grey levels are located',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_LargeDependenceLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/A7WM',
-    description: '',
+    description:
+      'This feature emphasises runs in the upper right quadrant of the GLDZM, where large zone distances and low grey levels are located.',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_LowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/S1RA',
-    description: '',
+    description:
+      'Instead of small zone distances, low grey levels are emphasised',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_SmallDependenceEmphasis',
     url: 'www.radiomics.org/RO/0GBI',
-    description: '',
+    description: 'This feature emphasises small distances',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_SmallDependenceHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/DKNJ',
-    description: '',
+    description:
+      'This feature emphasises runs in the lower left quadrant of the GLDZM, where small zone distances and high grey levels are located',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'gldm_SmallDependenceLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/RUVG',
-    description: '',
+    description:
+      'This feature emphasises runs in the upper left quadrant of the GLDZM, where small zone distances and low grey levels are located',
     category: 'Texture',
     subcategory: 'GLDM',
   },
   {
     id: 'glrlm_GrayLevelNonUniformity',
     url: 'www.radiomics.org/RO/R5YN',
-    description: '',
+    description:
+      'This feature assesses the distribution of runs over the grey values (Galloway, 1975). The feature value is low when runs are equally distributed along grey levels',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_GrayLevelNonUniformityNormalized',
     url: 'www.radiomics.org/RO/OVBL',
-    description: '',
+    description:
+      'This is the normalised version of the grey level non-uniformity feature',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_GrayLevelVariance',
     url: 'www.radiomics.org/RO/8CE5',
-    description: '',
+    description:
+      'This feature estimates the variance in runs for the grey levels',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_HighGrayLevelRunEmphasis',
     url: 'www.radiomics.org/RO/G3QZ',
-    description: '',
+    description:
+      'The HGLRE measures  the distribution of high gray level values. The HGRE is high for the image with highgray level values',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_LongRunEmphasis',
     url: 'www.radiomics.org/RO/W4KF',
-    description: '',
+    description: 'The LRE measures the distribution of long runs',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_LongRunHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/3KUM',
-    description: '',
+    description:
+      'This feature emphasises runs in the lower right quadrant of the GLRLM, where long run lengths and high grey levels are located',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_LongRunLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/IVPO',
-    description: '',
+    description:
+      'This feature emphasises runs in the upper right quadrant of the GLRLM, where long run lengths and low grey levels are located',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_LowGrayLevelRunEmphasis',
     url: 'www.radiomics.org/RO/V3SW',
-    description: '',
+    description:
+      'The LGLRE measures the distribution of low gray level values. The LGRE is high for the image with low gray level values',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
@@ -501,294 +520,332 @@ export const FEATURE_DEFINITIONS = [
   {
     id: 'glrlm_RunLengthNonUniformity',
     url: 'www.radiomics.org/RO/W92Y',
-    description: '',
+    description:
+      'This features assesses the distribution of runs over the run lengths (Galloway, 1975). The feature value is low when runs are equally distributed along run lengths.',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_RunLengthNonUniformityNormalized',
     url: 'www.radiomics.org/RO/IC23',
-    description: '',
+    description:
+      'This is the normalised version of the run length non-uniformity feature',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_RunPercentage',
     url: 'www.radiomics.org/RO/9ZK5',
-    description: '',
+    description:
+      'This feature assesses the fraction of the number of realised runs and the maximum number of potential runs (Galloway, 1975). Strongly linear or highly uniform ROI volumes produce a low run percentage',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_RunVariance',
     url: 'www.radiomics.org/RO/SXLW',
-    description: '',
+    description: 'This feature estimates the variance in runs for run lengths',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_ShortRunEmphasis',
     url: 'www.radiomics.org/RO/22OV',
-    description: '',
+    description:
+      'The SRE measures the distribution of short runs. The SRE is highly dependent on the occurrence of short runs and it gives high value for fine texture the value of SRE is high',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_ShortRunHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/GD3A',
-    description: '',
+    description:
+      'The SRHGLE measures the joint distribution of short runs and high gray level values. The SRHGE is high for the image with many short runs and high gray level values',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glrlm_ShortRunLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/HTZT',
-    description: '',
+    description:
+      'The SRLGLE measures the joint distribution of short runs and low gray level values. The SRLGE is high for the image with many short runs and lower gray level values',
     category: 'Texture',
     subcategory: 'GLRLM',
   },
   {
     id: 'glszm_GrayLevelNonUniformity',
     url: 'www.radiomics.org/RO/JNSA',
-    description: '',
+    description:
+      'This feature assesses the distribution of zone counts over the grey values. The feature value is low when zone counts are equally distributed along grey levels',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_GrayLevelNonUniformityNormalized',
     url: 'www.radiomics.org/RO/Y1RO',
-    description: '',
+    description:
+      'This is a normalised version of the grey level non-uniformity feature',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_GrayLevelVariance',
     url: 'www.radiomics.org/RO/BYLV',
-    description: '',
+    description:
+      'This feature estimates the variance in zone counts for the grey levels',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_HighGrayLevelZoneEmphasis',
     url: 'www.radiomics.org/RO/5GN9',
-    description: '',
+    description:
+      'Measures the distribution of the higher gray-level values, with a higher value indicating a greater proportion of higher gray-level values and size zones in the image',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_LargeAreaEmphasis',
     url: 'www.radiomics.org/RO/48P8',
-    description: '',
+    description: 'This feature emphasises large zones',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_LargeAreaHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/J17V',
-    description: '',
+    description:
+      'This feature emphasises runs in the lower right quadrant of the GLSZM, where large zone sizes and high grey levels are located',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_LargeAreaLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/YH51',
-    description: '',
+    description:
+      'This feature emphasises runs in the upper right quadrant of the GLSZM, where large zone sizes and low grey levels are located',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_LowGrayLevelZoneEmphasis',
     url: 'www.radiomics.org/RO/XMSY',
-    description: '',
+    description:
+      'Measures the distribution of lower gray-level size zones, with a higher value indicating a greater proportion of lower gray-level values and size zones in the image',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_SizeZoneNonUniformity',
     url: 'www.radiomics.org/RO/4JP3',
-    description: '',
+    description:
+      'This features assesses the distribution of zone counts over the different zone sizes. The feature value is low when zone counts are equally distributed along zone sizes',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_SizeZoneNonUniformityNormalized',
     url: 'www.radiomics.org/RO/VB3A',
-    description: '',
+    description:
+      'This is a normalised version of the zone size non-uniformity feature',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_SmallAreaEmphasis',
     url: 'www.radiomics.org/RO/5QRC',
-    description: '',
+    description: 'This feature emphasises small zones',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_SmallAreaHighGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/HW1V',
-    description: '',
+    description:
+      'This feature emphasises runs in the lower left quadrant of the GLSZM, where small zone sizes and high grey levels are located',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_SmallAreaLowGrayLevelEmphasis',
     url: 'www.radiomics.org/RO/5RAI',
-    description: '',
+    description:
+      'This feature emphasises runs in the upper left quadrant of the GLSZM, where small zone sizes and low grey levels are located',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_ZoneEntropy',
     url: 'www.radiomics.org/RO/GU8N',
-    description: '',
+    description: 'Entropy related to the zone sizes',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_ZonePercentage',
     url: 'www.radiomics.org/RO/P30P',
-    description: '',
+    description:
+      'This feature assesses the fraction of the number of realised zones and the maximum num- ber of potential zones. Strongly linear or highly uniform ROI volumes produce a low zone percentage',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'glszm_ZoneVariance',
     url: 'www.radiomics.org/RO/3NSA',
-    description: '',
+    description:
+      'This feature estimates the variance in zone counts for the different zone sizes',
     category: 'Texture',
     subcategory: 'GLSZM',
   },
   {
     id: 'ngtdm_Busyness',
     url: 'www.radiomics.org/RO/NQ30',
-    description: '',
+    description:
+      'Textures with large changes in grey levels between neighbouring voxels are called busy',
     category: 'Texture',
     subcategory: 'NGTDM',
   },
   {
     id: 'ngtdm_Coarseness',
     url: 'www.radiomics.org/RO/QCDE',
-    description: '',
+    description:
+      'Grey level differences in coarse textures are generally small due to large-scale patterns. Summing differences gives an indication of the level of the spatial rate of change in intensity',
     category: 'Texture',
     subcategory: 'NGTDM',
   },
   {
     id: 'ngtdm_Complexity',
     url: 'www.radiomics.org/RO/HDEZ',
-    description: '',
+    description:
+      'Complex textures are non-uniform and rapid changes in grey levels are common',
     category: 'Texture',
     subcategory: 'NGTDM',
   },
   {
     id: 'ngtdm_Contrast',
     url: 'www.radiomics.org/RO/65HE',
-    description: '',
+    description:
+      'Contrast depends on the dynamic range of the grey levels as well as the spatial frequency of intensity changes',
     category: 'Texture',
     subcategory: 'NGTDM',
   },
   {
     id: 'ngtdm_Strength',
     url: 'www.radiomics.org/RO/1X9X',
-    description: '',
+    description:
+      'Feature defined in http://dx.doi.org/10.1371/journal.pone.0093600',
     category: 'Texture',
     subcategory: 'NGTDM',
   },
   {
     id: 'shape_Maximum3DDiameter',
     url: 'www.radiomics.org/RO/L0JK',
-    description: '',
+    description:
+      'The maximum 3D diameter is the distance between the two most distant vertices in the ROI mesh vertices sets',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_MeshVolume',
     url: 'www.radiomics.org/RO/RNU0',
-    description: '',
+    description:
+      'The volume V is calculated from the ROI mesh as indicated in https://doi.org/10.1109/ICIP.2001.958278',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_MajorAxisLength',
     url: 'www.radiomics.org/RO/TDIC',
-    description: '',
+    description:
+      'The major axis length is defined as twice the semi-axis length, dtermined using the largest eigenvalue obtained by principal component analysis (PCA) on the point set of voxel centers',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Sphericity',
     url: 'www.radiomics.org/RO/QCFX',
-    description: '',
+    description:
+      'Sphericity is a further measure to describe how sphere-like the volume is',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_LeastAxisLength',
     url: 'www.radiomics.org/RO/7J51',
-    description: '',
+    description:
+      'The least axis is the the axis along which the object is least extended. The least axis is twice the semi-axis length, determined using the smallest eigenvalue obtained by PCA on the point set of voxel centers',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Elongation',
     url: 'www.radiomics.org/RO/Q3CK',
-    description: '',
+    description:
+      'Elongation is the ratio between the major and minor axis lengths. Elongation is espressed as inversed ratio: 1 means completely not elongated (e.g. a sphere). Smaller values express greater elongation of the ROI volume',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_SurfaceVolumeRatio',
     url: 'www.radiomics.org/RO/2PR5',
-    description: '',
+    description:
+      'The surface to volume ratio is the ratio between the Surface and the Volume',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Maximum2DDiameterSlice',
     url: 'www.radiomics.org/RO/2130',
-    description: '',
+    description:
+      'Maximum 2D diameter (Slice) is defined as the largest pairwise Euclidean distance between tumor surface voxels in the row-column (generally the axial) plane.',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Flatness',
     url: 'www.radiomics.org/RO/N17B',
-    description: '',
+    description:
+      'The flatness is the ratio of the major and the least axis lengths. The flatness is expressed as an inverse ratio: 1 completely not flat; smaller values express objects which are increasingly flatter',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_SurfaceArea',
     url: 'www.radiomics.org/RO/C0JK',
-    description: '',
+    description:
+      'The surface area is calculated from the ROI mesh, by summing over the face area surfaces',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_MinorAxisLength',
     url: 'www.radiomics.org/RO/P9VJ',
-    description: '',
+    description:
+      'The minor axis length of the ROI provides a measure of how fare the volume extends along the second largest axis. The minor axis length is twice the semi-axis length, determined using the second largest eigenvalue obtained by PCA on the point of the voxel centers',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Maximum2DDiameterColumn',
     url: 'www.radiomics.org/RO/2150',
-    description: '',
+    description:
+      'Maximum 2D diameter (Column) is defined as the largest pairwise Euclidean distance between tumor surface voxels in the row-slice (usually the coronal) plane.',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_Maximum2DDiameterRow',
     url: 'www.radiomics.org/RO/2140',
-    description: '',
+    description:
+      'Maximum 2D diameter (Row) is defined as the largest pairwise Euclidean distance between tumor surface voxels in the column-slice (usually the sagittal) plane.',
     category: 'Shape',
     subcategory: '',
   },
   {
     id: 'shape_VoxelVolume',
     url: 'www.radiomics.org/RO/RNU0',
-    description: '',
+    description:
+      'The volume V is calculated from the ROI mesh as indicated in https://doi.org/10.1109/ICIP.2001.958278',
     category: 'Shape',
     subcategory: '',
   },
