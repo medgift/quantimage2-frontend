@@ -20,7 +20,7 @@ import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
 import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
-import { groupFeatures } from './utils/feature-naming';
+import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
@@ -618,13 +618,17 @@ export default function Visualisation({
             let { modality, roi, featureName } =
               chart.yAxis[0].categories[yIndex].match(featureIDRegex).groups;
 
+            let convertedFeatureName = convertFeatureName(featureName, [
+              modality,
+            ]);
+
             return (
               `<strong>Patient:</strong> ${
                 chart.xAxis[0].categories[this.point.options.x]
               }<br />` +
               `<strong>Modality:</strong> ${modality}<br />` +
               `<strong>ROI:</strong> ${roi}<br />` +
-              `<strong>Feature:</strong> ${featureName}<br />` +
+              `<strong>Feature:</strong> ${convertedFeatureName}<br />` +
               `<strong>Value:</strong> ${this.point.options.value}<br /><br />` +
               `<strong>INFO : Click to disable this feature</strong>`
             );

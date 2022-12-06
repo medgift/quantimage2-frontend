@@ -1,3 +1,10 @@
+export const CATEGORIES = {
+  Intensity: 'Intensity',
+  Texture: 'Texture',
+  Shape: 'Shape',
+  SUV: 'SUV',
+};
+
 export const FEATURE_DEFINITIONS = [
   {
     id: 'firstorder_10Percentile',

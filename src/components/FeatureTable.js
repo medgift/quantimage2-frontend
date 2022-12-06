@@ -5,6 +5,12 @@ import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  convertFeatureName,
+  convertFeatureNameTable,
+} from '../utils/feature-naming';
+
+import _ from 'lodash';
 
 const PYRADIOMICS_PREFIX = 'original';
 const ZRAD_PREFIX = 'zrad';
@@ -53,6 +59,8 @@ export default function FeatureTable({ featuresTabular }) {
     let currentFeatureGroup = '';
     const header = Object.keys(featuresTabular[0]) || [];
 
+    let presentModalities = _.uniq(featuresTabular.map((f) => f.Modality));
+
     // Make groups of features
     for (let featureName of header.filter(
       (c) => !NON_FEATURE_FIELDS.includes(c)
@@ -62,16 +70,23 @@ export default function FeatureTable({ featuresTabular }) {
       // first level for other backends so far
       let featureGroupName;
 
+      let convertedFeatureName = convertFeatureName(
+        featureName,
+        presentModalities
+      );
+
       // PET - Special case
       if (featureName.startsWith('PET')) {
         featureGroupName = 'PET';
       } else if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
-        featureGroupName = featureName.split('_')[1];
+        featureGroupName = convertedFeatureName.split('_')[1];
       } else if (featureName.startsWith(ZRAD_PREFIX)) {
-        featureGroupName = featureName.split('_')[1];
+        featureGroupName = convertedFeatureName.split('_')[1];
       } else {
         featureGroupName =
-          featureName.split('_')[0] + '_' + featureName.split('_')[1];
+          convertedFeatureName.split('_')[0] +
+          '_' +
+          convertedFeatureName.split('_')[1];
       }
 
       if (featureGroupName !== currentFeatureGroup) {
@@ -88,7 +103,7 @@ export default function FeatureTable({ featuresTabular }) {
       Header: featureGroup,
       id: featureGroup,
       columns: featureGroups[featureGroup].map((featureName) => ({
-        Header: featureName,
+        Header: convertFeatureName(featureName, presentModalities),
         accessor: featureName,
         disableFilters: true,
       })),

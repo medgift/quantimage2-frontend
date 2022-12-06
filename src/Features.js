@@ -433,8 +433,6 @@ function Features({ history }) {
 
     fileDownload(content, filename);
 
-    //window.location.href = url;
-
     setIsDownloading(false);
   };
 

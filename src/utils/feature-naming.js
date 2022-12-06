@@ -1,7 +1,12 @@
-import { FEATURE_DEFINITIONS } from './feature-mapping';
+import {
+  CATEGORIES,
+  CATEGORY_DEFINITIONS,
+  FEATURE_DEFINITIONS,
+} from './feature-mapping';
 import { FEATURE_ID_SEPARATOR } from '../Visualisation';
 
 export const MODALITIES = ['CT', 'PET', 'MR'];
+export const MODALITIES_MAP = { CT: 'CT', PET: 'PT', MR: 'MR' };
 const FILTERS = ['log'];
 const RIESZ_PREFIX = 'tex';
 const ZRAD_PREFIX = 'zrad';
@@ -60,6 +65,21 @@ export function groupFeatures(featureNames) {
   }
 
   return featureGroups;
+}
+
+// Make feature names more readable by replacing terms such as "firstorder" with "intensity / SUV"
+export function convertFeatureName(featureName, modalities) {
+  // CT - intensity instead of firstorder
+  // PET - SUV instead of firstorder
+  // CT & PET - Both intenstiy & SUV instead of firstorder
+  let replacement =
+    modalities && modalities.includes(MODALITIES_MAP.PET)
+      ? modalities.length > 1
+        ? `${CATEGORIES.Intensity.toLowerCase()}/${CATEGORIES.SUV}`
+        : CATEGORIES.SUV
+      : CATEGORIES.Intensity.toLowerCase();
+
+  return featureName.replace('firstorder', replacement);
 }
 
 function initGroups(featureGroups, groups) {
