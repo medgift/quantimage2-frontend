@@ -47,6 +47,7 @@ import FeatureSelection, {
   DEFAULT_FEATURES_TO_KEEP,
   DEFAULT_MAX_FEATURES_TO_KEEP,
 } from './components/FeatureSelection';
+import ErrorBoundary from './utils/ErrorBoundary';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -1186,26 +1187,32 @@ export default function Visualisation({
                       </div>
                     )}
                     <div>
-                      <HighchartsReact
-                        highcharts={Highcharts}
-                        options={highchartsOptionsFeatures}
-                        ref={chartRef}
-                      />
+                      <ErrorBoundary>
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={highchartsOptionsFeatures}
+                          ref={chartRef}
+                        />
+                      </ErrorBoundary>
                     </div>
                     {selectedLabelCategory && (
-                      <HighchartsReact
-                        highcharts={Highcharts}
-                        options={highchartsOptionsOutcome}
-                      />
+                      <ErrorBoundary>
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={highchartsOptionsOutcome}
+                        />
+                      </ErrorBoundary>
                     )}
                     {selectedLabelCategory &&
                       selectedLabelCategory.label_type ===
                         MODEL_TYPES.SURVIVAL && (
                         <div className="mt-3">
-                          <HighchartsReact
-                            highcharts={Highcharts}
-                            options={highchartsOptionsSurvival}
-                          />
+                          <ErrorBoundary>
+                            <HighchartsReact
+                              highcharts={Highcharts}
+                              options={highchartsOptionsSurvival}
+                            />
+                          </ErrorBoundary>
                         </div>
                       )}
                   </div>
