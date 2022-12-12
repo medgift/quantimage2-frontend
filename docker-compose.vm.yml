@@ -2,6 +2,4 @@ version: '3.6'
 
 services:
   web:
-    build:
-      dockerfile: Dockerfile.prod
     restart: unless-stopped
