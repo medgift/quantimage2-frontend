@@ -32,7 +32,7 @@ export default function FeatureSelection({
 
     setNFeatures((n) => {
       if (n > nbSelectedFeatures) return nbSelectedFeatures;
-      else return n;
+      else return Math.min(nbSelectedFeatures, DEFAULT_FEATURES_TO_KEEP);
     });
   }, [setNFeatures, leafItems, selected]);
 
