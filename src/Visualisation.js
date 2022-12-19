@@ -1245,7 +1245,6 @@ export default function Visualisation({
                       corrThreshold={corrThreshold}
                       setCorrThreshold={setCorrThreshold}
                       setIsRecomputingChart={setIsRecomputingChart}
-                      unlabelledPatients={unlabelledPatients}
                       isRecomputingChart={isRecomputingChart}
                     />
                   </div>
@@ -1263,24 +1262,23 @@ export default function Visualisation({
                   <span>
                     Deselect some features on the left in order to reduce the
                     number of data points to display.{' '}
-                    {selectedLabelCategory?.label_type &&
-                      unlabelledPatients?.length === 0 && (
-                        <span>
-                          Or automatically keep{' '}
-                          {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
-                            ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
-                            : `the maximum number of features that can be displayed`}{' '}
-                          by clicking{' '}
-                          <Button
-                            color="link"
-                            className="p-0"
-                            onClick={handleAutoDeselect}
-                          >
-                            here
-                          </Button>
-                          !
-                        </span>
-                      )}
+                    {selectedLabelCategory?.label_type && (
+                      <span>
+                        Or automatically keep{' '}
+                        {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
+                          ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
+                          : `the maximum number of features that can be displayed`}{' '}
+                        by clicking{' '}
+                        <Button
+                          color="link"
+                          className="p-0"
+                          onClick={handleAutoDeselect}
+                        >
+                          here
+                        </Button>
+                        !
+                      </span>
+                    )}
                   </span>
                 </Alert>
               )}

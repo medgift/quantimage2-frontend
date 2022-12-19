@@ -19,7 +19,6 @@ export default function FeatureSelection({
   dropCorrelatedFeatures,
   corrThreshold,
   setCorrThreshold,
-  unlabelledPatients,
   isRecomputingChart,
 }) {
   // Adjust N features when dropped features change
