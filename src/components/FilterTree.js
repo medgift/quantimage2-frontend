@@ -60,6 +60,7 @@ export default function FilterTree({
       }
 
       let nodeIDComponents = node.id.split(FEATURE_ID_SEPARATOR);
+      let nodeComponentIndexToCheck = nodeIDComponents.length - 1;
 
       // For leaf items, check the immediate parent as well
       let stringToCheck = !node.value
@@ -74,15 +75,43 @@ export default function FilterTree({
 
         if (!newSelections.includes(node.id)) {
           let nodesToSelect = allNodeIDs
-            .filter((n) =>
-              node.value ? n.endsWith(stringToCheck) : n.includes(stringToCheck)
-            )
+            .filter((n) => {
+              let currentNodeComponents = n.split(FEATURE_ID_SEPARATOR);
+
+              if (node.value)
+                return (
+                  nodeIDComponents[nodeComponentIndexToCheck] ===
+                    currentNodeComponents[nodeComponentIndexToCheck] &&
+                  nodeIDComponents[nodeComponentIndexToCheck - 1] ===
+                    currentNodeComponents[nodeComponentIndexToCheck - 1]
+                );
+
+              return (
+                currentNodeComponents.length >= nodeIDComponents.length &&
+                nodeIDComponents[nodeComponentIndexToCheck] ===
+                  currentNodeComponents[nodeComponentIndexToCheck]
+              );
+            })
             .filter((n) => !newSelections.includes(n));
           newSelections.push(...nodesToSelect);
         } else {
-          newSelections = newSelections.filter((n) =>
-            node.value ? !n.endsWith(stringToCheck) : !n.includes(stringToCheck)
-          );
+          newSelections = newSelections.filter((n) => {
+            let currentNodeComponents = n.split(FEATURE_ID_SEPARATOR);
+
+            if (node.value)
+              return (
+                nodeIDComponents[nodeComponentIndexToCheck] ===
+                  currentNodeComponents[nodeComponentIndexToCheck] &&
+                nodeIDComponents[nodeComponentIndexToCheck - 1] !==
+                  currentNodeComponents[nodeComponentIndexToCheck - 1]
+              );
+
+            return (
+              currentNodeComponents.length >= nodeIDComponents.length &&
+              nodeIDComponents[nodeComponentIndexToCheck] !==
+                currentNodeComponents[nodeComponentIndexToCheck]
+            );
+          });
         }
 
         return newSelections;
