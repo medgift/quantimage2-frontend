@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 
 import TreeView from '@mui/lab/TreeView';
 import TreeItem from '@mui/lab/TreeItem';
@@ -20,70 +20,76 @@ export default function FilterTree({
   setSelected,
   disabled,
 }) {
-  const selectNode = (event, node) => {
-    let nodeAndChildren = getNodeAndAllChildrenIDs(node, []);
-    event.persist();
+  const selectNode = useCallback(
+    (event, node) => {
+      let nodeAndChildren = getNodeAndAllChildrenIDs(node, []);
+      event.persist();
 
-    setSelected((s) => {
-      let newSelections = [...s];
+      setSelected((s) => {
+        let newSelections = [...s];
 
-      console.log('event target is', event.target);
+        console.log('event target is', event.target);
 
-      if (event.target.checked) {
-        newSelections.push(
-          ...nodeAndChildren.filter((n) => !newSelections.includes(n))
-        );
-      } else {
-        newSelections = newSelections.filter(
-          (ns) => !nodeAndChildren.includes(ns)
-        );
+        if (event.target.checked) {
+          newSelections.push(
+            ...nodeAndChildren.filter((n) => !newSelections.includes(n))
+          );
+        } else {
+          newSelections = newSelections.filter(
+            (ns) => !nodeAndChildren.includes(ns)
+          );
+        }
+
+        return newSelections;
+      });
+    },
+    [getNodeAndAllChildrenIDs, setSelected]
+  );
+
+  const selectNodeAll = useCallback(
+    (event, node) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      let formattedData = formatTreeData(filteringItems);
+
+      let allNodeIDs = [];
+      for (let topLevelElement of formattedData) {
+        let nodeAndChildrenIds = getNodeAndAllChildrenIDs(topLevelElement, []);
+        allNodeIDs.push(...nodeAndChildrenIds);
       }
 
-      return newSelections;
-    });
-  };
+      let nodeIDComponents = node.id.split(FEATURE_ID_SEPARATOR);
 
-  const selectNodeAll = (event, node) => {
-    event.preventDefault();
-    event.stopPropagation();
+      // For leaf items, check the immediate parent as well
+      let stringToCheck = !node.value
+        ? nodeIDComponents[nodeIDComponents.length - 1]
+        : [
+            nodeIDComponents[nodeIDComponents.length - 2],
+            nodeIDComponents[nodeIDComponents.length - 1],
+          ].join(FEATURE_ID_SEPARATOR);
 
-    let formattedData = formatTreeData(filteringItems);
+      setSelected((s) => {
+        let newSelections = [...s];
 
-    let allNodeIDs = [];
-    for (let topLevelElement of formattedData) {
-      let nodeAndChildrenIds = getNodeAndAllChildrenIDs(topLevelElement, []);
-      allNodeIDs.push(...nodeAndChildrenIds);
-    }
+        if (!newSelections.includes(node.id)) {
+          let nodesToSelect = allNodeIDs
+            .filter((n) =>
+              node.value ? n.endsWith(stringToCheck) : n.includes(stringToCheck)
+            )
+            .filter((n) => !newSelections.includes(n));
+          newSelections.push(...nodesToSelect);
+        } else {
+          newSelections = newSelections.filter((n) =>
+            node.value ? !n.endsWith(stringToCheck) : !n.includes(stringToCheck)
+          );
+        }
 
-    let nodeIDComponents = node.id.split(FEATURE_ID_SEPARATOR);
-
-    // For leaf items, check the immediate parent as well
-    let stringToCheck = !node.value
-      ? nodeIDComponents[nodeIDComponents.length - 1]
-      : [
-          nodeIDComponents[nodeIDComponents.length - 2],
-          nodeIDComponents[nodeIDComponents.length - 1],
-        ].join(FEATURE_ID_SEPARATOR);
-
-    setSelected((s) => {
-      let newSelections = [...s];
-
-      if (!newSelections.includes(node.id)) {
-        let nodesToSelect = allNodeIDs
-          .filter((n) =>
-            node.value ? n.endsWith(stringToCheck) : n.includes(stringToCheck)
-          )
-          .filter((n) => !newSelections.includes(n));
-        newSelections.push(...nodesToSelect);
-      } else {
-        newSelections = newSelections.filter((n) =>
-          node.value ? !n.endsWith(stringToCheck) : !n.includes(stringToCheck)
-        );
-      }
-
-      return newSelections;
-    });
-  };
+        return newSelections;
+      });
+    },
+    [filteringItems, formatTreeData, getNodeAndAllChildrenIDs, setSelected]
+  );
 
   return (
     <div>

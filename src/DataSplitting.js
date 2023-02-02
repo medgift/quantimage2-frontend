@@ -110,7 +110,8 @@ export default function DataSplitting({
   // Initialize training & test patients as required
   useEffect(() => {
     async function initPatients() {
-      if (trainingPatients === null) await savePatients();
+      if (selectedLabelCategory !== null && trainingPatients === null)
+        await savePatients();
     }
 
     async function reinitPatients() {
@@ -122,7 +123,13 @@ export default function DataSplitting({
     } else {
       reinitPatients();
     }
-  }, [savePatients, resetPatients, trainingPatients, dataSplittingType]);
+  }, [
+    savePatients,
+    resetPatients,
+    trainingPatients,
+    dataSplittingType,
+    selectedLabelCategory,
+  ]);
 
   // Update patients when outcomes change
   useEffect(() => {
