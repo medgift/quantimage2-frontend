@@ -49,6 +49,7 @@ import FeatureSelection, {
 } from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
 import backend from './services/backend';
+import UndoButton from './components/UndoButton';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -460,7 +461,16 @@ export default function Visualisation({
   useEffect(() => {
     if (treeData.length > 0) {
       console.log('selected is now', selected);
-      setSelectedFeaturesHistory((h) => [...h, selected]);
+      setSelectedFeaturesHistory((h) => {
+        let prevSelected = h[h.length - 1];
+
+        // Only append to history if selections are different
+        if (!_.isEqual(prevSelected, selected)) {
+          return [...h, selected];
+        } else {
+          return h;
+        }
+      });
     }
   }, [selected, treeData]);
 
@@ -1145,18 +1155,11 @@ export default function Visualisation({
                       disabled={isRecomputingChart}
                     />
                     {selectedFeaturesHistory.length > 1 && (
-                      <Button
-                        color="link"
-                        size="sm"
-                        className="mb-2"
-                        onClick={handleUndo}
-                      >
-                        <FontAwesomeIcon icon="arrow-left" /> Revert selection
-                      </Button>
+                      <UndoButton handleClick={handleUndo} />
                     )}
                   </>
                 )}
-                <h6>Show Patients</h6>
+                <h6 className="mt-2">Show Patients</h6>
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
@@ -1309,6 +1312,8 @@ export default function Visualisation({
                       setCorrThreshold={setCorrThreshold}
                       setIsRecomputingChart={setIsRecomputingChart}
                       isRecomputingChart={isRecomputingChart}
+                      selectedFeaturesHistory={selectedFeaturesHistory}
+                      handleUndo={handleUndo}
                     />
                   </div>
                 </>

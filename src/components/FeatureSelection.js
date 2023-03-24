@@ -2,6 +2,7 @@ import { Button, UncontrolledTooltip } from 'reactstrap';
 import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
+import UndoButton from './UndoButton';
 
 export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
 export const DEFAULT_FEATURES_TO_KEEP = 10;
@@ -20,6 +21,8 @@ export default function FeatureSelection({
   corrThreshold,
   setCorrThreshold,
   isRecomputingChart,
+  handleUndo,
+  selectedFeaturesHistory,
 }) {
   // Adjust N features when dropped features change
   useEffect(() => {
@@ -40,6 +43,9 @@ export default function FeatureSelection({
       <div>
         <strong>Feature Selection</strong>
       </div>
+      {selectedFeaturesHistory.length > 1 && (
+        <UndoButton handleClick={handleUndo} />
+      )}
       <div style={{ display: 'flex' }}>
         <div style={{ flex: 1 }}>
           <div className="tools">
