@@ -48,6 +48,7 @@ import FeatureSelection, {
   DEFAULT_MAX_FEATURES_TO_KEEP,
 } from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
+import backend from './services/backend';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -85,17 +86,20 @@ let featureNameRegex = new RegExp(featureNamePattern);
 export default function Visualisation({
   active,
   selectedLabelCategory,
+  collectionInfos,
   album,
   featuresChart,
   outcomes,
   dataPoints,
+  models,
   dataSplittingType,
   trainTestSplitType,
   trainingPatients,
   testPatients,
   featureExtractionID,
   setCollections,
-  unlabelledPatients,
+  updateExtractionOrCollection,
+  hasPendingChanges,
   setHasPendingChanges,
 }) {
   // Route
@@ -134,10 +138,11 @@ export default function Visualisation({
     DEFAULT_CORRELATION_THRESHOLD
   );
 
-  // Collection creation
+  // Collection creation/edition
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isCollectionSaving, setIsCollectionSaving] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
+  const [isCollectionUpdating, setIsCollectionUpdating] = useState(false);
 
   // Test Patients Modal
   const [trainingPatientsOpen, setTrainingPatientsOpen] = useState(false);
@@ -402,6 +407,28 @@ export default function Visualisation({
     return groupedTree;
   }, [featureIDs]);
 
+  const getNodeIDsFromFeatureIDs = useCallback((featureIDs, leafItems) => {
+    // Make a map of feature ID -> node ID
+    let featureIDToNodeID = Object.entries(leafItems).reduce(
+      (acc, [key, value]) => {
+        acc[value] = key;
+        return acc;
+      },
+      {}
+    );
+
+    let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
+      for (let featureID of featureIDs) {
+        if (fID.endsWith(featureID)) return true;
+      }
+      return false;
+    });
+
+    let nodeIDs = featureIDsToDrop.map((fID) => featureIDToNodeID[fID]);
+
+    return nodeIDs;
+  }, []);
+
   const treeData = useMemo(() => {
     if (filteringItems) {
       let formattedTreeData = formatTreeData(filteringItems);
@@ -412,13 +439,22 @@ export default function Visualisation({
         allNodeIDs.push(...nodeAndChildrenIds);
       }
 
-      setSelected(allNodeIDs);
+      if (collectionInfos?.collection?.feature_ids) {
+        setSelected(
+          getNodeIDsFromFeatureIDs(
+            collectionInfos?.collection?.feature_ids,
+            getAllLeafItems(formattedTreeData)
+          )
+        );
+      } else {
+        setSelected(allNodeIDs);
+      }
 
       return formattedTreeData;
     }
 
     return [];
-  }, [filteringItems]);
+  }, [filteringItems, collectionInfos, getNodeIDsFromFeatureIDs]);
 
   // Build history of selected features
   useEffect(() => {
@@ -464,16 +500,27 @@ export default function Visualisation({
 
   // Selected feature IDs !== feature IDs
   useEffect(() => {
-    if (
-      featureIDs &&
-      selectedFeatureIDs &&
-      featureIDs.size !== selectedFeatureIDs.size
-    ) {
-      setHasPendingChanges(true);
+    if (collectionInfos?.collection?.feature_ids) {
+      if (
+        !_.isEqual(
+          collectionInfos.collection.feature_ids.sort(),
+          [...selectedFeatureIDs].sort()
+        )
+      )
+        setHasPendingChanges(true);
+      else setHasPendingChanges(false);
     } else {
-      setHasPendingChanges(false);
+      if (
+        featureIDs &&
+        selectedFeatureIDs &&
+        featureIDs.size !== selectedFeatureIDs.size
+      ) {
+        setHasPendingChanges(true);
+      } else {
+        setHasPendingChanges(false);
+      }
     }
-  }, [featureIDs, selectedFeatureIDs, setHasPendingChanges]);
+  }, [featureIDs, selectedFeatureIDs, setHasPendingChanges, collectionInfos]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
@@ -825,31 +872,6 @@ export default function Visualisation({
     });
   }, [formattedHighchartsDataSurvivalTime]);
 
-  const getNodeIDsFromFeatureIDs = useCallback(
-    (featureIDs) => {
-      // Make a map of feature ID -> node ID
-      let featureIDToNodeID = Object.entries(leafItems).reduce(
-        (acc, [key, value]) => {
-          acc[value] = key;
-          return acc;
-        },
-        {}
-      );
-
-      let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
-        for (let featureID of featureIDs) {
-          if (fID.endsWith(featureID)) return true;
-        }
-        return false;
-      });
-
-      let nodeIDs = featureIDsToDrop.map((fID) => featureIDToNodeID[fID]);
-
-      return nodeIDs;
-    },
-    [leafItems]
-  );
-
   const deselectFeatures = useCallback(
     (nodeIDsToDeselect) =>
       setSelected((selected) =>
@@ -876,7 +898,7 @@ export default function Visualisation({
     // Drop all features after the N best ones
     let featuresToDrop = selectedFeatures.slice(nFeatures);
 
-    deselectFeatures(getNodeIDsFromFeatureIDs(featuresToDrop));
+    deselectFeatures(getNodeIDsFromFeatureIDs(featuresToDrop, leafItems));
   }, [
     nFeatures,
     selected,
@@ -1025,6 +1047,19 @@ export default function Visualisation({
     toggleCollectionModal();
   };
 
+  const handleUpdateCollectionClick = async () => {
+    console.log(
+      'Updating existing collection using',
+      selectedFeatureIDs.size,
+      'features'
+    );
+    setIsCollectionUpdating(true);
+    await updateExtractionOrCollection({
+      feature_ids: [...selectedFeatureIDs],
+    });
+    setIsCollectionUpdating(false);
+  };
+
   const handleSaveCollectionClick = async () => {
     setIsCollectionSaving(true);
     console.log('saving collection...');
@@ -1167,16 +1202,44 @@ export default function Visualisation({
               </div>
             </td>
             <td className="chart-cell">
-              {selectedFeatureIDs && (
+              {hasPendingChanges &&
+                selectedFeatureIDs &&
+                collectionInfos?.collection &&
+                models.length === 0 && (
+                  <Button
+                    color="primary"
+                    onClick={handleUpdateCollectionClick}
+                    disabled={
+                      selectedFeatureIDs.size === 0 || isCollectionUpdating
+                    }
+                    className="mr-2"
+                  >
+                    {!isCollectionUpdating ? (
+                      <span>
+                        <FontAwesomeIcon icon="edit" /> Update collection with
+                        these {selectedFeatureIDs.size} features
+                      </span>
+                    ) : (
+                      <span>
+                        <FontAwesomeIcon icon="sync" spin /> Updating
+                        collection...
+                      </span>
+                    )}
+                  </Button>
+                )}
+              {hasPendingChanges && selectedFeatureIDs && (
                 <Button
                   color="success"
                   onClick={handleCreateCollectionClick}
-                  disabled={selectedFeatureIDs.size === 0}
+                  disabled={
+                    selectedFeatureIDs.size === 0 || isCollectionUpdating
+                  }
                 >
-                  + Create new collection with these settings (
-                  {selectedFeatureIDs.size} features)
+                  <FontAwesomeIcon icon="plus" /> Create new collection with
+                  these {selectedFeatureIDs.size} features
                 </Button>
               )}
+
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
                 <>
                   <div style={{ position: 'relative' }}>
@@ -1311,7 +1374,7 @@ export default function Visualisation({
             <Input
               type="text"
               name="collectionName"
-              id="collectionNAme"
+              id="collectionName"
               placeholder="New collection name..."
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}

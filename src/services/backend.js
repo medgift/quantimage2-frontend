@@ -25,17 +25,6 @@ const endpoints = {
 };
 
 class Backend {
-  async lasagna(token, albumId, collectionId) {
-    try {
-      const url = collectionId
-        ? `${endpoints.charts}/${albumId}/${collectionId}/lasagna`
-        : `${endpoints.charts}/${albumId}/lasagna`;
-      return await request(url, { token: token }); // Add token management
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
   async extractions(token, albumID) {
     try {
       const url = albumID
@@ -73,24 +62,6 @@ class Backend {
   async extractionFeatureDetails(token, extractionID) {
     try {
       const url = `${endpoints.extractions}/${extractionID}/feature-details`;
-
-      let response = await rawRequest(url, {
-        token: token,
-        headers: new Headers({ Accept: 'multipart/form-data' }),
-      });
-
-      let { featuresTabular, featuresChart } =
-        await parseFeatureDetailsResponse(response);
-
-      return { featuresTabular, featuresChart };
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
-  async extractionCollectionFeatureDetails(token, extractionID, collectionID) {
-    try {
-      const url = `${endpoints.extractions}/${extractionID}/collections/${collectionID}/feature-details`;
 
       let response = await rawRequest(url, {
         token: token,

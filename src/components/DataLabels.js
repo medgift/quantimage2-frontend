@@ -57,6 +57,8 @@ export default function DataLabels({
   };
 
   const handleSaveLabelsClick = async (e) => {
+    setIsSavingLabels(true);
+
     // Reset train/test patients on outcome change
     await updateExtractionOrCollection({
       train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
@@ -64,7 +66,6 @@ export default function DataLabels({
       [PATIENT_FIELDS.TEST]: null,
     });
 
-    setIsSavingLabels(true);
     await Backend.saveLabels(
       keycloak.token,
       selectedLabelCategory.id,

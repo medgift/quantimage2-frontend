@@ -117,20 +117,9 @@ function App({ setUser, setIsAdmin }) {
                 kheopsError={kheopsError}
               />
               <PropsRoute
-                path="/visualize/:albumID"
-                component={Visualisation}
-                kheopsError={kheopsError}
-              />
-              <PropsRoute
                 path="/study/:studyUID"
                 component={Study}
                 kheopsError={kheopsError}
-              />
-              <PropsRoute
-                path="/models/:albumID"
-                component={Train}
-                kheopsError={kheopsError}
-                albums={albums}
               />
               <PropsRoute path="/profile" component={Profile} />
               <PrivateRoute

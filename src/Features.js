@@ -93,10 +93,13 @@ function Features({ history }) {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   // Get current collection
-  const currentCollection =
-    collections && collectionID
+  const currentCollection = useMemo(() => {
+    console.log(collections, collectionID);
+
+    return collections && collectionID
       ? collections.find((c) => c.collection.id === +collectionID)
       : null;
+  }, [collections, collectionID]);
 
   // Get all patient IDs from the features
   let allPatients = useMemo(() => {
@@ -276,22 +279,13 @@ function Features({ history }) {
   useEffect(() => {
     async function getFeatures() {
       setIsLoading(true);
-      let featuresTabular = [];
-      let featuresChart = [];
-      if (!collectionID) {
-        ({ featuresChart, featuresTabular } =
-          await Backend.extractionFeatureDetails(
-            keycloak.token,
-            featureExtractionID
-          ));
-      } else {
-        ({ featuresChart, featuresTabular } =
-          await Backend.extractionCollectionFeatureDetails(
-            keycloak.token,
-            featureExtractionID,
-            +collectionID
-          ));
-      }
+
+      let { featuresChart, featuresTabular } =
+        await Backend.extractionFeatureDetails(
+          keycloak.token,
+          featureExtractionID
+        );
+
       setFeaturesTabular(featuresTabular);
       setFeaturesChart(featuresChart);
 
@@ -606,7 +600,7 @@ function Features({ history }) {
         let collectionToUpdateIndex = collections.findIndex(
           (col) => col.collection.id === currentCollection.collection.id
         );
-        collections[collectionToUpdateIndex].collection = updatedCollection;
+        collections[collectionToUpdateIndex] = updatedCollection;
 
         return collections;
       });
@@ -721,11 +715,13 @@ function Features({ history }) {
                     }}
                   >
                     {getTabSymbol()}
-                    {isAlternativeUser
-                      ? 'Collections'
-                      : !hasPendingChanges
-                      ? 'Visualization'
-                      : 'Visualization*'}
+                    {isAlternativeUser ? (
+                      'Collections'
+                    ) : !hasPendingChanges ? (
+                      'Visualization'
+                    ) : (
+                      <strong>Visualization*</strong>
+                    )}
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -952,6 +948,7 @@ function Features({ history }) {
                           featuresChart={featuresChart}
                           outcomes={outcomes}
                           dataPoints={dataPoints}
+                          models={models}
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
                           trainingPatients={trainingPatients}
@@ -959,7 +956,11 @@ function Features({ history }) {
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
+                          updateExtractionOrCollection={
+                            updateExtractionOrCollection
+                          }
                           unlabelledPatients={unlabelledPatients}
+                          hasPendingChanges={hasPendingChanges}
                           setHasPendingChanges={setHasPendingChanges}
                         />
                       </>
