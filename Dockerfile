@@ -1,5 +1,5 @@
 FROM node:16
-MAINTAINER Roger Schaer
+LABEL Author="Roger Schaer"
 
 # Define app folder
 WORKDIR /usr/src/app
