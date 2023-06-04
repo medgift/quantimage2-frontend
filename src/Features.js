@@ -3,7 +3,6 @@ import { useParams, Prompt } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
 import {
-  Alert,
   Badge,
   Button,
   Form,
@@ -35,6 +34,7 @@ import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
+import ClinicalFeatures from './ClinicalFeatures';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -736,6 +736,23 @@ function Features({ history }) {
                     {models.length > 0 && <Badge>{models.length}</Badge>}
                   </NavLink>
                 </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('clinical_features')}
+                    onClick={() => {
+                      toggle('clinical_features');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    {isAlternativeUser ? (
+                      'Collections'
+                    ) : !hasPendingChanges ? (
+                      'Clinical Features'
+                    ) : (
+                      <strong>Clinical Features*</strong>
+                    )}
+                  </NavLink>
+                </NavItem>
               </Nav>
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
@@ -1012,6 +1029,13 @@ function Features({ history }) {
                       </p>
                     )
                   ) : (
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="clinical_features">
+                  {tab === 'clinical_features' ? (
+                    <ClinicalFeatures/>
+                  ):(
                     <span>Loading...</span>
                   )}
                 </TabPane>
