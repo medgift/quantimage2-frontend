@@ -19,8 +19,6 @@ import {
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
 import { PrivateRoute } from './utils/PrivateRoute';
-import Train from './Train';
-import Visualisation from './Visualisation';
 import Dashboard from './Dashboard';
 
 import Backend from './services/backend';
