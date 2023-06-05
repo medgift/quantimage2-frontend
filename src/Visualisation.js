@@ -48,7 +48,6 @@ import FeatureSelection, {
   DEFAULT_MAX_FEATURES_TO_KEEP,
 } from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
-import backend from './services/backend';
 import UndoButton from './components/UndoButton';
 
 HighchartsPatternFills(Highcharts);
