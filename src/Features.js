@@ -85,6 +85,7 @@ function Features({ history }) {
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingLabels, setIsSavingLabels] = useState(false);
+  const [isSavingClinicalFeatures, setIsClinicalFeatures] = useState(false);
   const [isSavingCollectionName, setIsSavingCollectionName] = useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -1037,8 +1038,8 @@ function Features({ history }) {
                       <ClinicalFeatures
                         albumID={albumID}
                         featureExtractionID={featureExtractionID}
-                        isSavingLabels={isSavingLabels}
-                        setIsSavingLabels={setIsSavingLabels}
+                        isSavingClinicalFeatures={isSavingClinicalFeatures}
+                        setIsClinicalFeatures={setIsClinicalFeatures}
                         dataPoints={allPatients}
                         outcomes={outcomes}
                         selectedLabelCategory={selectedLabelCategory}

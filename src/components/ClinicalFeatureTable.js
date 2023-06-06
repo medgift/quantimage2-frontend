@@ -14,8 +14,8 @@ import {
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
   validateClinicalFeatureFile,
-  isSavingLabels,
   dataPoints,
+  isSavingClinicalFeatures,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -103,8 +103,6 @@ export default function ClinicalFeatureTable({
   };
 
   useEffect(() => {
-    if (!selectedLabelCategory) return [];
-
     let formattedOutcomes = {};
 
     for (let dataPoint of [
@@ -112,45 +110,17 @@ export default function ClinicalFeatureTable({
         p1.localeCompare(p2, undefined, { numeric: true })
       ),
     ]) {
-      let existingLabel = selectedLabelCategory.labels.find(
-        (l) => l.patient_id === dataPoint
+      formattedOutcomes[dataPoint] = Object.assign(
+        {},
+        {},
+        ...clinicalFeaturesColumns.map((o) => '')
       );
 
-      if (existingLabel)
-        formattedOutcomes[dataPoint] = existingLabel.label_content;
-      else
-        formattedOutcomes[dataPoint] = Object.assign(
-          {},
-          {},
-          ...clinicalFeaturesColumns.map((o) => '')
-        );
-
       seteditableClinicalFeatures(formattedOutcomes);
-      // return selectedLabelCategory.labels.reduce((acc, curr) => {
-      //   acc[curr.patient_id] = curr.label_content;
-      //
-      //   return acc;
-      // }, {});
     }
 
     seteditableClinicalFeatures(formattedOutcomes);
-  }, [selectedLabelCategory, dataPoints, clinicalFeaturesColumns]);
-
-  // Reset positive label on category change
-  useEffect(() => {
-    if (selectedLabelCategory.pos_label)
-      setposClinicalFeatures(selectedLabelCategory.pos_label);
-  }, [selectedLabelCategory]);
-
-  // Reset positive label on classes change
-  useEffect(() => {
-    if (
-      classes.length > 0 &&
-      hasTextualLabels(classes) &&
-      !classes.includes(posClinicalFeatures)
-    )
-      setposClinicalFeatures(classes[0]);
-  }, [posClinicalFeatures, classes]);
+  }, [dataPoints, clinicalFeaturesColumns]);
 
   return (
     <>
@@ -223,9 +193,9 @@ export default function ClinicalFeatureTable({
         <Button
           color="success"
           onClick={handleSaveClinicalFeaturesClick}
-          disabled={isSavingLabels}
+          disabled={isSavingClinicalFeatures}
         >
-          {isSavingLabels ? (
+          {isSavingClinicalFeatures ? (
             <>
               <FontAwesomeIcon icon="spinner" spin /> Saving Labels
             </>
@@ -278,9 +248,9 @@ export default function ClinicalFeatureTable({
             <Button
               color="success"
               onClick={handleSaveClinicalFeaturesClick}
-              disabled={isSavingLabels}
+              disabled={isSavingClinicalFeatures}
             >
-              {isSavingLabels ? (
+              {isSavingClinicalFeatures ? (
                 <>
                   <FontAwesomeIcon icon="spinner" spin /> Saving Labels
                 </>

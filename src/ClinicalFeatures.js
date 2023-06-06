@@ -11,8 +11,8 @@ import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
 export default function ClinicalFeatures({
   albumID,
   featureExtractionID,
-  isSavingLabels,
-  setIsSavingLabels,
+  isSavingClinicalFeatures,
+  setisSavingClinicalFeatures,
   dataPoints,
   outcomes,
   selectedLabelCategory,
@@ -107,21 +107,16 @@ export default function ClinicalFeatures({
         {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
       </div>
       <ClinicalFeatureTable
-            setSelectedLabelCategory={setSelectedLabelCategory}
-            setLabelCategories={setLabelCategories}
-            outcomes={outcomes}
-            outcomeColumns={CLINICAL_FEATURES}
+            clinicalFeaturesColumns={CLINICAL_FEATURES}
             validateClinicalFeatureFile={(file, dataPoints) =>
               validateLabelOrClinicalFeaturesFile(
                 file,
                 dataPoints,
                 CLINICAL_FEATURES,
               )
+            
             }
-            updateExtractionOrCollection={updateExtractionOrCollection}
-            setNbTrainingPatients={setNbTrainingPatients}
-            dataname={"Clinical Features"}
-            datalabelstype={DataLabelsType.CLINICAL_FEATURES}
+            isSavingClinicalFeatures={isSavingClinicalFeatures}
        />
     </>
   );
