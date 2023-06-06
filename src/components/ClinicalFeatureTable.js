@@ -50,6 +50,12 @@ export default function ClinicalFeatureTable({
   };
 
   const handleSaveClinicalFeaturesClick = async (e) => {
+    if (isAutoClinFeaturesOpen) {
+      toggleManualLabelling();
+      setclinicalFeatureFileMessage(null);
+      setisClinicalFeatureFileValid(null);
+      fileInput.current.value = '';
+    }
     //pass
   };
 

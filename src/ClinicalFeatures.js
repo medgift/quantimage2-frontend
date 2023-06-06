@@ -114,9 +114,9 @@ export default function ClinicalFeatures({
                 dataPoints,
                 CLINICAL_FEATURES,
               )
-            
             }
             isSavingClinicalFeatures={isSavingClinicalFeatures}
+            dataPoints={dataPoints}
        />
     </>
   );
