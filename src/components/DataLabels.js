@@ -12,12 +12,6 @@ import {
 } from '../config/constants';
 
 
-export const DataLabelsType = {
-	OUTCOMES: "Outcomes",
-	CLINICAL_FEATURES: "Clinical Features",
-}
-
-
 export default function DataLabels({
   albumID,
   selectedLabelCategory,
@@ -63,8 +57,7 @@ export default function DataLabels({
   };
 
   const handleSaveLabelsClick = async (e) => {
-    setIsSavingLabels(true);
-    
+    setIsSavingLabels(true);    
     // Reset train/test patients on outcome change
     await updateExtractionOrCollection({
       train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
@@ -203,7 +196,7 @@ export default function DataLabels({
     <>
       <p>
         <Button color="primary" onClick={toggleManualLabelling}>
-          Manual Labelling
+          Manual labelling
         </Button>{' '}
         <Button color="success" onClick={toggleAutoLabelling}>
           Import Labels
@@ -277,7 +270,7 @@ export default function DataLabels({
               <FontAwesomeIcon icon="spinner" spin /> Saving Labels
             </>
           ) : (
-            `Save Labels`
+            'Save Labels'
           )}
         </Button>
       </Collapse>
@@ -332,7 +325,7 @@ export default function DataLabels({
                   <FontAwesomeIcon icon="spinner" spin /> Saving Labels
                 </>
               ) : (
-                `Save Labels`
+                'Save Labels'
               )}
             </Button>
           </>
