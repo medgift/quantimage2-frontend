@@ -726,18 +726,6 @@ function Features({ history }) {
                 </NavItem>
                 <NavItem>
                   <NavLink
-                    className={getTabClassName('train')}
-                    onClick={() => {
-                      toggle('train');
-                    }}
-                  >
-                    {getTabSymbol()}
-                    Model Training{' '}
-                    {models.length > 0 && <Badge>{models.length}</Badge>}
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
                     className={getTabClassName('clinical_features')}
                     onClick={() => {
                       toggle('clinical_features');
@@ -751,6 +739,18 @@ function Features({ history }) {
                     ) : (
                       <strong>Clinical Features*</strong>
                     )}
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('train')}
+                    onClick={() => {
+                      toggle('train');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    Model Training{' '}
+                    {models.length > 0 && <Badge>{models.length}</Badge>}
                   </NavLink>
                 </NavItem>
               </Nav>
@@ -1034,7 +1034,23 @@ function Features({ history }) {
                 </TabPane>
                 <TabPane tabId="clinical_features">
                   {tab === 'clinical_features' ? (
-                    <ClinicalFeatures/>
+                      <ClinicalFeatures
+                        albumID={albumID}
+                        featureExtractionID={featureExtractionID}
+                        isSavingLabels={isSavingLabels}
+                        setIsSavingLabels={setIsSavingLabels}
+                        dataPoints={allPatients}
+                        outcomes={outcomes}
+                        selectedLabelCategory={selectedLabelCategory}
+                        setSelectedLabelCategory={setSelectedLabelCategory}
+                        labelCategories={labelCategories}
+                        setLabelCategories={setLabelCategories}
+                        setFeaturesChart={setFeaturesChart}
+                        updateExtractionOrCollection={
+                          updateExtractionOrCollection
+                      }
+                      setNbTrainingPatients={setNbTrainingPatients}
+                    />
                   ):(
                     <span>Loading...</span>
                   )}

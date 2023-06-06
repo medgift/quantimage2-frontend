@@ -2,10 +2,27 @@ import React, { useState } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { Alert } from 'reactstrap';
 import { useKeycloak } from '@react-keycloak/web';
+import DataLabels from './components/DataLabels';
+import { DataLabelsType } from './components/DataLabels';
+import { CLINICAL_FEATURES } from './config/constants';
+import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
 
 
-
-export default function ClinicalFeatures({})
+export default function ClinicalFeatures({
+  albumID,
+  featureExtractionID,
+  isSavingLabels,
+  setIsSavingLabels,
+  dataPoints,
+  outcomes,
+  selectedLabelCategory,
+  setSelectedLabelCategory,
+  labelCategories,
+  setLabelCategories,
+  setFeaturesChart,
+  updateExtractionOrCollection,
+  setNbTrainingPatients,
+})
  {
   const { keycloak } = useKeycloak();
 
@@ -79,13 +96,7 @@ export default function ClinicalFeatures({})
   return (
     <>
       <h3>Clinical Features</h3>
-      <p>No clinical features yet - experiments are ongoing.</p>
       <div>
-        <Button color="primary">
-          <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
-            Upload Clinical Features
-          </label>
-        </Button>
         <input
           id="file-upload"
           type="file"
@@ -95,6 +106,30 @@ export default function ClinicalFeatures({})
         />
         {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
       </div>
+      <DataLabels
+            albumID={albumID}
+            dataPoints={dataPoints}
+            isSavingLabels={isSavingLabels}
+            setIsSavingLabels={setIsSavingLabels}
+            selectedLabelCategory={selectedLabelCategory}
+            setSelectedLabelCategory={setSelectedLabelCategory}
+            setLabelCategories={setLabelCategories}
+            outcomes={outcomes}
+            setFeaturesChart={setFeaturesChart}
+            featureExtractionID={featureExtractionID}
+            outcomeColumns={CLINICAL_FEATURES}
+            validateLabelFile={(file, dataPoints) =>
+              validateLabelOrClinicalFeaturesFile(
+                file,
+                dataPoints,
+                CLINICAL_FEATURES,
+              )
+            }
+            updateExtractionOrCollection={updateExtractionOrCollection}
+            setNbTrainingPatients={setNbTrainingPatients}
+            dataname={"Clinical Features"}
+            datalabelstype={DataLabelsType.CLINICAL_FEATURES}
+       />
     </>
   );
 }

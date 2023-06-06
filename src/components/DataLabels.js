@@ -11,6 +11,13 @@ import {
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
 
+
+export const DataLabelsType = {
+	OUTCOMES: "Outcomes",
+	CLINICAL_FEATURES: "Clinical Features",
+}
+
+
 export default function DataLabels({
   albumID,
   selectedLabelCategory,
@@ -22,6 +29,8 @@ export default function DataLabels({
   setLabelCategories,
   dataPoints,
   updateExtractionOrCollection,
+  dataname = "Labels",
+  datalabeltype = DataLabelsType.OUTCOMES,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -56,41 +65,45 @@ export default function DataLabels({
   };
 
   const handleSaveLabelsClick = async (e) => {
-    setIsSavingLabels(true);
+    if (datalabeltype === DataLabelsType.OUTCOMES) {
+      setIsSavingLabels(true);
+      
+      // Reset train/test patients on outcome change
+      await updateExtractionOrCollection({
+        train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
+        [PATIENT_FIELDS.TRAINING]: null,
+        [PATIENT_FIELDS.TEST]: null,
+      });
 
-    // Reset train/test patients on outcome change
-    await updateExtractionOrCollection({
-      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
-      [PATIENT_FIELDS.TRAINING]: null,
-      [PATIENT_FIELDS.TEST]: null,
-    });
+      await Backend.saveLabels(
+        keycloak.token,
+        selectedLabelCategory.id,
+        editableOutcomes,
+        posLabel !== '' ? posLabel : null
+      );
+      setIsSavingLabels(false);
 
-    await Backend.saveLabels(
-      keycloak.token,
-      selectedLabelCategory.id,
-      editableOutcomes,
-      posLabel !== '' ? posLabel : null
-    );
-    setIsSavingLabels(false);
+      if (isAutoLabellingOpen) {
+        toggleManualLabelling();
+        setLabelFileMessage(null);
+        setIsLabelFileValid(null);
+        fileInput.current.value = '';
+      }
 
-    if (isAutoLabellingOpen) {
-      toggleManualLabelling();
-      setLabelFileMessage(null);
-      setIsLabelFileValid(null);
-      fileInput.current.value = '';
+      /* TODO - Improve this part, these manual calls are not so elegant */
+      let labelCategories = await Backend.labelCategories(
+        keycloak.token,
+        albumID
+      );
+
+      setLabelCategories(labelCategories);
+
+      setSelectedLabelCategory(
+        labelCategories.find((c) => c.id === selectedLabelCategory.id)
+      );
+    } else {
+      //pass
     }
-
-    /* TODO - Improve this part, these manual calls are not so elegant */
-    let labelCategories = await Backend.labelCategories(
-      keycloak.token,
-      albumID
-    );
-
-    setLabelCategories(labelCategories);
-
-    setSelectedLabelCategory(
-      labelCategories.find((c) => c.id === selectedLabelCategory.id)
-    );
   };
 
   const updateEditableOutcomes = (labels) => {
@@ -196,10 +209,10 @@ export default function DataLabels({
     <>
       <p>
         <Button color="primary" onClick={toggleManualLabelling}>
-          Manual labelling
+          Manual {dataname}
         </Button>{' '}
         <Button color="success" onClick={toggleAutoLabelling}>
-          Import Labels
+          Import {dataname}
         </Button>
       </p>
       <Collapse isOpen={isManualLabellingOpen}>
@@ -270,7 +283,7 @@ export default function DataLabels({
               <FontAwesomeIcon icon="spinner" spin /> Saving Labels
             </>
           ) : (
-            'Save Labels'
+            `Save ${dataname}`
           )}
         </Button>
       </Collapse>
@@ -325,7 +338,7 @@ export default function DataLabels({
                   <FontAwesomeIcon icon="spinner" spin /> Saving Labels
                 </>
               ) : (
-                'Save Labels'
+                `Save ${dataname}`
               )}
             </Button>
           </>

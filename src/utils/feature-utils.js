@@ -5,6 +5,9 @@ import Backend from '../services/backend';
 import Kheops from '../services/kheops';
 import _ from 'lodash';
 import React from 'react';
+import * as detectNewline from 'detect-newline';
+import * as csvString from 'csv-string';
+import { parse } from 'csv-parse/lib/sync';
 
 const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';
@@ -237,4 +240,110 @@ export function formatMetricDisplay(value) {
 
 function clamp(value, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max);
+}
+
+export function validateFileType(file) {
+  /* Validate metadata - file type */
+  if (
+    ![
+      'text/csv',
+      'text/comma-separated-values',
+      'text/tab-separated-values',
+      'application/csv',
+      'application/x-csv',
+    ].includes(file.type)
+  ) {
+    if (
+      file.type === 'application/vnd.ms-excel' &&
+      file.name.endsWith('.csv')
+    ) {
+      // Ok, Windows sends strange MIME type
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, headerFieldNames) {
+  console.log(file);
+  let valid = false;
+  let error = null;
+
+  /* Validate file type */
+  let fileTypeIsValid = validateFileType(file);
+
+  if (!fileTypeIsValid) {
+    error = 'The file is not a CSV file!';
+    return [valid, error];
+  }
+
+  /* Validate file content */
+  const content = await file.text();
+
+  let nbMatches = 0;
+  let labels = {};
+
+  try {
+    /* Add PatientID to the header field names (should always exist) */
+    let fullHeaderFieldNames = ['PatientID', ...headerFieldNames];
+    console.log('full header field names', fullHeaderFieldNames);
+
+    let lineEnding = detectNewline(content);
+
+    let firstLine = content.split(lineEnding)[0];
+
+    let separator = csvString.detect(firstLine);
+
+    let headerFields = firstLine.split(separator);
+
+    let hasHeader =
+      headerFields.length === fullHeaderFieldNames.length &&
+      fullHeaderFieldNames.every((fieldName) =>
+        headerFields.includes(fieldName)
+      );
+
+    let columns = hasHeader ? true : fullHeaderFieldNames;
+
+    const records = parse(content, {
+      columns: columns,
+      skip_empty_lines: true,
+    });
+
+    // Match rows to data points
+    console.log(dataPoints);
+
+    for (let patientID of dataPoints) {
+      let matchingRecord = records.find(
+        (record) => record.PatientID === patientID
+      );
+
+      if (matchingRecord) {
+        nbMatches++;
+
+        // Fill labelCategories
+        const { PatientID, ...recordContent } = matchingRecord;
+        labels[PatientID] = recordContent;
+      }
+    }
+
+    if (nbMatches === 0) {
+      error = `The CSV file matched none of the patients!`;
+      return [valid, error, {}];
+    }
+  } catch (e) {
+    console.error(e);
+    error = 'The CSV file could not be parsed, check its format!';
+    return [valid, error, {}];
+  }
+
+  valid = true;
+  return [
+    valid,
+    `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
+    labels,
+  ];
 }
