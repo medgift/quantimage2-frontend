@@ -4,133 +4,86 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
-import './DataLabels.css';
+import './ClinicalFeatureTable.css';
 import {
   OUTCOME_CLASSIFICATION,
-  PATIENT_FIELDS,
-  TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
 
 
-export const DataLabelsType = {
-	OUTCOMES: "Outcomes",
-	CLINICAL_FEATURES: "Clinical Features",
-}
 
-
-export default function DataLabels({
-  albumID,
-  selectedLabelCategory,
-  setSelectedLabelCategory,
-  outcomeColumns,
-  validateLabelFile,
+export default function ClinicalFeatureTable({
+  clinicalFeaturesColumns,
+  validateClinicalFeatureFile,
   isSavingLabels,
-  setIsSavingLabels,
-  setLabelCategories,
   dataPoints,
-  updateExtractionOrCollection,
 }) {
   let { keycloak } = useKeycloak();
 
-  let [editableOutcomes, setEditableOutcomes] = useState({});
+  let [editableClinicalFeatures, seteditableClinicalFeatures] = useState({});
 
-  let [isManualLabellingOpen, setIsManualLabellingOpen] = useState(true);
-  let [isAutoLabellingOpen, setIsAutoLabellingOpen] = useState(false);
+  let [isManualClinFeaturesOpen, setisManualClinFeaturesOpen] = useState(true);
+  let [isAutoClinFeaturesOpen, setisAutoClinFeaturesOpen] = useState(false);
 
-  let [posLabel, setPosLabel] = useState('');
+  let [posClinicalFeatures, setposClinicalFeatures] = useState('');
 
-  let [isLabelFileValid, setIsLabelFileValid] = useState(null);
-  let [labelFileMessage, setLabelFileMessage] = useState(null);
+  let [isClinicalFeatureFileValid, setisClinicalFeatureFileValid] = useState(null);
+  let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
-    setIsManualLabellingOpen((open) => !open);
-    setIsAutoLabellingOpen(false);
+    setisManualClinFeaturesOpen((open) => !open);
+    setisAutoClinFeaturesOpen(false);
   };
 
   const toggleAutoLabelling = () => {
-    setIsAutoLabellingOpen((open) => !open);
-    setIsManualLabellingOpen(false);
+    setisAutoClinFeaturesOpen((open) => !open);
+    setisManualClinFeaturesOpen(false);
   };
 
-  const handleOutcomeInputChange = (e, patientID, outcomeColumn) => {
-    let updatedOutcomes = { ...editableOutcomes };
+  const handleClinFeaturesInputChange = (e, patientID, clinicalFeaturesColumns) => {
+    let updatedClinicalFeatures = { ...editableClinicalFeatures };
 
-    let outcomeToUpdate = updatedOutcomes[patientID];
-    outcomeToUpdate[outcomeColumn] = e.target.value;
+    let clinicalFeatureToUpdate = updatedClinicalFeatures[patientID];
+    clinicalFeatureToUpdate[clinicalFeaturesColumns] = e.target.value;
 
-    setEditableOutcomes(updatedOutcomes);
+    seteditableClinicalFeatures(updatedClinicalFeatures);
   };
 
-  const handleSaveLabelsClick = async (e) => {
-    setIsSavingLabels(true);
-    
-    // Reset train/test patients on outcome change
-    await updateExtractionOrCollection({
-      train_test_split_type: TRAIN_TEST_SPLIT_TYPES.AUTO,
-      [PATIENT_FIELDS.TRAINING]: null,
-      [PATIENT_FIELDS.TEST]: null,
-    });
-
-    await Backend.saveLabels(
-      keycloak.token,
-      selectedLabelCategory.id,
-      editableOutcomes,
-      posLabel !== '' ? posLabel : null
-    );
-    setIsSavingLabels(false);
-
-    if (isAutoLabellingOpen) {
-      toggleManualLabelling();
-      setLabelFileMessage(null);
-      setIsLabelFileValid(null);
-      fileInput.current.value = '';
-    }
-
-    /* TODO - Improve this part, these manual calls are not so elegant */
-    let labelCategories = await Backend.labelCategories(
-      keycloak.token,
-      albumID
-    );
-
-    setLabelCategories(labelCategories);
-
-    setSelectedLabelCategory(
-      labelCategories.find((c) => c.id === selectedLabelCategory.id)
-    );
+  const handleSaveClinicalFeaturesClick = async (e) => {
+    //pass
   };
 
-  const updateEditableOutcomes = (labels) => {
-    let outcomesToUpdate = { ...editableOutcomes };
+  const updateeditableClinicalFeatures = (labels) => {
+    let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
 
     for (let patientID in labels) {
-      if (patientID in editableOutcomes) {
-        outcomesToUpdate[patientID] = labels[patientID];
+      if (patientID in editableClinicalFeatures) {
+        clinicalFeaturesToUpdate[patientID] = labels[patientID];
       }
     }
 
-    setEditableOutcomes(outcomesToUpdate);
+    seteditableClinicalFeatures(clinicalFeaturesToUpdate);
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, message, labels] = await validateLabelFile(
+    let [isValid, message, labels] = await validateClinicalFeatureFile(
       fileInput.current.files[0],
       dataPoints
     );
 
     if (isValid) {
-      updateEditableOutcomes(labels);
+      updateeditableClinicalFeatures(labels);
     }
-    setIsLabelFileValid(isValid);
-    setLabelFileMessage(message);
+    setisClinicalFeatureFileValid(isValid);
+    setclinicalFeatureFileMessage(message);
   };
 
   const classes = useMemo(() => {
-    if (!outcomeColumns.includes(OUTCOME_CLASSIFICATION)) return [];
+    if (!clinicalFeaturesColumns.includes(OUTCOME_CLASSIFICATION)) return [];
 
     if (
-      Object.values(editableOutcomes).length > 0 &&
-      !Object.keys(Object.values(editableOutcomes)[0]).includes(
+      Object.values(editableClinicalFeatures).length > 0 &&
+      !Object.keys(Object.values(editableClinicalFeatures)[0]).includes(
         OUTCOME_CLASSIFICATION
       )
     )
@@ -138,12 +91,12 @@ export default function DataLabels({
 
     return [
       ...new Set(
-        Object.values(editableOutcomes)
+        Object.values(editableClinicalFeatures)
           .map((o) => o[OUTCOME_CLASSIFICATION])
           .filter((o) => o)
       ),
     ];
-  }, [outcomeColumns, editableOutcomes]);
+  }, [clinicalFeaturesColumns, editableClinicalFeatures]);
 
   const hasTextualLabels = (classes) => {
     return classes.some((c) => isNaN(c));
@@ -169,10 +122,10 @@ export default function DataLabels({
         formattedOutcomes[dataPoint] = Object.assign(
           {},
           {},
-          ...outcomeColumns.map((o) => '')
+          ...clinicalFeaturesColumns.map((o) => '')
         );
 
-      setEditableOutcomes(formattedOutcomes);
+      seteditableClinicalFeatures(formattedOutcomes);
       // return selectedLabelCategory.labels.reduce((acc, curr) => {
       //   acc[curr.patient_id] = curr.label_content;
       //
@@ -180,13 +133,13 @@ export default function DataLabels({
       // }, {});
     }
 
-    setEditableOutcomes(formattedOutcomes);
-  }, [selectedLabelCategory, dataPoints, outcomeColumns]);
+    seteditableClinicalFeatures(formattedOutcomes);
+  }, [selectedLabelCategory, dataPoints, clinicalFeaturesColumns]);
 
   // Reset positive label on category change
   useEffect(() => {
     if (selectedLabelCategory.pos_label)
-      setPosLabel(selectedLabelCategory.pos_label);
+      setposClinicalFeatures(selectedLabelCategory.pos_label);
   }, [selectedLabelCategory]);
 
   // Reset positive label on classes change
@@ -194,29 +147,29 @@ export default function DataLabels({
     if (
       classes.length > 0 &&
       hasTextualLabels(classes) &&
-      !classes.includes(posLabel)
+      !classes.includes(posClinicalFeatures)
     )
-      setPosLabel(classes[0]);
-  }, [posLabel, classes]);
+      setposClinicalFeatures(classes[0]);
+  }, [posClinicalFeatures, classes]);
 
   return (
     <>
       <p>
         <Button color="primary" onClick={toggleManualLabelling}>
-          Manual Labelling
+          Manual Clinical Features
         </Button>{' '}
         <Button color="success" onClick={toggleAutoLabelling}>
-          Import Labels
+          Import Clinical Features
         </Button>
       </p>
-      <Collapse isOpen={isManualLabellingOpen}>
+      <Collapse isOpen={isManualClinFeaturesOpen}>
         <Table className="narrow-table table-fixed">
           <thead>
             <tr>
               <th>PatientID</th>
               {/*<th>ROI</th>*/}
-              {outcomeColumns.map((outcomeColumn) => (
-                <th key={outcomeColumn}>{outcomeColumn}</th>
+              {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
+                <th key={clinicalFeaturesColumns}>{clinicalFeaturesColumns}</th>
               ))}
             </tr>
           </thead>
@@ -224,19 +177,19 @@ export default function DataLabels({
             {dataPoints.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {outcomeColumns.map((outcomeColumn) => (
-                  <td key={outcomeColumn} className="data-label">
+                {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
+                  <td key={clinicalFeaturesColumns} className="data-label">
                     <Input
                       type="text"
-                      placeholder={outcomeColumn}
+                      placeholder={clinicalFeaturesColumns}
                       value={
-                        editableOutcomes[dataPoint] &&
-                        editableOutcomes[dataPoint][outcomeColumn]
-                          ? editableOutcomes[dataPoint][outcomeColumn]
+                        editableClinicalFeatures[dataPoint] &&
+                        editableClinicalFeatures[dataPoint][clinicalFeaturesColumns]
+                          ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumns]
                           : ''
                       }
                       onChange={(e) => {
-                        handleOutcomeInputChange(e, dataPoint, outcomeColumn);
+                        handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumns);
                       }}
                     />
                   </td>
@@ -246,18 +199,18 @@ export default function DataLabels({
           </tbody>
         </Table>
 
-        {outcomeColumns.includes(OUTCOME_CLASSIFICATION) &&
+        {clinicalFeaturesColumns.includes(OUTCOME_CLASSIFICATION) &&
           classes.length > 0 &&
           hasTextualLabels(classes) && (
             <div className="mb-2">
               <h3>
                 Textual labels detected - Please define the positive label
               </h3>
-              <p>Positive Label : {posLabel}</p>
+              <p>Positive Label : {posClinicalFeatures}</p>
               <Input
                 type="select"
-                value={posLabel}
-                onChange={(e) => setPosLabel(e.target.value)}
+                value={posClinicalFeatures}
+                onChange={(e) => setposClinicalFeatures(e.target.value)}
               >
                 {classes.map((c) => {
                   console.log('Class', c);
@@ -269,7 +222,7 @@ export default function DataLabels({
 
         <Button
           color="success"
-          onClick={handleSaveLabelsClick}
+          onClick={handleSaveClinicalFeaturesClick}
           disabled={isSavingLabels}
         >
           {isSavingLabels ? (
@@ -277,23 +230,23 @@ export default function DataLabels({
               <FontAwesomeIcon icon="spinner" spin /> Saving Labels
             </>
           ) : (
-            `Save Labels`
+            `Save Clinical Features`
           )}
         </Button>
       </Collapse>
 
-      <Collapse isOpen={isAutoLabellingOpen}>
+      <Collapse isOpen={isAutoClinFeaturesOpen}>
         <p>
           Please upload a CSV file with one row per patient (+optionnally a
           header row) containing the following{' '}
-          <strong>{outcomeColumns.length + 1} columns</strong>:
+          <strong>{clinicalFeaturesColumns.length + 1} columns</strong>:
         </p>
         <Table className="narrow-table">
           <thead>
             <tr>
               <th>PatientID</th>
-              {outcomeColumns.map((outcomeColumn) => (
-                <th key={outcomeColumn}>{outcomeColumn}</th>
+              {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
+                <th key={clinicalFeaturesColumns}>{clinicalFeaturesColumns}</th>
               ))}
             </tr>
           </thead>
@@ -312,19 +265,19 @@ export default function DataLabels({
         <br />
         {fileInput.current &&
           fileInput.current.files[0] &&
-          !isLabelFileValid && (
+          !isClinicalFeatureFileValid && (
             <Alert color="danger">
-              The selected file is not valid: {labelFileMessage}
+              The selected file is not valid: {clinicalFeatureFileMessage}
             </Alert>
           )}
-        {fileInput.current && fileInput.current.files[0] && isLabelFileValid && (
+        {fileInput.current && fileInput.current.files[0] && isClinicalFeatureFileValid && (
           <>
             <Alert color="success">
-              The selected file is valid: {labelFileMessage}
+              The selected file is valid: {clinicalFeatureFileMessage}
             </Alert>
             <Button
               color="success"
-              onClick={handleSaveLabelsClick}
+              onClick={handleSaveClinicalFeaturesClick}
               disabled={isSavingLabels}
             >
               {isSavingLabels ? (
@@ -332,7 +285,7 @@ export default function DataLabels({
                   <FontAwesomeIcon icon="spinner" spin /> Saving Labels
                 </>
               ) : (
-                `Save Labels`
+                `Save Clinical Features`
               )}
             </Button>
           </>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { Alert } from 'reactstrap';
 import { useKeycloak } from '@react-keycloak/web';
-import DataLabels from './components/DataLabels';
+import ClinicalFeatureTable from './components/ClinicalFeatureTable';
 import { DataLabelsType } from './components/DataLabels';
 import { CLINICAL_FEATURES } from './config/constants';
 import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
@@ -106,19 +106,12 @@ export default function ClinicalFeatures({
         />
         {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
       </div>
-      <DataLabels
-            albumID={albumID}
-            dataPoints={dataPoints}
-            isSavingLabels={isSavingLabels}
-            setIsSavingLabels={setIsSavingLabels}
-            selectedLabelCategory={selectedLabelCategory}
+      <ClinicalFeatureTable
             setSelectedLabelCategory={setSelectedLabelCategory}
             setLabelCategories={setLabelCategories}
             outcomes={outcomes}
-            setFeaturesChart={setFeaturesChart}
-            featureExtractionID={featureExtractionID}
             outcomeColumns={CLINICAL_FEATURES}
-            validateLabelFile={(file, dataPoints) =>
+            validateClinicalFeatureFile={(file, dataPoints) =>
               validateLabelOrClinicalFeaturesFile(
                 file,
                 dataPoints,
