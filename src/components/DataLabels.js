@@ -11,7 +11,6 @@ import {
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
 
-
 export default function DataLabels({
   albumID,
   selectedLabelCategory,
