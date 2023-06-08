@@ -22,6 +22,7 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   navigation: `${baseEndpoint}/navigation`,
   albums: `${baseEndpoint}/albums`,
+  clinical_features: `${baseEndpoint}/clinical_features`,
 };
 
 class Backend {
@@ -138,10 +139,22 @@ class Backend {
     try {
       const url = `${endpoints.labels}/${labelCollectionID}`;
 
+      console.log('labelMap', labelMap);
       let data = { label_map: labelMap };
       if (posLabel) data.pos_label = posLabel;
 
       return await request(url, { method: 'POST', data: data, token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async saveClinicalFeatures(token, clinical_feature_map) {
+    try {
+
+      console.log('clinical_feature_map', clinical_feature_map);
+      let data = { clinical_feature_map: clinical_feature_map };
+      return await request(endpoints.clinical_features, { method: 'POST', data: data, token: token });
     } catch (err) {
       throw err; // Just throw it for now
     }

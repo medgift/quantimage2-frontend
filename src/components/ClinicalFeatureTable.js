@@ -56,7 +56,12 @@ export default function ClinicalFeatureTable({
       setisClinicalFeatureFileValid(null);
       fileInput.current.value = '';
     }
-    //pass
+    
+    await Backend.saveClinicalFeatures(
+      keycloak.token,
+      editableClinicalFeatures,
+    );
+
   };
 
   const updateeditableClinicalFeatures = (labels) => {
