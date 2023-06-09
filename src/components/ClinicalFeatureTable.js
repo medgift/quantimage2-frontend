@@ -31,8 +31,10 @@ export default function ClinicalFeatureTable({
   let fileInput = useRef(null);
 
   const toggleManualLabelling = () => {
+    console.log("toggleManualLabelling");
     setisManualClinFeaturesOpen((open) => !open);
     setisAutoClinFeaturesOpen(false);
+    loadClinicalFeatures();
   };
 
   const toggleAutoLabelling = () => {
@@ -63,6 +65,12 @@ export default function ClinicalFeatureTable({
     );
 
   };
+
+  const loadClinicalFeatures = async () => {
+    console.log("loadClinFeatures");
+    let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
+    console.log(clinicalFeatures);
+  }
 
   const updateeditableClinicalFeatures = (labels) => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
@@ -158,8 +166,13 @@ export default function ClinicalFeatureTable({
                   <td key={clinicalFeaturesColumn} className="data-label">
                     <Input
                       type="text"
-                      placeholder={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn).body}
-                      value={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn).body}
+                      placeholder={clinicalFeaturesColumn}
+                      value={
+                        editableClinicalFeatures[dataPoint] &&
+                        editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                          ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                          : ''
+                      }
                       onChange={(e) => {
                         handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
                       }}

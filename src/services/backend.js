@@ -160,21 +160,17 @@ class Backend {
     }
   }
 
-  async loadClinicalFeatures(token, patient_id, clinical_feature_name) {
+  async loadClinicalFeatures(token, patient_ids) {
     try {
-      let url = `${endpoints.clinical_features}?patient_id=${patient_id}&clinical_feature_name=${clinical_feature_name}`;
+      let separator = ","
+      let url = `${endpoints.clinical_features}?patient_ids=${patient_ids.join(separator)}`;
 
       console.log("Loading clinical features")
-      console.log("patient_id", patient_id)
-      console.log("clinical_feature_name", clinical_feature_name)
+      console.log("patient_id", patient_ids)
       
       return await request(url, { 
         method: 'GET',
-        data: {
-          patient_id: patient_id,
-          clinical_feature_name: clinical_feature_name
-        },
-        token: token 
+        token: token ,
       });
     } catch (err) {
       throw err; // Just throw it for now
