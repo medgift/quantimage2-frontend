@@ -109,10 +109,6 @@ export default function ClinicalFeatureTable({
     ];
   }, [clinicalFeaturesColumns, editableClinicalFeatures]);
 
-  const hasTextualLabels = (classes) => {
-    return classes.some((c) => isNaN(c));
-  };
-
   useEffect(() => {
     let formattedOutcomes = {};
 
@@ -162,8 +158,8 @@ export default function ClinicalFeatureTable({
                   <td key={clinicalFeaturesColumn} className="data-label">
                     <Input
                       type="text"
-                      placeholder={clinicalFeaturesColumn}
-                      value={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn)["value"]}
+                      placeholder={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn).body}
+                      value={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn).body}
                       onChange={(e) => {
                         handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
                       }}
