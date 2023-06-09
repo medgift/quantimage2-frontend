@@ -1,0 +1,35 @@
+.container tbody {
+  display: block;
+  max-height: 15em;
+  overflow: auto;
+}
+
+.container thead,
+.container tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.container th,
+.container td {
+  padding: 0.25em;
+}
+
+.container thead {
+  width: calc(100%);
+}
+
+.container table {
+  width: 400px;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+}
+
+.table-cell {
+  border: 1px solid #000;
+}

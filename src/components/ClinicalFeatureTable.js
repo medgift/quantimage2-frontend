@@ -149,8 +149,8 @@ export default function ClinicalFeatureTable({
             <tr>
               <th>PatientID</th>
               {/*<th>ROI</th>*/}
-              {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
-                <th key={clinicalFeaturesColumns}>{clinicalFeaturesColumns}</th>
+              {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
+                <th key={clinicalFeaturesColumn}>{clinicalFeaturesColumn}</th>
               ))}
             </tr>
           </thead>
@@ -158,19 +158,14 @@ export default function ClinicalFeatureTable({
             {dataPoints.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
-                  <td key={clinicalFeaturesColumns} className="data-label">
+                {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
+                  <td key={clinicalFeaturesColumn} className="data-label">
                     <Input
                       type="text"
-                      placeholder={clinicalFeaturesColumns}
-                      value={
-                        editableClinicalFeatures[dataPoint] &&
-                        editableClinicalFeatures[dataPoint][clinicalFeaturesColumns]
-                          ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumns]
-                          : ''
-                      }
+                      placeholder={clinicalFeaturesColumn}
+                      value={Backend.loadClinicalFeatures(keycloak.token, dataPoint, clinicalFeaturesColumn)["value"]}
                       onChange={(e) => {
-                        handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumns);
+                        handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
                       }}
                     />
                   </td>
@@ -179,28 +174,7 @@ export default function ClinicalFeatureTable({
             ))}
           </tbody>
         </Table>
-
-        {clinicalFeaturesColumns.includes(OUTCOME_CLASSIFICATION) &&
-          classes.length > 0 &&
-          hasTextualLabels(classes) && (
-            <div className="mb-2">
-              <h3>
-                Textual labels detected - Please define the positive label
-              </h3>
-              <p>Positive Label : {posClinicalFeatures}</p>
-              <Input
-                type="select"
-                value={posClinicalFeatures}
-                onChange={(e) => setposClinicalFeatures(e.target.value)}
-              >
-                {classes.map((c) => {
-                  console.log('Class', c);
-                  return <option key={c}>{c}</option>;
-                })}
-              </Input>
-            </div>
-          )}
-
+        
         <Button
           color="success"
           onClick={handleSaveClinicalFeaturesClick}

@@ -160,6 +160,27 @@ class Backend {
     }
   }
 
+  async loadClinicalFeatures(token, patient_id, clinical_feature_name) {
+    try {
+      let url = `${endpoints.clinical_features}?patient_id=${patient_id}&clinical_feature_name=${clinical_feature_name}`;
+
+      console.log("Loading clinical features")
+      console.log("patient_id", patient_id)
+      console.log("clinical_feature_name", clinical_feature_name)
+      
+      return await request(url, { 
+        method: 'GET',
+        data: {
+          patient_id: patient_id,
+          clinical_feature_name: clinical_feature_name
+        },
+        token: token 
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async saveTrainingTestPatients(
     token,
     extractionID,
