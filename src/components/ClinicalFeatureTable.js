@@ -30,6 +30,12 @@ export default function ClinicalFeatureTable({
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
   let fileInput = useRef(null);
 
+  useEffect(() => {
+    // Load clinical features the first time the component is rendered
+    loadClinicalFeatures();
+  }, []); // Empty dependency array ensures the effect runs only once
+
+
   const toggleManualLabelling = () => {
     console.log("toggleManualLabelling");
     setisManualClinFeaturesOpen((open) => !open);
@@ -68,7 +74,7 @@ export default function ClinicalFeatureTable({
 
   const loadClinicalFeatures = async () => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
-    
+
     console.log("loadClinFeatures");
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
     console.log(clinicalFeatures);
