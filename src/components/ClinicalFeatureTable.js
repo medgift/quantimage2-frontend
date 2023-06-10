@@ -67,9 +67,17 @@ export default function ClinicalFeatureTable({
   };
 
   const loadClinicalFeatures = async () => {
+    let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
+    
     console.log("loadClinFeatures");
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
     console.log(clinicalFeatures);
+
+    for (let patientID in clinicalFeatures) {
+      clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
+    }
+
+    seteditableClinicalFeatures(clinicalFeaturesToUpdate);
   }
 
   const updateeditableClinicalFeatures = (labels) => {
