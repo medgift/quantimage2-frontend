@@ -126,7 +126,7 @@ export default function ClinicalFeatureTable({
       );
       setEditableClinicalFeatures(formattedClinicalFeature);
     }
-    
+
     setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
 
