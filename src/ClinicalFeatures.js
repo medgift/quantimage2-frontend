@@ -165,6 +165,7 @@ export default function ClinicalFeatures({
                     options={options}
                     value={{ value: row.column3, label: row.column3 }}
                     onChange={selectedOption => handleSelectChange(selectedOption, row.id)}
+                    className="select_button"
                   />
                 </td>
               </tr>
