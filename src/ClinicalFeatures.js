@@ -122,9 +122,10 @@ export default function ClinicalFeatures({
   };
 
   const options = [
-    { value: 'Option 1', label: 'Option 1' },
-    { value: 'Option 2', label: 'Option 2' },
-    // Add more options as needed
+    { value: 'One-hot encoding', label: 'One-hot encoding' },
+    { value: 'Number', label: 'Number' },
+    { value: 'Category', label: 'Category' },
+    { value: 'Ordered Category', label: 'Ordered Category' },
   ];
 
   return (
@@ -134,9 +135,9 @@ export default function ClinicalFeatures({
         <table>
           <thead className="table-cell">
             <tr>
-              <th>Column 1</th>
-              <th>Column 2</th>
-              <th>Column 3</th>
+              <th>Feature Name</th>
+              <th>Data Type</th>
+              <th>Encoding</th>
             </tr>
           </thead>
           <tbody>

@@ -10,6 +10,7 @@ import {
   PATIENT_FIELDS,
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
+import { userInfo } from 'os';
 
 export default function DataLabels({
   albumID,

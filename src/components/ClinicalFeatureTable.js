@@ -19,12 +19,10 @@ export default function ClinicalFeatureTable({
 }) {
   let { keycloak } = useKeycloak();
 
-  let [editableClinicalFeatures, seteditableClinicalFeatures] = useState({});
+  let [editableClinicalFeatures, setEditableClinicalFeatures] = useState({});
 
   let [isManualClinFeaturesOpen, setisManualClinFeaturesOpen] = useState(true);
   let [isAutoClinFeaturesOpen, setisAutoClinFeaturesOpen] = useState(false);
-
-  let [posClinicalFeatures, setposClinicalFeatures] = useState('');
 
   let [isClinicalFeatureFileValid, setisClinicalFeatureFileValid] = useState(null);
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
@@ -54,7 +52,7 @@ export default function ClinicalFeatureTable({
     let clinicalFeatureToUpdate = updatedClinicalFeatures[patientID];
     clinicalFeatureToUpdate[clinicalFeaturesColumns] = e.target.value;
 
-    seteditableClinicalFeatures(updatedClinicalFeatures);
+    setEditableClinicalFeatures(updatedClinicalFeatures);
   };
 
   const handleSaveClinicalFeaturesClick = async (e) => {
@@ -74,28 +72,30 @@ export default function ClinicalFeatureTable({
 
   const loadClinicalFeatures = async () => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
-
-    console.log("loadClinFeatures");
+  
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
-    console.log(clinicalFeatures);
 
     for (let patientID in clinicalFeatures) {
       clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
     }
-
-    seteditableClinicalFeatures(clinicalFeaturesToUpdate);
+    
+    if (Object.keys(clinicalFeatures).length > 0){
+      console.log("updating clinical features", clinicalFeaturesToUpdate)
+      setEditableClinicalFeatures(clinicalFeaturesToUpdate);
+    }
   }
 
-  const updateeditableClinicalFeatures = (labels) => {
+  const updateEditableClinicalFeatures = (labels) => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
 
     for (let patientID in labels) {
       if (patientID in editableClinicalFeatures) {
+        console.log(patientID)
         clinicalFeaturesToUpdate[patientID] = labels[patientID];
       }
     }
 
-    seteditableClinicalFeatures(clinicalFeaturesToUpdate);
+    setEditableClinicalFeatures(clinicalFeaturesToUpdate);
   };
 
   const handleFileInputChange = async () => {
@@ -105,50 +105,29 @@ export default function ClinicalFeatureTable({
     );
 
     if (isValid) {
-      updateeditableClinicalFeatures(labels);
+      updateEditableClinicalFeatures(labels);
     }
     setisClinicalFeatureFileValid(isValid);
     setclinicalFeatureFileMessage(message);
   };
 
-  const classes = useMemo(() => {
-    if (!clinicalFeaturesColumns.includes(OUTCOME_CLASSIFICATION)) return [];
-
-    if (
-      Object.values(editableClinicalFeatures).length > 0 &&
-      !Object.keys(Object.values(editableClinicalFeatures)[0]).includes(
-        OUTCOME_CLASSIFICATION
-      )
-    )
-      return [];
-
-    return [
-      ...new Set(
-        Object.values(editableClinicalFeatures)
-          .map((o) => o[OUTCOME_CLASSIFICATION])
-          .filter((o) => o)
-      ),
-    ];
-  }, [clinicalFeaturesColumns, editableClinicalFeatures]);
-
   useEffect(() => {
-    let formattedOutcomes = {};
+    let formattedClinicalFeature = {};
 
     for (let dataPoint of [
       ...dataPoints.sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
       ),
     ]) {
-      formattedOutcomes[dataPoint] = Object.assign(
+      formattedClinicalFeature[dataPoint] = Object.assign(
         {},
         {},
         ...clinicalFeaturesColumns.map((o) => '')
       );
-
-      seteditableClinicalFeatures(formattedOutcomes);
+      setEditableClinicalFeatures(formattedClinicalFeature);
     }
-
-    seteditableClinicalFeatures(formattedOutcomes);
+    
+    setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
 
   return (

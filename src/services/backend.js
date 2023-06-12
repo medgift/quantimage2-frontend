@@ -154,6 +154,7 @@ class Backend {
 
       console.log('clinical_feature_map', clinical_feature_map);
       let data = { clinical_feature_map: clinical_feature_map };
+      console.log('data', data);
       return await request(endpoints.clinical_features, { method: 'POST', data: data, token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -164,9 +165,6 @@ class Backend {
     try {
       let separator = ","
       let url = `${endpoints.clinical_features}?patient_ids=${patient_ids.join(separator)}`;
-
-      console.log("Loading clinical features")
-      console.log("patient_id", patient_ids)
       
       return await request(url, { 
         method: 'GET',
