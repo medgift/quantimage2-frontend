@@ -3,12 +3,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
+import Select from 'react-select';
 
 import './ClinicalFeatureTable.css';
-import {
-  OUTCOME_CLASSIFICATION,
-} from '../config/constants';
-
 
 
 export default function ClinicalFeatureTable({
@@ -27,6 +24,40 @@ export default function ClinicalFeatureTable({
   let [isClinicalFeatureFileValid, setisClinicalFeatureFileValid] = useState(null);
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
   let fileInput = useRef(null);
+
+
+  const [tableData, setTableData] = useState([
+    { id: 1, column1: 'Value 1', column2: 'Value 2', column3: 'Value 3' },
+    { id: 2, column1: 'Value 4', column2: 'Value 5', column3: 'Value 6' },
+    // Add more data rows as needed
+  ]);
+
+  const handleCellChange = (e, id, columnName) => {
+    const updatedData = tableData.map(row => {
+      if (row.id === id) {
+        return { ...row, [columnName]: e.target.innerText };
+      }
+      return row;
+    });
+    setTableData(updatedData);
+  };
+
+  const handleSelectChange = (selectedOption, id) => {
+    const updatedData = tableData.map(row => {
+      if (row.id === id) {
+        return { ...row, column3: selectedOption.value };
+      }
+      return row;
+    });
+    setTableData(updatedData);
+  };
+
+  const options = [
+    { value: 'One-hot encoding', label: 'One-hot encoding' },
+    { value: 'Number', label: 'Number' },
+    { value: 'Category', label: 'Category' },
+    { value: 'Ordered Category', label: 'Ordered Category' },
+  ];
 
   useEffect(() => {
     // Load clinical features the first time the component is rendered
@@ -62,7 +93,7 @@ export default function ClinicalFeatureTable({
       setisClinicalFeatureFileValid(null);
       fileInput.current.value = '';
     }
-    
+
     await Backend.saveClinicalFeatures(
       keycloak.token,
       editableClinicalFeatures,
@@ -72,14 +103,14 @@ export default function ClinicalFeatureTable({
 
   const loadClinicalFeatures = async () => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
-  
+
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
 
     for (let patientID in clinicalFeatures) {
       clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
     }
-    
-    if (Object.keys(clinicalFeatures).length > 0){
+
+    if (Object.keys(clinicalFeatures).length > 0) {
       console.log("updating clinical features", clinicalFeaturesToUpdate)
       setEditableClinicalFeatures(clinicalFeaturesToUpdate);
     }
@@ -141,6 +172,54 @@ export default function ClinicalFeatureTable({
         </Button>
       </p>
       <Collapse isOpen={isManualClinFeaturesOpen}>
+        <div style={{ margin: '20px' }}></div>
+        <h4>Clinical Feature Configuration</h4>
+        <div style={{ margin: '20px' }}></div>
+        <div className="container">
+          <table>
+            <thead className="table-cell">
+              <tr>
+                <th>Feature Name</th>
+                <th>Data Type</th>
+                <th>Encoding</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.map(row => (
+                <tr key={row.id}>
+                  <td
+                    contentEditable
+
+                    suppressContentEditableWarning
+                    onBlur={e => handleCellChange(e, row.id, 'column1')}
+                    className="table-cell"
+                  >
+                    {row.column1}
+                  </td>
+                  <td
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={e => handleCellChange(e, row.id, 'column2')}
+                    className="table-cell"
+                  >
+                    {row.column2}
+                  </td>
+                  <td>
+                    <Select
+                      options={options}
+                      value={{ value: row.column3, label: row.column3 }}
+                      onChange={selectedOption => handleSelectChange(selectedOption, row.id)}
+                      className="select_button"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ margin: '20px' }}></div>
+        <h4>Clinical Feature Values</h4>
+        <div style={{ margin: '20px' }}></div>
         <Table className="narrow-table table-fixed">
           <thead>
             <tr>
@@ -162,7 +241,7 @@ export default function ClinicalFeatureTable({
                       placeholder={clinicalFeaturesColumn}
                       value={
                         editableClinicalFeatures[dataPoint] &&
-                        editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                          editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
                           ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
                           : ''
                       }
@@ -176,7 +255,7 @@ export default function ClinicalFeatureTable({
             ))}
           </tbody>
         </Table>
-        
+
         <Button
           color="success"
           onClick={handleSaveClinicalFeaturesClick}

@@ -23,3 +23,19 @@
 .table-fixed table {
   width: 400px;
 }
+
+.container {
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+  position: relative;
+}
+
+.table-cell {
+  border: 1px solid #000;
+}
+
+.select_button {
+  z-index: 9999;
+}
+
