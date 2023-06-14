@@ -3,8 +3,6 @@ import ClinicalFeatureTable from './components/ClinicalFeatureTable';
 import { CLINICAL_FEATURES } from './config/constants';
 import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
 
-import './ClinicalFeatures.css';
-
 
 export default function ClinicalFeatures({
   albumID,

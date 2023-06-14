@@ -25,31 +25,41 @@ export default function ClinicalFeatureTable({
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
   let fileInput = useRef(null);
 
+  let [clinFeatDefInputErrors, setClinFeatDefInputErrors] = useState({});
 
-  const [tableData, setTableData] = useState([
-    { id: 1, column1: 'Value 1', column2: 'Value 2', column3: 'Value 3' },
-    { id: 2, column1: 'Value 4', column2: 'Value 5', column3: 'Value 6' },
-    // Add more data rows as needed
-  ]);
+  const CLINICAL_FEATURE_DEF_COLUMNS = ["Type", "Encoding", "Description"]
+
+  const [clinicalFeatureDefinitions, setClinicalFeatureDefinitions] = useState(
+    ["Age", "Gender"]
+  )
+
+  const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState(
+    {
+      "Age": { "Type": "blah", "Encoding": "None", "Description": "Age of the patient" },
+      "Gender": { "Type": "Category", "Encoding": "Categorical", "Description": "Gender of the patient" }
+    }
+  );
+
 
   const handleCellChange = (e, id, columnName) => {
-    const updatedData = tableData.map(row => {
+    console.log(e, id, columnName);
+    const updatedData = editableClinicalFeatureDefinitions.map(row => {
       if (row.id === id) {
         return { ...row, [columnName]: e.target.innerText };
       }
       return row;
     });
-    setTableData(updatedData);
+    setEditableClinicalFeatureDefinitions(updatedData);
   };
 
   const handleSelectChange = (selectedOption, id) => {
-    const updatedData = tableData.map(row => {
+    const updatedData = editableClinicalFeatureDefinitions.map(row => {
       if (row.id === id) {
         return { ...row, column3: selectedOption.value };
       }
       return row;
     });
-    setTableData(updatedData);
+    setEditableClinicalFeatureDefinitions(updatedData);
   };
 
   const options = [
@@ -76,6 +86,11 @@ export default function ClinicalFeatureTable({
     setisAutoClinFeaturesOpen((open) => !open);
     setisManualClinFeaturesOpen(false);
   };
+
+  const handleClinicalFeatDefInputChange = (e, clinicalFeatureDefinitions, clinicalFeatureDefColumns) => {
+    console.log(e, clinicalFeatureDefinitions, clinicalFeatureDefColumns);
+
+  }
 
   const handleClinFeaturesInputChange = (e, patientID, clinicalFeaturesColumns) => {
     let updatedClinicalFeatures = { ...editableClinicalFeatures };
@@ -175,48 +190,44 @@ export default function ClinicalFeatureTable({
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Configuration</h4>
         <div style={{ margin: '20px' }}></div>
-        <div className="container">
-          <table>
-            <thead className="table-cell">
-              <tr>
-                <th>Feature Name</th>
-                <th>Data Type</th>
-                <th>Encoding</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map(row => (
-                <tr key={row.id}>
-                  <td
-                    contentEditable
-
-                    suppressContentEditableWarning
-                    onBlur={e => handleCellChange(e, row.id, 'column1')}
-                    className="table-cell"
-                  >
-                    {row.column1}
-                  </td>
-                  <td
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={e => handleCellChange(e, row.id, 'column2')}
-                    className="table-cell"
-                  >
-                    {row.column2}
-                  </td>
-                  <td>
-                    <Select
-                      options={options}
-                      value={{ value: row.column3, label: row.column3 }}
-                      onChange={selectedOption => handleSelectChange(selectedOption, row.id)}
-                      className="select_button"
+        <Table className="narrow-table table-fixed">
+          <thead>
+            <tr>
+              <th>Name</th>
+              {CLINICAL_FEATURE_DEF_COLUMNS.map((clinicalFeatureDefColumn) => (
+                <th key={clinicalFeatureDefColumn}>{clinicalFeatureDefColumn}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="data-points">
+            {clinicalFeatureDefinitions.map((clinicalFeatureDefinition) => (
+              <tr key={`${clinicalFeatureDefinition}`}>
+                <td>{clinicalFeatureDefinition}</td>
+                {CLINICAL_FEATURE_DEF_COLUMNS.map((clinicalFeatureDefColumn) => (
+                  <td key={clinicalFeatureDefColumn} className="data-label">
+                    <Input
+                      type="text"
+                      placeholder={clinicalFeatureDefColumn}
+                      value={
+                        editableClinicalFeatureDefinitions[clinicalFeatureDefinition] &&
+                          editableClinicalFeatureDefinitions[clinicalFeatureDefinition][clinicalFeatureDefColumn]
+                          ? editableClinicalFeatureDefinitions[clinicalFeatureDefinition][clinicalFeatureDefColumn]
+                          : ''
+                      }
+                      onChange={(e) => {
+                        handleClinicalFeatDefInputChange(e, clinicalFeatureDefinition, clinicalFeatureDefColumn);
+                      }}
                     />
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <div style={{ margin: '20px' }}></div>
+        <Button color="success" onClick={handleClinicalFeatDefInputChange}>
+          Validate Clinical Feature Definition
+        </Button>
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Values</h4>
         <div style={{ margin: '20px' }}></div>
@@ -224,7 +235,6 @@ export default function ClinicalFeatureTable({
           <thead>
             <tr>
               <th>PatientID</th>
-              {/*<th>ROI</th>*/}
               {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
                 <th key={clinicalFeaturesColumn}>{clinicalFeaturesColumn}</th>
               ))}
@@ -235,20 +245,21 @@ export default function ClinicalFeatureTable({
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
-                  <td key={clinicalFeaturesColumn} className="data-label">
-                    <Input
-                      type="text"
-                      placeholder={clinicalFeaturesColumn}
-                      value={
-                        editableClinicalFeatures[dataPoint] &&
-                          editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                          ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                          : ''
-                      }
-                      onChange={(e) => {
-                        handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
-                      }}
-                    />
+                  // <td key={clinicalFeaturesColumn} className="data-label">
+                  //   <Input
+                  //     type="text"
+                  //     placeholder={clinicalFeaturesColumn}
+                  //     value={
+                  //       editableClinicalFeatures[dataPoint] &&
+                  //         editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                  //         ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                  //         : ''
+                  //     }
+                  //     onChange={(e) => {
+                  //       handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
+                  //     }}
+                  // />
+                  <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] && editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
                   </td>
                 ))}
               </tr>
