@@ -1,6 +1,5 @@
 import {
   CATEGORIES,
-  CATEGORY_DEFINITIONS,
   FEATURE_DEFINITIONS,
 } from './feature-mapping';
 import { FEATURE_ID_SEPARATOR } from '../Visualisation';

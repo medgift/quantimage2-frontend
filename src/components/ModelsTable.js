@@ -1,5 +1,5 @@
 import { useSortBy, useTable } from 'react-table';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';

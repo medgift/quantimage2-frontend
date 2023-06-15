@@ -7,7 +7,6 @@ import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   convertFeatureName,
-  convertFeatureNameTable,
 } from '../utils/feature-naming';
 
 import _ from 'lodash';

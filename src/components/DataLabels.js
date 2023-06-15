@@ -6,7 +6,6 @@ import { useKeycloak } from '@react-keycloak/web';
 
 import './DataLabels.css';
 import {
-  DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   OUTCOME_CLASSIFICATION,
   PATIENT_FIELDS,
   TRAIN_TEST_SPLIT_TYPES,
