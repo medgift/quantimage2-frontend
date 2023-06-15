@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
-import Select from 'react-select';
+import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
 
 import './ClinicalFeatureTable.css';
 
@@ -25,49 +25,16 @@ export default function ClinicalFeatureTable({
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
   let fileInput = useRef(null);
 
-  let [clinFeatDefInputErrors, setClinFeatDefInputErrors] = useState({});
+  const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState({
+    "Age": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "None" },
+    "Gender": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "Categorical" }
+  });
 
-  const CLINICAL_FEATURE_DEF_COLUMNS = ["Type", "Encoding", "Description"]
-
-  const [clinicalFeatureDefinitions, setClinicalFeatureDefinitions] = useState(
-    ["Age", "Gender"]
-  )
-
-  const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState(
-    {
-      "Age": { "Type": "blah", "Encoding": "None", "Description": "Age of the patient" },
-      "Gender": { "Type": "Category", "Encoding": "Categorical", "Description": "Gender of the patient" }
-    }
-  );
-
-
-  const handleCellChange = (e, id, columnName) => {
-    console.log(e, id, columnName);
-    const updatedData = editableClinicalFeatureDefinitions.map(row => {
-      if (row.id === id) {
-        return { ...row, [columnName]: e.target.innerText };
-      }
-      return row;
-    });
-    setEditableClinicalFeatureDefinitions(updatedData);
+  const handleInputChange = (e, feature_name, feature_type) => {
+    let editableClinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
+    editableClinicalFeatureDefinitionsToUpdate[feature_name][feature_type] = e.target.value;
+    setEditableClinicalFeatureDefinitions(editableClinicalFeatureDefinitionsToUpdate)
   };
-
-  const handleSelectChange = (selectedOption, id) => {
-    const updatedData = editableClinicalFeatureDefinitions.map(row => {
-      if (row.id === id) {
-        return { ...row, column3: selectedOption.value };
-      }
-      return row;
-    });
-    setEditableClinicalFeatureDefinitions(updatedData);
-  };
-
-  const options = [
-    { value: 'One-hot encoding', label: 'One-hot encoding' },
-    { value: 'Number', label: 'Number' },
-    { value: 'Category', label: 'Category' },
-    { value: 'Ordered Category', label: 'Ordered Category' },
-  ];
 
   useEffect(() => {
     // Load clinical features the first time the component is rendered
@@ -85,20 +52,6 @@ export default function ClinicalFeatureTable({
   const toggleAutoLabelling = () => {
     setisAutoClinFeaturesOpen((open) => !open);
     setisManualClinFeaturesOpen(false);
-  };
-
-  const handleClinicalFeatDefInputChange = (e, clinicalFeatureDefinitions, clinicalFeatureDefColumns) => {
-    console.log(e, clinicalFeatureDefinitions, clinicalFeatureDefColumns);
-
-  }
-
-  const handleClinFeaturesInputChange = (e, patientID, clinicalFeaturesColumns) => {
-    let updatedClinicalFeatures = { ...editableClinicalFeatures };
-
-    let clinicalFeatureToUpdate = updatedClinicalFeatures[patientID];
-    clinicalFeatureToUpdate[clinicalFeaturesColumns] = e.target.value;
-
-    setEditableClinicalFeatures(updatedClinicalFeatures);
   };
 
   const handleSaveClinicalFeaturesClick = async (e) => {
@@ -190,44 +143,45 @@ export default function ClinicalFeatureTable({
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Configuration</h4>
         <div style={{ margin: '20px' }}></div>
-        <Table className="narrow-table table-fixed">
+        <Table className="table-fixed">
           <thead>
             <tr>
-              <th>Name</th>
-              {CLINICAL_FEATURE_DEF_COLUMNS.map((clinicalFeatureDefColumn) => (
-                <th key={clinicalFeatureDefColumn}>{clinicalFeatureDefColumn}</th>
-              ))}
+              <th>Clinical Feature</th>
+              <th>Type</th>
+              <th>Encoding</th>
             </tr>
           </thead>
-          <tbody className="data-points">
-            {clinicalFeatureDefinitions.map((clinicalFeatureDefinition) => (
-              <tr key={`${clinicalFeatureDefinition}`}>
-                <td>{clinicalFeatureDefinition}</td>
-                {CLINICAL_FEATURE_DEF_COLUMNS.map((clinicalFeatureDefColumn) => (
-                  <td key={clinicalFeatureDefColumn} className="data-label">
-                    <Input
-                      type="text"
-                      placeholder={clinicalFeatureDefColumn}
-                      value={
-                        editableClinicalFeatureDefinitions[clinicalFeatureDefinition] &&
-                          editableClinicalFeatureDefinitions[clinicalFeatureDefinition][clinicalFeatureDefColumn]
-                          ? editableClinicalFeatureDefinitions[clinicalFeatureDefinition][clinicalFeatureDefColumn]
-                          : ''
-                      }
-                      onChange={(e) => {
-                        handleClinicalFeatDefInputChange(e, clinicalFeatureDefinition, clinicalFeatureDefColumn);
-                      }}
-                    />
-                  </td>
-                ))}
+          <tbody>
+            {Object.keys(editableClinicalFeatureDefinitions).map(feature_name => (
+              <tr key={feature_name}>
+                <td>{feature_name}</td>
+                <td>
+                  <Input
+                    type="select"
+                    id="type_list"
+                    name="type_list"
+                    value={editableClinicalFeatureDefinitions[feature_name]["Type"]}
+                    onChange={(event) => handleInputChange(event, feature_name, "Type")}
+                  >
+                    {CLINCAL_FEATURE_TYPES.map(feat_type => <option key={feat_type} value={feat_type}>{feat_type}</option>)};
+                  </Input>
+                </td>
+                <td>
+                  <Input
+                    type="select"
+                    id="encoding_list"
+                    name="encoding_list"
+                    value={editableClinicalFeatureDefinitions[feature_name]["Encoding"]}
+                    onChange={(event) => handleInputChange(event, feature_name, "Encoding")}
+                  >
+                    {CLINICAL_FEATURE_ENCODING.map(encoding_type => <option key={encoding_type} value={encoding_type}>{encoding_type}</option>)};
+                  </Input>
+                </td>
               </tr>
             ))}
           </tbody>
         </Table>
         <div style={{ margin: '20px' }}></div>
-        <Button color="success" onClick={handleClinicalFeatDefInputChange}>
-          Validate Clinical Feature Definition
-        </Button>
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Values</h4>
         <div style={{ margin: '20px' }}></div>
@@ -245,21 +199,9 @@ export default function ClinicalFeatureTable({
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
-                  // <td key={clinicalFeaturesColumn} className="data-label">
-                  //   <Input
-                  //     type="text"
-                  //     placeholder={clinicalFeaturesColumn}
-                  //     value={
-                  //       editableClinicalFeatures[dataPoint] &&
-                  //         editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                  //         ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                  //         : ''
-                  //     }
-                  //     onChange={(e) => {
-                  //       handleClinFeaturesInputChange(e, dataPoint, clinicalFeaturesColumn);
-                  //     }}
-                  // />
-                  <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] && editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
+                  <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
+                   editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                  ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
                   </td>
                 ))}
               </tr>

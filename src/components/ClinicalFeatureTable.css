@@ -14,6 +14,8 @@
 .table-fixed th,
 .table-fixed td {
   padding: 0.25em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .table-fixed thead {
@@ -21,7 +23,10 @@
 }
 
 .table-fixed table {
-  width: 400px;
+  width: 500px;
+  z-index: 10;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .container {
@@ -37,6 +42,8 @@
 }
 
 .select_button {
-  z-index: 9999;
+  z-index: 19999;
+  color: blue;
+  position: relative;
 }
 
