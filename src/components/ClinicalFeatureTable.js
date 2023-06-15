@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
-import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
+import { validateLabelOrClinicalFeaturesFile, parseClinicalFeatureNames } from '../utils/feature-utils.js';
 
 import './ClinicalFeatureTable.css';
 
@@ -67,7 +67,7 @@ export default function ClinicalFeatureTable({
       editableClinicalFeatures,
     );
 
-    await Backend.deleteClinicalFeatures();
+    // await Backend.deleteClinicalFeatures();
   };
 
   const loadClinicalFeatures = async () => {
@@ -101,10 +101,12 @@ export default function ClinicalFeatureTable({
   const handleFileInputChange = async () => {
     let [isValid, message, clinicalFeatures] = await validateLabelOrClinicalFeaturesFile(
       fileInput.current.files[0],
-      dataPoints
+      dataPoints,
+      clinicalFeaturesColumns,
     );
 
     if (isValid) {
+      parseClinicalFeatureNames(fileInput.current.files[0]);
       updateEditableClinicalFeatures(clinicalFeatures);
       console.log(clinicalFeatures);
     }
@@ -229,21 +231,14 @@ export default function ClinicalFeatureTable({
       <Collapse isOpen={isAutoClinFeaturesOpen}>
         <p>
           Please upload a CSV file with one row per patient (+optionnally a
-          header row) containing the following{' '}
-          <strong>{clinicalFeaturesColumns.length + 1} columns</strong>:
+          header row) containing one column per clinical feature of interest.
+
+          The systemm will try to automatically detect the type of each clinical feature and you will configure the encoding afterwards.
+
+          Note: The system will delete existing feature upon a new upload to ensure that data does not become corrupted.
         </p>
-        <Table className="narrow-table">
-          <thead>
-            <tr>
-              <th>PatientID</th>
-              {clinicalFeaturesColumns.map((clinicalFeaturesColumns) => (
-                <th key={clinicalFeaturesColumns}>{clinicalFeaturesColumns}</th>
-              ))}
-            </tr>
-          </thead>
-        </Table>
-        <Label for="label-file">Upload CSV File</Label>
-        <div style={{ textAlign: 'center' }}>
+        <Label for="label-file" style={{fontWeight: 'bold'}}>Upload CSV File</Label>
+        <div style={{ textAlign: 'center'}}>
           <Input
             type="file"
             name="file"

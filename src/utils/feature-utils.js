@@ -1,4 +1,5 @@
 import { Parser } from 'json2csv';
+import * as Papa from 'papaparse';
 
 import DicomFields from '../dicom/fields';
 import Backend from '../services/backend';
@@ -346,4 +347,27 @@ export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, head
     `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
     labels,
   ];
+}
+
+export async function parseClinicalFeatureNames(file) {
+  let config = {
+    header: true,
+    skipEmptyLines: true,
+    fastMode: true,
+  };
+  let featuresTabular = [];
+
+  console.log("file");
+  console.log(file);
+  Papa.parse(file, {
+    complete: (results) => {
+      featuresTabular = results.data; // Assign the parsed data to a regular variable
+      console.log("results");
+      console.log(results);
+    }
+  });
+  
+  console.log("featuresTabular");
+  console.log(featuresTabular);
+  return featuresTabular;
 }
