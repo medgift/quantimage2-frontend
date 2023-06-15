@@ -1,7 +1,6 @@
 import React from 'react';
 import ClinicalFeatureTable from './components/ClinicalFeatureTable';
 import { CLINICAL_FEATURES } from './config/constants';
-import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
 
 
 export default function ClinicalFeatures({
@@ -26,13 +25,6 @@ export default function ClinicalFeatures({
       <p></p>
       <ClinicalFeatureTable
         clinicalFeaturesColumns={CLINICAL_FEATURES}
-        validateClinicalFeatureFile={(file, dataPoints) =>
-          validateLabelOrClinicalFeaturesFile(
-            file,
-            dataPoints,
-            CLINICAL_FEATURES,
-          )
-        }
         isSavingClinicalFeatures={isSavingClinicalFeatures}
         dataPoints={dataPoints}
       />

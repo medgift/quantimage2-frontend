@@ -4,13 +4,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
+import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
 
 import './ClinicalFeatureTable.css';
 
 
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
-  validateClinicalFeatureFile,
   dataPoints,
   isSavingClinicalFeatures,
 }) {
@@ -26,8 +26,8 @@ export default function ClinicalFeatureTable({
   let fileInput = useRef(null);
 
   const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState({
-    "Age": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "None" },
-    "Gender": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "Categorical" }
+    // "Age": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "None" },
+    // "Gender": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "Categorical" }
   });
 
   const handleInputChange = (e, feature_name, feature_type) => {
@@ -67,6 +67,7 @@ export default function ClinicalFeatureTable({
       editableClinicalFeatures,
     );
 
+    await Backend.deleteClinicalFeatures();
   };
 
   const loadClinicalFeatures = async () => {
@@ -98,13 +99,14 @@ export default function ClinicalFeatureTable({
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, message, labels] = await validateClinicalFeatureFile(
+    let [isValid, message, clinicalFeatures] = await validateLabelOrClinicalFeaturesFile(
       fileInput.current.files[0],
       dataPoints
     );
 
     if (isValid) {
-      updateEditableClinicalFeatures(labels);
+      updateEditableClinicalFeatures(clinicalFeatures);
+      console.log(clinicalFeatures);
     }
     setisClinicalFeatureFileValid(isValid);
     setclinicalFeatureFileMessage(message);
