@@ -39,6 +39,7 @@ export default function ClinicalFeatureTable({
   useEffect(() => {
     // Load clinical features the first time the component is rendered
     loadClinicalFeatures();
+    loadClinicalFeatureDefinitions();
   }, []); // Empty dependency array ensures the effect runs only once
 
 
@@ -47,6 +48,7 @@ export default function ClinicalFeatureTable({
     setisManualClinFeaturesOpen((open) => !open);
     setisAutoClinFeaturesOpen(false);
     loadClinicalFeatures();
+    loadClinicalFeatureDefinitions();
   };
 
   const toggleAutoLabelling = () => {
@@ -66,7 +68,7 @@ export default function ClinicalFeatureTable({
       keycloak.token,
       editableClinicalFeatureDefinitions,
     )
-    
+
     await Backend.saveClinicalFeatures(
       keycloak.token,
       editableClinicalFeatures,
@@ -86,6 +88,20 @@ export default function ClinicalFeatureTable({
 
     if (Object.keys(clinicalFeatures).length > 0) {
       setEditableClinicalFeatures(clinicalFeaturesToUpdate);
+    }
+  }
+
+  const loadClinicalFeatureDefinitions = async () => {
+    let clinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
+
+    let clinicalFeatureDefinitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token)
+
+    for (let feature_name in clinicalFeatureDefinitions) {
+      clinicalFeatureDefinitionsToUpdate[feature_name] = clinicalFeatureDefinitions[feature_name];
+    }
+
+    if (Object.keys(clinicalFeatureDefinitions).length > 0) {
+      setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
     }
   }
 
@@ -115,6 +131,7 @@ export default function ClinicalFeatureTable({
         if (column_name == "PatientID") {
           continue;
         }
+        console.log("column_name", column_name);
         editableClinicalFeatureDefinitions[column_name] = {"Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0]}
       }
       updateEditableClinicalFeatures(clinicalFeatures);

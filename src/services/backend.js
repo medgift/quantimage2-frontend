@@ -180,6 +180,10 @@ class Backend {
     return await request(endpoints.clinical_feature_definitions, { method: 'POST', data: data, token: token });
   }
 
+  async loadClinicalFeatureDefinitions(token) {
+    return await request(endpoints.clinical_feature_definitions, { method: 'GET', token: token });
+  }
+
   async deleteClinicalFeatures(token) {
     try {      
       return await request(`${endpoints.clinical_features}`, { 
