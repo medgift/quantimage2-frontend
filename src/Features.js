@@ -35,6 +35,7 @@ import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
+import {DynamicTable} from './components/YourComponent';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -754,6 +755,17 @@ function Features({ history }) {
                     {models.length > 0 && <Badge>{models.length}</Badge>}
                   </NavLink>
                 </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('your_component')}
+                    onClick={() => {
+                      toggle('your_component');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    Your Component
+                  </NavLink>
+                </NavItem>
               </Nav>
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
@@ -1052,6 +1064,13 @@ function Features({ history }) {
                       }
                       setNbTrainingPatients={setNbTrainingPatients}
                     />
+                  ):(
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="your_component">
+                  {tab === 'your_component' ? (
+                    <DynamicTable/>
                   ):(
                     <span>Loading...</span>
                   )}

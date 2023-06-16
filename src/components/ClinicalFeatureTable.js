@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
-import { validateLabelOrClinicalFeaturesFile, parseClinicalFeatureNames } from '../utils/feature-utils.js';
+import { validateLabelOrClinicalFeaturesFile, parseClinicalFeatureNames, papaPromise } from '../utils/feature-utils.js';
 
 import './ClinicalFeatureTable.css';
 
@@ -62,6 +62,11 @@ export default function ClinicalFeatureTable({
       fileInput.current.value = '';
     }
 
+    await Backend.saveClinicalFeatureDefinitions(
+      keycloak.token,
+      editableClinicalFeatureDefinitions,
+    )
+    
     await Backend.saveClinicalFeatures(
       keycloak.token,
       editableClinicalFeatures,
@@ -80,7 +85,6 @@ export default function ClinicalFeatureTable({
     }
 
     if (Object.keys(clinicalFeatures).length > 0) {
-      console.log("updating clinical features", clinicalFeaturesToUpdate)
       setEditableClinicalFeatures(clinicalFeaturesToUpdate);
     }
   }
@@ -90,7 +94,6 @@ export default function ClinicalFeatureTable({
 
     for (let patientID in labels) {
       if (patientID in editableClinicalFeatures) {
-        console.log(patientID)
         clinicalFeaturesToUpdate[patientID] = labels[patientID];
       }
     }
@@ -106,7 +109,14 @@ export default function ClinicalFeatureTable({
     );
 
     if (isValid) {
-      parseClinicalFeatureNames(fileInput.current.files[0]);
+      let column_names = await parseClinicalFeatureNames(fileInput.current.files[0]);
+      console.log("column_names", column_names);
+      for (let column_name of column_names) {
+        if (column_name == "PatientID") {
+          continue;
+        }
+        editableClinicalFeatureDefinitions[column_name] = {"Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0]}
+      }
       updateEditableClinicalFeatures(clinicalFeatures);
       console.log(clinicalFeatures);
     }

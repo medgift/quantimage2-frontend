@@ -23,6 +23,7 @@ const endpoints = {
   navigation: `${baseEndpoint}/navigation`,
   albums: `${baseEndpoint}/albums`,
   clinical_features: `${baseEndpoint}/clinical_features`,
+  clinical_feature_definitions: `${baseEndpoint}/clinical_feature_definitions`,
 };
 
 class Backend {
@@ -152,9 +153,8 @@ class Backend {
   async saveClinicalFeatures(token, clinical_feature_map) {
     try {
 
-      console.log('clinical_feature_map', clinical_feature_map);
       let data = { clinical_feature_map: clinical_feature_map };
-      console.log('data', data);
+      
       return await request(endpoints.clinical_features, { method: 'POST', data: data, token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -173,6 +173,11 @@ class Backend {
     } catch (err) {
       throw err; // Just throw it for now
     }
+  }
+
+  async saveClinicalFeatureDefinitions(token, clinical_feature_definitions) {
+    let data = { clinical_feature_definitions: clinical_feature_definitions };
+    return await request(endpoints.clinical_feature_definitions, { method: 'POST', data: data, token: token });
   }
 
   async deleteClinicalFeatures(token) {

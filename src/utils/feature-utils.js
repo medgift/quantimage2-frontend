@@ -355,19 +355,8 @@ export async function parseClinicalFeatureNames(file) {
     skipEmptyLines: true,
     fastMode: true,
   };
-  let featuresTabular = [];
-
-  console.log("file");
-  console.log(file);
-  Papa.parse(file, {
-    complete: (results) => {
-      featuresTabular = results.data; // Assign the parsed data to a regular variable
-      console.log("results");
-      console.log(results);
-    }
-  });
   
-  console.log("featuresTabular");
-  console.log(featuresTabular);
-  return featuresTabular;
+  let fileContent = await file.text()
+  let data = Papa.parse(fileContent, config);
+  return data.meta.fields;
 }
