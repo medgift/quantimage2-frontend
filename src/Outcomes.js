@@ -19,7 +19,7 @@ import {
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import MyModal from './components/MyModal';
-import { validateLabelOrClinicalFeaturesFile } from './utils/feature-utils.js';
+import { validateLabelFile } from './utils/feature-utils.js';
 
 export default function Outcomes({
   albumID,
@@ -241,7 +241,7 @@ export default function Outcomes({
                 : SURVIVAL_OUTCOMES
             }
             validateLabelFile={(file, dataPoints) =>
-              validateLabelOrClinicalFeaturesFile(
+              validateLabelFile(
                 file,
                 dataPoints,
                 selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION

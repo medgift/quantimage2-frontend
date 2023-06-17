@@ -269,7 +269,7 @@ export function validateFileType(file) {
 }
 
 
-export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, headerFieldNames) {
+export async function validateLabelFile(file, dataPoints, headerFieldNames) {
   console.log(file);
   let valid = false;
   let error = null;
@@ -314,9 +314,6 @@ export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, head
       skip_empty_lines: true,
     });
 
-    // Match rows to data points
-    console.log(dataPoints);
-
     for (let patientID of dataPoints) {
       let matchingRecord = records.find(
         (record) => record.PatientID === patientID
@@ -342,6 +339,7 @@ export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, head
   }
 
   valid = true;
+  
   return [
     valid,
     `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
@@ -349,14 +347,63 @@ export async function validateLabelOrClinicalFeaturesFile(file, dataPoints, head
   ];
 }
 
-export async function parseClinicalFeatureNames(file) {
-  let config = {
-    header: true,
-    skipEmptyLines: true,
-    fastMode: true,
-  };
-  
+const papaparse_config = {
+  header: true,
+  skipEmptyLines: true,
+  fastMode: true,
+};
+
+export async function validateClinicalFeaturesFile(file, dataPoints) {
+  /* Validate file type */
+  let fileTypeIsValid = validateFileType(file);
+
+  if (!fileTypeIsValid) {
+    error = 'The file is not a CSV file!';
+    return [valid, error];
+  }
+
   let fileContent = await file.text()
-  let data = Papa.parse(fileContent, config);
+  let csvData = Papa.parse(fileContent, papaparse_config);
+  
+  let valid = false;
+  let error = null;
+
+  let nbMatches = 0;
+  let labels = {};
+
+  try {
+    for (let patientID of dataPoints) {
+      let matchingRecord = csvData.data.find(
+        (record) => record.PatientID === patientID
+      );
+
+      if (matchingRecord) {
+        nbMatches++;
+
+        // Fill labelCategories
+        const { PatientID, ...recordContent } = matchingRecord;
+        labels[PatientID] = recordContent;
+      }
+    }
+
+  } catch (e) {
+    console.error(e);
+    error = 'The CSV file could not be parsed, check its format!';
+    return [valid, error, {}];
+  }
+
+  valid = true;
+
+  return [
+    valid,
+    `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
+    labels,
+  ];
+
+}
+
+export async function parseClinicalFeatureNames(file) {  
+  let fileContent = await file.text()
+  let data = Papa.parse(fileContent, papaparse_config);
   return data.meta.fields;
 }

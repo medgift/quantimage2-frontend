@@ -4,10 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
-import { validateLabelOrClinicalFeaturesFile, parseClinicalFeatureNames, papaPromise } from '../utils/feature-utils.js';
+import { validateClinicalFeaturesFile, parseClinicalFeatureNames } from '../utils/feature-utils.js';
 
 import './ClinicalFeatureTable.css';
 
+const PATIENT_ID = "PatientID";
 
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
@@ -82,9 +83,12 @@ export default function ClinicalFeatureTable({
 
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
 
+    console.log("clinicalFeatures", clinicalFeatures);
+
     for (let patientID in clinicalFeatures) {
       clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
     }
+    console.log("clinicalFeaturesToUpdate", clinicalFeaturesToUpdate);
 
     if (Object.keys(clinicalFeatures).length > 0) {
       setEditableClinicalFeatures(clinicalFeaturesToUpdate);
@@ -118,7 +122,7 @@ export default function ClinicalFeatureTable({
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, message, clinicalFeatures] = await validateLabelOrClinicalFeaturesFile(
+    let [isValid, message, clinicalFeatures] = await validateClinicalFeaturesFile(
       fileInput.current.files[0],
       dataPoints,
       clinicalFeaturesColumns,
@@ -127,18 +131,25 @@ export default function ClinicalFeatureTable({
     if (isValid) {
       let column_names = await parseClinicalFeatureNames(fileInput.current.files[0]);
       console.log("column_names", column_names);
-      for (let column_name of column_names) {
-        if (column_name == "PatientID") {
-          continue;
+      let contains_patient_id = column_names.includes(PATIENT_ID);
+      if (contains_patient_id) {
+        for (let column_name of column_names) {
+          if (column_name == PATIENT_ID) {
+            continue;
+          }
+          console.log("column_name", column_name);
+          editableClinicalFeatureDefinitions[column_name] = {"Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0]}
         }
-        console.log("column_name", column_name);
-        editableClinicalFeatureDefinitions[column_name] = {"Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0]}
+        updateEditableClinicalFeatures(clinicalFeatures);
+        console.log(clinicalFeatures);
       }
-      updateEditableClinicalFeatures(clinicalFeatures);
-      console.log(clinicalFeatures);
-    }
-    setisClinicalFeatureFileValid(isValid);
-    setclinicalFeatureFileMessage(message);
+      else {
+        isValid = false;
+        message =`Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
+      }
+      setisClinicalFeatureFileValid(isValid);
+      setclinicalFeatureFileMessage(message);
+      }
   };
 
   useEffect(() => {
@@ -164,7 +175,7 @@ export default function ClinicalFeatureTable({
     <>
       <p>
         <Button color="primary" onClick={toggleManualLabelling}>
-          Manual Clinical Features
+          Clinical Feature Configuration
         </Button>{' '}
         <Button color="success" onClick={toggleAutoLabelling}>
           Import Clinical Features
@@ -286,21 +297,8 @@ export default function ClinicalFeatureTable({
         {fileInput.current && fileInput.current.files[0] && isClinicalFeatureFileValid && (
           <>
             <Alert color="success">
-              The selected file is valid: {clinicalFeatureFileMessage}
+              The selected file is valid: {clinicalFeatureFileMessage} - please go to Clinical Feature Configuiration Tab to configure the encoding of each feature.
             </Alert>
-            <Button
-              color="success"
-              onClick={handleSaveClinicalFeaturesClick}
-              disabled={isSavingClinicalFeatures}
-            >
-              {isSavingClinicalFeatures ? (
-                <>
-                  <FontAwesomeIcon icon="spinner" spin /> Saving Labels
-                </>
-              ) : (
-                `Save Clinical Features`
-              )}
-            </Button>
           </>
         )}
       </Collapse>
