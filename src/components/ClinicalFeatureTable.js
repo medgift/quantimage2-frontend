@@ -109,12 +109,13 @@ export default function ClinicalFeatureTable({
     }
   }
 
-  const updateEditableClinicalFeatures = (labels) => {
+  const updateEditableClinicalFeatures = (clinicalFeatures) => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
 
-    for (let patientID in labels) {
+    for (let patientID in clinicalFeatures) {
       if (patientID in editableClinicalFeatures) {
-        clinicalFeaturesToUpdate[patientID] = labels[patientID];
+  
+        clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
       }
     }
 
@@ -134,7 +135,7 @@ export default function ClinicalFeatureTable({
       let contains_patient_id = column_names.includes(PATIENT_ID);
       if (contains_patient_id) {
         for (let column_name of column_names) {
-          if (column_name == PATIENT_ID) {
+          if (column_name === PATIENT_ID || column_name.length === 0) {
             continue;
           }
           console.log("column_name", column_name);
@@ -227,11 +228,11 @@ export default function ClinicalFeatureTable({
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Values</h4>
         <div style={{ margin: '20px' }}></div>
-        <Table className="narrow-table table-fixed">
+        <Table className="table-fixed">
           <thead>
             <tr>
               <th>PatientID</th>
-              {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
+              {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
                 <th key={clinicalFeaturesColumn}>{clinicalFeaturesColumn}</th>
               ))}
             </tr>
@@ -240,7 +241,7 @@ export default function ClinicalFeatureTable({
             {dataPoints.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
-                {clinicalFeaturesColumns.map((clinicalFeaturesColumn) => (
+                {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
                   <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
                    editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
                   ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
