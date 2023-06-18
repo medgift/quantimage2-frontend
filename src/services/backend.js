@@ -195,6 +195,17 @@ class Backend {
     }
   }
 
+  async deleteClinicalFeatureDefinitions(token) {
+    try {      
+      return await request(`${endpoints.clinical_feature_definitions}`, { 
+        method: 'DELETE',
+        token: token ,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async saveTrainingTestPatients(
     token,
     extractionID,

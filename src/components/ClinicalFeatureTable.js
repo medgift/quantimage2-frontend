@@ -148,6 +148,10 @@ export default function ClinicalFeatureTable({
         isValid = false;
         message =`Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
       }
+      if (isValid) {
+        Backend.deleteClinicalFeatures(keycloak.token);
+        Backend.deleteClinicalFeatureDefinitions(keycloak.token);
+      }
       setisClinicalFeatureFileValid(isValid);
       setclinicalFeatureFileMessage(message);
       }
@@ -276,7 +280,7 @@ export default function ClinicalFeatureTable({
 
           Note: The system will delete existing feature upon a new upload to ensure that data does not become corrupted.
         </p>
-        <Label for="label-file" style={{fontWeight: 'bold'}}>Upload CSV File</Label>
+        <Label for="label-file" style={{fontWeight: 'bold'}}>Upload CSV File (Note: If the file is valid - this will delete existing clinical features)</Label>
         <div style={{ textAlign: 'center'}}>
           <Input
             type="file"
