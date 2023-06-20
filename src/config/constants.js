@@ -74,6 +74,10 @@ export const TRAINING_PHASES = {
   TESTING: 'testing',
 };
 
+export const CLINICAL_FEATURES = ["Age", "Gender"];
+export const CLINCAL_FEATURE_TYPES = ["Integer", "Float", "String", "Categorical"];
+export const CLINICAL_FEATURE_ENCODING = ["None", "One-Hot Encoding", "Normalization", "Ordered Categories"];
+
 export const CV_SPLITS = 5;
 
 export const MODEL_COLUMNS = [

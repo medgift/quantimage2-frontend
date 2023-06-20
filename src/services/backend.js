@@ -22,6 +22,8 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   navigation: `${baseEndpoint}/navigation`,
   albums: `${baseEndpoint}/albums`,
+  clinical_features: `${baseEndpoint}/clinical_features`,
+  clinical_feature_definitions: `${baseEndpoint}/clinical_feature_definitions`,
 };
 
 class Backend {
@@ -138,10 +140,67 @@ class Backend {
     try {
       const url = `${endpoints.labels}/${labelCollectionID}`;
 
+      console.log('labelMap', labelMap);
       let data = { label_map: labelMap };
       if (posLabel) data.pos_label = posLabel;
 
       return await request(url, { method: 'POST', data: data, token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async saveClinicalFeatures(token, clinical_feature_map) {
+    try {
+
+      let data = { clinical_feature_map: clinical_feature_map };
+      
+      return await request(endpoints.clinical_features, { method: 'POST', data: data, token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async loadClinicalFeatures(token, patient_ids) {
+    try {
+      let separator = ","
+      let url = `${endpoints.clinical_features}?patient_ids=${patient_ids.join(separator)}`;
+      
+      return await request(url, { 
+        method: 'GET',
+        token: token ,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async saveClinicalFeatureDefinitions(token, clinical_feature_definitions) {
+    let data = { clinical_feature_definitions: clinical_feature_definitions };
+    return await request(endpoints.clinical_feature_definitions, { method: 'POST', data: data, token: token });
+  }
+
+  async loadClinicalFeatureDefinitions(token) {
+    return await request(endpoints.clinical_feature_definitions, { method: 'GET', token: token });
+  }
+
+  async deleteClinicalFeatures(token) {
+    try {      
+      return await request(`${endpoints.clinical_features}`, { 
+        method: 'DELETE',
+        token: token ,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
+  async deleteClinicalFeatureDefinitions(token) {
+    try {      
+      return await request(`${endpoints.clinical_feature_definitions}`, { 
+        method: 'DELETE',
+        token: token ,
+      });
     } catch (err) {
       throw err; // Just throw it for now
     }

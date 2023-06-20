@@ -34,6 +34,8 @@ import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
+import ClinicalFeatures from './ClinicalFeatures';
+import {DynamicTable} from './components/YourComponent';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -84,6 +86,7 @@ function Features({ history }) {
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingLabels, setIsSavingLabels] = useState(false);
+  const [isSavingClinicalFeatures, setIsClinicalFeatures] = useState(false);
   const [isSavingCollectionName, setIsSavingCollectionName] = useState(false);
   const [isDeletingCollection, setIsDeletingCollection] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -725,6 +728,23 @@ function Features({ history }) {
                 </NavItem>
                 <NavItem>
                   <NavLink
+                    className={getTabClassName('clinical_features')}
+                    onClick={() => {
+                      toggle('clinical_features');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    {isAlternativeUser ? (
+                      'Collections'
+                    ) : !hasPendingChanges ? (
+                      'Clinical Features'
+                    ) : (
+                      <strong>Clinical Features*</strong>
+                    )}
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
                     className={getTabClassName('train')}
                     onClick={() => {
                       toggle('train');
@@ -733,6 +753,17 @@ function Features({ history }) {
                     {getTabSymbol()}
                     Model Training{' '}
                     {models.length > 0 && <Badge>{models.length}</Badge>}
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('your_component')}
+                    onClick={() => {
+                      toggle('your_component');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    Your Component
                   </NavLink>
                 </NavItem>
               </Nav>
@@ -1011,6 +1042,36 @@ function Features({ history }) {
                       </p>
                     )
                   ) : (
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="clinical_features">
+                  {tab === 'clinical_features' ? (
+                      <ClinicalFeatures
+                        albumID={albumID}
+                        featureExtractionID={featureExtractionID}
+                        isSavingClinicalFeatures={isSavingClinicalFeatures}
+                        setIsClinicalFeatures={setIsClinicalFeatures}
+                        dataPoints={allPatients}
+                        outcomes={outcomes}
+                        selectedLabelCategory={selectedLabelCategory}
+                        setSelectedLabelCategory={setSelectedLabelCategory}
+                        labelCategories={labelCategories}
+                        setLabelCategories={setLabelCategories}
+                        setFeaturesChart={setFeaturesChart}
+                        updateExtractionOrCollection={
+                          updateExtractionOrCollection
+                      }
+                      setNbTrainingPatients={setNbTrainingPatients}
+                    />
+                  ):(
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="your_component">
+                  {tab === 'your_component' ? (
+                    <DynamicTable/>
+                  ):(
                     <span>Loading...</span>
                   )}
                 </TabPane>
