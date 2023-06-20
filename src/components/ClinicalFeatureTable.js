@@ -24,6 +24,7 @@ export default function ClinicalFeatureTable({
 
   let [isClinicalFeatureFileValid, setisClinicalFeatureFileValid] = useState(null);
   let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
+  let [filterClinicalFeatureMessages, setFilterClinicalFeatureMessages] = useState(null);
   let fileInput = useRef(null);
 
   const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState({
@@ -114,7 +115,7 @@ export default function ClinicalFeatureTable({
 
     for (let patientID in clinicalFeatures) {
       if (patientID in editableClinicalFeatures) {
-  
+
         clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
       }
     }
@@ -130,31 +131,41 @@ export default function ClinicalFeatureTable({
     );
 
     if (isValid) {
+      let filterMessages = {};
       let column_names = await parseClinicalFeatureNames(fileInput.current.files[0]);
-      console.log("column_names", column_names);
+      let columns_to_filter = await Backend.filterClinicalFeatures(keycloak.token, clinicalFeatures);
+
       let contains_patient_id = column_names.includes(PATIENT_ID);
       if (contains_patient_id) {
         for (let column_name of column_names) {
           if (column_name === PATIENT_ID || column_name.length === 0) {
             continue;
           }
-          console.log("column_name", column_name);
-          editableClinicalFeatureDefinitions[column_name] = {"Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0]}
+          if (columns_to_filter["too_little_data"].includes(column_name)) {
+            filterMessages[column_name] = "because less than 10% of the patients have data for this feature";
+            continue;
+          }
+
+          editableClinicalFeatureDefinitions[column_name] = { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0] }
         }
         updateEditableClinicalFeatures(clinicalFeatures);
         console.log(clinicalFeatures);
       }
       else {
         isValid = false;
-        message =`Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
+        message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
       }
       if (isValid) {
         Backend.deleteClinicalFeatures(keycloak.token);
         Backend.deleteClinicalFeatureDefinitions(keycloak.token);
+
+        let guessedClinicalFeatureDefinitions = await Backend.guessClinicalFeatureDefinitions(keycloak.token, clinicalFeatures);
+        console.log("guessedClinicalFeatureDefinitions", guessedClinicalFeatureDefinitions);
       }
+      setFilterClinicalFeatureMessages(filterMessages);
       setisClinicalFeatureFileValid(isValid);
       setclinicalFeatureFileMessage(message);
-      }
+    }
   };
 
   useEffect(() => {
@@ -247,8 +258,8 @@ export default function ClinicalFeatureTable({
                 <td>{dataPoint}</td>
                 {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
                   <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
-                   editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                  ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
+                    editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                    ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
                   </td>
                 ))}
               </tr>
@@ -280,8 +291,8 @@ export default function ClinicalFeatureTable({
 
           Note: The system will delete existing feature upon a new upload to ensure that data does not become corrupted.
         </p>
-        <Label for="label-file" style={{fontWeight: 'bold'}}>Upload CSV File (Note: If the file is valid - this will delete existing clinical features)</Label>
-        <div style={{ textAlign: 'center'}}>
+        <Label for="label-file" style={{ fontWeight: 'bold' }}>Upload CSV File (Note: If the file is valid - this will delete existing clinical features)</Label>
+        <div style={{ textAlign: 'center' }}>
           <Input
             type="file"
             name="file"
@@ -304,6 +315,15 @@ export default function ClinicalFeatureTable({
             <Alert color="success">
               The selected file is valid: {clinicalFeatureFileMessage} - please go to Clinical Feature Configuiration Tab to configure the encoding of each feature.
             </Alert>
+          </>
+        )}
+        {fileInput.current && fileInput.current.files[0] && isClinicalFeatureFileValid && (Object.keys(filterClinicalFeatureMessages).length > 0) && (
+          <>
+            {Object.keys(filterClinicalFeatureMessages).map((columnName) => (
+              <Alert color="success" key={columnName}>
+                {columnName} was removed because of {filterClinicalFeatureMessages[columnName]}.
+              </Alert>
+            ))}
           </>
         )}
       </Collapse>

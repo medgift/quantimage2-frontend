@@ -175,6 +175,13 @@ class Backend {
     }
   }
 
+  async filterClinicalFeatures(token, clinical_feature_map) {
+    const url = `${endpoints.clinical_features}/filter`
+    let data = { clinical_feature_map: clinical_feature_map };
+      
+    return await request(url, { method: 'POST', data: data, token: token });
+  }
+
   async saveClinicalFeatureDefinitions(token, clinical_feature_definitions) {
     let data = { clinical_feature_definitions: clinical_feature_definitions };
     return await request(endpoints.clinical_feature_definitions, { method: 'POST', data: data, token: token });
@@ -182,6 +189,13 @@ class Backend {
 
   async loadClinicalFeatureDefinitions(token) {
     return await request(endpoints.clinical_feature_definitions, { method: 'GET', token: token });
+  }
+
+  async guessClinicalFeatureDefinitions(token, clinical_feature_map) {
+    const url = `${endpoints.clinical_feature_definitions}/guess`
+    let data = { clinical_feature_map: clinical_feature_map };
+      
+    return await request(url, { method: 'POST', data: data, token: token });
   }
 
   async deleteClinicalFeatures(token) {
