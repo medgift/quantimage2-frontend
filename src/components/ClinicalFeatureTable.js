@@ -146,6 +146,11 @@ export default function ClinicalFeatureTable({
             continue;
           }
 
+          if (columns_to_filter["only_one_value"].includes(column_name)) {
+            filterMessages[column_name] = "because only one value is present in the data";
+            continue;
+          }
+
           editableClinicalFeatureDefinitions[column_name] = { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0] }
         }
         updateEditableClinicalFeatures(clinicalFeatures);
@@ -156,10 +161,21 @@ export default function ClinicalFeatureTable({
         message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
       }
       if (isValid) {
-        Backend.deleteClinicalFeatures(keycloak.token);
         Backend.deleteClinicalFeatureDefinitions(keycloak.token);
 
         let guessedClinicalFeatureDefinitions = await Backend.guessClinicalFeatureDefinitions(keycloak.token, clinicalFeatures);
+        let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
+        
+        for (let feature_name in guessedClinicalFeatureDefinitions) {
+          if (feature_name in editableClinicalFeatureDefinitions) {
+            editableClinicalFeatureDefinitions[feature_name] = guessedClinicalFeatureDefinitions[feature_name];
+            console.log("Uniquevalues", clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name]);
+            if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10)
+              { 
+                editableClinicalFeatureDefinitions[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+              }
+          }
+        }
         console.log("guessedClinicalFeatureDefinitions", guessedClinicalFeatureDefinitions);
       }
       setFilterClinicalFeatureMessages(filterMessages);
@@ -207,6 +223,7 @@ export default function ClinicalFeatureTable({
               <th>Clinical Feature</th>
               <th>Type</th>
               <th>Encoding</th>
+              <th>Unique Values</th>
             </tr>
           </thead>
           <tbody>
@@ -235,6 +252,7 @@ export default function ClinicalFeatureTable({
                     {CLINICAL_FEATURE_ENCODING.map(encoding_type => <option key={encoding_type} value={encoding_type}>{encoding_type}</option>)};
                   </Input>
                 </td>
+                <td>{editableClinicalFeatureDefinitions[feature_name]["Unique Values"]}</td>
               </tr>
             ))}
           </tbody>
@@ -321,7 +339,7 @@ export default function ClinicalFeatureTable({
           <>
             {Object.keys(filterClinicalFeatureMessages).map((columnName) => (
               <Alert color="success" key={columnName}>
-                {columnName} was removed because of {filterClinicalFeatureMessages[columnName]}.
+                {columnName} was removed {filterClinicalFeatureMessages[columnName]}.
               </Alert>
             ))}
           </>
