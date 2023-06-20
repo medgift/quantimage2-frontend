@@ -169,7 +169,7 @@ export default function ClinicalFeatureTable({
         for (let feature_name in guessedClinicalFeatureDefinitions) {
           if (feature_name in editableClinicalFeatureDefinitions) {
             editableClinicalFeatureDefinitions[feature_name] = guessedClinicalFeatureDefinitions[feature_name];
-            console.log("Uniquevalues", clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name]);
+            
             if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10)
               { 
                 editableClinicalFeatureDefinitions[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
