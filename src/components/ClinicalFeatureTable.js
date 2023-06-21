@@ -130,6 +130,11 @@ export default function ClinicalFeatureTable({
       clinicalFeaturesColumns,
     );
 
+    // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
+    setFilterClinicalFeatureMessages({});
+    setclinicalFeatureFileMessage("");
+    
+
     if (isValid) {
       let filterMessages = {};
       let column_names = await parseClinicalFeatureNames(fileInput.current.files[0]);
