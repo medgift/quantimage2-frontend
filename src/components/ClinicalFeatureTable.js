@@ -41,7 +41,6 @@ export default function ClinicalFeatureTable({
   useEffect(() => {
     // Load clinical features the first time the component is rendered
     loadClinicalFeatures();
-    loadClinicalFeatureDefinitions();
   }, []); // Empty dependency array ensures the effect runs only once
 
 
@@ -50,7 +49,6 @@ export default function ClinicalFeatureTable({
     setisManualClinFeaturesOpen((open) => !open);
     setisAutoClinFeaturesOpen(false);
     loadClinicalFeatures();
-    loadClinicalFeatureDefinitions();
   };
 
   const toggleAutoLabelling = () => {
@@ -81,32 +79,30 @@ export default function ClinicalFeatureTable({
 
   const loadClinicalFeatures = async () => {
     let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
+    let clinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
 
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
+    let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
+    let clinicalFeatureDefinitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token);
 
-    console.log("clinicalFeatures", clinicalFeatures);
 
     for (let patientID in clinicalFeatures) {
       clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
     }
-    console.log("clinicalFeaturesToUpdate", clinicalFeaturesToUpdate);
-
-    if (Object.keys(clinicalFeatures).length > 0) {
-      setEditableClinicalFeatures(clinicalFeaturesToUpdate);
-    }
-  }
-
-  const loadClinicalFeatureDefinitions = async () => {
-    let clinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
-
-    let clinicalFeatureDefinitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token)
-
+    
     for (let feature_name in clinicalFeatureDefinitions) {
       clinicalFeatureDefinitionsToUpdate[feature_name] = clinicalFeatureDefinitions[feature_name];
+      if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
+        clinicalFeatureDefinitionsToUpdate[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+      }
     }
 
     if (Object.keys(clinicalFeatureDefinitions).length > 0) {
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
+    }
+
+    if (Object.keys(clinicalFeatures).length > 0) {
+      setEditableClinicalFeatures(clinicalFeaturesToUpdate);
     }
   }
 
@@ -133,7 +129,7 @@ export default function ClinicalFeatureTable({
     // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
     setFilterClinicalFeatureMessages({});
     setclinicalFeatureFileMessage("");
-    
+
 
     if (isValid) {
       let filterMessages = {};
@@ -146,6 +142,12 @@ export default function ClinicalFeatureTable({
           if (column_name === PATIENT_ID || column_name.length === 0) {
             continue;
           }
+          
+          if (columns_to_filter["date_columns"].includes(column_name)) {
+            filterMessages[column_name] = "as we do not support any date columns yet";
+            continue;
+          }
+
           if (columns_to_filter["too_little_data"].includes(column_name)) {
             filterMessages[column_name] = "because less than 10% of the patients have data for this feature";
             continue;
@@ -170,15 +172,14 @@ export default function ClinicalFeatureTable({
 
         let guessedClinicalFeatureDefinitions = await Backend.guessClinicalFeatureDefinitions(keycloak.token, clinicalFeatures);
         let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
-        
+
         for (let feature_name in guessedClinicalFeatureDefinitions) {
           if (feature_name in editableClinicalFeatureDefinitions) {
             editableClinicalFeatureDefinitions[feature_name] = guessedClinicalFeatureDefinitions[feature_name];
-            
-            if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10)
-              { 
-                editableClinicalFeatureDefinitions[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
-              }
+
+            if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
+              editableClinicalFeatureDefinitions[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+            }
           }
         }
         console.log("guessedClinicalFeatureDefinitions", guessedClinicalFeatureDefinitions);
@@ -275,19 +276,20 @@ export default function ClinicalFeatureTable({
               ))}
             </tr>
           </thead>
-          <tbody className="data-points">
-            {dataPoints.map((dataPoint) => (
-              <tr key={`${dataPoint}`}>
-                <td>{dataPoint}</td>
-                {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
-                  <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
-                    editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                    ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
+          {Object.keys(editableClinicalFeatureDefinitions).length > 0 &&
+            <tbody className="data-points">
+              {dataPoints.map((dataPoint) => (
+                <tr key={`${dataPoint}`}>
+                  <td>{dataPoint}</td>
+                  {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
+                    <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
+                      editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
+                      ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>}
         </Table>
 
         <Button
