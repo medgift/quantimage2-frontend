@@ -1,4 +1,4 @@
-**# QuantImage v2 - Frontend
+# QuantImage v2 - Frontend
 
 ## Context
 
