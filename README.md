@@ -23,7 +23,7 @@ The project uses Docker for easy build & deployment, using the following files :
 - `docker-compose.vm.yml` : File for the [QuantImage v2 VM](https://medgift.github.io/quantimage-v2-info/#getting-started), restarting the container automatically on reboot or crash**
 - `docker-compose.prod.yml` : Production file for use with Traefik
 
-********### Code Structure********
+### Code Structure
 
 ```
 │   App.js & all pages of the application
