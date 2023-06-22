@@ -734,13 +734,7 @@ function Features({ history }) {
                     }}
                   >
                     {getTabSymbol()}
-                    {isAlternativeUser ? (
-                      'Collections'
-                    ) : !hasPendingChanges ? (
-                      'Clinical Features'
-                    ) : (
-                      <strong>Clinical Features*</strong>
-                    )}
+                      Clinical Features
                   </NavLink>
                 </NavItem>
                 <NavItem>
