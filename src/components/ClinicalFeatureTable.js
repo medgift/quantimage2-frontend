@@ -1,18 +1,23 @@
 import { Alert, Button, Collapse, Input, Label, Table } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
-import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
-import { validateClinicalFeaturesFile, parseClinicalFeatureNames, SelectColumnFilter } from '../utils/feature-utils.js';
+import {
+  CLINCAL_FEATURE_TYPES,
+  CLINICAL_FEATURE_ENCODING,
+} from '../config/constants';
+import {
+  validateClinicalFeaturesFile,
+  parseClinicalFeatureNames,
+  SelectColumnFilter,
+} from '../utils/feature-utils.js';
 import { FeatureTable } from '../components/FeatureTable';
 
 import './ClinicalFeatureTable.css';
-import '../Features.css'
+import '../Features.css';
 
-import { set } from 'lodash';
-
-const PATIENT_ID = "PatientID";
+const PATIENT_ID = 'PatientID';
 
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
@@ -22,30 +27,47 @@ export default function ClinicalFeatureTable({
   let { keycloak } = useKeycloak();
 
   let [editableClinicalFeatures, setEditableClinicalFeatures] = useState({});
-  let [clinicalFeatureValuesForReactTable, setClinicalFeatureValuesForReactTable] = useState([
+  let [
+    clinicalFeatureValuesForReactTable,
+    setClinicalFeatureValuesForReactTable,
+  ] = useState([
     // {PATIENT_ID: "1", "Age": 1, "Gender": 2},
     // {PATIENT_ID: "2", "Age": 1, "Gender": 2},
   ]);
 
-  let [isManualClinFeaturesOpen, setisManualClinFeaturesOpen] = useState(true);
-  let [isAutoClinFeaturesOpen, setisAutoClinFeaturesOpen] = useState(false);
+  let [isManualClinFeaturesOpen, setIsManualClinFeaturesOpen] = useState(true);
+  let [isAutoClinFeaturesOpen, setIsAutoClinFeaturesOpen] = useState(false);
 
-  let [isClinicalFeatureFileValid, setisClinicalFeatureFileValid] = useState(null);
-  let [clinicalFeatureFileMessage, setclinicalFeatureFileMessage] = useState(null);
-  let [filterClinicalFeatureMessages, setFilterClinicalFeatureMessages] = useState(null);
+  let [isClinicalFeatureFileValid, setIsClinicalFeatureFileValid] =
+    useState(null);
+  let [clinicalFeatureFileMessage, setClinicalFeatureFileMessage] =
+    useState(null);
+  let [filterClinicalFeatureMessages, setFilterClinicalFeatureMessages] =
+    useState(null);
   let fileInput = useRef(null);
 
-  const [editableClinicalFeatureDefinitions, setEditableClinicalFeatureDefinitions] = useState({
+  const [
+    editableClinicalFeatureDefinitions,
+    setEditableClinicalFeatureDefinitions,
+  ] = useState({
     // "Age": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "None" },
     // "Gender": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "Categorical" }
   });
-  const [clinicalFeatureColumnsForReactTable, setClinicalFeatureColumnsForReactTable] = useState({ "Clinical": [] });
+  const [
+    clinicalFeatureColumnsForReactTable,
+    setClinicalFeatureColumnsForReactTable,
+  ] = useState({ Clinical: [] });
   // {"Clinical": ["Age", "Sex"]}
 
   const handleInputChange = (e, feature_name, feature_type) => {
-    let editableClinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
-    editableClinicalFeatureDefinitionsToUpdate[feature_name][feature_type] = e.target.value;
-    setEditableClinicalFeatureDefinitions(editableClinicalFeatureDefinitionsToUpdate)
+    let editableClinicalFeatureDefinitionsToUpdate = {
+      ...editableClinicalFeatureDefinitions,
+    };
+    editableClinicalFeatureDefinitionsToUpdate[feature_name][feature_type] =
+      e.target.value;
+    setEditableClinicalFeatureDefinitions(
+      editableClinicalFeatureDefinitionsToUpdate
+    );
   };
 
   useEffect(() => {
@@ -53,104 +75,151 @@ export default function ClinicalFeatureTable({
     loadClinicalFeatures();
   }, []); // Empty dependency array ensures the effect runs only once
 
-
   const toggleManualLabelling = () => {
-    console.log("toggleManualLabelling");
-    setisManualClinFeaturesOpen((open) => !open);
-    setisAutoClinFeaturesOpen(false);
+    console.log('toggleManualLabelling');
+    setIsManualClinFeaturesOpen((open) => !open);
+    setIsAutoClinFeaturesOpen(false);
     loadClinicalFeatures();
   };
 
   const toggleAutoLabelling = () => {
-    setisAutoClinFeaturesOpen((open) => !open);
-    setisManualClinFeaturesOpen(false);
+    setIsAutoClinFeaturesOpen((open) => !open);
+    setIsManualClinFeaturesOpen(false);
   };
 
   const handleSaveClinicalFeaturesClick = async (e) => {
     if (isAutoClinFeaturesOpen) {
       toggleManualLabelling();
-      setclinicalFeatureFileMessage(null);
-      setisClinicalFeatureFileValid(null);
+      setClinicalFeatureFileMessage(null);
+      setIsClinicalFeatureFileValid(null);
       fileInput.current.value = '';
     }
 
     await Backend.saveClinicalFeatureDefinitions(
       keycloak.token,
-      editableClinicalFeatureDefinitions,
-    )
+      editableClinicalFeatureDefinitions
+    );
 
     await Backend.saveClinicalFeatures(
       keycloak.token,
-      editableClinicalFeatures,
+      editableClinicalFeatures
     );
 
     // await Backend.deleteClinicalFeatures();
   };
 
   const loadClinicalFeatures = async () => {
-    let clinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
-    let clinicalFeatureColumnsForReactTableToUpdate = { ...clinicalFeatureColumnsForReactTable };
+    let clinicalFeatureDefinitionsToUpdate = {
+      ...editableClinicalFeatureDefinitions,
+    };
+    let clinicalFeatureColumnsForReactTableToUpdate = {
+      ...clinicalFeatureColumnsForReactTable,
+    };
 
-    let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
-    let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
-    let clinicalFeatureDefinitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token);
+    let clinicalFeatures = await Backend.loadClinicalFeatures(
+      keycloak.token,
+      dataPoints
+    );
+    let clinicalFeaturesUniqueValues =
+      await Backend.clinicalFeaturesUniqueValues(
+        keycloak.token,
+        clinicalFeatures
+      );
+    let clinicalFeatureDefinitions =
+      await Backend.loadClinicalFeatureDefinitions(keycloak.token);
 
     for (let feature_name in clinicalFeatureDefinitions) {
-      clinicalFeatureDefinitionsToUpdate[feature_name] = clinicalFeatureDefinitions[feature_name];
-      if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
-        clinicalFeatureDefinitionsToUpdate[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+      clinicalFeatureDefinitionsToUpdate[feature_name] =
+        clinicalFeatureDefinitions[feature_name];
+      if (
+        clinicalFeaturesUniqueValues['frequency_of_occurence'][feature_name]
+          .length < 10
+      ) {
+        clinicalFeatureDefinitionsToUpdate[feature_name]['Unique Values'] =
+          clinicalFeaturesUniqueValues['frequency_of_occurence'][
+            feature_name
+          ].join(' | ');
       }
-      if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(feature_name) == false) {
-        clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(feature_name);
+      if (
+        clinicalFeatureColumnsForReactTableToUpdate['Clinical'].includes(
+          feature_name
+        ) === false
+      ) {
+        clinicalFeatureColumnsForReactTableToUpdate['Clinical'].push(
+          feature_name
+        );
       }
     }
 
     if (Object.keys(clinicalFeatureDefinitions).length > 0) {
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
-      setClinicalFeatureColumnsForReactTable(clinicalFeatureColumnsForReactTableToUpdate);
+      setClinicalFeatureColumnsForReactTable(
+        clinicalFeatureColumnsForReactTableToUpdate
+      );
     }
 
     if (Object.keys(clinicalFeatures).length > 0) {
       setEditableClinicalFeatures(clinicalFeatures);
       updateEditableClinicalFeaturesForReactTable(clinicalFeatures);
     }
-  }
+  };
 
   const updateEditableClinicalFeaturesForReactTable = (clinicalFeatures) => {
-    let clinicalFeatureValuesForReactTableToUpdate = [...clinicalFeatureValuesForReactTable];
+    let clinicalFeatureValuesForReactTableToUpdate = [
+      ...clinicalFeatureValuesForReactTable,
+    ];
 
-    console.log("clinicalFeatures", clinicalFeatures);
+    console.log('clinicalFeatures', clinicalFeatures);
     for (let patientID in clinicalFeatures) {
       //  if (patientID in editableClinicalFeatures) {
-      let clinicalFeaturesForPatient = { "PatientID": patientID };
-      let ClinicalFeaturesForPatientAll = Object.assign({}, clinicalFeaturesForPatient, clinicalFeatures[patientID]);
-      clinicalFeatureValuesForReactTableToUpdate.push(ClinicalFeaturesForPatientAll);
+      let clinicalFeaturesForPatient = { PatientID: patientID };
+      let ClinicalFeaturesForPatientAll = Object.assign(
+        {},
+        clinicalFeaturesForPatient,
+        clinicalFeatures[patientID]
+      );
+      clinicalFeatureValuesForReactTableToUpdate.push(
+        ClinicalFeaturesForPatientAll
+      );
 
       // }
     }
-    setClinicalFeatureValuesForReactTable(clinicalFeatureValuesForReactTableToUpdate);
-    console.log("clinicalFeatureValuesForReactTableToUpdate", clinicalFeatureValuesForReactTableToUpdate);
+    setClinicalFeatureValuesForReactTable(
+      clinicalFeatureValuesForReactTableToUpdate
+    );
+    console.log(
+      'clinicalFeatureValuesForReactTableToUpdate',
+      clinicalFeatureValuesForReactTableToUpdate
+    );
   };
 
   const handleFileInputChange = async () => {
-    let [isValid, message, clinicalFeatures] = await validateClinicalFeaturesFile(
-      fileInput.current.files[0],
-      dataPoints,
-      clinicalFeaturesColumns,
-    );
+    let [isValid, message, clinicalFeatures] =
+      await validateClinicalFeaturesFile(
+        fileInput.current.files[0],
+        dataPoints,
+        clinicalFeaturesColumns
+      );
 
     // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
     setFilterClinicalFeatureMessages({});
-    setclinicalFeatureFileMessage("");
-    setClinicalFeatureColumnsForReactTable({ "Clinical": [] });
+    setClinicalFeatureFileMessage('');
+    setClinicalFeatureColumnsForReactTable({ Clinical: [] });
     setClinicalFeatureValuesForReactTable([]);
 
-    let clinicalFeatureColumnsForReactTableToUpdate = { ...clinicalFeatureColumnsForReactTable };
+    let clinicalFeatureColumnsForReactTableToUpdate = {
+      ...clinicalFeatureColumnsForReactTable,
+    };
 
     if (isValid) {
       let filterMessages = {};
-      let column_names = await parseClinicalFeatureNames(fileInput.current.files[0]);
-      let columns_to_filter = await Backend.filterClinicalFeatures(keycloak.token, clinicalFeatures);
+      let column_names = await parseClinicalFeatureNames(
+        fileInput.current.files[0]
+      );
+      let columns_to_filter = await Backend.filterClinicalFeatures(
+        keycloak.token,
+        clinicalFeatures
+      );
 
       let contains_patient_id = column_names.includes(PATIENT_ID);
       if (contains_patient_id) {
@@ -159,57 +228,92 @@ export default function ClinicalFeatureTable({
             continue;
           }
 
-          if (columns_to_filter["date_columns"].includes(column_name)) {
-            filterMessages[column_name] = "as we do not support any date columns yet";
+          if (columns_to_filter['date_columns'].includes(column_name)) {
+            filterMessages[column_name] =
+              'as we do not support any date columns yet';
             continue;
           }
 
-          if (columns_to_filter["too_little_data"].includes(column_name)) {
-            filterMessages[column_name] = "because less than 10% of the patients have data for this feature";
+          if (columns_to_filter['too_little_data'].includes(column_name)) {
+            filterMessages[column_name] =
+              'because less than 10% of the patients have data for this feature';
             continue;
           }
 
-          if (columns_to_filter["only_one_value"].includes(column_name)) {
-            filterMessages[column_name] = "because only one value is present in the data";
+          if (columns_to_filter['only_one_value'].includes(column_name)) {
+            filterMessages[column_name] =
+              'because only one value is present in the data';
             continue;
           }
 
-          editableClinicalFeatureDefinitions[column_name] = { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0] };
+          editableClinicalFeatureDefinitions[column_name] = {
+            Type: CLINCAL_FEATURE_TYPES[0],
+            Encoding: CLINICAL_FEATURE_ENCODING[0],
+          };
 
-          if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(column_name) == false)
-          {
-            clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(column_name);
+          if (
+            clinicalFeatureColumnsForReactTableToUpdate['Clinical'].includes(
+              column_name
+            ) === false
+          ) {
+            clinicalFeatureColumnsForReactTableToUpdate['Clinical'].push(
+              column_name
+            );
           }
         }
         updateEditableClinicalFeaturesForReactTable(clinicalFeatures);
-        setClinicalFeatureColumnsForReactTable(clinicalFeatureColumnsForReactTableToUpdate);
+        setClinicalFeatureColumnsForReactTable(
+          clinicalFeatureColumnsForReactTableToUpdate
+        );
         console.log(clinicalFeatures);
-      }
-      else {
+      } else {
         isValid = false;
-        message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(", ")}`;
+        message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(
+          ', '
+        )}`;
       }
       if (isValid) {
         Backend.deleteClinicalFeatureDefinitions(keycloak.token);
 
-        let guessedClinicalFeatureDefinitions = await Backend.guessClinicalFeatureDefinitions(keycloak.token, clinicalFeatures);
-        let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
+        let guessedClinicalFeatureDefinitions =
+          await Backend.guessClinicalFeatureDefinitions(
+            keycloak.token,
+            clinicalFeatures
+          );
+        let clinicalFeaturesUniqueValues =
+          await Backend.clinicalFeaturesUniqueValues(
+            keycloak.token,
+            clinicalFeatures
+          );
 
         for (let feature_name in guessedClinicalFeatureDefinitions) {
           if (feature_name in editableClinicalFeatureDefinitions) {
-            editableClinicalFeatureDefinitions[feature_name] = guessedClinicalFeatureDefinitions[feature_name];
+            editableClinicalFeatureDefinitions[feature_name] =
+              guessedClinicalFeatureDefinitions[feature_name];
 
-            if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
-              editableClinicalFeatureDefinitions[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+            if (
+              clinicalFeaturesUniqueValues['frequency_of_occurence'][
+                feature_name
+              ].length < 10
+            ) {
+              editableClinicalFeatureDefinitions[feature_name][
+                'Unique Values'
+              ] =
+                clinicalFeaturesUniqueValues['frequency_of_occurence'][
+                  feature_name
+                ].join(' | ');
             }
           }
         }
-        console.log("guessedClinicalFeatureDefinitions", guessedClinicalFeatureDefinitions);
+        console.log(
+          'guessedClinicalFeatureDefinitions',
+          guessedClinicalFeatureDefinitions
+        );
       }
       setEditableClinicalFeatures(clinicalFeatures);
       setFilterClinicalFeatureMessages(filterMessages);
-      setisClinicalFeatureFileValid(isValid);
-      setclinicalFeatureFileMessage(message);
+      setIsClinicalFeatureFileValid(isValid);
+      setClinicalFeatureFileMessage(message);
     }
   };
 
@@ -232,19 +336,23 @@ export default function ClinicalFeatureTable({
     setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
 
-  let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map((featureGroup) => ({
-    Header: featureGroup,
-    id: featureGroup,
-    columns: clinicalFeatureColumnsForReactTable[featureGroup].map((featureName) => ({
-      Header: featureName,
-      accessor: featureName,
-      disableFilters: true,
-    })),
-  }));
+  let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map(
+    (featureGroup) => ({
+      Header: featureGroup,
+      id: featureGroup,
+      columns: clinicalFeatureColumnsForReactTable[featureGroup].map(
+        (featureName) => ({
+          Header: featureName,
+          accessor: featureName,
+          disableFilters: true,
+        })
+      ),
+    })
+  );
 
   const reactTableColumnsDefinitions = [
     {
-      Header: "Metadata",
+      Header: 'Metadata',
       columns: [PATIENT_ID].map((field) => ({
         Header: field,
         accessor: field,
@@ -253,7 +361,7 @@ export default function ClinicalFeatureTable({
       })),
     },
     {
-      Header: "Features",
+      Header: 'Features',
       columns: featureColumns,
     },
   ];
@@ -282,34 +390,62 @@ export default function ClinicalFeatureTable({
             </tr>
           </thead>
           <tbody>
-            {Object.keys(editableClinicalFeatureDefinitions).map(feature_name => (
-              <tr key={feature_name}>
-                <td>{feature_name}</td>
-                <td>
-                  <Input
-                    type="select"
-                    id="type_list"
-                    name="type_list"
-                    value={editableClinicalFeatureDefinitions[feature_name]["Type"]}
-                    onChange={(event) => handleInputChange(event, feature_name, "Type")}
-                  >
-                    {CLINCAL_FEATURE_TYPES.map(feat_type => <option key={feat_type} value={feat_type}>{feat_type}</option>)};
-                  </Input>
-                </td>
-                <td>
-                  <Input
-                    type="select"
-                    id="encoding_list"
-                    name="encoding_list"
-                    value={editableClinicalFeatureDefinitions[feature_name]["Encoding"]}
-                    onChange={(event) => handleInputChange(event, feature_name, "Encoding")}
-                  >
-                    {CLINICAL_FEATURE_ENCODING.map(encoding_type => <option key={encoding_type} value={encoding_type}>{encoding_type}</option>)};
-                  </Input>
-                </td>
-                <td>{editableClinicalFeatureDefinitions[feature_name]["Unique Values"]}</td>
-              </tr>
-            ))}
+            {Object.keys(editableClinicalFeatureDefinitions).map(
+              (feature_name) => (
+                <tr key={feature_name}>
+                  <td>{feature_name}</td>
+                  <td>
+                    <Input
+                      type="select"
+                      id="type_list"
+                      name="type_list"
+                      value={
+                        editableClinicalFeatureDefinitions[feature_name]['Type']
+                      }
+                      onChange={(event) =>
+                        handleInputChange(event, feature_name, 'Type')
+                      }
+                    >
+                      {CLINCAL_FEATURE_TYPES.map((feat_type) => (
+                        <option key={feat_type} value={feat_type}>
+                          {feat_type}
+                        </option>
+                      ))}
+                      ;
+                    </Input>
+                  </td>
+                  <td>
+                    <Input
+                      type="select"
+                      id="encoding_list"
+                      name="encoding_list"
+                      value={
+                        editableClinicalFeatureDefinitions[feature_name][
+                          'Encoding'
+                        ]
+                      }
+                      onChange={(event) =>
+                        handleInputChange(event, feature_name, 'Encoding')
+                      }
+                    >
+                      {CLINICAL_FEATURE_ENCODING.map((encoding_type) => (
+                        <option key={encoding_type} value={encoding_type}>
+                          {encoding_type}
+                        </option>
+                      ))}
+                      ;
+                    </Input>
+                  </td>
+                  <td>
+                    {
+                      editableClinicalFeatureDefinitions[feature_name][
+                        'Unique Values'
+                      ]
+                    }
+                  </td>
+                </tr>
+              )
+            )}
           </tbody>
         </Table>
         <div style={{ margin: '20px' }}></div>
@@ -341,7 +477,10 @@ export default function ClinicalFeatureTable({
             </tbody>}
         </Table> */}
         <div className="features-table">
-          <FeatureTable data={clinicalFeatureValuesForReactTable} columns={reactTableColumnsDefinitions} />
+          <FeatureTable
+            data={clinicalFeatureValuesForReactTable}
+            columns={reactTableColumnsDefinitions}
+          />
         </div>
         <Button
           color="success"
@@ -362,12 +501,15 @@ export default function ClinicalFeatureTable({
         <p>
           Please upload a CSV file with one row per patient (+optionnally a
           header row) containing one column per clinical feature of interest.
-
-          The systemm will try to automatically detect the type of each clinical feature and you will configure the encoding afterwards.
-
-          Note: The system will delete existing feature upon a new upload to ensure that data does not become corrupted.
+          The systemm will try to automatically detect the type of each clinical
+          feature and you will configure the encoding afterwards. Note: The
+          system will delete existing feature upon a new upload to ensure that
+          data does not become corrupted.
         </p>
-        <Label for="label-file" style={{ fontWeight: 'bold' }}>Upload CSV File (Note: If the file is valid - this will delete existing clinical features)</Label>
+        <Label for="label-file" style={{ fontWeight: 'bold' }}>
+          Upload CSV File (Note: If the file is valid - this will delete
+          existing clinical features)
+        </Label>
         <div style={{ textAlign: 'center' }}>
           <Input
             type="file"
@@ -381,29 +523,36 @@ export default function ClinicalFeatureTable({
         <br />
         {fileInput.current &&
           fileInput.current.files[0] &&
-          !isClinicalFeatureFileValid && (
+          isClinicalFeatureFileValid === false && (
             <Alert color="danger">
               The selected file is not valid: {clinicalFeatureFileMessage}
             </Alert>
           )}
-        {fileInput.current && fileInput.current.files[0] && isClinicalFeatureFileValid && (
-          <>
-            <Alert color="success">
-              The selected file is valid: {clinicalFeatureFileMessage} - please go to Clinical Feature Configuiration Tab to configure the encoding of each feature.
-            </Alert>
-          </>
-        )}
-        {fileInput.current && fileInput.current.files[0] && isClinicalFeatureFileValid && (Object.keys(filterClinicalFeatureMessages).length > 0) && (
-          <>
-            {Object.keys(filterClinicalFeatureMessages).map((columnName) => (
-              <Alert color="success" key={columnName}>
-                {columnName} was removed {filterClinicalFeatureMessages[columnName]}.
+        {fileInput.current &&
+          fileInput.current.files[0] &&
+          isClinicalFeatureFileValid && (
+            <>
+              <Alert color="success">
+                The selected file is valid: {clinicalFeatureFileMessage} -
+                Please go to Clinical Feature Configuration Tab to configure the
+                encoding of each feature.
               </Alert>
-            ))}
-          </>
-        )}
+            </>
+          )}
+        {fileInput.current &&
+          fileInput.current.files[0] &&
+          isClinicalFeatureFileValid &&
+          Object.keys(filterClinicalFeatureMessages).length > 0 && (
+            <>
+              {Object.keys(filterClinicalFeatureMessages).map((columnName) => (
+                <Alert color="success" key={columnName}>
+                  {columnName} was removed{' '}
+                  {filterClinicalFeatureMessages[columnName]}.
+                </Alert>
+              ))}
+            </>
+          )}
       </Collapse>
     </>
-
   );
 }

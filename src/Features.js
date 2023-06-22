@@ -797,13 +797,7 @@ function Features({ history }) {
                     }}
                   >
                     {getTabSymbol()}
-                    {isAlternativeUser ? (
-                      'Collections'
-                    ) : !hasPendingChanges ? (
-                      'Clinical Features'
-                    ) : (
-                      <strong>Clinical Features*</strong>
-                    )}
+                    Clinical Features
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -1112,23 +1106,30 @@ function Features({ history }) {
                 </TabPane>
                 <TabPane tabId="clinical_features">
                   {tab === 'clinical_features' ? (
-                    <ClinicalFeatures
-                      albumID={albumID}
-                      featureExtractionID={featureExtractionID}
-                      isSavingClinicalFeatures={isSavingClinicalFeatures}
-                      setIsClinicalFeatures={setIsClinicalFeatures}
-                      dataPoints={allPatients}
-                      outcomes={outcomes}
-                      selectedLabelCategory={selectedLabelCategory}
-                      setSelectedLabelCategory={setSelectedLabelCategory}
-                      labelCategories={labelCategories}
-                      setLabelCategories={setLabelCategories}
-                      setFeaturesChart={setFeaturesChart}
-                      updateExtractionOrCollection={
-                        updateExtractionOrCollection
-                      }
-                      setNbTrainingPatients={setNbTrainingPatients}
-                    />
+                    <>
+                      {' '}
+                      <UnlabelledPatientsTitle
+                        dataPoints={dataPoints}
+                        unlabelledPatients={unlabelledPatients}
+                      />
+                      <ClinicalFeatures
+                        albumID={albumID}
+                        featureExtractionID={featureExtractionID}
+                        isSavingClinicalFeatures={isSavingClinicalFeatures}
+                        setIsClinicalFeatures={setIsClinicalFeatures}
+                        dataPoints={allPatients}
+                        outcomes={outcomes}
+                        selectedLabelCategory={selectedLabelCategory}
+                        setSelectedLabelCategory={setSelectedLabelCategory}
+                        labelCategories={labelCategories}
+                        setLabelCategories={setLabelCategories}
+                        setFeaturesChart={setFeaturesChart}
+                        updateExtractionOrCollection={
+                          updateExtractionOrCollection
+                        }
+                        setNbTrainingPatients={setNbTrainingPatients}
+                      />
+                    </>
                   ) : (
                     <span>Loading...</span>
                   )}
