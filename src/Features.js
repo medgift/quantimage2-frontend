@@ -35,7 +35,7 @@ import Kheops from './services/kheops';
 import Visualisation from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
-import {DynamicTable} from './components/YourComponent';
+import { DynamicTable } from './components/YourComponent';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -47,6 +47,7 @@ import {
 } from './config/constants';
 import DataSplitting from './DataSplitting';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
+import useExitPrompt from './utils/useExitPrompt';
 
 function Features({ history }) {
   const { keycloak } = useKeycloak();
@@ -93,6 +94,20 @@ function Features({ history }) {
 
   // Pending Changes
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  // Deal with refreshing page when there are pending changes
+  const [, setShowExitPrompt] = useExitPrompt(false);
+
+  //NOTE: this similar to componentWillUnmount()
+  useEffect(() => {
+    return () => {
+      setShowExitPrompt(false);
+    };
+  }, [setShowExitPrompt]);
+
+  useEffect(() => {
+    setShowExitPrompt(hasPendingChanges);
+  }, [setShowExitPrompt, hasPendingChanges]);
 
   // Get current collection
   const currentCollection = useMemo(() => {
@@ -898,7 +913,9 @@ function Features({ history }) {
                 <TabPane tabId="table">
                   {tab === 'table' && (
                     <div className="features-table">
-                      <RadiomicsFeatureTable featuresTabular={featuresTabular} />
+                      <RadiomicsFeatureTable
+                        featuresTabular={featuresTabular}
+                      />
                     </div>
                   )}
                 </TabPane>
@@ -1047,31 +1064,31 @@ function Features({ history }) {
                 </TabPane>
                 <TabPane tabId="clinical_features">
                   {tab === 'clinical_features' ? (
-                      <ClinicalFeatures
-                        albumID={albumID}
-                        featureExtractionID={featureExtractionID}
-                        isSavingClinicalFeatures={isSavingClinicalFeatures}
-                        setIsClinicalFeatures={setIsClinicalFeatures}
-                        dataPoints={allPatients}
-                        outcomes={outcomes}
-                        selectedLabelCategory={selectedLabelCategory}
-                        setSelectedLabelCategory={setSelectedLabelCategory}
-                        labelCategories={labelCategories}
-                        setLabelCategories={setLabelCategories}
-                        setFeaturesChart={setFeaturesChart}
-                        updateExtractionOrCollection={
-                          updateExtractionOrCollection
+                    <ClinicalFeatures
+                      albumID={albumID}
+                      featureExtractionID={featureExtractionID}
+                      isSavingClinicalFeatures={isSavingClinicalFeatures}
+                      setIsClinicalFeatures={setIsClinicalFeatures}
+                      dataPoints={allPatients}
+                      outcomes={outcomes}
+                      selectedLabelCategory={selectedLabelCategory}
+                      setSelectedLabelCategory={setSelectedLabelCategory}
+                      labelCategories={labelCategories}
+                      setLabelCategories={setLabelCategories}
+                      setFeaturesChart={setFeaturesChart}
+                      updateExtractionOrCollection={
+                        updateExtractionOrCollection
                       }
                       setNbTrainingPatients={setNbTrainingPatients}
                     />
-                  ):(
+                  ) : (
                     <span>Loading...</span>
                   )}
                 </TabPane>
                 <TabPane tabId="your_component">
                   {tab === 'your_component' ? (
-                    <DynamicTable/>
-                  ):(
+                    <DynamicTable />
+                  ) : (
                     <span>Loading...</span>
                   )}
                 </TabPane>
