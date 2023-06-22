@@ -22,9 +22,11 @@ const PATIENT_ID = 'PatientID';
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
   dataPoints,
-  isSavingClinicalFeatures,
 }) {
   let { keycloak } = useKeycloak();
+
+  const [isSavingClinicalFeatures, setIsSavingClinicalFeatures] =
+    useState(false);
 
   let [editableClinicalFeatures, setEditableClinicalFeatures] = useState({});
   let [
@@ -88,6 +90,8 @@ export default function ClinicalFeatureTable({
   };
 
   const handleSaveClinicalFeaturesClick = async (e) => {
+    setIsSavingClinicalFeatures(true);
+
     if (isAutoClinFeaturesOpen) {
       toggleManualLabelling();
       setClinicalFeatureFileMessage(null);
@@ -106,6 +110,8 @@ export default function ClinicalFeatureTable({
     );
 
     // await Backend.deleteClinicalFeatures();
+
+    setIsSavingClinicalFeatures(false);
   };
 
   const loadClinicalFeatures = async () => {
@@ -133,7 +139,7 @@ export default function ClinicalFeatureTable({
         clinicalFeatureDefinitions[feature_name];
       if (
         clinicalFeaturesUniqueValues['frequency_of_occurence'][feature_name]
-          .length < 10
+          ?.length < 10
       ) {
         clinicalFeatureDefinitionsToUpdate[feature_name]['Unique Values'] =
           clinicalFeaturesUniqueValues['frequency_of_occurence'][
@@ -273,7 +279,7 @@ export default function ClinicalFeatureTable({
         )}`;
       }
       if (isValid) {
-        Backend.deleteClinicalFeatureDefinitions(keycloak.token);
+        await Backend.deleteClinicalFeatureDefinitions(keycloak.token);
 
         let guessedClinicalFeatureDefinitions =
           await Backend.guessClinicalFeatureDefinitions(
@@ -489,7 +495,7 @@ export default function ClinicalFeatureTable({
         >
           {isSavingClinicalFeatures ? (
             <>
-              <FontAwesomeIcon icon="spinner" spin /> Saving Labels
+              <FontAwesomeIcon icon="spinner" spin /> Saving Clinical Features
             </>
           ) : (
             `Save Clinical Features`
