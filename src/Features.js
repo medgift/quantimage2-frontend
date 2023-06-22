@@ -755,7 +755,7 @@ function Features({ history }) {
                     {models.length > 0 && <Badge>{models.length}</Badge>}
                   </NavLink>
                 </NavItem>
-                <NavItem>
+                {/* <NavItem>
                   <NavLink
                     className={getTabClassName('your_component')}
                     onClick={() => {
@@ -765,7 +765,7 @@ function Features({ history }) {
                     {getTabSymbol()}
                     Your Component
                   </NavLink>
-                </NavItem>
+                </NavItem> */}
               </Nav>
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
@@ -1068,13 +1068,13 @@ function Features({ history }) {
                     <span>Loading...</span>
                   )}
                 </TabPane>
-                <TabPane tabId="your_component">
+                {/* <TabPane tabId="your_component">
                   {tab === 'your_component' ? (
                     <DynamicTable/>
                   ):(
                     <span>Loading...</span>
                   )}
-                </TabPane>
+                </TabPane> */}
               </TabContent>
             </div>
           </div>
