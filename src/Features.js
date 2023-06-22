@@ -25,17 +25,22 @@ import _ from 'lodash';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import Train, { MODALITY_FIELD, PATIENT_ID_FIELD, ROI_FIELD } from './Train';
+import Train, {
+  MODALITY_FIELD,
+  NON_FEATURE_FIELDS,
+  PATIENT_ID_FIELD,
+  ROI_FIELD,
+} from './Train';
 import RadiomicsFeatureTable from './components/FeatureTable';
 import classnames from 'classnames';
 
 import './Features.css';
 import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
-import Visualisation from './Visualisation';
+import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
-import {DynamicTable} from './components/YourComponent';
+import { DynamicTable } from './components/YourComponent';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -47,6 +52,7 @@ import {
 } from './config/constants';
 import DataSplitting from './DataSplitting';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
+import useExitPrompt from './utils/useExitPrompt';
 
 function Features({ history }) {
   const { keycloak } = useKeycloak();
@@ -94,6 +100,20 @@ function Features({ history }) {
   // Pending Changes
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
+  // Deal with refreshing page when there are pending changes
+  const [, setShowExitPrompt] = useExitPrompt(false);
+
+  //NOTE: this similar to componentWillUnmount()
+  useEffect(() => {
+    return () => {
+      setShowExitPrompt(false);
+    };
+  }, [setShowExitPrompt]);
+
+  useEffect(() => {
+    setShowExitPrompt(hasPendingChanges);
+  }, [setShowExitPrompt, hasPendingChanges]);
+
   // Get current collection
   const currentCollection = useMemo(() => {
     console.log(collections, collectionID);
@@ -102,6 +122,49 @@ function Features({ history }) {
       ? collections.find((c) => c.collection.id === +collectionID)
       : null;
   }, [collections, collectionID]);
+
+  // Filter tabular features by collection features
+  let filteredFeaturesTabular = useMemo(() => {
+    if (!featuresTabular) return null;
+
+    if (!currentCollection) return featuresTabular;
+
+    const filteredFeatures = featuresTabular
+      .filter((f) => {
+        let featureModality = f[MODALITY_FIELD];
+        let featureROI = f[ROI_FIELD];
+
+        for (let featureName in _.omit(f, [MODALITY_FIELD, ROI_FIELD])) {
+          if (
+            currentCollection.collection.feature_ids.includes(
+              `${featureModality}${FEATURE_ID_SEPARATOR}${featureROI}${FEATURE_ID_SEPARATOR}${featureName}`
+            )
+          )
+            return true;
+        }
+
+        return false;
+      })
+      .map((f) =>
+        _.pickBy(f, (value, key) => {
+          if (NON_FEATURE_FIELDS.includes(key)) return true;
+
+          let featureModality = f[MODALITY_FIELD];
+          let featureROI = f[ROI_FIELD];
+
+          if (
+            currentCollection.collection.feature_ids.includes(
+              `${featureModality}${FEATURE_ID_SEPARATOR}${featureROI}${FEATURE_ID_SEPARATOR}${key}`
+            )
+          )
+            return true;
+
+          return false;
+        })
+      );
+
+    return filteredFeatures;
+  }, [currentCollection, featuresTabular]);
 
   // Get all patient IDs from the features
   let allPatients = useMemo(() => {
@@ -898,7 +961,9 @@ function Features({ history }) {
                 <TabPane tabId="table">
                   {tab === 'table' && (
                     <div className="features-table">
-                      <RadiomicsFeatureTable featuresTabular={featuresTabular} />
+                      <RadiomicsFeatureTable
+                        featuresTabular={filteredFeaturesTabular}
+                      />
                     </div>
                   )}
                 </TabPane>
@@ -1047,31 +1112,31 @@ function Features({ history }) {
                 </TabPane>
                 <TabPane tabId="clinical_features">
                   {tab === 'clinical_features' ? (
-                      <ClinicalFeatures
-                        albumID={albumID}
-                        featureExtractionID={featureExtractionID}
-                        isSavingClinicalFeatures={isSavingClinicalFeatures}
-                        setIsClinicalFeatures={setIsClinicalFeatures}
-                        dataPoints={allPatients}
-                        outcomes={outcomes}
-                        selectedLabelCategory={selectedLabelCategory}
-                        setSelectedLabelCategory={setSelectedLabelCategory}
-                        labelCategories={labelCategories}
-                        setLabelCategories={setLabelCategories}
-                        setFeaturesChart={setFeaturesChart}
-                        updateExtractionOrCollection={
-                          updateExtractionOrCollection
+                    <ClinicalFeatures
+                      albumID={albumID}
+                      featureExtractionID={featureExtractionID}
+                      isSavingClinicalFeatures={isSavingClinicalFeatures}
+                      setIsClinicalFeatures={setIsClinicalFeatures}
+                      dataPoints={allPatients}
+                      outcomes={outcomes}
+                      selectedLabelCategory={selectedLabelCategory}
+                      setSelectedLabelCategory={setSelectedLabelCategory}
+                      labelCategories={labelCategories}
+                      setLabelCategories={setLabelCategories}
+                      setFeaturesChart={setFeaturesChart}
+                      updateExtractionOrCollection={
+                        updateExtractionOrCollection
                       }
                       setNbTrainingPatients={setNbTrainingPatients}
                     />
-                  ):(
+                  ) : (
                     <span>Loading...</span>
                   )}
                 </TabPane>
                 {/* <TabPane tabId="your_component">
                   {tab === 'your_component' ? (
-                    <DynamicTable/>
-                  ):(
+                    <DynamicTable />
+                  ) : (
                     <span>Loading...</span>
                   )}
                 </TabPane> */}
