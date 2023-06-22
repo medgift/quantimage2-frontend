@@ -47,3 +47,7 @@
   position: relative;
 }
 
+.table-fixed{
+  overflow-x : auto;
+}
+
