@@ -4,9 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import { CLINCAL_FEATURE_TYPES, CLINICAL_FEATURE_ENCODING } from '../config/constants';
-import { validateClinicalFeaturesFile, parseClinicalFeatureNames } from '../utils/feature-utils.js';
+import { validateClinicalFeaturesFile, parseClinicalFeatureNames, SelectColumnFilter } from '../utils/feature-utils.js';
+import { FeatureTable } from '../components/FeatureTable';
 
 import './ClinicalFeatureTable.css';
+import { set } from 'lodash';
 
 const PATIENT_ID = "PatientID";
 
@@ -18,6 +20,10 @@ export default function ClinicalFeatureTable({
   let { keycloak } = useKeycloak();
 
   let [editableClinicalFeatures, setEditableClinicalFeatures] = useState({});
+  let [clinicalFeatureValuesForReactTable, setClinicalFeatureValuesForReactTable] = useState([
+    // {PATIENT_ID: "1", "Age": 1, "Gender": 2},
+    // {PATIENT_ID: "2", "Age": 1, "Gender": 2},
+  ]);
 
   let [isManualClinFeaturesOpen, setisManualClinFeaturesOpen] = useState(true);
   let [isAutoClinFeaturesOpen, setisAutoClinFeaturesOpen] = useState(false);
@@ -31,6 +37,8 @@ export default function ClinicalFeatureTable({
     // "Age": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "None" },
     // "Gender": { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": "Categorical" }
   });
+  const [clinicalFeatureColumnsForReactTable, setClinicalFeatureColumnsForReactTable] = useState({ "Clinical": [] });
+  // {"Clinical": ["Age", "Sex"]}
 
   const handleInputChange = (e, feature_name, feature_type) => {
     let editableClinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
@@ -78,45 +86,48 @@ export default function ClinicalFeatureTable({
   };
 
   const loadClinicalFeatures = async () => {
-    let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
     let clinicalFeatureDefinitionsToUpdate = { ...editableClinicalFeatureDefinitions };
+    let clinicalFeatureColumnsForReactTableToUpdate = { ...clinicalFeatureColumnsForReactTable };
 
     let clinicalFeatures = await Backend.loadClinicalFeatures(keycloak.token, dataPoints)
     let clinicalFeaturesUniqueValues = await Backend.clinicalFeaturesUniqueValues(keycloak.token, clinicalFeatures);
     let clinicalFeatureDefinitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token);
 
-
-    for (let patientID in clinicalFeatures) {
-      clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
-    }
-    
     for (let feature_name in clinicalFeatureDefinitions) {
       clinicalFeatureDefinitionsToUpdate[feature_name] = clinicalFeatureDefinitions[feature_name];
       if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
         clinicalFeatureDefinitionsToUpdate[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
+        if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(feature_name) == false) {
+          clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(feature_name);
+        }
       }
     }
 
     if (Object.keys(clinicalFeatureDefinitions).length > 0) {
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
+      setClinicalFeatureColumnsForReactTable(clinicalFeatureColumnsForReactTableToUpdate);
     }
 
     if (Object.keys(clinicalFeatures).length > 0) {
-      setEditableClinicalFeatures(clinicalFeaturesToUpdate);
+      setEditableClinicalFeatures(clinicalFeatures);
+      updateEditableClinicalFeaturesForReactTable(clinicalFeatures);
     }
   }
 
-  const updateEditableClinicalFeatures = (clinicalFeatures) => {
-    let clinicalFeaturesToUpdate = { ...editableClinicalFeatures };
+  const updateEditableClinicalFeaturesForReactTable = (clinicalFeatures) => {
+    let clinicalFeatureValuesForReactTableToUpdate = [...clinicalFeatureValuesForReactTable];
 
+    console.log("clinicalFeatures", clinicalFeatures);
     for (let patientID in clinicalFeatures) {
-      if (patientID in editableClinicalFeatures) {
+      //  if (patientID in editableClinicalFeatures) {
+      let clinicalFeaturesForPatient = { "PatientID": patientID };
+      let ClinicalFeaturesForPatientAll = Object.assign({}, clinicalFeaturesForPatient, clinicalFeatures[patientID]);
+      clinicalFeatureValuesForReactTableToUpdate.push(ClinicalFeaturesForPatientAll);
 
-        clinicalFeaturesToUpdate[patientID] = clinicalFeatures[patientID];
-      }
+      // }
     }
-
-    setEditableClinicalFeatures(clinicalFeaturesToUpdate);
+    setClinicalFeatureValuesForReactTable(clinicalFeatureValuesForReactTableToUpdate);
+    console.log("clinicalFeatureValuesForReactTableToUpdate", clinicalFeatureValuesForReactTableToUpdate);
   };
 
   const handleFileInputChange = async () => {
@@ -130,6 +141,7 @@ export default function ClinicalFeatureTable({
     setFilterClinicalFeatureMessages({});
     setclinicalFeatureFileMessage("");
 
+    let clinicalFeatureColumnsForReactTableToUpdate = { ...clinicalFeatureColumnsForReactTable };
 
     if (isValid) {
       let filterMessages = {};
@@ -142,7 +154,7 @@ export default function ClinicalFeatureTable({
           if (column_name === PATIENT_ID || column_name.length === 0) {
             continue;
           }
-          
+
           if (columns_to_filter["date_columns"].includes(column_name)) {
             filterMessages[column_name] = "as we do not support any date columns yet";
             continue;
@@ -158,9 +170,15 @@ export default function ClinicalFeatureTable({
             continue;
           }
 
-          editableClinicalFeatureDefinitions[column_name] = { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0] }
+          editableClinicalFeatureDefinitions[column_name] = { "Type": CLINCAL_FEATURE_TYPES[0], "Encoding": CLINICAL_FEATURE_ENCODING[0] };
+
+          if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(column_name) == false)
+          {
+            clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(column_name);
+          }
         }
-        updateEditableClinicalFeatures(clinicalFeatures);
+        updateEditableClinicalFeaturesForReactTable(clinicalFeatures);
+        setClinicalFeatureColumnsForReactTable(clinicalFeatureColumnsForReactTableToUpdate);
         console.log(clinicalFeatures);
       }
       else {
@@ -208,6 +226,32 @@ export default function ClinicalFeatureTable({
 
     setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
+
+  let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map((featureGroup) => ({
+    Header: featureGroup,
+    id: featureGroup,
+    columns: clinicalFeatureColumnsForReactTable[featureGroup].map((featureName) => ({
+      Header: featureName,
+      accessor: featureName,
+      disableFilters: true,
+    })),
+  }));
+
+  const reactTableColumnsDefinitions = [
+    {
+      Header: "Metadata",
+      columns: [PATIENT_ID].map((field) => ({
+        Header: field,
+        accessor: field,
+        Filter: SelectColumnFilter,
+        filter: 'equals',
+      })),
+    },
+    {
+      Header: "Features",
+      columns: featureColumns,
+    },
+  ];
 
   return (
     <>
@@ -291,7 +335,9 @@ export default function ClinicalFeatureTable({
               ))}
             </tbody>}
         </Table>
-
+        <div className='container'>
+          <FeatureTable data={clinicalFeatureValuesForReactTable} columns={reactTableColumnsDefinitions} />
+        </div>
         <Button
           color="success"
           onClick={handleSaveClinicalFeaturesClick}
@@ -353,5 +399,6 @@ export default function ClinicalFeatureTable({
         )}
       </Collapse>
     </>
+
   );
 }

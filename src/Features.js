@@ -26,7 +26,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import Train, { MODALITY_FIELD, PATIENT_ID_FIELD, ROI_FIELD } from './Train';
-import FeatureTable from './components/FeatureTable';
+import RadiomicsFeatureTable from './components/FeatureTable';
 import classnames from 'classnames';
 
 import './Features.css';
@@ -898,7 +898,7 @@ function Features({ history }) {
                 <TabPane tabId="table">
                   {tab === 'table' && (
                     <div className="features-table">
-                      <FeatureTable featuresTabular={featuresTabular} />
+                      <RadiomicsFeatureTable featuresTabular={featuresTabular} />
                     </div>
                   )}
                 </TabPane>

@@ -8,129 +8,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   convertFeatureName,
 } from '../utils/feature-naming';
-
+import {SelectColumnFilter} from '../utils/feature-utils'
+ 
 import _ from 'lodash';
 
 const PYRADIOMICS_PREFIX = 'original';
 const ZRAD_PREFIX = 'zrad';
 
-// This is a custom filter UI for selecting
-// a unique option from a list
-function SelectColumnFilter({
-  column: { filterValue, setFilter, preFilteredRows, id },
-}) {
-  // Calculate the options for filtering
-  // using the preFilteredRows
-  const options = React.useMemo(() => {
-    const options = new Set();
-    preFilteredRows.forEach((row) => {
-      options.add(row.values[id]);
-    });
-    return [...options.values()];
-  }, [id, preFilteredRows]);
-
-  // Render a multi-select box
-  return (
-    <select
-      value={filterValue}
-      onChange={(e) => {
-        setFilter(e.target.value || undefined);
-      }}
-    >
-      <option value="">All</option>
-      {options.map((option, i) => (
-        <option key={i} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-export default function FeatureTable({ featuresTabular }) {
-  const data = featuresTabular;
-
-  const COLUMN_GROUP_METADATA = 'Metadata';
-  const COLUMN_GROUP_FEATURES = 'Features';
-
-  const columnsDefinitions = useMemo(() => {
-    let featureGroups = {};
-    let currentFeatureGroup = '';
-    const header = Object.keys(featuresTabular[0]) || [];
-
-    let presentModalities = _.uniq(featuresTabular.map((f) => f.Modality));
-
-    // Make groups of features
-    for (let featureName of header.filter(
-      (c) => !NON_FEATURE_FIELDS.includes(c)
-    )) {
-      /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
-      // Group PyRadiomics features by the second level,
-      // first level for other backends so far
-      let featureGroupName;
-
-      let convertedFeatureName = convertFeatureName(
-        featureName,
-        presentModalities
-      );
-
-      // PET - Special case
-      if (featureName.startsWith('PET')) {
-        featureGroupName = 'PET';
-      } else if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
-        featureGroupName = convertedFeatureName.split('_')[1];
-      } else if (featureName.startsWith(ZRAD_PREFIX)) {
-        featureGroupName = convertedFeatureName.split('_')[1];
-      } else {
-        featureGroupName =
-          convertedFeatureName.split('_')[0] +
-          '_' +
-          convertedFeatureName.split('_')[1];
-      }
-
-      if (featureGroupName !== currentFeatureGroup) {
-        featureGroups[featureGroupName] = [];
-        currentFeatureGroup = featureGroupName;
-      }
-
-      featureGroups[featureGroupName].push(featureName);
-    }
-
-    console.log('feature groups', featureGroups);
-
-    let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
-      Header: featureGroup,
-      id: featureGroup,
-      columns: featureGroups[featureGroup].map((featureName) => ({
-        Header: convertFeatureName(featureName, presentModalities),
-        accessor: featureName,
-        disableFilters: true,
-      })),
-    }));
-
-    console.log('feature columns', featureColumns);
-
-    let columnsDefinitions = [
-      {
-        Header: COLUMN_GROUP_METADATA,
-        columns: NON_FEATURE_FIELDS.map((field) => ({
-          Header: field,
-          accessor: field,
-          Filter: SelectColumnFilter,
-          filter: 'equals',
-        })),
-      },
-      {
-        Header: COLUMN_GROUP_FEATURES,
-        columns: featureColumns,
-      },
-    ];
-
-    return columnsDefinitions;
-  }, [featuresTabular]);
-
-  const columns = useMemo(() => columnsDefinitions, [columnsDefinitions]);
-
+export function FeatureTable({ columns, data }) {
   // Set up the react-table instance
   const tableInstance = useTable(
     {
@@ -287,6 +172,97 @@ export default function FeatureTable({ featuresTabular }) {
           </select>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function RadiomicsFeatureTable({ featuresTabular }) {
+  console.log('featuresTabular', featuresTabular);
+  const data = featuresTabular;
+
+  const COLUMN_GROUP_METADATA = 'Metadata';
+  const COLUMN_GROUP_FEATURES = 'Features';
+
+  const columnsDefinitions = useMemo(() => {
+    let featureGroups = {};
+    let currentFeatureGroup = '';
+    const header = Object.keys(featuresTabular[0]) || [];
+
+    let presentModalities = _.uniq(featuresTabular.map((f) => f.Modality));
+
+    // Make groups of features
+    for (let featureName of header.filter(
+      (c) => !NON_FEATURE_FIELDS.includes(c)
+    )) {
+      /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
+      // Group PyRadiomics features by the second level,
+      // first level for other backends so far
+      let featureGroupName;
+
+      let convertedFeatureName = convertFeatureName(
+        featureName,
+        presentModalities
+      );
+
+      // PET - Special case
+      if (featureName.startsWith('PET')) {
+        featureGroupName = 'PET';
+      } else if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
+        featureGroupName = convertedFeatureName.split('_')[1];
+      } else if (featureName.startsWith(ZRAD_PREFIX)) {
+        featureGroupName = convertedFeatureName.split('_')[1];
+      } else {
+        featureGroupName =
+          convertedFeatureName.split('_')[0] +
+          '_' +
+          convertedFeatureName.split('_')[1];
+      }
+
+      if (featureGroupName !== currentFeatureGroup) {
+        featureGroups[featureGroupName] = [];
+        currentFeatureGroup = featureGroupName;
+      }
+
+      featureGroups[featureGroupName].push(featureName);
+    }
+
+    console.log('feature groups', featureGroups);
+
+    let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
+      Header: featureGroup,
+      id: featureGroup,
+      columns: featureGroups[featureGroup].map((featureName) => ({
+        Header: convertFeatureName(featureName, presentModalities),
+        accessor: featureName,
+        disableFilters: true,
+      })),
+    }));
+
+    let columnsDefinitions = [
+      {
+        Header: COLUMN_GROUP_METADATA,
+        columns: NON_FEATURE_FIELDS.map((field) => ({
+          Header: field,
+          accessor: field,
+          Filter: SelectColumnFilter,
+          filter: 'equals',
+        })),
+      },
+      {
+        Header: COLUMN_GROUP_FEATURES,
+        columns: featureColumns,
+      },
+    ];
+
+    console.log('columns definitions', columnsDefinitions);
+    return columnsDefinitions;
+  }, [featuresTabular]);
+
+  const columns = useMemo(() => columnsDefinitions, [columnsDefinitions]);
+
+  return (
+    <div>
+      <FeatureTable data={data} columns={columns}/>
     </div>
   );
 }
