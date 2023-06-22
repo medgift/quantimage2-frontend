@@ -8,6 +8,8 @@ import { validateClinicalFeaturesFile, parseClinicalFeatureNames, SelectColumnFi
 import { FeatureTable } from '../components/FeatureTable';
 
 import './ClinicalFeatureTable.css';
+import '../Features.css'
+
 import { set } from 'lodash';
 
 const PATIENT_ID = "PatientID";
@@ -97,9 +99,9 @@ export default function ClinicalFeatureTable({
       clinicalFeatureDefinitionsToUpdate[feature_name] = clinicalFeatureDefinitions[feature_name];
       if (clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].length < 10) {
         clinicalFeatureDefinitionsToUpdate[feature_name]["Unique Values"] = clinicalFeaturesUniqueValues["frequency_of_occurence"][feature_name].join(" | ");
-        if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(feature_name) == false) {
-          clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(feature_name);
-        }
+      }
+      if (clinicalFeatureColumnsForReactTableToUpdate["Clinical"].includes(feature_name) == false) {
+        clinicalFeatureColumnsForReactTableToUpdate["Clinical"].push(feature_name);
       }
     }
 
@@ -140,6 +142,8 @@ export default function ClinicalFeatureTable({
     // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
     setFilterClinicalFeatureMessages({});
     setclinicalFeatureFileMessage("");
+    setClinicalFeatureColumnsForReactTable({ "Clinical": [] });
+    setClinicalFeatureValuesForReactTable([]);
 
     let clinicalFeatureColumnsForReactTableToUpdate = { ...clinicalFeatureColumnsForReactTable };
 
@@ -202,6 +206,7 @@ export default function ClinicalFeatureTable({
         }
         console.log("guessedClinicalFeatureDefinitions", guessedClinicalFeatureDefinitions);
       }
+      setEditableClinicalFeatures(clinicalFeatures);
       setFilterClinicalFeatureMessages(filterMessages);
       setisClinicalFeatureFileValid(isValid);
       setclinicalFeatureFileMessage(message);
@@ -311,7 +316,7 @@ export default function ClinicalFeatureTable({
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Values</h4>
         <div style={{ margin: '20px' }}></div>
-        <Table className="table-fixed">
+        {/* <Table className="table-fixed">
           <thead>
             <tr>
               <th>PatientID</th>
@@ -334,8 +339,8 @@ export default function ClinicalFeatureTable({
                 </tr>
               ))}
             </tbody>}
-        </Table>
-        <div className='container'>
+        </Table> */}
+        <div className="features-table">
           <FeatureTable data={clinicalFeatureValuesForReactTable} columns={reactTableColumnsDefinitions} />
         </div>
         <Button
