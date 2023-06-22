@@ -25,14 +25,19 @@ import _ from 'lodash';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import Train, { MODALITY_FIELD, PATIENT_ID_FIELD, ROI_FIELD } from './Train';
+import Train, {
+  MODALITY_FIELD,
+  NON_FEATURE_FIELDS,
+  PATIENT_ID_FIELD,
+  ROI_FIELD,
+} from './Train';
 import RadiomicsFeatureTable from './components/FeatureTable';
 import classnames from 'classnames';
 
 import './Features.css';
 import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
-import Visualisation from './Visualisation';
+import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
 import { DynamicTable } from './components/YourComponent';
@@ -117,6 +122,49 @@ function Features({ history }) {
       ? collections.find((c) => c.collection.id === +collectionID)
       : null;
   }, [collections, collectionID]);
+
+  // Filter tabular features by collection features
+  let filteredFeaturesTabular = useMemo(() => {
+    if (!featuresTabular) return null;
+
+    if (!currentCollection) return featuresTabular;
+
+    const filteredFeatures = featuresTabular
+      .filter((f) => {
+        let featureModality = f[MODALITY_FIELD];
+        let featureROI = f[ROI_FIELD];
+
+        for (let featureName in _.omit(f, [MODALITY_FIELD, ROI_FIELD])) {
+          if (
+            currentCollection.collection.feature_ids.includes(
+              `${featureModality}${FEATURE_ID_SEPARATOR}${featureROI}${FEATURE_ID_SEPARATOR}${featureName}`
+            )
+          )
+            return true;
+        }
+
+        return false;
+      })
+      .map((f) =>
+        _.pickBy(f, (value, key) => {
+          if (NON_FEATURE_FIELDS.includes(key)) return true;
+
+          let featureModality = f[MODALITY_FIELD];
+          let featureROI = f[ROI_FIELD];
+
+          if (
+            currentCollection.collection.feature_ids.includes(
+              `${featureModality}${FEATURE_ID_SEPARATOR}${featureROI}${FEATURE_ID_SEPARATOR}${key}`
+            )
+          )
+            return true;
+
+          return false;
+        })
+      );
+
+    return filteredFeatures;
+  }, [currentCollection, featuresTabular]);
 
   // Get all patient IDs from the features
   let allPatients = useMemo(() => {
@@ -914,7 +962,7 @@ function Features({ history }) {
                   {tab === 'table' && (
                     <div className="features-table">
                       <RadiomicsFeatureTable
-                        featuresTabular={featuresTabular}
+                        featuresTabular={filteredFeaturesTabular}
                       />
                     </div>
                   )}

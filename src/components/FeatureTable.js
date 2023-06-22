@@ -5,11 +5,9 @@ import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  convertFeatureName,
-} from '../utils/feature-naming';
-import {SelectColumnFilter} from '../utils/feature-utils'
- 
+import { convertFeatureName } from '../utils/feature-naming';
+import { SelectColumnFilter } from '../utils/feature-utils';
+
 import _ from 'lodash';
 
 const PYRADIOMICS_PREFIX = 'original';
@@ -186,7 +184,8 @@ export default function RadiomicsFeatureTable({ featuresTabular }) {
   const columnsDefinitions = useMemo(() => {
     let featureGroups = {};
     let currentFeatureGroup = '';
-    const header = Object.keys(featuresTabular[0]) || [];
+    const header =
+      _.uniq(_.flatten(featuresTabular.map((f) => Object.keys(f)))) || [];
 
     let presentModalities = _.uniq(featuresTabular.map((f) => f.Modality));
 
@@ -262,7 +261,7 @@ export default function RadiomicsFeatureTable({ featuresTabular }) {
 
   return (
     <div>
-      <FeatureTable data={data} columns={columns}/>
+      <FeatureTable data={data} columns={columns} />
     </div>
   );
 }
