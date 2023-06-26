@@ -283,7 +283,7 @@ export default function ClinicalFeatureTable({
         )}`;
       }
       if (isValid) {
-        await Backend.deleteClinicalFeatureDefinitions(keycloak.token);
+        await Backend.deleteClinicalFeatureDefinitions(keycloak.token, albumID);
 
         let guessedClinicalFeatureDefinitions =
           await Backend.guessClinicalFeatureDefinitions(

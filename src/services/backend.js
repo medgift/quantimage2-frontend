@@ -196,7 +196,7 @@ class Backend {
 
   async loadClinicalFeatureDefinitions(token, album_id) {
     let url = `${endpoints.clinical_feature_definitions}?album_id=${album_id}`
-    return await request(endpoints.clinical_feature_definitions, { method: 'GET', token: token });
+    return await request(url, { method: 'GET', token: token });
   }
 
   async guessClinicalFeatureDefinitions(token, clinical_feature_map) {
@@ -206,9 +206,10 @@ class Backend {
     return await request(url, { method: 'POST', data: data, token: token });
   }
 
-  async deleteClinicalFeatureDefinitions(token) {
+  async deleteClinicalFeatureDefinitions(token, album_id) {
     try {      
-      return await request(`${endpoints.clinical_feature_definitions}`, { 
+      let url = `${endpoints.clinical_feature_definitions}?album_id=${album_id}`
+      return await request(url, { 
         method: 'DELETE',
         token: token ,
       });
