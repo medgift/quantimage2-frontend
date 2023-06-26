@@ -125,6 +125,8 @@ export default function ClinicalFeatureTable({
       ...clinicalFeatureColumnsForReactTable,
     };
 
+    console.log('albumnID', albumID);
+    
     let clinicalFeatures = await Backend.loadClinicalFeatures(
       keycloak.token,
       dataPoints,
