@@ -119,7 +119,6 @@ export default function FilterTree({
     },
     [filteringItems, formatTreeData, getNodeAndAllChildrenIDs, setSelected]
   );
-
   return (
     <div>
       {filteringItems && (

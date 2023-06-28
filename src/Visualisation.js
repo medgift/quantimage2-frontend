@@ -154,6 +154,10 @@ export default function Visualisation({
   // Chart
   const chartRef = useRef(null);
 
+  // Clinical Feature Names
+  const [clinicalFeatureNames, setClinicalFeatureNames] = useState({});
+
+
   const finalTrainingPatients = useMemo(() => {
     if (selectedLabelCategory && trainingPatients) return trainingPatients;
     else return dataPoints;
@@ -178,14 +182,14 @@ export default function Visualisation({
     let classes =
       outcomes.length > 0
         ? Array.from(
-            new Set(
-              outcomes.map((o) =>
-                o.label_content[outcomeField]
-                  ? o.label_content[outcomeField]
-                  : 'UNKNOWN'
-              )
+          new Set(
+            outcomes.map((o) =>
+              o.label_content[outcomeField]
+                ? o.label_content[outcomeField]
+                : 'UNKNOWN'
             )
           )
+        )
         : ['UNKNOWN'];
 
     classes.sort((o1, o2) => {
@@ -229,7 +233,7 @@ export default function Visualisation({
             ...outcomes.map((o) => ({
               [o]:
                 patientOutcome.label_content[o] !== '' &&
-                Object.keys(patientOutcome.label_content).includes(o)
+                  Object.keys(patientOutcome.label_content).includes(o)
                   ? patientOutcome.label_content[o]
                   : 'UNKNOWN',
             }))
@@ -404,8 +408,37 @@ export default function Visualisation({
       }
     }
 
+    // Add clinical features
+    if (Object.keys(clinicalFeatureNames).length > 0) {
+      groupedTree["Clinical Features"] = clinicalFeatureNames;
+    }
+    // groupedTree["Clinical Features"] = {
+    //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
+    //   "Gender": {"shortName": "Gender", "id": "Gender", "description": "Gender of the patient"},
+    // }
+
+    
+    console.log("groupedTree", groupedTree);
     return groupedTree;
-  }, [featureIDs]);
+  }, [featureIDs, clinicalFeatureNames]);
+
+  useEffect(() => {
+    async function fetchClinicalFeatureNames() {
+      let clinicalFeatureName = {};
+      let clinical_feature_definitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
+      for (let feature_name in clinical_feature_definitions) {
+        clinicalFeatureName[feature_name] = {
+          "shortName": feature_name,
+          "id": feature_name,
+          "description": clinical_feature_definitions[feature_name]["description"]
+        }
+      }
+      // console.log("setting clinical feature names", clinicalFeatureName);
+      setClinicalFeatureNames(clinicalFeatureName);
+    }
+
+    fetchClinicalFeatureNames();
+  }, [albumID, keycloak.token]);
 
   const getNodeIDsFromFeatureIDs = useCallback((featureIDs, leafItems) => {
     // Make a map of feature ID -> node ID
@@ -431,7 +464,9 @@ export default function Visualisation({
 
   const treeData = useMemo(() => {
     if (filteringItems) {
+      console.log("filtering Items", filteringItems);
       let formattedTreeData = formatTreeData(filteringItems);
+      console.log('formattedTreeData', formattedTreeData);
 
       let allNodeIDs = [];
       for (let topLevelElement of formattedTreeData) {
@@ -553,7 +588,7 @@ export default function Visualisation({
       `Filtering features took ${end - start}ms `,
       filteredFeatures.length > 0
         ? filteredFeatures.length *
-            (Object.keys(filteredFeatures[0]).length - 1)
+        (Object.keys(filteredFeatures[0]).length - 1)
         : 0
     );
 
@@ -679,8 +714,7 @@ export default function Visualisation({
             ]);
 
             return (
-              `<strong>Patient:</strong> ${
-                chart.xAxis[0].categories[this.point.options.x]
+              `<strong>Patient:</strong> ${chart.xAxis[0].categories[this.point.options.x]
               }<br />` +
               `<strong>Modality:</strong> ${modality}<br />` +
               `<strong>ROI:</strong> ${roi}<br />` +
@@ -1274,7 +1308,7 @@ export default function Visualisation({
                     )}
                     {selectedLabelCategory &&
                       selectedLabelCategory.label_type ===
-                        MODEL_TYPES.SURVIVAL && (
+                      MODEL_TYPES.SURVIVAL && (
                         <div className="mt-3">
                           <ErrorBoundary>
                             <HighchartsReact
@@ -1413,21 +1447,21 @@ function formatTreeData(object, prefix) {
       _.isPlainObject(value) &&
       !Object.keys(value).includes('shortName')
       ? {
-          id: `${prefix}${key}`,
-          name: alias ? alias : key,
-          children: formatTreeData(
-            value,
-            `${prefix}${key}${FEATURE_ID_SEPARATOR}`
-          ),
-          description: CATEGORY_DEFINITIONS[alias ? alias : key]
-            ? CATEGORY_DEFINITIONS[alias ? alias : key]
-            : null,
-        }
+        id: `${prefix}${key}`,
+        name: alias ? alias : key,
+        children: formatTreeData(
+          value,
+          `${prefix}${key}${FEATURE_ID_SEPARATOR}`
+        ),
+        description: CATEGORY_DEFINITIONS[alias ? alias : key]
+          ? CATEGORY_DEFINITIONS[alias ? alias : key]
+          : null,
+      }
       : {
-          id: `${prefix}${key}`,
-          name: alias ? alias : key,
-          value: value,
-        };
+        id: `${prefix}${key}`,
+        name: alias ? alias : key,
+        value: value,
+      };
   });
 }
 
@@ -1467,9 +1501,15 @@ function getLeafItems(node, collector) {
     if (match === null)
       console.error(nodeId, 'DOES NOT MATCH THE PATTERN, WHY?');
 
-    let { modality, roi } = nodeId.match(featureNameRegex).groups;
-    collector[
-      node.id
-    ] = `${modality}${FEATURE_ID_SEPARATOR}${roi}${FEATURE_ID_SEPARATOR}${node.value.id}`;
+    let nodeIDMatch = nodeId.match(featureNameRegex);
+    if (nodeIDMatch) {
+      let { modality, roi } = nodeId.match(featureNameRegex).groups;
+      collector[
+        node.id
+      ] = `${modality}${FEATURE_ID_SEPARATOR}${roi}${FEATURE_ID_SEPARATOR}${node.value.id}`;
+    }
+    else {
+      collector[node.id] = `${node.value.id}`;
+    }
   }
 }
