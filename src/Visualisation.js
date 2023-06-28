@@ -410,7 +410,7 @@ export default function Visualisation({
 
     // Add clinical features
     if (Object.keys(clinicalFeatureNames).length > 0) {
-      groupedTree["Clinical Features"] = clinicalFeatureNames;
+      groupedTree["Clinical Features [No visualization]"] = clinicalFeatureNames;
     }
     // groupedTree["Clinical Features"] = {
     //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
