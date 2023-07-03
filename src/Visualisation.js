@@ -157,6 +157,13 @@ export default function Visualisation({
   // Clinical Feature Names
   const [clinicalFeatureNames, setClinicalFeatureNames] = useState({});
 
+  const featuresIDsAndClinicalFeatureNames = useMemo(() => {
+    if (!featureIDs && !clinicalFeatureNames) return [];
+    if (!featureIDs) return Object.keys(clinicalFeatureNames);
+    if (!clinicalFeatureNames) return featureIDs;
+
+    return [...featureIDs, ...Object.keys(clinicalFeatureNames)];
+  }, [featureIDs, clinicalFeatureNames]);
 
   const finalTrainingPatients = useMemo(() => {
     if (selectedLabelCategory && trainingPatients) return trainingPatients;
@@ -182,14 +189,14 @@ export default function Visualisation({
     let classes =
       outcomes.length > 0
         ? Array.from(
-          new Set(
-            outcomes.map((o) =>
-              o.label_content[outcomeField]
-                ? o.label_content[outcomeField]
-                : 'UNKNOWN'
+            new Set(
+              outcomes.map((o) =>
+                o.label_content[outcomeField]
+                  ? o.label_content[outcomeField]
+                  : 'UNKNOWN'
+              )
             )
           )
-        )
         : ['UNKNOWN'];
 
     classes.sort((o1, o2) => {
@@ -233,7 +240,7 @@ export default function Visualisation({
             ...outcomes.map((o) => ({
               [o]:
                 patientOutcome.label_content[o] !== '' &&
-                  Object.keys(patientOutcome.label_content).includes(o)
+                Object.keys(patientOutcome.label_content).includes(o)
                   ? patientOutcome.label_content[o]
                   : 'UNKNOWN',
             }))
@@ -410,28 +417,30 @@ export default function Visualisation({
 
     // Add clinical features
     if (Object.keys(clinicalFeatureNames).length > 0) {
-      groupedTree["Clinical Features [No visualization]"] = clinicalFeatureNames;
+      groupedTree['Clinical Features [No visualization]'] =
+        clinicalFeatureNames;
     }
     // groupedTree["Clinical Features"] = {
     //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
     //   "Gender": {"shortName": "Gender", "id": "Gender", "description": "Gender of the patient"},
     // }
 
-    
-    console.log("groupedTree", groupedTree);
+    console.log('groupedTree', groupedTree);
     return groupedTree;
   }, [featureIDs, clinicalFeatureNames]);
 
   useEffect(() => {
     async function fetchClinicalFeatureNames() {
       let clinicalFeatureName = {};
-      let clinical_feature_definitions = await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
+      let clinical_feature_definitions =
+        await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
       for (let feature_name in clinical_feature_definitions) {
         clinicalFeatureName[feature_name] = {
-          "shortName": feature_name,
-          "id": feature_name,
-          "description": clinical_feature_definitions[feature_name]["description"]
-        }
+          shortName: feature_name,
+          id: feature_name,
+          description:
+            clinical_feature_definitions[feature_name]['description'],
+        };
       }
       // console.log("setting clinical feature names", clinicalFeatureName);
       setClinicalFeatureNames(clinicalFeatureName);
@@ -464,7 +473,7 @@ export default function Visualisation({
 
   const treeData = useMemo(() => {
     if (filteringItems) {
-      console.log("filtering Items", filteringItems);
+      console.log('filtering Items', filteringItems);
       let formattedTreeData = formatTreeData(filteringItems);
       console.log('formattedTreeData', formattedTreeData);
 
@@ -555,16 +564,21 @@ export default function Visualisation({
       else setHasPendingChanges(false);
     } else {
       if (
-        featureIDs &&
+        featuresIDsAndClinicalFeatureNames &&
         selectedFeatureIDs &&
-        featureIDs.size !== selectedFeatureIDs.size
+        featuresIDsAndClinicalFeatureNames.length !== selectedFeatureIDs.size
       ) {
         setHasPendingChanges(true);
       } else {
         setHasPendingChanges(false);
       }
     }
-  }, [featureIDs, selectedFeatureIDs, setHasPendingChanges, collectionInfos]);
+  }, [
+    featuresIDsAndClinicalFeatureNames,
+    selectedFeatureIDs,
+    setHasPendingChanges,
+    collectionInfos,
+  ]);
 
   // Calculate features to keep based on selections
   useEffect(() => {
@@ -588,7 +602,7 @@ export default function Visualisation({
       `Filtering features took ${end - start}ms `,
       filteredFeatures.length > 0
         ? filteredFeatures.length *
-        (Object.keys(filteredFeatures[0]).length - 1)
+            (Object.keys(filteredFeatures[0]).length - 1)
         : 0
     );
 
@@ -714,7 +728,8 @@ export default function Visualisation({
             ]);
 
             return (
-              `<strong>Patient:</strong> ${chart.xAxis[0].categories[this.point.options.x]
+              `<strong>Patient:</strong> ${
+                chart.xAxis[0].categories[this.point.options.x]
               }<br />` +
               `<strong>Modality:</strong> ${modality}<br />` +
               `<strong>ROI:</strong> ${roi}<br />` +
@@ -1308,7 +1323,7 @@ export default function Visualisation({
                     )}
                     {selectedLabelCategory &&
                       selectedLabelCategory.label_type ===
-                      MODEL_TYPES.SURVIVAL && (
+                        MODEL_TYPES.SURVIVAL && (
                         <div className="mt-3">
                           <ErrorBoundary>
                             <HighchartsReact
@@ -1447,21 +1462,21 @@ function formatTreeData(object, prefix) {
       _.isPlainObject(value) &&
       !Object.keys(value).includes('shortName')
       ? {
-        id: `${prefix}${key}`,
-        name: alias ? alias : key,
-        children: formatTreeData(
-          value,
-          `${prefix}${key}${FEATURE_ID_SEPARATOR}`
-        ),
-        description: CATEGORY_DEFINITIONS[alias ? alias : key]
-          ? CATEGORY_DEFINITIONS[alias ? alias : key]
-          : null,
-      }
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          children: formatTreeData(
+            value,
+            `${prefix}${key}${FEATURE_ID_SEPARATOR}`
+          ),
+          description: CATEGORY_DEFINITIONS[alias ? alias : key]
+            ? CATEGORY_DEFINITIONS[alias ? alias : key]
+            : null,
+        }
       : {
-        id: `${prefix}${key}`,
-        name: alias ? alias : key,
-        value: value,
-      };
+          id: `${prefix}${key}`,
+          name: alias ? alias : key,
+          value: value,
+        };
   });
 }
 
@@ -1507,8 +1522,7 @@ function getLeafItems(node, collector) {
       collector[
         node.id
       ] = `${modality}${FEATURE_ID_SEPARATOR}${roi}${FEATURE_ID_SEPARATOR}${node.value.id}`;
-    }
-    else {
+    } else {
       collector[node.id] = `${node.value.id}`;
     }
   }
