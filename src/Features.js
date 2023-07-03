@@ -1110,7 +1110,7 @@ function Features({ history }) {
                         dataPoints={dataPoints}
                         unlabelledPatients={unlabelledPatients}
                       />
-                      <ClinicalFeatures dataPoints={allPatients} />
+                      <ClinicalFeatures dataPoints={allPatients} albumID={albumID}/>
                     </>
                   ) : (
                     <span>Loading...</span>

@@ -22,6 +22,7 @@ const PATIENT_ID = 'PatientID';
 export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
   dataPoints,
+  albumID,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -101,12 +102,14 @@ export default function ClinicalFeatureTable({
 
     await Backend.saveClinicalFeatureDefinitions(
       keycloak.token,
-      editableClinicalFeatureDefinitions
+      editableClinicalFeatureDefinitions,
+      albumID,
     );
 
     await Backend.saveClinicalFeatures(
       keycloak.token,
-      editableClinicalFeatures
+      editableClinicalFeatures,
+      albumID,
     );
 
     // await Backend.deleteClinicalFeatures();
@@ -122,9 +125,12 @@ export default function ClinicalFeatureTable({
       ...clinicalFeatureColumnsForReactTable,
     };
 
+    console.log('albumnID', albumID);
+    
     let clinicalFeatures = await Backend.loadClinicalFeatures(
       keycloak.token,
-      dataPoints
+      dataPoints,
+      albumID,
     );
     let clinicalFeaturesUniqueValues =
       await Backend.clinicalFeaturesUniqueValues(
@@ -132,7 +138,7 @@ export default function ClinicalFeatureTable({
         clinicalFeatures
       );
     let clinicalFeatureDefinitions =
-      await Backend.loadClinicalFeatureDefinitions(keycloak.token);
+      await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
 
     for (let feature_name in clinicalFeatureDefinitions) {
       clinicalFeatureDefinitionsToUpdate[feature_name] =
@@ -279,7 +285,7 @@ export default function ClinicalFeatureTable({
         )}`;
       }
       if (isValid) {
-        await Backend.deleteClinicalFeatureDefinitions(keycloak.token);
+        await Backend.deleteClinicalFeatureDefinitions(keycloak.token, albumID);
 
         let guessedClinicalFeatureDefinitions =
           await Backend.guessClinicalFeatureDefinitions(
