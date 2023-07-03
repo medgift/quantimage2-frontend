@@ -772,6 +772,17 @@ function Features({ history }) {
                 </NavItem>
                 <NavItem>
                   <NavLink
+                    className={getTabClassName('clinical_features')}
+                    onClick={() => {
+                      toggle('clinical_features');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    Clinical Features
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
                     className={getTabClassName('visualize')}
                     onClick={() => {
                       toggle('visualize');
@@ -785,17 +796,6 @@ function Features({ history }) {
                     ) : (
                       <strong>Visualization*</strong>
                     )}
-                  </NavLink>
-                </NavItem>
-                <NavItem>
-                  <NavLink
-                    className={getTabClassName('clinical_features')}
-                    onClick={() => {
-                      toggle('clinical_features');
-                    }}
-                  >
-                    {getTabSymbol()}
-                    Clinical Features
                   </NavLink>
                 </NavItem>
                 <NavItem>

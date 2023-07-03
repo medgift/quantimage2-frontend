@@ -181,7 +181,6 @@ export default function ClinicalFeatureTable({
       ...clinicalFeatureValuesForReactTable,
     ];
 
-    console.log('clinicalFeatures', clinicalFeatures);
     for (let patientID in clinicalFeatures) {
       //  if (patientID in editableClinicalFeatures) {
       let clinicalFeaturesForPatient = { PatientID: patientID };
@@ -199,10 +198,6 @@ export default function ClinicalFeatureTable({
     setClinicalFeatureValuesForReactTable(
       clinicalFeatureValuesForReactTableToUpdate
     );
-    console.log(
-      'clinicalFeatureValuesForReactTableToUpdate',
-      clinicalFeatureValuesForReactTableToUpdate
-    );
   };
 
   const handleFileInputChange = async () => {
@@ -217,7 +212,10 @@ export default function ClinicalFeatureTable({
     setFilterClinicalFeatureMessages({});
     setClinicalFeatureFileMessage('');
     setClinicalFeatureColumnsForReactTable({ Clinical: [] });
+    setEditableClinicalFeatureDefinitions({});
     setClinicalFeatureValuesForReactTable([]);
+
+    let clinicalFeatureDefinitionsToUpdate = {};
 
     let clinicalFeatureColumnsForReactTableToUpdate = {
       ...clinicalFeatureColumnsForReactTable,
@@ -258,7 +256,7 @@ export default function ClinicalFeatureTable({
             continue;
           }
 
-          editableClinicalFeatureDefinitions[column_name] = {
+          clinicalFeatureDefinitionsToUpdate[column_name] = {
             Type: CLINCAL_FEATURE_TYPES[0],
             Encoding: CLINICAL_FEATURE_ENCODING[0],
           };
@@ -277,7 +275,7 @@ export default function ClinicalFeatureTable({
         setClinicalFeatureColumnsForReactTable(
           clinicalFeatureColumnsForReactTableToUpdate
         );
-        console.log(clinicalFeatures);
+        
       } else {
         isValid = false;
         message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(
@@ -299,8 +297,8 @@ export default function ClinicalFeatureTable({
           );
 
         for (let feature_name in guessedClinicalFeatureDefinitions) {
-          if (feature_name in editableClinicalFeatureDefinitions) {
-            editableClinicalFeatureDefinitions[feature_name] =
+          if (feature_name in clinicalFeatureDefinitionsToUpdate) {
+            clinicalFeatureDefinitionsToUpdate[feature_name] =
               guessedClinicalFeatureDefinitions[feature_name];
 
             if (
@@ -308,7 +306,7 @@ export default function ClinicalFeatureTable({
                 feature_name
               ].length < 10
             ) {
-              editableClinicalFeatureDefinitions[feature_name][
+              clinicalFeatureDefinitionsToUpdate[feature_name][
                 'Unique Values'
               ] =
                 clinicalFeaturesUniqueValues['frequency_of_occurence'][
@@ -317,12 +315,10 @@ export default function ClinicalFeatureTable({
             }
           }
         }
-        console.log(
-          'guessedClinicalFeatureDefinitions',
-          guessedClinicalFeatureDefinitions
-        );
       }
+      
       setEditableClinicalFeatures(clinicalFeatures);
+      setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
       setFilterClinicalFeatureMessages(filterMessages);
       setIsClinicalFeatureFileValid(isValid);
       setClinicalFeatureFileMessage(message);
@@ -398,7 +394,7 @@ export default function ClinicalFeatureTable({
               <th>Clinical Feature</th>
               <th>Type</th>
               <th>Encoding</th>
-              <th>Unique Values</th>
+              <th>Values</th>
             </tr>
           </thead>
           <tbody>
