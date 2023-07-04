@@ -62,6 +62,11 @@ export default function ClinicalFeatureTable({
   ] = useState({ Clinical: [] });
   // {"Clinical": ["Age", "Sex"]}
 
+  const [
+    reactTableColumnsDefinitions,
+    setReactTableColumnsDefinitions,
+  ] = useState([]);
+
   const handleInputChange = (e, feature_name, feature_type) => {
     let editableClinicalFeatureDefinitionsToUpdate = {
       ...editableClinicalFeatureDefinitions,
@@ -177,9 +182,7 @@ export default function ClinicalFeatureTable({
   };
 
   const updateEditableClinicalFeaturesForReactTable = (clinicalFeatures) => {
-    let clinicalFeatureValuesForReactTableToUpdate = [
-      ...clinicalFeatureValuesForReactTable,
-    ];
+    let clinicalFeatureValuesForReactTableToUpdate = [];
 
     for (let patientID in clinicalFeatures) {
       //  if (patientID in editableClinicalFeatures) {
@@ -211,15 +214,15 @@ export default function ClinicalFeatureTable({
     // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
     setFilterClinicalFeatureMessages({});
     setClinicalFeatureFileMessage('');
-    setClinicalFeatureColumnsForReactTable({ Clinical: [] });
+    console.log("Before setting", clinicalFeatureColumnsForReactTable);
+    setClinicalFeatureColumnsForReactTable({ "Clinical": [] });
+    console.log("After setting", clinicalFeatureColumnsForReactTable);
     setEditableClinicalFeatureDefinitions({});
     setClinicalFeatureValuesForReactTable([]);
 
     let clinicalFeatureDefinitionsToUpdate = {};
 
-    let clinicalFeatureColumnsForReactTableToUpdate = {
-      ...clinicalFeatureColumnsForReactTable,
-    };
+    let clinicalFeatureColumnsForReactTableToUpdate = {"Clinical": []};
 
     if (isValid) {
       let filterMessages = {};
@@ -317,6 +320,7 @@ export default function ClinicalFeatureTable({
         }
       }
       
+      console.log("clinicalFeatures", clinicalFeatures);
       setEditableClinicalFeatures(clinicalFeatures);
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
       setFilterClinicalFeatureMessages(filterMessages);
@@ -344,35 +348,39 @@ export default function ClinicalFeatureTable({
     setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
 
-  let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map(
-    (featureGroup) => ({
-      Header: featureGroup,
-      id: featureGroup,
-      columns: clinicalFeatureColumnsForReactTable[featureGroup].map(
-        (featureName) => ({
-          Header: featureName,
-          accessor: featureName,
-          disableFilters: true,
-        })
-      ),
-    })
-  );
 
-  const reactTableColumnsDefinitions = [
-    {
-      Header: 'Metadata',
-      columns: [PATIENT_ID].map((field) => ({
-        Header: field,
-        accessor: field,
-        Filter: SelectColumnFilter,
-        filter: 'equals',
-      })),
-    },
-    {
-      Header: 'Features',
-      columns: featureColumns,
-    },
-  ];
+  useEffect(() => {
+    let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map(
+      (featureGroup) => ({
+        Header: featureGroup,
+        id: featureGroup,
+        columns: clinicalFeatureColumnsForReactTable[featureGroup].map(
+          (featureName) => ({
+            Header: featureName,
+            accessor: featureName,
+            disableFilters: true,
+          })
+        ),
+      })
+    );
+
+    let reactTableColumnsDefinitionsToUpdate = [
+      {
+        Header: 'Metadata',
+        columns: [PATIENT_ID].map((field) => ({
+          Header: field,
+          accessor: field,
+          Filter: SelectColumnFilter,
+          filter: 'equals',
+        })),
+      },
+      {
+        Header: 'Features',
+        columns: featureColumns,
+      },
+    ];
+    setReactTableColumnsDefinitions(reactTableColumnsDefinitionsToUpdate);
+  }, [clinicalFeatureColumnsForReactTable]);
 
   return (
     <>
@@ -460,30 +468,6 @@ export default function ClinicalFeatureTable({
         <div style={{ margin: '20px' }}></div>
         <h4>Clinical Feature Values</h4>
         <div style={{ margin: '20px' }}></div>
-        {/* <Table className="table-fixed">
-          <thead>
-            <tr>
-              <th>PatientID</th>
-              {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
-                <th key={clinicalFeaturesColumn}>{clinicalFeaturesColumn}</th>
-              ))}
-            </tr>
-          </thead>
-          {Object.keys(editableClinicalFeatureDefinitions).length > 0 &&
-            <tbody className="data-points">
-              {dataPoints.map((dataPoint) => (
-                <tr key={`${dataPoint}`}>
-                  <td>{dataPoint}</td>
-                  {Object.keys(editableClinicalFeatureDefinitions).map((clinicalFeaturesColumn) => (
-                    <td key={clinicalFeaturesColumn} className="data-label">{editableClinicalFeatures[dataPoint] &&
-                      editableClinicalFeatures[dataPoint][clinicalFeaturesColumn]
-                      ? editableClinicalFeatures[dataPoint][clinicalFeaturesColumn] : ''}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>}
-        </Table> */}
         <div className="features-table">
           <FeatureTable
             data={clinicalFeatureValuesForReactTable}
