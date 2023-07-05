@@ -357,6 +357,9 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
   /* Validate file type */
   let fileTypeIsValid = validateFileType(file);
 
+  let valid = false;
+  let error = null;
+
   if (!fileTypeIsValid) {
     error = 'The file is not a CSV file!';
     return [valid, error];
@@ -365,9 +368,6 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
   let fileContent = await file.text()
   let csvData = Papa.parse(fileContent, papaparse_config);
   
-  let valid = false;
-  let error = null;
-
   let nbMatches = 0;
   let labels = {};
 
