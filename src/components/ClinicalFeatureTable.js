@@ -6,6 +6,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import {
   CLINCAL_FEATURE_TYPES,
   CLINICAL_FEATURE_ENCODING,
+  CLINICAL_FEATURE_MISSING_VALUES,
 } from '../config/constants';
 import {
   validateClinicalFeaturesFile,
@@ -131,7 +132,7 @@ export default function ClinicalFeatureTable({
     };
 
     console.log('albumnID', albumID);
-    
+
     let clinicalFeatures = await Backend.loadClinicalFeatures(
       keycloak.token,
       dataPoints,
@@ -222,7 +223,7 @@ export default function ClinicalFeatureTable({
 
     let clinicalFeatureDefinitionsToUpdate = {};
 
-    let clinicalFeatureColumnsForReactTableToUpdate = {"Clinical": []};
+    let clinicalFeatureColumnsForReactTableToUpdate = { "Clinical": [] };
 
     if (isValid) {
       let filterMessages = {};
@@ -262,6 +263,7 @@ export default function ClinicalFeatureTable({
           clinicalFeatureDefinitionsToUpdate[column_name] = {
             Type: CLINCAL_FEATURE_TYPES[0],
             Encoding: CLINICAL_FEATURE_ENCODING[0],
+            "Missing Values": CLINICAL_FEATURE_MISSING_VALUES[1],
           };
 
           if (
@@ -278,7 +280,7 @@ export default function ClinicalFeatureTable({
         setClinicalFeatureColumnsForReactTable(
           clinicalFeatureColumnsForReactTableToUpdate
         );
-        
+
       } else {
         isValid = false;
         message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(
@@ -319,7 +321,7 @@ export default function ClinicalFeatureTable({
           }
         }
       }
-      
+
       console.log("clinicalFeatures", clinicalFeatures);
       setEditableClinicalFeatures(clinicalFeatures);
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
@@ -437,7 +439,7 @@ export default function ClinicalFeatureTable({
                       name="encoding_list"
                       value={
                         editableClinicalFeatureDefinitions[feature_name][
-                          'Encoding'
+                        'Encoding'
                         ]
                       }
                       onChange={(event) =>
@@ -455,9 +457,31 @@ export default function ClinicalFeatureTable({
                   <td>
                     {
                       editableClinicalFeatureDefinitions[feature_name][
-                        'Unique Values'
+                      'Unique Values'
                       ]
                     }
+                  </td>
+                  <td>
+                    <Input
+                      type="select"
+                      id="missing_value_list"
+                      name="missing_value_list"
+                      value={
+                        editableClinicalFeatureDefinitions[feature_name][
+                        'Missing Values'
+                        ]
+                      }
+                      onChange={(event) =>
+                        handleInputChange(event, feature_name, 'Missing Values')
+                      }
+                    >
+                      {CLINICAL_FEATURE_MISSING_VALUES.map((missing_value_type) => (
+                        <option key={missing_value_type} value={missing_value_type}>
+                          {missing_value_type}
+                        </option>
+                      ))}
+                      ;
+                    </Input>
                   </td>
                 </tr>
               )
