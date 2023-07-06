@@ -405,6 +405,7 @@ export default function ClinicalFeatureTable({
               <th>Type</th>
               <th>Encoding</th>
               <th>Values</th>
+              <th>Missing Values</th>
             </tr>
           </thead>
           <tbody>
