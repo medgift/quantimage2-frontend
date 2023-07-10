@@ -244,13 +244,17 @@ export default function Train({
   if (!album) return <span>Loading...</span>;
 
   let impossibleToTrain =
-    nbClassesTest <= 1 ||
-    nbClassesTraining <= 1 ||
-    nbClassesTraining > 2 ||
-    minElementPerClassTraining === 1;
+    selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION &&
+    (nbClassesTest <= 1 ||
+      nbClassesTraining <= 1 ||
+      nbClassesTraining > 2 ||
+      minElementPerClassTraining === 1);
 
   let trainingWarning = () => {
-    if (nbClassesTraining <= 1 || nbClassesTest <= 1) {
+    if (
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION &&
+      (nbClassesTraining <= 1 || nbClassesTest <= 1)
+    ) {
       let isTraining = nbClassesTraining <= 1;
 
       return (
