@@ -101,7 +101,8 @@ export default function Visualisation({
   updateExtractionOrCollection,
   hasPendingChanges,
   setHasPendingChanges,
-  linicalFeatureNames,
+  clinicalFeatureNames,
+  setClinicalFeatureNames,
 }) {
   // Route
   const { albumID } = useParams();
@@ -154,9 +155,6 @@ export default function Visualisation({
 
   // Chart
   const chartRef = useRef(null);
-
-  // Clinical Feature Names
-  const [clinicalFeatureNames, setClinicalFeatureNames] = useState({});
 
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
     if (!featureIDs && !clinicalFeatureNames) return [];

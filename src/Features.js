@@ -1053,6 +1053,7 @@ function Features({ history }) {
                           hasPendingChanges={hasPendingChanges}
                           setHasPendingChanges={setHasPendingChanges}
                           clinicalFeatureNames={clinicalFeatureNames}
+                          setClinicalFeatureNames={setClinicalFeatureNames}
                         />
                       </>
                     ) : (
@@ -1114,7 +1115,11 @@ function Features({ history }) {
                         dataPoints={dataPoints}
                         unlabelledPatients={unlabelledPatients}
                       />
-                      <ClinicalFeatures dataPoints={allPatients} albumID={albumID} setClinicalFeatureNames={setClinicalFeatureNames}/>
+                      <ClinicalFeatures
+                        dataPoints={allPatients}
+                        albumID={albumID}
+                        setClinicalFeatureNames={setClinicalFeatureNames}
+                      />
                     </>
                   ) : (
                     <span>Loading...</span>
