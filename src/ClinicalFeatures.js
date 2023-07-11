@@ -2,7 +2,7 @@ import React from 'react';
 import ClinicalFeatureTable from './components/ClinicalFeatureTable';
 import { CLINICAL_FEATURES } from './config/constants';
 
-export default function ClinicalFeatures({ dataPoints, albumID }) {
+export default function ClinicalFeatures({ dataPoints, albumID, setClinicalFeatureNames }) {
   return (
     <>
       <h3>Clinical Features</h3>
@@ -11,6 +11,7 @@ export default function ClinicalFeatures({ dataPoints, albumID }) {
         clinicalFeaturesColumns={CLINICAL_FEATURES}
         dataPoints={dataPoints}
         albumID={albumID}
+        setClinicalFeatureNames={setClinicalFeatureNames}
       />
     </>
   );

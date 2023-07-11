@@ -101,6 +101,7 @@ export default function Visualisation({
   updateExtractionOrCollection,
   hasPendingChanges,
   setHasPendingChanges,
+  linicalFeatureNames,
 }) {
   // Route
   const { albumID } = useParams();

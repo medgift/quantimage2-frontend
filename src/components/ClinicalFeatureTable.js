@@ -24,6 +24,7 @@ export default function ClinicalFeatureTable({
   clinicalFeaturesColumns,
   dataPoints,
   albumID,
+  setClinicalFeatureNames,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -118,8 +119,18 @@ export default function ClinicalFeatureTable({
       albumID,
     );
 
-    // await Backend.deleteClinicalFeatures();
-
+    // set the selected features in the visualization tab
+    let clinicalFeatureName = {};
+    console.log("editableClinicalFeatureDefinitions", editableClinicalFeatureDefinitions);
+    for (let feature_name in editableClinicalFeatureDefinitions) {
+      console.log("feature_name in save feature button", feature_name);
+      clinicalFeatureName[feature_name] = {
+        shortName: feature_name,
+        id: feature_name,
+        description: feature_name,
+      };
+    }
+    setClinicalFeatureNames(clinicalFeatureName);
     setIsSavingClinicalFeatures(false);
   };
 
@@ -174,6 +185,18 @@ export default function ClinicalFeatureTable({
       setClinicalFeatureColumnsForReactTable(
         clinicalFeatureColumnsForReactTableToUpdate
       );
+
+      let clinicalFeatureName = {};
+      for (let feature_name in clinicalFeatureDefinitions) {
+        console.log("feature_name in load feature", feature_name);
+        clinicalFeatureName[feature_name] = {
+          shortName: feature_name,
+          id: feature_name,
+          description: feature_name,
+        };
+      }
+      // console.log("setting clinical feature names", clinicalFeatureName);
+      setClinicalFeatureNames(clinicalFeatureName);
     }
 
     if (Object.keys(clinicalFeatures).length > 0) {

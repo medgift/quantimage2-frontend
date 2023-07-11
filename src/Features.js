@@ -98,6 +98,9 @@ function Features({ history }) {
   // Pending Changes
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
+  // Clinical Feature Names
+  const [clinicalFeatureNames, setClinicalFeatureNames] = useState({});
+
   // Deal with refreshing page when there are pending changes
   const [, setShowExitPrompt] = useExitPrompt(false);
 
@@ -1049,6 +1052,7 @@ function Features({ history }) {
                           unlabelledPatients={unlabelledPatients}
                           hasPendingChanges={hasPendingChanges}
                           setHasPendingChanges={setHasPendingChanges}
+                          clinicalFeatureNames={clinicalFeatureNames}
                         />
                       </>
                     ) : (
@@ -1110,7 +1114,7 @@ function Features({ history }) {
                         dataPoints={dataPoints}
                         unlabelledPatients={unlabelledPatients}
                       />
-                      <ClinicalFeatures dataPoints={allPatients} albumID={albumID}/>
+                      <ClinicalFeatures dataPoints={allPatients} albumID={albumID} setClinicalFeatureNames={setClinicalFeatureNames}/>
                     </>
                   ) : (
                     <span>Loading...</span>
