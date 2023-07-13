@@ -62,14 +62,6 @@ export default function FilterTree({
       let nodeIDComponents = node.id.split(FEATURE_ID_SEPARATOR);
       let nodeComponentIndexToCheck = nodeIDComponents.length - 1;
 
-      // For leaf items, check the immediate parent as well
-      let stringToCheck = !node.value
-        ? nodeIDComponents[nodeIDComponents.length - 1]
-        : [
-            nodeIDComponents[nodeIDComponents.length - 2],
-            nodeIDComponents[nodeIDComponents.length - 1],
-          ].join(FEATURE_ID_SEPARATOR);
-
       setSelected((s) => {
         let newSelections = [...s];
 

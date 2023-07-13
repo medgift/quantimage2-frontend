@@ -446,34 +446,64 @@ export default function Visualisation({
     }
 
     fetchClinicalFeatureNames();
-  }, [albumID, keycloak.token]);
+  }, [albumID, keycloak.token, setClinicalFeatureNames]);
 
-  const getNodeIDsFromFeatureIDs = useCallback((featureIDs, leafItems) => {
-    // Make a map of feature ID -> node ID
-    let featureIDToNodeID = Object.entries(leafItems).reduce(
-      (acc, [key, value]) => {
-        acc[value] = key;
-        return acc;
-      },
-      {}
-    );
+  const getNodeIDsFromFeatureIDs = useCallback(
+    (featureIDs, leafItems, nodeIDToNodeMap) => {
+      // Make a map of feature ID -> node ID
+      let featureIDToNodeID = Object.entries(leafItems).reduce(
+        (acc, [key, value]) => {
+          acc[value] = key;
+          return acc;
+        },
+        {}
+      );
 
-    let featureIDsToDrop = Object.keys(featureIDToNodeID).filter((fID) => {
-      for (let featureID of featureIDs) {
-        if (fID.endsWith(featureID)) return true;
+      let filteredFeatureIDs = Object.keys(featureIDToNodeID).filter((fID) =>
+        featureIDs.includes(fID)
+      );
+
+      let nodeIDs = filteredFeatureIDs.map((fID) => featureIDToNodeID[fID]);
+      let nodeIDsToInspect = [...nodeIDs];
+
+      // Add also parents of nodes that have all children selected to selected nodeIDs
+      while (nodeIDsToInspect.length > 0) {
+        let parentsToInspect = nodeIDsToInspect.reduce((acc, curr) => {
+          // Exclude clinical features from this process
+          if (!curr.includes(FEATURE_ID_SEPARATOR)) return acc;
+
+          let parentID = curr.substring(
+            0,
+            curr.lastIndexOf(FEATURE_ID_SEPARATOR)
+          );
+          if (!acc.includes(parentID)) acc.push(parentID);
+          return acc;
+        }, []);
+
+        nodeIDsToInspect = [];
+
+        for (let parentToInspect of parentsToInspect) {
+          let childrenIDs = nodeIDToNodeMap[parentToInspect].children.map(
+            (c) => c.id
+          );
+
+          if (childrenIDs.every((cid) => nodeIDs.includes(cid))) {
+            nodeIDs.push(parentToInspect);
+            nodeIDsToInspect.push(parentToInspect);
+          }
+        }
       }
-      return false;
-    });
 
-    let nodeIDs = featureIDsToDrop.map((fID) => featureIDToNodeID[fID]);
-
-    return nodeIDs;
-  }, []);
+      return nodeIDs;
+    },
+    []
+  );
 
   const treeData = useMemo(() => {
     if (filteringItems) {
       console.log('filtering Items', filteringItems);
       let formattedTreeData = formatTreeData(filteringItems);
+      let nodeIDToNodeMap = getAllNodeIDToNodeMap(formattedTreeData, {});
       console.log('formattedTreeData', formattedTreeData);
 
       let allNodeIDs = [];
@@ -486,7 +516,8 @@ export default function Visualisation({
         setSelected(
           getNodeIDsFromFeatureIDs(
             collectionInfos?.collection?.feature_ids,
-            getAllLeafItems(formattedTreeData)
+            getAllLeafItems(formattedTreeData),
+            nodeIDToNodeMap
           )
         );
       } else {
@@ -524,6 +555,10 @@ export default function Visualisation({
     }
 
     return {};
+  }, [treeData]);
+
+  const nodeIDToNodeMap = useMemo(() => {
+    return getAllNodeIDToNodeMap(treeData, {});
   }, [treeData]);
 
   // Compute selected feature IDs based on the selected leaf items
@@ -955,12 +990,15 @@ export default function Visualisation({
     // Drop all features after the N best ones
     let featuresToDrop = selectedFeatures.slice(nFeatures);
 
-    deselectFeatures(getNodeIDsFromFeatureIDs(featuresToDrop, leafItems));
+    deselectFeatures(
+      getNodeIDsFromFeatureIDs(featuresToDrop, leafItems, nodeIDToNodeMap)
+    );
   }, [
     nFeatures,
     selected,
     featuresChart,
     leafItems,
+    nodeIDToNodeMap,
     getNodeIDsFromFeatureIDs,
     deselectFeatures,
   ]);
@@ -1479,6 +1517,26 @@ function formatTreeData(object, prefix) {
   });
 }
 
+function getAllNodeIDToNodeMap(rootNodes) {
+  let nodeIDToNodeMap = {};
+
+  for (let rootNode of rootNodes) {
+    getNodeIDtoNodeMap(rootNode, nodeIDToNodeMap);
+  }
+
+  return nodeIDToNodeMap;
+}
+
+function getNodeIDtoNodeMap(node, nodeIDtoNodeMap) {
+  nodeIDtoNodeMap[node.id] = node;
+
+  if (node.children) {
+    for (let child of node.children) {
+      getNodeIDtoNodeMap(child, nodeIDtoNodeMap);
+    }
+  }
+}
+
 function getNodeAndAllChildrenIDs(node, nodeIDs) {
   nodeIDs.push(node.id);
 
@@ -1486,7 +1544,9 @@ function getNodeAndAllChildrenIDs(node, nodeIDs) {
     for (let child of node.children) {
       getNodeAndAllChildrenIDs(child, nodeIDs);
     }
-  }
+  } /*else {
+    nodeIDs.push(node.id); // Don't include intermediate nodes (which have children)
+  }*/
 
   return nodeIDs;
 }
