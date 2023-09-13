@@ -244,7 +244,7 @@ export default function Train({
   if (!album) return <span>Loading...</span>;
 
   let impossibleToTrain =
-    selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION &&
+    selectedLabelCategory?.label_type === MODEL_TYPES.CLASSIFICATION &&
     (nbClassesTest <= 1 ||
       nbClassesTraining <= 1 ||
       nbClassesTraining > 2 ||
