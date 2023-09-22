@@ -5,10 +5,9 @@ services:
     build:
       dockerfile: Dockerfile.prod
     labels:
-      - "traefik.backend=${TRAEFIK_BACKEND}"
-      - "traefik.docker.network=prod"
-      - "traefik.frontend.rule=Host:${TRAEFIK_URL}"
       - "traefik.enable=true"
+      - "traefik.docker.network=prod"
+      - "traefik.http.routers.quantimage2-frontend-web.rule=Host(`${TRAEFIK_URL}`)"
     networks:
       - default
       - prod
