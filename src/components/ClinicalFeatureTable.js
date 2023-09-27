@@ -64,10 +64,8 @@ export default function ClinicalFeatureTable({
   ] = useState({ Clinical: [] });
   // {"Clinical": ["Age", "Sex"]}
 
-  const [
-    reactTableColumnsDefinitions,
-    setReactTableColumnsDefinitions,
-  ] = useState([]);
+  const [reactTableColumnsDefinitions, setReactTableColumnsDefinitions] =
+    useState([]);
 
   const handleInputChange = (e, feature_name, feature_type) => {
     let editableClinicalFeatureDefinitionsToUpdate = {
@@ -110,20 +108,23 @@ export default function ClinicalFeatureTable({
     await Backend.saveClinicalFeatureDefinitions(
       keycloak.token,
       editableClinicalFeatureDefinitions,
-      albumID,
+      albumID
     );
 
     await Backend.saveClinicalFeatures(
       keycloak.token,
       editableClinicalFeatures,
-      albumID,
+      albumID
     );
 
     // set the selected features in the visualization tab
     let clinicalFeatureName = {};
-    console.log("editableClinicalFeatureDefinitions", editableClinicalFeatureDefinitions);
+    console.log(
+      'editableClinicalFeatureDefinitions',
+      editableClinicalFeatureDefinitions
+    );
     for (let feature_name in editableClinicalFeatureDefinitions) {
-      console.log("feature_name in save feature button", feature_name);
+      console.log('feature_name in save feature button', feature_name);
       clinicalFeatureName[feature_name] = {
         shortName: feature_name,
         id: feature_name,
@@ -147,7 +148,7 @@ export default function ClinicalFeatureTable({
     let clinicalFeatures = await Backend.loadClinicalFeatures(
       keycloak.token,
       dataPoints,
-      albumID,
+      albumID
     );
     let clinicalFeaturesUniqueValues =
       await Backend.clinicalFeaturesUniqueValues(
@@ -161,11 +162,11 @@ export default function ClinicalFeatureTable({
       clinicalFeatureDefinitionsToUpdate[feature_name] =
         clinicalFeatureDefinitions[feature_name];
       if (
-        clinicalFeaturesUniqueValues['frequency_of_occurence'][feature_name]
+        clinicalFeaturesUniqueValues['frequency_of_occurrence'][feature_name]
           ?.length < 10
       ) {
         clinicalFeatureDefinitionsToUpdate[feature_name]['Unique Values'] =
-          clinicalFeaturesUniqueValues['frequency_of_occurence'][
+          clinicalFeaturesUniqueValues['frequency_of_occurrence'][
             feature_name
           ].join(' | ');
       }
@@ -188,7 +189,7 @@ export default function ClinicalFeatureTable({
 
       let clinicalFeatureName = {};
       for (let feature_name in clinicalFeatureDefinitions) {
-        console.log("feature_name in load feature", feature_name);
+        console.log('feature_name in load feature', feature_name);
         clinicalFeatureName[feature_name] = {
           shortName: feature_name,
           id: feature_name,
@@ -238,15 +239,15 @@ export default function ClinicalFeatureTable({
     // Reset valid messages or filter messages to ensure that it's not confusing if you upload a new file.
     setFilterClinicalFeatureMessages({});
     setClinicalFeatureFileMessage('');
-    console.log("Before setting", clinicalFeatureColumnsForReactTable);
-    setClinicalFeatureColumnsForReactTable({ "Clinical": [] });
-    console.log("After setting", clinicalFeatureColumnsForReactTable);
+    console.log('Before setting', clinicalFeatureColumnsForReactTable);
+    setClinicalFeatureColumnsForReactTable({ Clinical: [] });
+    console.log('After setting', clinicalFeatureColumnsForReactTable);
     setEditableClinicalFeatureDefinitions({});
     setClinicalFeatureValuesForReactTable([]);
 
     let clinicalFeatureDefinitionsToUpdate = {};
 
-    let clinicalFeatureColumnsForReactTableToUpdate = { "Clinical": [] };
+    let clinicalFeatureColumnsForReactTableToUpdate = { Clinical: [] };
 
     if (isValid) {
       let filterMessages = {};
@@ -286,7 +287,7 @@ export default function ClinicalFeatureTable({
           clinicalFeatureDefinitionsToUpdate[column_name] = {
             Type: CLINCAL_FEATURE_TYPES[0],
             Encoding: CLINICAL_FEATURE_ENCODING[0],
-            "Missing Values": CLINICAL_FEATURE_MISSING_VALUES[1],
+            'Missing Values': CLINICAL_FEATURE_MISSING_VALUES[1],
           };
 
           if (
@@ -303,7 +304,6 @@ export default function ClinicalFeatureTable({
         setClinicalFeatureColumnsForReactTable(
           clinicalFeatureColumnsForReactTableToUpdate
         );
-
       } else {
         isValid = false;
         message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${column_names.join(
@@ -330,14 +330,14 @@ export default function ClinicalFeatureTable({
               guessedClinicalFeatureDefinitions[feature_name];
 
             if (
-              clinicalFeaturesUniqueValues['frequency_of_occurence'][
+              clinicalFeaturesUniqueValues['frequency_of_occurrence'][
                 feature_name
               ].length < 10
             ) {
               clinicalFeatureDefinitionsToUpdate[feature_name][
                 'Unique Values'
               ] =
-                clinicalFeaturesUniqueValues['frequency_of_occurence'][
+                clinicalFeaturesUniqueValues['frequency_of_occurrence'][
                   feature_name
                 ].join(' | ');
             }
@@ -345,7 +345,7 @@ export default function ClinicalFeatureTable({
         }
       }
 
-      console.log("clinicalFeatures", clinicalFeatures);
+      console.log('clinicalFeatures', clinicalFeatures);
       setEditableClinicalFeatures(clinicalFeatures);
       setEditableClinicalFeatureDefinitions(clinicalFeatureDefinitionsToUpdate);
       setFilterClinicalFeatureMessages(filterMessages);
@@ -372,7 +372,6 @@ export default function ClinicalFeatureTable({
 
     setEditableClinicalFeatures(formattedClinicalFeature);
   }, [dataPoints, clinicalFeaturesColumns]);
-
 
   useEffect(() => {
     let featureColumns = Object.keys(clinicalFeatureColumnsForReactTable).map(
@@ -463,7 +462,7 @@ export default function ClinicalFeatureTable({
                       name="encoding_list"
                       value={
                         editableClinicalFeatureDefinitions[feature_name][
-                        'Encoding'
+                          'Encoding'
                         ]
                       }
                       onChange={(event) =>
@@ -481,7 +480,7 @@ export default function ClinicalFeatureTable({
                   <td>
                     {
                       editableClinicalFeatureDefinitions[feature_name][
-                      'Unique Values'
+                        'Unique Values'
                       ]
                     }
                   </td>
@@ -492,18 +491,23 @@ export default function ClinicalFeatureTable({
                       name="missing_value_list"
                       value={
                         editableClinicalFeatureDefinitions[feature_name][
-                        'Missing Values'
+                          'Missing Values'
                         ]
                       }
                       onChange={(event) =>
                         handleInputChange(event, feature_name, 'Missing Values')
                       }
                     >
-                      {CLINICAL_FEATURE_MISSING_VALUES.map((missing_value_type) => (
-                        <option key={missing_value_type} value={missing_value_type}>
-                          {missing_value_type}
-                        </option>
-                      ))}
+                      {CLINICAL_FEATURE_MISSING_VALUES.map(
+                        (missing_value_type) => (
+                          <option
+                            key={missing_value_type}
+                            value={missing_value_type}
+                          >
+                            {missing_value_type}
+                          </option>
+                        )
+                      )}
                       ;
                     </Input>
                   </td>
