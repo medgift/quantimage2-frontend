@@ -101,8 +101,7 @@ export default function Visualisation({
   updateExtractionOrCollection,
   hasPendingChanges,
   setHasPendingChanges,
-  clinicalFeatureNames,
-  setClinicalFeatureNames,
+  clinicalFeaturesDefinitions,
 }) {
   // Route
   const { albumID } = useParams();
@@ -157,12 +156,12 @@ export default function Visualisation({
   const chartRef = useRef(null);
 
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
-    if (!featureIDs && !clinicalFeatureNames) return [];
-    if (!featureIDs) return Object.keys(clinicalFeatureNames);
-    if (!clinicalFeatureNames) return featureIDs;
+    if (!featureIDs && !clinicalFeaturesDefinitions) return [];
+    if (!featureIDs) return Object.keys(clinicalFeaturesDefinitions);
+    if (!clinicalFeaturesDefinitions) return featureIDs;
 
-    return [...featureIDs, ...Object.keys(clinicalFeatureNames)];
-  }, [featureIDs, clinicalFeatureNames]);
+    return [...featureIDs, ...Object.keys(clinicalFeaturesDefinitions)];
+  }, [featureIDs, clinicalFeaturesDefinitions]);
 
   const finalTrainingPatients = useMemo(() => {
     if (selectedLabelCategory && trainingPatients) return trainingPatients;
@@ -381,6 +380,18 @@ export default function Visualisation({
     setTestPatientsOpen((o) => !o);
   };
 
+  const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
+    return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
+      acc[curr] = {
+        id: curr,
+        description: curr,
+        shortName: curr,
+      };
+
+      return acc;
+    }, {});
+  };
+
   const filteringItems = useMemo(() => {
     if (!featureIDs) return {};
 
@@ -415,9 +426,12 @@ export default function Visualisation({
     }
 
     // Add clinical features
-    if (Object.keys(clinicalFeatureNames).length > 0) {
+    if (
+      clinicalFeaturesDefinitions &&
+      Object.keys(clinicalFeaturesDefinitions).length > 0
+    ) {
       groupedTree['Clinical Features [No visualization]'] =
-        clinicalFeatureNames;
+        formatClinicalFeaturesTreeItems(clinicalFeaturesDefinitions);
     }
     // groupedTree["Clinical Features"] = {
     //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
@@ -426,27 +440,7 @@ export default function Visualisation({
 
     console.log('groupedTree', groupedTree);
     return groupedTree;
-  }, [featureIDs, clinicalFeatureNames]);
-
-  useEffect(() => {
-    async function fetchClinicalFeatureNames() {
-      let clinicalFeatureName = {};
-      let clinical_feature_definitions =
-        await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
-      for (let feature_name in clinical_feature_definitions) {
-        clinicalFeatureName[feature_name] = {
-          shortName: feature_name,
-          id: feature_name,
-          description:
-            clinical_feature_definitions[feature_name]['description'],
-        };
-      }
-      // console.log("setting clinical feature names", clinicalFeatureName);
-      setClinicalFeatureNames(clinicalFeatureName);
-    }
-
-    fetchClinicalFeatureNames();
-  }, [albumID, keycloak.token, setClinicalFeatureNames]);
+  }, [featureIDs, clinicalFeaturesDefinitions]);
 
   const getNodeIDsFromFeatureIDs = useCallback(
     (featureIDs, leafItems, nodeIDToNodeMap) => {
@@ -645,10 +639,15 @@ export default function Visualisation({
 
   // Update chart loading state
   useEffect(() => {
-    if (featuresChart && featureIDs && loading === true) {
+    if (
+      clinicalFeaturesDefinitions &&
+      featuresChart &&
+      featureIDs &&
+      loading === true
+    ) {
       setLoading(false);
     }
-  }, [featuresChart, featureIDs, loading]);
+  }, [featuresChart, clinicalFeaturesDefinitions, featureIDs, loading]);
 
   // Bind web worker
   useEffect(() => {
@@ -1571,11 +1570,10 @@ function getLeafItems(node, collector) {
   } else {
     let nodeId = node.id;
 
-    let match = nodeId.match(featureNameRegex);
-    if (match === null)
-      console.error(nodeId, 'DOES NOT MATCH THE PATTERN, WHY?');
-
     let nodeIDMatch = nodeId.match(featureNameRegex);
+    // TODO - Store the node ID prefix for Clinical Features in a constant
+    if (nodeIDMatch === null && !nodeId.includes('Clinical Features'))
+      console.error(nodeId, 'DOES NOT MATCH THE PATTERN, WHY?');
     if (nodeIDMatch) {
       let { modality, roi } = nodeId.match(featureNameRegex).groups;
       collector[

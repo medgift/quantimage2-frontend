@@ -268,7 +268,6 @@ export function validateFileType(file) {
   return true;
 }
 
-
 export async function validateLabelFile(file, dataPoints, headerFieldNames) {
   console.log(file);
   let valid = false;
@@ -301,9 +300,9 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
 
     let headerFields = firstLine.split(separator);
 
-    if (headerFields[0] != "PatientID"){
-      error = `Expected the first column to be PatientID - got ${headerFields[0]}`
-      return [false, error]
+    if (headerFields[0] != 'PatientID') {
+      error = `Expected the first column to be PatientID - got ${headerFields[0]}`;
+      return [false, error];
     }
 
     let hasHeader =
@@ -344,7 +343,7 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
   }
 
   valid = true;
-  
+
   return [
     valid,
     `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
@@ -355,7 +354,6 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
 const papaparse_config = {
   header: true,
   skipEmptyLines: true,
-  fastMode: true,
 };
 
 export async function validateClinicalFeaturesFile(file, dataPoints) {
@@ -370,9 +368,9 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
     return [valid, error];
   }
 
-  let fileContent = await file.text()
+  let fileContent = await file.text();
   let csvData = Papa.parse(fileContent, papaparse_config);
-  
+
   let nbMatches = 0;
   let labels = {};
 
@@ -390,7 +388,6 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
         labels[PatientID] = recordContent;
       }
     }
-
   } catch (e) {
     console.error(e);
     error = 'The CSV file could not be parsed, check its format!';
@@ -404,11 +401,10 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
     `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
     labels,
   ];
-
 }
 
-export async function parseClinicalFeatureNames(file) {  
-  let fileContent = await file.text()
+export async function parseClinicalFeatureNames(file) {
+  let fileContent = await file.text();
   let data = Papa.parse(fileContent, papaparse_config);
   return data.meta.fields;
 }

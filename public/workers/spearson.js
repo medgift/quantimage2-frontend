@@ -243,7 +243,6 @@
 
   // @param {[[number]]} x Array of array of numbers.
   // @param {(x, y)} distanceMetric Distance metric.
-  // TODO: Save memory by throwing away upper or lower triangle and diagonal.
   exports.pairwiseDistance = pairwiseDistance = function (x, distanceMetric) {
     var pairwiseDistances, distance, i, j;
     pairwiseDistances = [];

@@ -22,8 +22,8 @@ const endpoints = {
   charts: `${baseEndpoint}/charts`,
   navigation: `${baseEndpoint}/navigation`,
   albums: `${baseEndpoint}/albums`,
-  clinical_features: `${baseEndpoint}/clinical_features`,
-  clinical_feature_definitions: `${baseEndpoint}/clinical_feature_definitions`,
+  clinicalFeatures: `${baseEndpoint}/clinical-features`,
+  clinicalFeaturesDefinitions: `${baseEndpoint}/clinical-features-definitions`,
 };
 
 class Backend {
@@ -156,7 +156,7 @@ class Backend {
         clinical_feature_map: clinical_feature_map,
         album_id: album_id,
       };
-      let url = `${endpoints.clinical_features}?album_id=${album_id}`;
+      let url = `${endpoints.clinicalFeatures}?album_id=${album_id}`;
       return await request(url, { method: 'POST', data: data, token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -165,7 +165,7 @@ class Backend {
 
   async loadClinicalFeatures(token, patient_ids, album_id) {
     try {
-      let url = `${endpoints.clinical_features}?album_id=${album_id}`;
+      let url = `${endpoints.clinicalFeatures}?album_id=${album_id}`;
 
       return await request(url, {
         method: 'POST',
@@ -177,16 +177,23 @@ class Backend {
     }
   }
 
-  async filterClinicalFeatures(token, clinical_feature_map) {
-    const url = `${endpoints.clinical_features}/filter`;
-    let data = { clinical_feature_map: clinical_feature_map };
+  async filterClinicalFeatures(token, clinicalFeatureMap) {
+    const url = `${endpoints.clinicalFeatures}/filter`;
+    let data = { clinical_feature_map: clinicalFeatureMap };
 
     return await request(url, { method: 'POST', data: data, token: token });
   }
 
-  async clinicalFeaturesUniqueValues(token, clinical_feature_map) {
-    const url = `${endpoints.clinical_features}/get_unique_values`;
-    let data = { clinical_feature_map: clinical_feature_map };
+  async clinicalFeaturesUniqueValues(
+    token,
+    clinicalFeatureMap,
+    clinicalFeaturesDefinitions
+  ) {
+    const url = `${endpoints.clinicalFeatures}/unique-values`;
+    let data = {
+      clinical_feature_map: clinicalFeatureMap,
+      clinical_features_definitions: clinicalFeaturesDefinitions,
+    };
 
     return await request(url, { method: 'POST', data: data, token: token });
   }
@@ -200,17 +207,17 @@ class Backend {
       clinical_feature_definitions: clinical_feature_definitions,
       album_id: album_id,
     };
-    let url = `${endpoints.clinical_feature_definitions}?album_id=${album_id}`;
+    let url = `${endpoints.clinicalFeaturesDefinitions}?album_id=${album_id}`;
     return await request(url, { method: 'POST', data: data, token: token });
   }
 
   async loadClinicalFeatureDefinitions(token, album_id) {
-    let url = `${endpoints.clinical_feature_definitions}?album_id=${album_id}`;
+    let url = `${endpoints.clinicalFeaturesDefinitions}?album_id=${album_id}`;
     return await request(url, { method: 'GET', token: token });
   }
 
   async guessClinicalFeatureDefinitions(token, clinical_feature_map) {
-    const url = `${endpoints.clinical_feature_definitions}/guess`;
+    const url = `${endpoints.clinicalFeaturesDefinitions}/guess`;
     let data = { clinical_feature_map: clinical_feature_map };
 
     return await request(url, { method: 'POST', data: data, token: token });
@@ -218,7 +225,7 @@ class Backend {
 
   async deleteClinicalFeatureDefinitions(token, album_id) {
     try {
-      let url = `${endpoints.clinical_feature_definitions}?album_id=${album_id}`;
+      let url = `${endpoints.clinicalFeaturesDefinitions}?album_id=${album_id}`;
       return await request(url, {
         method: 'DELETE',
         token: token,

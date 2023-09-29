@@ -98,8 +98,12 @@ function Features({ history }) {
   // Pending Changes
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
-  // Clinical Feature Names
-  const [clinicalFeatureNames, setClinicalFeatureNames] = useState({});
+  // Clinical Features
+  let [clinicalFeaturesDefinitions, setClinicalFeaturesDefinitions] =
+    useState(null);
+  let [clinicalFeaturesValues, setClinicalFeaturesValues] = useState(null);
+  let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
+    useState(null);
 
   // Deal with refreshing page when there are pending changes
   const [, setShowExitPrompt] = useExitPrompt(false);
@@ -354,12 +358,56 @@ function Features({ history }) {
 
       setFeaturesTabular(featuresTabular);
       setFeaturesChart(featuresChart);
-
-      setIsLoading(false);
     }
 
     if (featureExtractionID) getFeatures();
   }, [featureExtractionID, collectionID, keycloak.token]);
+
+  // Get clinical features
+  useEffect(() => {
+    async function fetchClinicalFeatures() {
+      let clinicalFeatures = await Backend.loadClinicalFeatures(
+        keycloak.token,
+        dataPoints,
+        albumID
+      );
+      let clinicalFeaturesDefinitions =
+        await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
+
+      setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
+      setClinicalFeaturesValues(clinicalFeatures);
+
+      setIsLoading(false);
+    }
+
+    if (dataPoints) fetchClinicalFeatures();
+  }, [keycloak.token, albumID, dataPoints]);
+
+  // Get unique values from clinical features
+  useEffect(() => {
+    async function fetchUniqueValues() {
+      let clinicalFeaturesUniqueValues =
+        await Backend.clinicalFeaturesUniqueValues(
+          keycloak.token,
+          clinicalFeaturesValues,
+          clinicalFeaturesDefinitions
+        );
+
+      setClinicalFeaturesUniqueValues(clinicalFeaturesUniqueValues);
+    }
+    if (
+      clinicalFeaturesValues &&
+      clinicalFeaturesDefinitions &&
+      Object.keys(clinicalFeaturesDefinitions).length > 0
+    ) {
+      fetchUniqueValues();
+    }
+  }, [
+    keycloak.token,
+    clinicalFeaturesValues,
+    clinicalFeaturesDefinitions,
+    albumID,
+  ]);
 
   // Get models
   useEffect(() => {
@@ -775,9 +823,9 @@ function Features({ history }) {
                 </NavItem>
                 <NavItem>
                   <NavLink
-                    className={getTabClassName('clinical_features')}
+                    className={getTabClassName('clinical-features')}
                     onClick={() => {
-                      toggle('clinical_features');
+                      toggle('clinical-features');
                     }}
                   >
                     {getTabSymbol()}
@@ -1052,8 +1100,9 @@ function Features({ history }) {
                           unlabelledPatients={unlabelledPatients}
                           hasPendingChanges={hasPendingChanges}
                           setHasPendingChanges={setHasPendingChanges}
-                          clinicalFeatureNames={clinicalFeatureNames}
-                          setClinicalFeatureNames={setClinicalFeatureNames}
+                          clinicalFeaturesDefinitions={
+                            clinicalFeaturesDefinitions
+                          }
                         />
                       </>
                     ) : (
@@ -1107,8 +1156,8 @@ function Features({ history }) {
                     <span>Loading...</span>
                   )}
                 </TabPane>
-                <TabPane tabId="clinical_features">
-                  {tab === 'clinical_features' ? (
+                <TabPane tabId="clinical-features">
+                  {tab === 'clinical-features' ? (
                     <>
                       {' '}
                       <UnlabelledPatientsTitle
@@ -1118,20 +1167,23 @@ function Features({ history }) {
                       <ClinicalFeatures
                         dataPoints={allPatients}
                         albumID={albumID}
-                        setClinicalFeatureNames={setClinicalFeatureNames}
+                        clinicalFeaturesDefinitions={
+                          clinicalFeaturesDefinitions
+                        }
+                        setClinicalFeaturesDefinitions={
+                          setClinicalFeaturesDefinitions
+                        }
+                        clinicalFeaturesValues={clinicalFeaturesValues}
+                        setClinicalFeaturesValues={setClinicalFeaturesValues}
+                        clinicalFeaturesUniqueValues={
+                          clinicalFeaturesUniqueValues
+                        }
                       />
                     </>
                   ) : (
                     <span>Loading...</span>
                   )}
                 </TabPane>
-                {/* <TabPane tabId="your_component">
-                  {tab === 'your_component' ? (
-                    <DynamicTable />
-                  ) : (
-                    <span>Loading...</span>
-                  )}
-                </TabPane> */}
               </TabContent>
             </div>
           </div>

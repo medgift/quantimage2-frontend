@@ -74,10 +74,29 @@ export const TRAINING_PHASES = {
   TESTING: 'testing',
 };
 
-export const CLINICAL_FEATURES = ["Age", "Gender"];
-export const CLINCAL_FEATURE_TYPES = ["Number", "Categorical"];
-export const CLINICAL_FEATURE_ENCODING = ["None", "One-Hot Encoding", "Normalization", "Ordered Categories"];
-export const CLINICAL_FEATURE_MISSING_VALUES = ["Drop", "Mode", "Median", "Mean", "None"]
+export const CLINICAL_FEATURE_FIELDS = {
+  TYPE: 'Type',
+  ENCODING: 'Encoding',
+  MISSING_VALUES: 'Missing Values',
+};
+export const CLINCAL_FEATURE_TYPES = {
+  NUMBER: 'Number',
+  CATEGORICAL: 'Categorical',
+};
+export const CLINICAL_FEATURE_ENCODING = {
+  NONE: 'None',
+  ONE_HOT_ENCODING: 'One-Hot Encoding',
+  NORMALIZATION: 'Normalization',
+  ORDERED_CATEGORIES: 'Ordered Categories',
+};
+
+export const CLINICAL_FEATURE_MISSING_VALUES = {
+  DROP: 'Drop',
+  MODE: 'Mode',
+  MEDIAN: 'Median',
+  MEAN: 'Mean',
+  NONE: 'None',
+};
 
 export const CV_SPLITS = 5;
 
