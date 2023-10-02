@@ -5,7 +5,7 @@ import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import {
   CLINICAL_FEATURE_FIELDS,
-  CLINCAL_FEATURE_TYPES,
+  CLINICAL_FEATURE_TYPES,
   CLINICAL_FEATURE_ENCODING,
   CLINICAL_FEATURE_MISSING_VALUES,
 } from '../config/constants';
@@ -113,11 +113,14 @@ export default function ClinicalFeatureTable({
     clinicalFeatureDefinitionsToUpdate[feature_name][feature_field] =
       e.target.value;
 
-    // If feature type is changed, reset feature encoding as well
+    // If feature type is changed, reset feature encoding & missing values as well
     if (feature_field === CLINICAL_FEATURE_FIELDS.TYPE) {
       clinicalFeatureDefinitionsToUpdate[feature_name][
         CLINICAL_FEATURE_FIELDS.ENCODING
       ] = getPossibleEncodings(e.target.value)[0];
+      clinicalFeatureDefinitionsToUpdate[feature_name][
+        CLINICAL_FEATURE_FIELDS.MISSING_VALUES
+      ] = getPossibleMissingValues(e.target.value)[0];
     }
 
     setClinicalFeaturesDefinitions(clinicalFeatureDefinitionsToUpdate);
@@ -241,10 +244,10 @@ export default function ClinicalFeatureTable({
 
           clinicalFeaturesDefinitionsToSave[columnName] = {
             [CLINICAL_FEATURE_FIELDS.TYPE]: Object.values(
-              CLINCAL_FEATURE_TYPES
+              CLINICAL_FEATURE_TYPES
             )[0],
             [CLINICAL_FEATURE_FIELDS.ENCODING]: getPossibleEncodings(
-              Object.values(CLINCAL_FEATURE_TYPES)[0]
+              Object.values(CLINICAL_FEATURE_TYPES)[0]
             )[0],
             [CLINICAL_FEATURE_FIELDS.MISSING_VALUES]:
               CLINICAL_FEATURE_MISSING_VALUES.MODE,
@@ -287,7 +290,7 @@ export default function ClinicalFeatureTable({
   };
 
   const getPossibleEncodings = (featureType) => {
-    if (featureType === CLINCAL_FEATURE_TYPES.CATEGORICAL) {
+    if (featureType === CLINICAL_FEATURE_TYPES.CATEGORICAL) {
       return [
         CLINICAL_FEATURE_ENCODING.ONE_HOT_ENCODING,
         CLINICAL_FEATURE_ENCODING.ORDERED_CATEGORIES,
@@ -296,6 +299,23 @@ export default function ClinicalFeatureTable({
       return [
         CLINICAL_FEATURE_ENCODING.NONE,
         CLINICAL_FEATURE_ENCODING.NORMALIZATION,
+      ];
+    }
+  };
+
+  const getPossibleMissingValues = (featureType) => {
+    if (featureType === CLINICAL_FEATURE_TYPES.CATEGORICAL) {
+      return [
+        CLINICAL_FEATURE_MISSING_VALUES.MODE,
+        CLINICAL_FEATURE_MISSING_VALUES.DROP,
+        CLINICAL_FEATURE_MISSING_VALUES.NONE,
+      ];
+    } else {
+      return [
+        CLINICAL_FEATURE_MISSING_VALUES.MEDIAN,
+        CLINICAL_FEATURE_MISSING_VALUES.MEAN,
+        CLINICAL_FEATURE_MISSING_VALUES.DROP,
+        CLINICAL_FEATURE_MISSING_VALUES.NONE,
       ];
     }
   };
@@ -353,7 +373,7 @@ export default function ClinicalFeatureTable({
                         )
                       }
                     >
-                      {Object.values(CLINCAL_FEATURE_TYPES).map(
+                      {Object.values(CLINICAL_FEATURE_TYPES).map(
                         (featureType) => (
                           <option key={featureType} value={featureType}>
                             {featureType}
@@ -411,16 +431,15 @@ export default function ClinicalFeatureTable({
                         )
                       }
                     >
-                      {Object.values(CLINICAL_FEATURE_MISSING_VALUES).map(
-                        (missingValueType) => (
-                          <option
-                            key={missingValueType}
-                            value={missingValueType}
-                          >
-                            {missingValueType}
-                          </option>
-                        )
-                      )}
+                      {getPossibleMissingValues(
+                        clinicalFeaturesDefinitions[featureName][
+                          CLINICAL_FEATURE_FIELDS.TYPE
+                        ]
+                      ).map((missingValueType) => (
+                        <option key={missingValueType} value={missingValueType}>
+                          {missingValueType}
+                        </option>
+                      ))}
                       ;
                     </Input>
                   </td>

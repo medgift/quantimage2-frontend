@@ -79,7 +79,7 @@ export const CLINICAL_FEATURE_FIELDS = {
   ENCODING: 'Encoding',
   MISSING_VALUES: 'Missing Values',
 };
-export const CLINCAL_FEATURE_TYPES = {
+export const CLINICAL_FEATURE_TYPES = {
   NUMBER: 'Number',
   CATEGORICAL: 'Categorical',
 };
