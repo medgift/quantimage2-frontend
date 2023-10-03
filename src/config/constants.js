@@ -75,9 +75,10 @@ export const TRAINING_PHASES = {
 };
 
 export const CLINICAL_FEATURE_FIELDS = {
-  TYPE: 'Type',
-  ENCODING: 'Encoding',
-  MISSING_VALUES: 'Missing Values',
+  NAME: 'name',
+  TYPE: 'feat_type',
+  ENCODING: 'encoding',
+  MISSING_VALUES: 'missing_values',
 };
 export const CLINICAL_FEATURE_TYPES = {
   NUMBER: 'Number',

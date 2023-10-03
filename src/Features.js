@@ -85,8 +85,50 @@ function Features({ history }) {
 
   // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
-  const [trainingPatients, setTrainingPatients] = useState(null);
-  const [testPatients, setTestPatients] = useState(null);
+  const [patients, setPatients] = useState(null); // { training: [...], test: [...] }
+
+  /*const patients = useMemo(() => {
+    let trainingPatients;
+
+    if (nbTrainingPatients === 0 || !outcomes || outcomes.length === 0) {
+      return { trainingPatients: null, testPatients: null };
+    }
+
+    let filteredOutcomes = outcomes.filter((o) =>
+      dataPoints.includes(o.patient_id)
+    );
+
+    // Stratify selection of patients (by Outcome for Classification, Event for Survival)
+    let groupByCriteria =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? 'label_content.Outcome'
+        : 'label_content.Event';
+
+    trainingPatients = _(filteredOutcomes)
+      .groupBy(groupByCriteria)
+      .map((v) =>
+        _.sampleSize(
+          v,
+          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+        )
+      )
+      .flatten()
+      .map((v) => v.patient_id)
+      .value();
+
+    let nbMaxTrainingPatients = Math.min(nbTrainingPatients, dataPoints.length);
+
+    // Fill up with another patient if split does not produce exact number of requested patients
+    if (trainingPatients.length < nbMaxTrainingPatients) {
+      trainingPatients.push(
+        _.sample(_.difference(dataPoints, trainingPatients))
+      );
+    }
+
+    let testPatients = _.difference(dataPoints, trainingPatients);
+
+    return { trainingPatients, testPatients };
+  }, [dataPoints, outcomes, nbTrainingPatients, selectedLabelCategory]);*/
 
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
@@ -104,6 +146,20 @@ function Features({ history }) {
   let [clinicalFeaturesValues, setClinicalFeaturesValues] = useState(null);
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
+
+  const formattedClinicalFeaturesDefinitions = useMemo(() => {
+    if (
+      !clinicalFeaturesDefinitions ||
+      clinicalFeaturesDefinitions.length === 0
+    )
+      return {};
+
+    return clinicalFeaturesDefinitions.reduce((acc, curr) => {
+      acc[curr.name] = curr;
+
+      return acc;
+    }, {});
+  }, [clinicalFeaturesDefinitions]);
 
   // Deal with refreshing page when there are pending changes
   const [, setShowExitPrompt] = useExitPrompt(false);
@@ -217,8 +273,8 @@ function Features({ history }) {
 
     if (!selectedLabelCategory) return allPatients;
 
-    if (currentCollection && trainingPatients && testPatients)
-      return [...trainingPatients, ...testPatients];
+    if (currentCollection && patients)
+      return [...patients.training, ...patients.test];
 
     // Remove unlabelled patients from the data points
     if (unlabelledPatients && unlabelledPatients.length > 0) {
@@ -231,8 +287,7 @@ function Features({ history }) {
   }, [
     allPatients,
     selectedLabelCategory,
-    trainingPatients,
-    testPatients,
+    patients,
     featuresTabular,
     currentCollection,
     unlabelledPatients,
@@ -390,22 +445,22 @@ function Features({ history }) {
         await Backend.clinicalFeaturesUniqueValues(
           keycloak.token,
           clinicalFeaturesValues,
-          clinicalFeaturesDefinitions
+          formattedClinicalFeaturesDefinitions
         );
 
       setClinicalFeaturesUniqueValues(clinicalFeaturesUniqueValues);
     }
     if (
       clinicalFeaturesValues &&
-      clinicalFeaturesDefinitions &&
-      Object.keys(clinicalFeaturesDefinitions).length > 0
+      formattedClinicalFeaturesDefinitions &&
+      Object.keys(formattedClinicalFeaturesDefinitions).length > 0
     ) {
       fetchUniqueValues();
     }
   }, [
     keycloak.token,
     clinicalFeaturesValues,
-    clinicalFeaturesDefinitions,
+    formattedClinicalFeaturesDefinitions,
     albumID,
   ]);
 
@@ -500,8 +555,7 @@ function Features({ history }) {
     let testPatients;
 
     if (!dataPoints) {
-      setTrainingPatients(null);
-      setTestPatients(null);
+      setPatients(null);
       return;
     }
 
@@ -518,8 +572,7 @@ function Features({ history }) {
         Math.round(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
       );
     } else {
-      setTrainingPatients(trainingPatients);
-      setTestPatients(testPatients);
+      setPatients({ training: trainingPatients, test: testPatients });
       setNbTrainingPatients(trainingPatients.length);
     }
   }, [
@@ -684,11 +737,11 @@ function Features({ history }) {
     let newTestPatients;
 
     if (source === PATIENT_FIELDS.TRAINING) {
-      newTrainingPatients = _.difference(trainingPatients, patientsToTransfer);
-      newTestPatients = [...testPatients, ...patientsToTransfer];
+      newTrainingPatients = _.difference(patients.training, patientsToTransfer);
+      newTestPatients = [...patients.test, ...patientsToTransfer];
     } else if (source === PATIENT_FIELDS.TEST) {
-      newTestPatients = _.difference(testPatients, patientsToTransfer);
-      newTrainingPatients = [...trainingPatients, ...patientsToTransfer];
+      newTestPatients = _.difference(patients.test, patientsToTransfer);
+      newTrainingPatients = [...patients.training, ...patientsToTransfer];
     } else {
       console.log('Invalid source for patient transfer');
     }
@@ -1053,8 +1106,7 @@ function Features({ history }) {
                         updateTrainTestSplitType={updateTrainTestSplitType}
                         nbTrainingPatients={nbTrainingPatients}
                         setNbTrainingPatients={setNbTrainingPatients}
-                        trainingPatients={trainingPatients}
-                        testPatients={testPatients}
+                        patients={patients}
                         transferPatients={transferPatients}
                         dataPoints={dataPoints}
                         selectedLabelCategory={selectedLabelCategory}
@@ -1089,8 +1141,7 @@ function Features({ history }) {
                           models={models}
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
-                          trainingPatients={trainingPatients}
-                          testPatients={testPatients}
+                          patients={patients}
                           featureExtractionID={featureExtractionID}
                           setCollections={setCollections}
                           album={album.name}
@@ -1142,8 +1193,7 @@ function Features({ history }) {
                           unlabelledPatients={unlabelledPatients}
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
-                          trainingPatients={trainingPatients}
-                          testPatients={testPatients}
+                          patients={patients}
                         />
                       </>
                     ) : (
@@ -1172,6 +1222,9 @@ function Features({ history }) {
                         }
                         setClinicalFeaturesDefinitions={
                           setClinicalFeaturesDefinitions
+                        }
+                        formattedClinicalFeaturesDefinitions={
+                          formattedClinicalFeaturesDefinitions
                         }
                         clinicalFeaturesValues={clinicalFeaturesValues}
                         setClinicalFeaturesValues={setClinicalFeaturesValues}

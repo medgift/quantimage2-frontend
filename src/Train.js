@@ -55,8 +55,7 @@ export default function Train({
   setModels,
   dataSplittingType,
   trainTestSplitType,
-  trainingPatients,
-  testPatients,
+  patients,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -172,8 +171,8 @@ export default function Train({
         labels,
         dataSplittingType,
         trainTestSplitType,
-        trainingPatients ? trainingPatients : dataPoints,
-        testPatients,
+        patients?.training ? patients.training : dataPoints,
+        patients?.test,
         metadataColumns[MODALITY_FIELD],
         metadataColumns[ROI_FIELD],
         keycloak.token
@@ -227,8 +226,8 @@ export default function Train({
     return elementsPerClass;
   };
 
-  const elementsPerClassTraining = computeElementsPerClass(trainingPatients);
-  const elementsPerClassTest = computeElementsPerClass(testPatients);
+  const elementsPerClassTraining = computeElementsPerClass(patients?.training);
+  const elementsPerClassTest = computeElementsPerClass(patients?.test);
 
   const nbClassesTraining = Object.keys(elementsPerClassTraining).filter(
     (c) => c

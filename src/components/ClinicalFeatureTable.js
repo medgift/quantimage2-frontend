@@ -28,6 +28,7 @@ export default function ClinicalFeatureTable({
   albumID,
   clinicalFeaturesDefinitions,
   setClinicalFeaturesDefinitions,
+  formattedClinicalFeaturesDefinitions,
   clinicalFeaturesValues,
   setClinicalFeaturesValues,
   clinicalFeaturesUniqueValues,
@@ -67,9 +68,10 @@ export default function ClinicalFeatureTable({
   }, [clinicalFeaturesUniqueValues]);
 
   const reactTableColumnsDefinitions = useMemo(() => {
-    if (!clinicalFeaturesDefinitions || !clinicalFeaturesValues) return [];
+    if (!formattedClinicalFeaturesDefinitions || !clinicalFeaturesValues)
+      return [];
 
-    let featureColumns = Object.keys(clinicalFeaturesDefinitions).map(
+    let featureColumns = Object.keys(formattedClinicalFeaturesDefinitions).map(
       (featureName) => ({
         Header: featureName,
         accessor: featureName,
@@ -92,7 +94,7 @@ export default function ClinicalFeatureTable({
         columns: featureColumns,
       },
     ];
-  }, [clinicalFeaturesDefinitions, clinicalFeaturesValues]);
+  }, [formattedClinicalFeaturesDefinitions, clinicalFeaturesValues]);
 
   const formattedClinicalFeatureValues = useMemo(() => {
     if (!clinicalFeaturesValues) return [];
@@ -105,20 +107,19 @@ export default function ClinicalFeatureTable({
     );
   }, [clinicalFeaturesValues]);
 
-  const handleInputChange = (e, feature_name, feature_field) => {
-    let clinicalFeatureDefinitionsToUpdate = {
-      ...clinicalFeaturesDefinitions,
-    };
+  const handleInputChange = (e, featureID, featureField) => {
+    let clinicalFeatureDefinitionsToUpdate = [...clinicalFeaturesDefinitions];
 
-    clinicalFeatureDefinitionsToUpdate[feature_name][feature_field] =
-      e.target.value;
+    let clinicalFeatureDefinitionToUpdate =
+      clinicalFeatureDefinitionsToUpdate.find((d) => d.id === featureID);
+
+    clinicalFeatureDefinitionToUpdate[featureField] = e.target.value;
 
     // If feature type is changed, reset feature encoding & missing values as well
-    if (feature_field === CLINICAL_FEATURE_FIELDS.TYPE) {
-      clinicalFeatureDefinitionsToUpdate[feature_name][
-        CLINICAL_FEATURE_FIELDS.ENCODING
-      ] = getPossibleEncodings(e.target.value)[0];
-      clinicalFeatureDefinitionsToUpdate[feature_name][
+    if (featureField === CLINICAL_FEATURE_FIELDS.TYPE) {
+      clinicalFeatureDefinitionToUpdate[CLINICAL_FEATURE_FIELDS.ENCODING] =
+        getPossibleEncodings(e.target.value)[0];
+      clinicalFeatureDefinitionToUpdate[
         CLINICAL_FEATURE_FIELDS.MISSING_VALUES
       ] = getPossibleMissingValues(e.target.value)[0];
     }
@@ -146,38 +147,39 @@ export default function ClinicalFeatureTable({
   };
 
   const saveClinicalFeatures = async (definitions, values) => {
-    await Backend.saveClinicalFeatureDefinitions(
+    let savedDefinitions = await Backend.saveClinicalFeaturesDefinitions(
       keycloak.token,
       definitions,
       albumID
     );
 
+    let savedValues = null;
     if (values) {
-      await Backend.saveClinicalFeatures(keycloak.token, values, albumID);
+      savedValues = await Backend.saveClinicalFeaturesValues(
+        keycloak.token,
+        values,
+        albumID
+      );
     }
+
+    return [savedDefinitions, savedValues];
+  };
+
+  const updateClinicalFeaturesDefinitions = async (definitions) => {
+    let updatedDefinitions = await Backend.updateClinicalFeaturesDefinitions(
+      keycloak.token,
+      definitions,
+      albumID
+    );
+
+    return updatedDefinitions;
   };
 
   const handleSaveClinicalFeaturesDefinitionsClick = async (e) => {
     setIsSavingClinicalFeatures(true);
 
-    if (isImportClinicalFeaturesOpen) {
-      toggleFeaturesConfigurationTab();
-      setClinicalFeatureFileMessage(null);
-      setIsClinicalFeatureFileValid(null);
-      fileInput.current.value = '';
-    }
+    await updateClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
 
-    await saveClinicalFeatures(clinicalFeaturesDefinitions, null);
-
-    // set the selected features in the visualization tab
-    let clinicalFeatureName = {};
-    for (let feature_name in clinicalFeaturesDefinitions) {
-      clinicalFeatureName[feature_name] = {
-        shortName: feature_name,
-        id: feature_name,
-        description: feature_name,
-      };
-    }
     setIsSavingClinicalFeatures(false);
   };
 
@@ -270,12 +272,13 @@ export default function ClinicalFeatureTable({
           }
         }
 
-        setClinicalFeaturesValues(clinicalFeaturesValuesToSave);
-        setClinicalFeaturesDefinitions(clinicalFeaturesDefinitionsToSave);
-        await saveClinicalFeatures(
+        let [definitions] = await saveClinicalFeatures(
           clinicalFeaturesDefinitionsToSave,
           clinicalFeaturesValuesToSave
         );
+
+        setClinicalFeaturesDefinitions(definitions);
+        setClinicalFeaturesValues(clinicalFeaturesValuesToSave);
       } else {
         isValid = false;
         message = `Clinical Features file does not contain ${PATIENT_ID} column, please edit the file manually and try again - got ${columnNames.join(
@@ -352,23 +355,19 @@ export default function ClinicalFeatureTable({
           </thead>
           <tbody>
             {clinicalFeaturesDefinitions &&
-              Object.keys(clinicalFeaturesDefinitions).map((featureName) => (
-                <tr key={featureName}>
-                  <td>{featureName}</td>
+              clinicalFeaturesDefinitions.map((clinicalFeature) => (
+                <tr key={clinicalFeature[CLINICAL_FEATURE_FIELDS.NAME]}>
+                  <td>{clinicalFeature[CLINICAL_FEATURE_FIELDS.NAME]}</td>
                   <td>
                     <Input
                       type="select"
                       id="type_list"
                       name="type_list"
-                      value={
-                        clinicalFeaturesDefinitions[featureName][
-                          CLINICAL_FEATURE_FIELDS.TYPE
-                        ]
-                      }
+                      value={clinicalFeature[CLINICAL_FEATURE_FIELDS.TYPE]}
                       onChange={(event) =>
                         handleInputChange(
                           event,
-                          featureName,
+                          clinicalFeature.id,
                           CLINICAL_FEATURE_FIELDS.TYPE
                         )
                       }
@@ -388,23 +387,17 @@ export default function ClinicalFeatureTable({
                       type="select"
                       id="encoding_list"
                       name="encoding_list"
-                      value={
-                        clinicalFeaturesDefinitions[featureName][
-                          CLINICAL_FEATURE_FIELDS.ENCODING
-                        ]
-                      }
+                      value={clinicalFeature[CLINICAL_FEATURE_FIELDS.ENCODING]}
                       onChange={(event) =>
                         handleInputChange(
                           event,
-                          featureName,
+                          clinicalFeature.id,
                           CLINICAL_FEATURE_FIELDS.ENCODING
                         )
                       }
                     >
                       {getPossibleEncodings(
-                        clinicalFeaturesDefinitions[featureName][
-                          CLINICAL_FEATURE_FIELDS.TYPE
-                        ]
+                        clinicalFeature[CLINICAL_FEATURE_FIELDS.TYPE]
                       ).map((encodingType) => (
                         <option key={encodingType} value={encodingType}>
                           {encodingType}
@@ -412,29 +405,31 @@ export default function ClinicalFeatureTable({
                       ))}
                     </Input>
                   </td>
-                  <td>{formattedUniqueValues[featureName]}</td>
+                  <td>
+                    {
+                      formattedUniqueValues[
+                        clinicalFeature[CLINICAL_FEATURE_FIELDS.NAME]
+                      ]
+                    }
+                  </td>
                   <td>
                     <Input
                       type="select"
                       id="missing_value_list"
                       name="missing_value_list"
                       value={
-                        clinicalFeaturesDefinitions[featureName][
-                          CLINICAL_FEATURE_FIELDS.MISSING_VALUES
-                        ]
+                        clinicalFeature[CLINICAL_FEATURE_FIELDS.MISSING_VALUES]
                       }
                       onChange={(event) =>
                         handleInputChange(
                           event,
-                          featureName,
+                          clinicalFeature.id,
                           CLINICAL_FEATURE_FIELDS.MISSING_VALUES
                         )
                       }
                     >
                       {getPossibleMissingValues(
-                        clinicalFeaturesDefinitions[featureName][
-                          CLINICAL_FEATURE_FIELDS.TYPE
-                        ]
+                        clinicalFeature[CLINICAL_FEATURE_FIELDS.TYPE]
                       ).map((missingValueType) => (
                         <option key={missingValueType} value={missingValueType}>
                           {missingValueType}

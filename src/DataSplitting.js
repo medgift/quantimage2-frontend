@@ -23,8 +23,7 @@ export default function DataSplitting({
   dataPoints,
   selectedLabelCategory,
   outcomes,
-  trainingPatients,
-  testPatients,
+  patients,
   updateExtractionOrCollection,
   transferPatients,
 }) {
@@ -42,60 +41,19 @@ export default function DataSplitting({
 
   const prevOutcomes = usePrevious(outcomes);
 
-  const patients = useMemo(() => {
-    let trainingPatients;
-
-    if (nbTrainingPatients === 0 || !outcomes || outcomes.length === 0) {
-      return { trainingPatients: null, testPatients: null };
-    }
-
-    let filteredOutcomes = outcomes.filter((o) =>
-      dataPoints.includes(o.patient_id)
-    );
-
-    // Stratify selection of patients (by Outcome for Classification, Event for Survival)
-    let groupByCriteria =
-      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
-        ? 'label_content.Outcome'
-        : 'label_content.Event';
-
-    trainingPatients = _(filteredOutcomes)
-      .groupBy(groupByCriteria)
-      .map((v) =>
-        _.sampleSize(
-          v,
-          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
-        )
-      )
-      .flatten()
-      .map((v) => v.patient_id)
-      .value();
-
-    let nbMaxTrainingPatients = Math.min(nbTrainingPatients, dataPoints.length);
-
-    // Fill up with another patient if split does not produce exact number of requested patients
-    if (trainingPatients.length < nbMaxTrainingPatients) {
-      trainingPatients.push(
-        _.sample(_.difference(dataPoints, trainingPatients))
-      );
-    }
-
-    let testPatients = _.difference(dataPoints, trainingPatients);
-
-    return { trainingPatients, testPatients };
-  }, [dataPoints, outcomes, nbTrainingPatients, selectedLabelCategory]);
-
   const [selectedTrainingPatients, setSelectedTrainingPatients] = useState([]);
   const [selectedTestPatients, setSelectedTestPatients] = useState([]);
 
   const savePatients = useCallback(async () => {
+    console.log('Saving Patients', patients);
     await updateExtractionOrCollection({
-      [PATIENT_FIELDS.TRAINING]: patients.trainingPatients,
-      [PATIENT_FIELDS.TEST]: patients.testPatients,
+      [PATIENT_FIELDS.TRAINING]: patients.training,
+      [PATIENT_FIELDS.TEST]: patients.test,
     });
   }, [patients, updateExtractionOrCollection]);
 
   const resetPatients = useCallback(async () => {
+    console.log('Resetting Patients', dataPoints);
     await updateExtractionOrCollection({
       [PATIENT_FIELDS.TRAINING]: null,
       [PATIENT_FIELDS.TEST]: null,
@@ -108,12 +66,16 @@ export default function DataSplitting({
   // Initialize training & test patients as required
   useEffect(() => {
     async function initPatients() {
-      if (selectedLabelCategory !== null && trainingPatients === null)
+      if (selectedLabelCategory !== null && patients === null) {
+        console.log('Initializing patients', patients);
         await savePatients();
+      }
     }
 
     async function reinitPatients() {
-      if (trainingPatients !== null) await resetPatients();
+      if (patients !== null) {
+        await resetPatients();
+      }
     }
 
     if (dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET) {
@@ -124,7 +86,7 @@ export default function DataSplitting({
   }, [
     savePatients,
     resetPatients,
-    trainingPatients,
+    patients,
     dataSplittingType,
     selectedLabelCategory,
   ]);
@@ -140,7 +102,7 @@ export default function DataSplitting({
       !_.isEqual(outcomes, prevOutcomes) &&
       prevOutcomes !== undefined
     ) {
-      console.log("outcomes changed, let's redo the patients");
+      console.log('Outcomes have changed, recomputing patients');
       updatePatients();
     }
   }, [dataSplittingType, outcomes, prevOutcomes, savePatients]);
@@ -279,7 +241,7 @@ export default function DataSplitting({
             <div className="d-flex align-items-center justify-content-center">
               <PatientSelectList
                 title="Training Patients"
-                patients={trainingPatients}
+                patients={patients.training}
                 selectedPatients={selectedTrainingPatients}
                 setSelectedPatients={setSelectedTrainingPatients}
               />
@@ -318,7 +280,7 @@ export default function DataSplitting({
               </div>
               <PatientSelectList
                 title="Test Patients"
-                patients={testPatients}
+                patients={patients.test}
                 selectedPatients={selectedTestPatients}
                 setSelectedPatients={setSelectedTestPatients}
               />

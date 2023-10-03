@@ -94,8 +94,7 @@ export default function Visualisation({
   models,
   dataSplittingType,
   trainTestSplitType,
-  trainingPatients,
-  testPatients,
+  patients,
   featureExtractionID,
   setCollections,
   updateExtractionOrCollection,
@@ -164,9 +163,9 @@ export default function Visualisation({
   }, [featureIDs, clinicalFeaturesDefinitions]);
 
   const finalTrainingPatients = useMemo(() => {
-    if (selectedLabelCategory && trainingPatients) return trainingPatients;
+    if (selectedLabelCategory && patients?.training) return patients.training;
     else return dataPoints;
-  }, [trainingPatients, dataPoints, selectedLabelCategory]);
+  }, [patients, dataPoints, selectedLabelCategory]);
 
   // Determine outcome column to inspect for chart
   const outcomeField = useMemo(() => {
@@ -568,16 +567,16 @@ export default function Visualisation({
 
   // Manage maximum n° of features to keep
   const maxNFeatures = useMemo(() => {
-    if (!trainingPatients) return DEFAULT_MAX_FEATURES_TO_KEEP;
+    if (!patients?.training) return DEFAULT_MAX_FEATURES_TO_KEEP;
 
     if (!selected) return DEFAULT_MAX_FEATURES_TO_KEEP;
 
     return Math.min(
       DEFAULT_MAX_FEATURES_TO_KEEP,
       selected.length - 1,
-      Math.floor(MAX_DISPLAYED_FEATURES / trainingPatients.length)
+      Math.floor(MAX_DISPLAYED_FEATURES / patients.training.length)
     );
-  }, [trainingPatients, selected]);
+  }, [patients, selected]);
 
   // Selected feature IDs !== feature IDs
   useEffect(() => {
@@ -1164,8 +1163,8 @@ export default function Visualisation({
       [...selectedFeatureIDs],
       dataSplittingType,
       trainTestSplitType,
-      trainingPatients,
-      testPatients
+      patients?.training,
+      patients?.test
     );
     toggleCollectionModal();
     setIsCollectionSaving(false);
@@ -1247,7 +1246,7 @@ export default function Visualisation({
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
-                    {selectedLabelCategory && trainingPatients && 'Training'}{' '}
+                    {selectedLabelCategory && patients?.training && 'Training'}{' '}
                     Patient IDs
                   </Button>
                   <MyModal
@@ -1255,7 +1254,7 @@ export default function Visualisation({
                     toggle={toggleTrainingPatientsOpen}
                     title={
                       <span>
-                        {selectedLabelCategory && trainingPatients
+                        {selectedLabelCategory && patients?.training
                           ? 'Training Patient IDs'
                           : 'Patient IDs'}
                       </span>
@@ -1268,7 +1267,7 @@ export default function Visualisation({
                     />
                   </MyModal>
                 </h6>
-                {selectedLabelCategory && testPatients && (
+                {selectedLabelCategory && patients?.test && (
                   <h6>
                     <Button color="link" onClick={toggleTestPatientsOpen}>
                       <FontAwesomeIcon icon="eye" /> Show Test Patient IDs
@@ -1279,7 +1278,7 @@ export default function Visualisation({
                       title={<span>Test Patient IDs</span>}
                     >
                       <ListValues
-                        values={testPatients.sort((p1, p2) =>
+                        values={patients.test.sort((p1, p2) =>
                           p1.localeCompare(p2, undefined, { numeric: true })
                         )}
                       />
