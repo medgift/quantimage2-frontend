@@ -15,6 +15,9 @@ RUN yarn global add react-scripts
 # Copy app source
 COPY . .
 
+# Update the browsers list (caniuse-lite)
+RUN npx update-browserslist-db@latest
+
 # Run the build
 RUN yarn run build
 
