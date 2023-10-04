@@ -63,7 +63,7 @@ export default function Outcomes({
   const handleOutcomeChange = async (e) => {
     let selectedOutcome = labelCategories.find((c) => c.id === +e.target.value);
     await saveCurrentOutcome(selectedOutcome ? selectedOutcome : null);
-    setSelectedLabelCategory(selectedOutcome);
+    setSelectedLabelCategory(selectedOutcome ? selectedOutcome : null);
   };
 
   // Toggle outcome creation modal

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Prompt } from 'react-router-dom';
 import fileDownload from 'js-file-download';
 import Backend from './services/backend';
@@ -86,49 +86,6 @@ function Features({ history }) {
   // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
   const [patients, setPatients] = useState(null); // { training: [...], test: [...] }
-
-  /*const patients = useMemo(() => {
-    let trainingPatients;
-
-    if (nbTrainingPatients === 0 || !outcomes || outcomes.length === 0) {
-      return { trainingPatients: null, testPatients: null };
-    }
-
-    let filteredOutcomes = outcomes.filter((o) =>
-      dataPoints.includes(o.patient_id)
-    );
-
-    // Stratify selection of patients (by Outcome for Classification, Event for Survival)
-    let groupByCriteria =
-      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
-        ? 'label_content.Outcome'
-        : 'label_content.Event';
-
-    trainingPatients = _(filteredOutcomes)
-      .groupBy(groupByCriteria)
-      .map((v) =>
-        _.sampleSize(
-          v,
-          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
-        )
-      )
-      .flatten()
-      .map((v) => v.patient_id)
-      .value();
-
-    let nbMaxTrainingPatients = Math.min(nbTrainingPatients, dataPoints.length);
-
-    // Fill up with another patient if split does not produce exact number of requested patients
-    if (trainingPatients.length < nbMaxTrainingPatients) {
-      trainingPatients.push(
-        _.sample(_.difference(dataPoints, trainingPatients))
-      );
-    }
-
-    let testPatients = _.difference(dataPoints, trainingPatients);
-
-    return { trainingPatients, testPatients };
-  }, [dataPoints, outcomes, nbTrainingPatients, selectedLabelCategory]);*/
 
   // Loading / Saving state
   const [isLoading, setIsLoading] = useState(false);
@@ -273,9 +230,6 @@ function Features({ history }) {
 
     if (!selectedLabelCategory) return allPatients;
 
-    if (currentCollection && patients)
-      return [...patients.training, ...patients.test];
-
     // Remove unlabelled patients from the data points
     if (unlabelledPatients && unlabelledPatients.length > 0) {
       return allPatients.filter(
@@ -284,14 +238,7 @@ function Features({ history }) {
     }
 
     return allPatients;
-  }, [
-    allPatients,
-    selectedLabelCategory,
-    patients,
-    featuresTabular,
-    currentCollection,
-    unlabelledPatients,
-  ]);
+  }, [allPatients, selectedLabelCategory, featuresTabular, unlabelledPatients]);
 
   // Get outcomes based on the current label category & filter by data points
   let outcomes = useMemo(() => {
@@ -303,6 +250,50 @@ function Features({ history }) {
 
     return null;
   }, [selectedLabelCategory, dataPoints]);
+
+  // Compute patients (stratified)
+  const computePatients = useCallback(() => {
+    let trainingPatients;
+
+    if (nbTrainingPatients === 0 || !outcomes || outcomes.length === 0) {
+      return { training: null, test: null };
+    }
+
+    let filteredOutcomes = outcomes.filter((o) =>
+      dataPoints.includes(o.patient_id)
+    );
+
+    // Stratify selection of patients (by Outcome for Classification, Event for Survival)
+    let groupByCriteria =
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? 'label_content.Outcome'
+        : 'label_content.Event';
+
+    trainingPatients = _(filteredOutcomes)
+      .groupBy(groupByCriteria)
+      .map((v) =>
+        _.sampleSize(
+          v,
+          Math.floor(v.length * (nbTrainingPatients / dataPoints.length))
+        )
+      )
+      .flatten()
+      .map((v) => v.patient_id)
+      .value();
+
+    let nbMaxTrainingPatients = Math.min(nbTrainingPatients, dataPoints.length);
+
+    // Fill up with another patient if split does not produce exact number of requested patients
+    if (trainingPatients.length < nbMaxTrainingPatients) {
+      trainingPatients.push(
+        _.sample(_.difference(dataPoints, trainingPatients))
+      );
+    }
+
+    let testPatients = _.difference(dataPoints, trainingPatients);
+
+    return { training: trainingPatients, test: testPatients };
+  }, [dataPoints, nbTrainingPatients, outcomes, selectedLabelCategory]);
 
   // Get album
   useEffect(() => {
@@ -571,6 +562,7 @@ function Features({ history }) {
       setNbTrainingPatients(
         Math.round(dataPoints.length * DATA_SPLITTING_DEFAULT_TRAINING_SPLIT)
       );
+      setPatients({ training: null, test: null });
     } else {
       setPatients({ training: trainingPatients, test: testPatients });
       setNbTrainingPatients(trainingPatients.length);
@@ -1107,6 +1099,7 @@ function Features({ history }) {
                         nbTrainingPatients={nbTrainingPatients}
                         setNbTrainingPatients={setNbTrainingPatients}
                         patients={patients}
+                        computePatients={computePatients}
                         transferPatients={transferPatients}
                         dataPoints={dataPoints}
                         selectedLabelCategory={selectedLabelCategory}

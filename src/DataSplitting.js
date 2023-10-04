@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
 import {
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
   DATA_SPLITTING_TYPES,
-  MODEL_TYPES,
   PATIENT_FIELDS,
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
@@ -20,6 +19,7 @@ export default function DataSplitting({
   updateTrainTestSplitType,
   nbTrainingPatients,
   setNbTrainingPatients,
+  computePatients,
   dataPoints,
   selectedLabelCategory,
   outcomes,
@@ -45,15 +45,16 @@ export default function DataSplitting({
   const [selectedTestPatients, setSelectedTestPatients] = useState([]);
 
   const savePatients = useCallback(async () => {
-    console.log('Saving Patients', patients);
+    const computedPatients = computePatients();
+    console.log('Saving Patients', computedPatients);
     await updateExtractionOrCollection({
-      [PATIENT_FIELDS.TRAINING]: patients.training,
-      [PATIENT_FIELDS.TEST]: patients.test,
+      [PATIENT_FIELDS.TRAINING]: computedPatients.training,
+      [PATIENT_FIELDS.TEST]: computedPatients.test,
     });
-  }, [patients, updateExtractionOrCollection]);
+  }, [updateExtractionOrCollection, computePatients]);
 
   const resetPatients = useCallback(async () => {
-    console.log('Resetting Patients', dataPoints);
+    console.log('Resetting Patients');
     await updateExtractionOrCollection({
       [PATIENT_FIELDS.TRAINING]: null,
       [PATIENT_FIELDS.TEST]: null,
@@ -66,16 +67,16 @@ export default function DataSplitting({
   // Initialize training & test patients as required
   useEffect(() => {
     async function initPatients() {
-      if (selectedLabelCategory !== null && patients === null) {
-        console.log('Initializing patients', patients);
-        await savePatients();
+      if (selectedLabelCategory !== null && patients !== null) {
+        if (patients.training === null) {
+          console.log('Initializing patients');
+          await savePatients();
+        }
       }
     }
 
     async function reinitPatients() {
-      if (patients !== null) {
-        await resetPatients();
-      }
+      if (patients && patients.training !== null) await resetPatients();
     }
 
     if (dataSplittingType !== DATA_SPLITTING_TYPES.FULL_DATASET) {
