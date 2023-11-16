@@ -501,11 +501,11 @@ export default function Train({
         </ListGroupItem>
         <ListGroupItem>
           <a
-            href="https://en.wikipedia.org/wiki/Norm_(mathematics)#p-norm"
+            href="https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min-max_normalization)"
             target="_blank"
             rel="noopener noreferrer"
           >
-            L2 Normalization
+            Min-Max Scaling
           </a>
         </ListGroupItem>
       </ListGroup>
