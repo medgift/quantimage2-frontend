@@ -9,7 +9,6 @@ import { formatMetric } from '../utils/feature-utils';
 import { saveAs } from 'file-saver';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
-import fileDownload from 'js-file-download';
 
 import './ModelsTable.css';
 
@@ -52,7 +51,7 @@ export default function ModelsTable({
       modelID
     );
 
-    fileDownload(content, filename);
+    saveAs(content, filename);
   };
 
   const formatMetrics = (metrics, mode) => {
