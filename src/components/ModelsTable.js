@@ -419,18 +419,20 @@ export default function ModelsTable({
                             <div className="ml-5">
                               <strong>
                                 Model Metrics (Test - Bootstrap){' '}
-                                <Button
-                                  size="sm"
-                                  color="link"
-                                  onClick={() =>
-                                    handleDownloadTestMetricsValues(
-                                      row.original.id
-                                    )
-                                  }
-                                >
-                                  <FontAwesomeIcon icon="download" /> Download
-                                  metrics values
-                                </Button>
+                                {row.original.test_metrics_values !== null && (
+                                  <Button
+                                    size="sm"
+                                    color="link"
+                                    onClick={() =>
+                                      handleDownloadTestMetricsValues(
+                                        row.original.id
+                                      )
+                                    }
+                                  >
+                                    <FontAwesomeIcon icon="download" /> Download
+                                    metrics values
+                                  </Button>
+                                )}
                               </strong>
                               {formatMetrics(row.original.test_metrics, 'test')}
                             </div>
