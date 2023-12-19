@@ -45,7 +45,7 @@ export default function ModelsTable({
   };
 
   // Handle download test metrics values
-  const handleDownloadTestMetricsValues = async (modelID) => {
+  const handleDownloadTestBootstrapValues = async (modelID) => {
     let { filename, content } = await Backend.downloadTestMetricsValues(
       keycloak.token,
       modelID
@@ -424,7 +424,7 @@ export default function ModelsTable({
                                     size="sm"
                                     color="link"
                                     onClick={() =>
-                                      handleDownloadTestMetricsValues(
+                                      handleDownloadTestBootstrapValues(
                                         row.original.id
                                       )
                                     }
