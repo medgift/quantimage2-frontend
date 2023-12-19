@@ -295,7 +295,7 @@ class Backend {
   }
 
   async downloadTestMetricsValues(token, modelID) {
-    let url = `${endpoints.models}/${modelID}/download-test-metrics-values`;
+    let url = `${endpoints.models}/${modelID}/download-test-bootstrap-values`;
 
     return downloadFile(url, token);
   }
