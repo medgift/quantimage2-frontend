@@ -419,7 +419,7 @@ export default function ModelsTable({
                             <div className="ml-5">
                               <strong>
                                 Model Metrics (Test - Bootstrap){' '}
-                                {row.original.test_metrics_values !== null && (
+                                {row.original.test_bootstrap_values && (
                                   <Button
                                     size="sm"
                                     color="link"
