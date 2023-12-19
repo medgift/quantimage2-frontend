@@ -300,7 +300,7 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
 
     let headerFields = firstLine.split(separator);
 
-    if (headerFields[0] != 'PatientID') {
+    if (headerFields[0] !== 'PatientID') {
       error = `Expected the first column to be PatientID - got ${headerFields[0]}`;
       return [false, error];
     }

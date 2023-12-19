@@ -7,6 +7,8 @@ import MyModal from './MyModal';
 import ListValues from './ListValues';
 import { formatMetric } from '../utils/feature-utils';
 import { saveAs } from 'file-saver';
+import Backend from '../services/backend';
+import { useKeycloak } from '@react-keycloak/web';
 
 import './ModelsTable.css';
 
@@ -21,6 +23,8 @@ export default function ModelsTable({
 
   let [patientIDs, setPatientIDs] = useState(null);
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
+
+  const { keycloak } = useKeycloak();
 
   const toggleFeatureNames = () => {
     setFeatureNamesOpen((open) => !open);
@@ -38,6 +42,16 @@ export default function ModelsTable({
   const handleShowPatientIDs = (ids) => {
     setPatientIDs(ids);
     togglePatientIDs();
+  };
+
+  // Handle download test metrics values
+  const handleDownloadTestBootstrapValues = async (modelID) => {
+    let { filename, content } = await Backend.downloadTestMetricsValues(
+      keycloak.token,
+      modelID
+    );
+
+    saveAs(content, filename);
   };
 
   const formatMetrics = (metrics, mode) => {
@@ -403,7 +417,23 @@ export default function ModelsTable({
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
                             <div className="ml-5">
-                              <strong>Model Metrics (Test - Bootstrap)</strong>
+                              <strong>
+                                Model Metrics (Test - Bootstrap){' '}
+                                {row.original.test_bootstrap_values && (
+                                  <Button
+                                    size="sm"
+                                    color="link"
+                                    onClick={() =>
+                                      handleDownloadTestBootstrapValues(
+                                        row.original.id
+                                      )
+                                    }
+                                  >
+                                    <FontAwesomeIcon icon="download" /> Download
+                                    bootstrap
+                                  </Button>
+                                )}
+                              </strong>
                               {formatMetrics(row.original.test_metrics, 'test')}
                             </div>
                           )}
