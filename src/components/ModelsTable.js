@@ -430,7 +430,7 @@ export default function ModelsTable({
                                     }
                                   >
                                     <FontAwesomeIcon icon="download" /> Download
-                                    metrics values
+                                    bootstrap
                                   </Button>
                                 )}
                               </strong>
