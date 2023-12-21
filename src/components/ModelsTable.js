@@ -429,8 +429,8 @@ export default function ModelsTable({
                                       )
                                     }
                                   >
-                                    <FontAwesomeIcon icon="download" /> Download
-                                    bootstrap
+                                    <FontAwesomeIcon icon="download" />{' '}
+                                    <span>Download bootstrap</span>
                                   </Button>
                                 )}
                               </strong>
