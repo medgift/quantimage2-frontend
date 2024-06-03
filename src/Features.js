@@ -746,8 +746,6 @@ function Features({ history }) {
 
   // Update fields in collection or extraction
   const updateExtractionOrCollection = async (fields) => {
-    console.log("fields");
-    console.log(fields);
     if (collectionID && currentCollection) {
       let updatedCollection = await Backend.updateCollection(
         keycloak.token,

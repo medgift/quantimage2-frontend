@@ -435,8 +435,6 @@ export default function Visualisation({
       groupedTree['Clinical Features [No visualization]'] =
         formatClinicalFeaturesTreeItems(clinicalFeaturesDefinitions);
     }
-    console.log("grouped tree");
-    console.log(groupedTree['Clinical Features [No visualization]']);
     // groupedTree["Clinical Features"] = {
     //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
     //   "Gender": {"shortName": "Gender", "id": "Gender", "description": "Gender of the patient"},
@@ -1155,8 +1153,6 @@ export default function Visualisation({
       'features'
     );
     setIsCollectionUpdating(true);
-    console.log("Selected feature ids");
-    console.log(selectedFeatureIDs);
     await updateExtractionOrCollection({
       feature_ids: [...selectedFeatureIDs],
     });
