@@ -380,12 +380,15 @@ export default function Visualisation({
   };
 
   const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
+    console.log("Listing out clinincal feature definition in formatClinicalFeaturesTree")
+    console.log(clinicalFeaturesDefinitions);
     return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
-      acc[curr] = {
-        id: curr,
-        description: curr,
-        shortName: curr,
+      acc[clinicalFeaturesDefinitions[curr]["name"]] = {
+        id: clinicalFeaturesDefinitions[curr]["name"],
+        description: clinicalFeaturesDefinitions[curr]["name"],
+        shortName: clinicalFeaturesDefinitions[curr]["name"],
       };
+
 
       return acc;
     }, {});
@@ -432,6 +435,8 @@ export default function Visualisation({
       groupedTree['Clinical Features [No visualization]'] =
         formatClinicalFeaturesTreeItems(clinicalFeaturesDefinitions);
     }
+    console.log("grouped tree");
+    console.log(groupedTree['Clinical Features [No visualization]']);
     // groupedTree["Clinical Features"] = {
     //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
     //   "Gender": {"shortName": "Gender", "id": "Gender", "description": "Gender of the patient"},
@@ -557,6 +562,9 @@ export default function Visualisation({
   // Compute selected feature IDs based on the selected leaf items
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
+    
+    console.log("selected in");
+    console.log(selected);
 
     return new Set(
       Object.keys(leafItems)
@@ -1147,6 +1155,8 @@ export default function Visualisation({
       'features'
     );
     setIsCollectionUpdating(true);
+    console.log("Selected feature ids");
+    console.log(selectedFeatureIDs);
     await updateExtractionOrCollection({
       feature_ids: [...selectedFeatureIDs],
     });

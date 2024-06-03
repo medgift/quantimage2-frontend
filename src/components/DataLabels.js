@@ -65,6 +65,8 @@ export default function DataLabels({
       [PATIENT_FIELDS.TEST]: null,
     });
 
+    console.log("pos label variable");
+    console.log(posLabel);
     await Backend.saveLabels(
       keycloak.token,
       selectedLabelCategory.id,

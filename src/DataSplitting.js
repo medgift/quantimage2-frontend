@@ -66,6 +66,7 @@ export default function DataSplitting({
 
   // Initialize training & test patients as required
   useEffect(() => {
+    console.log("Use effect loop to initialize test and training patients")
     async function initPatients() {
       if (selectedLabelCategory !== null && patients !== null) {
         if (patients.training === null) {
