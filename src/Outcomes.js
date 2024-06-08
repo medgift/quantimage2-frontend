@@ -26,7 +26,7 @@ export default function Outcomes({
   featureExtractionID,
   isSavingLabels,
   setIsSavingLabels,
-  dataPoints,
+  allPatients,
   outcomes,
   selectedLabelCategory,
   setSelectedLabelCategory,
@@ -34,6 +34,7 @@ export default function Outcomes({
   setLabelCategories,
   setFeaturesChart,
   updateExtractionOrCollection,
+  setAllPatients,
 }) {
   const { keycloak } = useKeycloak();
 
@@ -225,7 +226,7 @@ export default function Outcomes({
         <>
           <DataLabels
             albumID={albumID}
-            dataPoints={dataPoints}
+            allPatients={allPatients}
             isSavingLabels={isSavingLabels}
             setIsSavingLabels={setIsSavingLabels}
             selectedLabelCategory={selectedLabelCategory}
@@ -249,6 +250,7 @@ export default function Outcomes({
               )
             }
             updateExtractionOrCollection={updateExtractionOrCollection}
+            setAllPatients={setAllPatients}
           />
         </>
       )}

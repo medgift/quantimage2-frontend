@@ -20,8 +20,9 @@ export default function DataLabels({
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  dataPoints,
+  allPatients,
   updateExtractionOrCollection,
+  setAllPatients,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -101,14 +102,22 @@ export default function DataLabels({
         outcomesToUpdate[patientID] = labels[patientID];
       }
     }
+    let allPatientsToUpdate = allPatients;
+    allPatientsToUpdate.push("My test patient");
+    console.log(allPatients);
+    console.log(allPatientsToUpdate);
+    setAllPatients(allPatientsToUpdate);
 
+    console.log(allPatients);
+    console.log(allPatientsToUpdate);
+    
     setEditableOutcomes(outcomesToUpdate);
   };
 
   const handleFileInputChange = async () => {
     let [isValid, message, labels] = await validateLabelFile(
       fileInput.current.files[0],
-      dataPoints
+      allPatients
     );
 
     if (isValid) {
@@ -148,7 +157,7 @@ export default function DataLabels({
     let formattedOutcomes = {};
 
     for (let dataPoint of [
-      ...dataPoints.sort((p1, p2) =>
+      ...allPatients.sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
       ),
     ]) {
@@ -174,7 +183,7 @@ export default function DataLabels({
     }
 
     setEditableOutcomes(formattedOutcomes);
-  }, [selectedLabelCategory, dataPoints, outcomeColumns]);
+  }, [selectedLabelCategory, allPatients, outcomeColumns]);
 
   // Reset positive label on category change
   useEffect(() => {
@@ -214,7 +223,7 @@ export default function DataLabels({
             </tr>
           </thead>
           <tbody className="data-points">
-            {dataPoints.map((dataPoint) => (
+            {allPatients.map((dataPoint) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {outcomeColumns.map((outcomeColumn) => (

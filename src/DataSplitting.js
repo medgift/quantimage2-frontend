@@ -92,6 +92,13 @@ export default function DataSplitting({
     selectedLabelCategory,
   ]);
 
+  
+  console.log("patients in data split");
+  console.log(patients);
+
+  console.log("data points in data split");
+  console.log(dataPoints);
+
   // Update patients when outcomes change
   useEffect(() => {
     async function updatePatients() {

@@ -104,6 +104,12 @@ function Features({ history }) {
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
 
+  // Patient IDs
+  let [allPatients, setAllPatients] = useState([]);
+
+  // dataPoints
+  let [dataPoints, setDataPoints] = useState([])
+
   const formattedClinicalFeaturesDefinitions = useMemo(() => {
     if (
       !clinicalFeaturesDefinitions ||
@@ -183,12 +189,13 @@ function Features({ history }) {
 
     return filteredFeatures;
   }, [currentCollection, featuresTabular]);
-
+  
   // Get all patient IDs from the features
-  let allPatients = useMemo(() => {
+  useMemo(() => {
     if (!featuresTabular) return null;
 
-    return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
+    setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
+
   }, [featuresTabular]);
 
   // Compute unlabelled patients
@@ -225,19 +232,30 @@ function Features({ history }) {
   }, [selectedLabelCategory, allPatients]);
 
   // Compute data points based on features
-  let dataPoints = useMemo(() => {
-    if (!featuresTabular) return null;
-
-    if (!selectedLabelCategory) return allPatients;
-
-    // Remove unlabelled patients from the data points
-    if (unlabelledPatients && unlabelledPatients.length > 0) {
-      return allPatients.filter(
-        (patientID) => !unlabelledPatients.includes(patientID)
-      );
+  useEffect(() => {
+    async function updateDataPoints() {
+      console.log("allPatients");
+      console.log(allPatients);
+  
+      let filteredDataPoints = [];
+  
+      if (!featuresTabular) return null;
+  
+      if (!selectedLabelCategory) return allPatients;
+  
+      // Remove unlabelled patients from the data points
+      // if (unlabelledPatients && unlabelledPatients.length > 0) {
+      //   filteredDataPoints = allPatients.filter(
+      //     (patientID) => !unlabelledPatients.includes(patientID)
+      //   );
+      // } else {
+        filteredDataPoints = allPatients;
+      // }
+  
+      setDataPoints(filteredDataPoints);
     }
+    updateDataPoints()
 
-    return allPatients;
   }, [allPatients, selectedLabelCategory, featuresTabular, unlabelledPatients]);
 
   // Get outcomes based on the current label category & filter by data points
@@ -1067,7 +1085,7 @@ function Features({ history }) {
                         featureExtractionID={featureExtractionID}
                         isSavingLabels={isSavingLabels}
                         setIsSavingLabels={setIsSavingLabels}
-                        dataPoints={allPatients}
+                        allPatients={allPatients}
                         outcomes={outcomes}
                         selectedLabelCategory={selectedLabelCategory}
                         setSelectedLabelCategory={setSelectedLabelCategory}
@@ -1078,6 +1096,7 @@ function Features({ history }) {
                           updateExtractionOrCollection
                         }
                         setNbTrainingPatients={setNbTrainingPatients}
+                        setAllPatients={setAllPatients}
                       />
                     </>
                   ) : (
