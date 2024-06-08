@@ -102,6 +102,7 @@ export default function DataLabels({
         outcomesToUpdate[patientID] = labels[patientID];
       }
     }
+    outcomesToUpdate["My test patient"] = { Outcome: "1" };
     let allPatientsToUpdate = allPatients;
     allPatientsToUpdate.push("My test patient");
     console.log(allPatients);
