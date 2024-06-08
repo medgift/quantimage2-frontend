@@ -8,15 +8,20 @@ import './DataLabels.css';
 import {
   OUTCOME_CLASSIFICATION,
   PATIENT_FIELDS,
+  MODEL_TYPES,
+  CLASSIFICATION_OUTCOMES,
+  SURVIVAL_OUTCOMES,
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
+
+import { validateLabelFile } from '../utils/feature-utils.js';
+
 
 export default function DataLabels({
   albumID,
   selectedLabelCategory,
   setSelectedLabelCategory,
   outcomeColumns,
-  validateLabelFile,
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
@@ -98,9 +103,7 @@ export default function DataLabels({
     let outcomesToUpdate = { ...editableOutcomes };
 
     for (let patientID in labels) {
-      if (patientID in editableOutcomes) {
         outcomesToUpdate[patientID] = labels[patientID];
-      }
     }
     outcomesToUpdate["My test patient"] = { Outcome: "1" };
     let allPatientsToUpdate = allPatients;
@@ -118,9 +121,13 @@ export default function DataLabels({
   const handleFileInputChange = async () => {
     let [isValid, message, labels] = await validateLabelFile(
       fileInput.current.files[0],
-      allPatients
+      allPatients,
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES,
+      dropNonMatchingOutomcesCheckBox,
     );
-
+    
     if (isValid) {
       updateEditableOutcomes(labels);
     }
@@ -202,15 +209,43 @@ export default function DataLabels({
       setPosLabel(classes[0]);
   }, [posLabel, classes]);
 
+  // Popouate editable outcomes with current data points
+  useEffect(() => {
+    let outcomesToUpdate = { ...editableOutcomes };
+
+    for (const patientID of dataPoints) {
+        outcomesToUpdate[patientID] = "";
+    }
+
+    setEditableOutcomes(outcomesToUpdate);
+
+    }, []);
+
+  const [dropNonMatchingOutomcesCheckBox, setdropNonMatchingOutomcesCheckBox] = useState(true);
+
+  const handleCheckboxChange = (event) => {
+    setdropNonMatchingOutomcesCheckBox(event.target.checked);
+  };
+
   return (
     <>
-      <p>
+      <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Button color="primary" onClick={toggleManualLabelling}>
           Manual labelling
-        </Button>{' '}
+        </Button>
+        <span style={{ margin: '0 10px' }}>{'\u00A0'}</span>
         <Button color="success" onClick={toggleAutoLabelling}>
           Import Labels
         </Button>
+        <span style={{ margin: '0 10px' }}>{'\u00A0'}</span>
+        <label>
+          <input
+            type="checkbox"
+            checked={dropNonMatchingOutomcesCheckBox}
+            onChange={handleCheckboxChange}
+          />
+          Drop outcomes without imaging features
+        </label>
       </p>
       <Collapse isOpen={isManualLabellingOpen}>
         <Table className="narrow-table table-fixed">
@@ -224,7 +259,7 @@ export default function DataLabels({
             </tr>
           </thead>
           <tbody className="data-points">
-            {allPatients.map((dataPoint) => (
+            {Object.entries(editableOutcomes).map(([dataPoint, ouctomValue]) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {outcomeColumns.map((outcomeColumn) => (
@@ -234,7 +269,7 @@ export default function DataLabels({
                       placeholder={outcomeColumn}
                       value={
                         editableOutcomes[dataPoint] &&
-                        editableOutcomes[dataPoint][outcomeColumn]
+                          editableOutcomes[dataPoint][outcomeColumn]
                           ? editableOutcomes[dataPoint][outcomeColumn]
                           : ''
                       }

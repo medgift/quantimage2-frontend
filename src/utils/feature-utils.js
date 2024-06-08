@@ -268,8 +268,7 @@ export function validateFileType(file) {
   return true;
 }
 
-export async function validateLabelFile(file, dataPoints, headerFieldNames) {
-  console.log(file);
+export async function validateLabelFile(file, dataPoints, headerFieldNames, dropNonMatchingOutomcesCheckBox) {
   let valid = false;
   let error = null;
 
@@ -285,6 +284,7 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
   const content = await file.text();
 
   let nbMatches = 0;
+  let totalCount = 0;
   let labels = {};
 
   try {
@@ -318,14 +318,28 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames) {
       skip_empty_lines: true,
     });
 
+    if (!dropNonMatchingOutomcesCheckBox){
+      for (let record of records) {
+        const { PatientID, ...recordContent } = record;
+        labels[PatientID] = recordContent;
+        totalCount++;
+      }
+      
+      return [
+        true,
+        `The CSV had ${totalCount} patients.`,
+        labels,
+      ];
+      
+    }
+
     for (let patientID of dataPoints) {
       let matchingRecord = records.find(
         (record) => record.PatientID === patientID
       );
-
       if (matchingRecord) {
         nbMatches++;
-
+ 
         // Fill labelCategories
         const { PatientID, ...recordContent } = matchingRecord;
         labels[PatientID] = recordContent;
