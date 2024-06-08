@@ -324,13 +324,6 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames, drop
         labels[PatientID] = recordContent;
         totalCount++;
       }
-      
-      return [
-        true,
-        `The CSV had ${totalCount} patients.`,
-        labels,
-      ];
-      
     }
 
     for (let patientID of dataPoints) {
@@ -343,6 +336,8 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames, drop
         // Fill labelCategories
         const { PatientID, ...recordContent } = matchingRecord;
         labels[PatientID] = recordContent;
+      } else {
+        labels[patientID] = { Outcome: "" };
       }
     }
 
@@ -360,7 +355,7 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames, drop
 
   return [
     valid,
-    `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
+    `The CSV matched ${nbMatches}/${dataPoints.length} patients and The CSV had ${totalCount} patients.`,
     labels,
   ];
 }

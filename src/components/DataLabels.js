@@ -101,19 +101,28 @@ export default function DataLabels({
 
   const updateEditableOutcomes = (labels) => {
     let outcomesToUpdate = { ...editableOutcomes };
+    let allPatientsToUpdate = allPatients; 
+
+    console.log("allPatient");
+    console.log(allPatients);
+
+
+    console.log("allPatientsToUpdate");
+    console.log(allPatientsToUpdate);
 
     for (let patientID in labels) {
         outcomesToUpdate[patientID] = labels[patientID];
+        if (!allPatientsToUpdate.includes(patientID)){
+          allPatientsToUpdate.push(patientID);
+        }
     }
-    outcomesToUpdate["My test patient"] = { Outcome: "1" };
-    let allPatientsToUpdate = allPatients;
-    allPatientsToUpdate.push("My test patient");
+    // outcomesToUpdate["My test patient"] = { Outcome: "1" };
+
+    // allPatientsToUpdate.push("My test patient");
+    console.log("allPatients and all patients to update");
     console.log(allPatients);
     console.log(allPatientsToUpdate);
     setAllPatients(allPatientsToUpdate);
-
-    console.log(allPatients);
-    console.log(allPatientsToUpdate);
     
     setEditableOutcomes(outcomesToUpdate);
   };
@@ -213,13 +222,13 @@ export default function DataLabels({
   useEffect(() => {
     let outcomesToUpdate = { ...editableOutcomes };
 
-    for (const patientID of dataPoints) {
+    for (const patientID of allPatients) {
         outcomesToUpdate[patientID] = "";
     }
 
     setEditableOutcomes(outcomesToUpdate);
 
-    }, []);
+    }, [allPatients]);
 
   const [dropNonMatchingOutomcesCheckBox, setdropNonMatchingOutomcesCheckBox] = useState(true);
 
