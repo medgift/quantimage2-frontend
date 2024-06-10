@@ -336,8 +336,6 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames, drop
         // Fill labelCategories
         const { PatientID, ...recordContent } = matchingRecord;
         labels[PatientID] = recordContent;
-      } else {
-        labels[patientID] = { Outcome: "" };
       }
     }
 

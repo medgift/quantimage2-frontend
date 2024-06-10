@@ -57,6 +57,9 @@ export default function DataLabels({
     
     console.log("editableOutcomes");
     console.log(editableOutcomes);
+
+    console.log("patientID");
+    console.log(patientID);
     
     let outcomeToUpdate = updatedOutcomes[patientID];
     outcomeToUpdate[outcomeColumn] = e.target.value;
