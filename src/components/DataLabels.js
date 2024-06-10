@@ -231,7 +231,7 @@ export default function DataLabels({
     let outcomesToUpdate = { ...editableOutcomes };
 
     for (const patientID of allPatients) {
-        outcomesToUpdate[patientID] = "";
+        outcomesToUpdate[patientID] = {};
     }
 
     setEditableOutcomes(outcomesToUpdate);
