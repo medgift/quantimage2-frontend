@@ -54,7 +54,10 @@ export default function DataLabels({
 
   const handleOutcomeInputChange = (e, patientID, outcomeColumn) => {
     let updatedOutcomes = { ...editableOutcomes };
-
+    
+    console.log("editableOutcomes");
+    console.log(editableOutcomes);
+    
     let outcomeToUpdate = updatedOutcomes[patientID];
     outcomeToUpdate[outcomeColumn] = e.target.value;
 
@@ -100,6 +103,8 @@ export default function DataLabels({
   };
 
   const updateEditableOutcomes = (labels) => {
+    console.log("editableOutcomes");
+    console.log(editableOutcomes);
     let outcomesToUpdate = { ...editableOutcomes };
     let allPatientsToUpdate = allPatients; 
 
