@@ -591,6 +591,7 @@ function Features({ history }) {
     currentCollection,
     collections,
     dataPoints,
+    allPatients,
   ]);
 
   // Handle download features click
