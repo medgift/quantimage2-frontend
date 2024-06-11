@@ -190,11 +190,26 @@ function Features({ history }) {
     return filteredFeatures;
   }, [currentCollection, featuresTabular]);
   
-  // Get all patient IDs from the features
+  // Get all patient IDs from the clinical features. if clinical features were added 
+  // that have no imaging they will not be loaded from kyeops
   useMemo(() => {
-    if (!featuresTabular) return null;
+    async function GetPatientsFromBackend() {
+      // Getting the patients ids from the backend as well
 
-    setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
+      if (!featuresTabular) return null;
+      
+      if (selectedLabelCategory){
+        let patients = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
+        console.log("patients loaded from the backend and the category id selected");
+  
+        console.log(patients);
+        console.log(selectedLabelCategory);
+      }
+
+      setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
+    }
+
+    GetPatientsFromBackend();
 
   }, [featuresTabular]);
 
