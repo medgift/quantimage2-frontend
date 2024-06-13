@@ -339,7 +339,7 @@ export async function validateLabelFile(file, dataPoints, headerFieldNames, drop
       }
     }
 
-    if (nbMatches === 0) {
+    if ((nbMatches === 0) & dropNonMatchingOutomcesCheckBox) {
       error = `The CSV file matched none of the patients!`;
       return [valid, error, {}];
     }

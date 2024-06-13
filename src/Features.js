@@ -198,7 +198,7 @@ function Features({ history }) {
 
       if (!featuresTabular) return null;
       
-      if (selectedLabelCategory){
+      if (typeof selectedLabelCategory != "undefined"){
         let patients = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
         console.log("patients loaded from the backend and the category id selected");
   
@@ -209,9 +209,12 @@ function Features({ history }) {
       setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
     }
 
+    console.log("before function GetPatientsFromBackend");
+    console.log("selectedLabelCategory");
+    console.log(selectedLabelCategory);
     GetPatientsFromBackend();
 
-  }, [featuresTabular]);
+  }, [featuresTabular, selectedLabelCategory]);
 
   // Compute unlabelled patients
   const unlabelledPatients = useMemo(() => {
@@ -394,6 +397,9 @@ function Features({ history }) {
         keycloak.token,
         albumID
       );
+
+      console.log(currentOutcome);
+      console.log("currentOutcome");
 
       if (currentOutcome) setSelectedLabelCategory(currentOutcome);
     }
