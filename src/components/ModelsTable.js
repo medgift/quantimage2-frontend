@@ -54,6 +54,16 @@ export default function ModelsTable({
     saveAs(content, filename);
   };
 
+  // Handle download test scores values
+  const handleDownloadTestScoresValues = async (modelID) => {
+    let { filename, content } = await Backend.downloadTestScoresValues(
+      keycloak.token,
+      modelID
+    );
+
+    saveAs(content, filename);
+  };
+
   const formatMetrics = (metrics, mode) => {
     let sortedMetrics = Object.fromEntries(
       Object.entries(metrics).sort(([k1, v1], [k2, v2]) => v1.order - v2.order)
@@ -416,26 +426,54 @@ export default function ModelsTable({
                           </div>
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                            <div className="ml-5">
-                              <strong>
-                                Model Metrics (Test - Bootstrap){' '}
-                                {row.original.test_bootstrap_values && (
-                                  <Button
-                                    size="sm"
-                                    color="link"
-                                    onClick={() =>
-                                      handleDownloadTestBootstrapValues(
-                                        row.original.id
-                                      )
-                                    }
-                                  >
-                                    <FontAwesomeIcon icon="download" />{' '}
-                                    <span>Download bootstrap</span>
-                                  </Button>
+                            <>
+                              <div className="ml-5">
+                                <strong>
+                                  Model Metrics (Test - Bootstrap){' '}
+                                  {row.original.test_bootstrap_values && (
+                                    <Button
+                                      size="sm"
+                                      color="link"
+                                      onClick={() =>
+                                        handleDownloadTestBootstrapValues(
+                                          row.original.id
+                                        )
+                                      }
+                                    >
+                                      <FontAwesomeIcon icon="download" />{' '}
+                                      <span>Download bootstrap</span>
+                                    </Button>
+                                  )}
+                                </strong>
+                                {formatMetrics(
+                                  row.original.test_metrics,
+                                  'test'
                                 )}
-                              </strong>
-                              {formatMetrics(row.original.test_metrics, 'test')}
-                            </div>
+                              </div>
+                              <div className="ml-5">
+                                <strong>
+                                  Model Metrics (Test - Scores){' '}
+                                  {row.original.test_scores_values && (
+                                    <Button
+                                      size="sm"
+                                      color="link"
+                                      onClick={() =>
+                                        handleDownloadTestScoresValues(
+                                          row.original.id
+                                        )
+                                      }
+                                    >
+                                      <FontAwesomeIcon icon="download" />{' '}
+                                      <span>Download scores</span>
+                                    </Button>
+                                  )}
+                                </strong>
+                                {formatMetrics(
+                                  row.original.test_metrics,
+                                  'test'
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
                         <br />
