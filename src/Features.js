@@ -198,7 +198,11 @@ function Features({ history }) {
 
       if (!featuresTabular) return null;
       
-      if (typeof selectedLabelCategory != "undefined"){
+      if (selectedLabelCategory != null){
+        console.log("selectedLabelCategory");
+        console.log(selectedLabelCategory);
+        console.log("typeof selectedLabelCategory");
+        console.log(typeof selectedLabelCategory);
         let patients = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
         console.log("patients loaded from the backend and the category id selected");
   
@@ -206,6 +210,8 @@ function Features({ history }) {
         console.log(selectedLabelCategory);
       }
 
+      console.log("setting all patients in features tabular effect");
+      console.log(featuresTabular.map((f) => f.PatientID));
       setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
     }
 
