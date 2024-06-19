@@ -232,17 +232,6 @@ export default function DataLabels({
       setPosLabel(classes[0]);
   }, [posLabel, classes]);
 
-  // Popouate editable outcomes with current data points
-  useEffect(() => {
-    let outcomesToUpdate = { ...editableOutcomes };
-
-    for (const patientID of allPatients) {
-        outcomesToUpdate[patientID] = {};
-    }
-
-    setEditableOutcomes(outcomesToUpdate);
-
-    }, [allPatients]);
 
   const [dropNonMatchingOutomcesCheckBox, setdropNonMatchingOutomcesCheckBox] = useState(true);
 
