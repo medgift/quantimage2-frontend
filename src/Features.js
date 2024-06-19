@@ -195,24 +195,43 @@ function Features({ history }) {
   useMemo(() => {
     async function GetPatientsFromBackend() {
       // Getting the patients ids from the backend as well
+      console.log("in function get patients from backend ------------- ---------------");
+      console.log(selectedLabelCategory);
+
+      console.log("featuresTabular");
+      console.log(featuresTabular);
 
       if (!featuresTabular) return null;
+
+      let patientsLoadedFromBackend = null;
       
       if (selectedLabelCategory != null){
         console.log("selectedLabelCategory");
         console.log(selectedLabelCategory);
         console.log("typeof selectedLabelCategory");
         console.log(typeof selectedLabelCategory);
-        let patients = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
+        patientsLoadedFromBackend = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
         console.log("patients loaded from the backend and the category id selected");
   
         console.log(patients);
         console.log(selectedLabelCategory);
       }
 
-      console.log("setting all patients in features tabular effect");
-      console.log(featuresTabular.map((f) => f.PatientID));
-      setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
+      console.log("patients afteer having loaded patient ifs from the backend");
+      console.log(patients);
+
+      if (patients != null) {
+        console.log("patients in the patient combination branch");
+        console.log(patientsLoadedFromBackend);
+        const patientIDsFromTabular = featuresTabular.map((f) => f.PatientID);
+        const combinedPatients = new Set([...patientIDsFromTabular, ...patientsLoadedFromBackend]);
+
+        console.log("combinedPatients");
+        console.log(combinedPatients);
+        setAllPatients(Array.from(combinedPatients));
+      } else {
+        setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
+      }
     }
 
     console.log("before function GetPatientsFromBackend");

@@ -190,8 +190,12 @@ export default function DataLabels({
         (l) => l.patient_id === dataPoint
       );
 
-      if (existingLabel)
+      if (existingLabel){
+        console.log("existing label");
+        console.log(existingLabel.label_content);
+        console.log(dataPoint);
         formattedOutcomes[dataPoint] = existingLabel.label_content;
+      }
       else
         formattedOutcomes[dataPoint] = Object.assign(
           {},
@@ -199,6 +203,8 @@ export default function DataLabels({
           ...outcomeColumns.map((o) => '')
         );
 
+      console.log("formattedOutcomes");
+      console.log(formattedOutcomes);
       setEditableOutcomes(formattedOutcomes);
       // return selectedLabelCategory.labels.reduce((acc, curr) => {
       //   acc[curr.patient_id] = curr.label_content;
@@ -276,7 +282,7 @@ export default function DataLabels({
             </tr>
           </thead>
           <tbody className="data-points">
-            {Object.entries(editableOutcomes).map(([dataPoint, ouctomValue]) => (
+            {Object.entries(editableOutcomes).map(([dataPoint, ouctomeValue]) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {outcomeColumns.map((outcomeColumn) => (
