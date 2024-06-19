@@ -310,6 +310,12 @@ class Backend {
     return downloadFile(url, token);
   }
 
+  async downloadTestScoresValues(token, modelID) {
+    let url = `${endpoints.models}/${modelID}/download-test-scores-values`;
+
+    return downloadFile(url, token);
+  }
+
   async downloadConfiguration(token, extractionID) {
     let url = `${endpoints.extractions}/${extractionID}/download-configuration`;
 
