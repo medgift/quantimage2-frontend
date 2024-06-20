@@ -381,7 +381,7 @@ export default function ModelsTable({
                                 <td>Validation Type</td>
                                 <td>
                                   {row.original.data_splitting_type ===
-                                  DATA_SPLITTING_TYPES.FULL_DATASET
+                                    DATA_SPLITTING_TYPES.FULL_DATASET
                                     ? 'Cross-validation on Full Dataset'
                                     : 'Training/Test Split'}
                                 </td>
@@ -401,15 +401,15 @@ export default function ModelsTable({
                               </tr>
                               {row.original.data_splitting_type ===
                                 DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                <tr>
-                                  <td>Test Validation Strategy</td>
-                                  <td>
-                                    {row.original.test_validation
-                                      ? row.original.test_validation
-                                      : 'None'}
-                                  </td>
-                                </tr>
-                              )}
+                                  <tr>
+                                    <td>Test Validation Strategy</td>
+                                    <td>
+                                      {row.original.test_validation
+                                        ? row.original.test_validation
+                                        : 'None'}
+                                    </td>
+                                  </tr>
+                                )}
                             </tbody>
                           </Table>
                         </div>
@@ -426,55 +426,46 @@ export default function ModelsTable({
                           </div>
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                            <>
-                              <div className="ml-5">
-                                <strong>
-                                  Model Metrics (Test - Bootstrap){' '}
-                                  {row.original.test_bootstrap_values && (
-                                    <Button
-                                      size="sm"
-                                      color="link"
-                                      onClick={() =>
-                                        handleDownloadTestBootstrapValues(
-                                          row.original.id
-                                        )
-                                      }
-                                    >
-                                      <FontAwesomeIcon icon="download" />{' '}
-                                      <span>Download bootstrap</span>
-                                    </Button>
+                              <>
+                                <div className="ml-5">
+                                  <strong>
+                                    Model Metrics (Test - Bootstrap){' '}
+                                    {row.original.test_bootstrap_values && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          color="link"
+                                          onClick={() =>
+                                            handleDownloadTestBootstrapValues(
+                                              row.original.id
+                                            )
+                                          }
+                                        >
+                                          <FontAwesomeIcon icon="download" />{' '}
+                                          <span>Download bootstrap</span>
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          color="link"
+                                          onClick={() =>
+                                            handleDownloadTestScoresValues(
+                                              row.original.id
+                                            )
+                                          }
+                                        >
+                                          <FontAwesomeIcon icon="download" />{' '}
+                                          <span>Download scores</span>
+                                        </Button>
+                                      </>
+                                    )}
+                                  </strong>
+                                  {formatMetrics(
+                                    row.original.test_metrics,
+                                    'test'
                                   )}
-                                </strong>
-                                {formatMetrics(
-                                  row.original.test_metrics,
-                                  'test'
-                                )}
-                              </div>
-                              <div className="ml-5">
-                                <strong>
-                                  Model Metrics (Test - Scores){' '}
-                                  {row.original.test_scores_values && (
-                                    <Button
-                                      size="sm"
-                                      color="link"
-                                      onClick={() =>
-                                        handleDownloadTestScoresValues(
-                                          row.original.id
-                                        )
-                                      }
-                                    >
-                                      <FontAwesomeIcon icon="download" />{' '}
-                                      <span>Download scores</span>
-                                    </Button>
-                                  )}
-                                </strong>
-                                {formatMetrics(
-                                  row.original.test_metrics,
-                                  'test'
-                                )}
-                              </div>
-                            </>
-                          )}
+                                </div>
+                              </>
+                            )}
                         </div>
                         <br />
                         <p>
