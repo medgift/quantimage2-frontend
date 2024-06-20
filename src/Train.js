@@ -201,12 +201,6 @@ export default function Train({
   };
 
   const computeElementsPerClass = (patients) => {
-    console.log("patients in train");
-    console.log(patients);
-
-    console.log("dataPoints in train");
-    console.log(dataPoints);
-
     if (!outcomes) return {};
 
     let transformedLabels = transformLabelsToTabular(

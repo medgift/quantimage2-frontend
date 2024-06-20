@@ -54,13 +54,7 @@ export default function DataLabels({
 
   const handleOutcomeInputChange = (e, patientID, outcomeColumn) => {
     let updatedOutcomes = { ...editableOutcomes };
-    
-    console.log("editableOutcomes");
-    console.log(editableOutcomes);
-
-    console.log("patientID");
-    console.log(patientID);
-    
+  
     let outcomeToUpdate = updatedOutcomes[patientID];
     outcomeToUpdate[outcomeColumn] = e.target.value;
 
@@ -106,17 +100,8 @@ export default function DataLabels({
   };
 
   const updateEditableOutcomes = (labels) => {
-    console.log("editableOutcomes");
-    console.log(editableOutcomes);
     let outcomesToUpdate = { ...editableOutcomes };
     let allPatientsToUpdate = allPatients; 
-
-    console.log("allPatient");
-    console.log(allPatients);
-
-
-    console.log("allPatientsToUpdate");
-    console.log(allPatientsToUpdate);
 
     for (let patientID in labels) {
         outcomesToUpdate[patientID] = labels[patientID];
@@ -127,9 +112,6 @@ export default function DataLabels({
     // outcomesToUpdate["My test patient"] = { Outcome: "1" };
 
     // allPatientsToUpdate.push("My test patient");
-    console.log("allPatients and all patients to update");
-    console.log(allPatients);
-    console.log(allPatientsToUpdate);
     setAllPatients(allPatientsToUpdate);
     
     setEditableOutcomes(outcomesToUpdate);
@@ -191,9 +173,6 @@ export default function DataLabels({
       );
 
       if (existingLabel){
-        console.log("existing label");
-        console.log(existingLabel.label_content);
-        console.log(dataPoint);
         formattedOutcomes[dataPoint] = existingLabel.label_content;
       }
       else
@@ -203,8 +182,6 @@ export default function DataLabels({
           ...outcomeColumns.map((o) => '')
         );
 
-      console.log("formattedOutcomes");
-      console.log(formattedOutcomes);
       setEditableOutcomes(formattedOutcomes);
       // return selectedLabelCategory.labels.reduce((acc, curr) => {
       //   acc[curr.patient_id] = curr.label_content;
