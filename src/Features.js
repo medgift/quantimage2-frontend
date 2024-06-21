@@ -203,7 +203,7 @@ function Features({ history }) {
         patientsLoadedFromBackend = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
       }
 
-      if (patients != null) {
+      if (patientsLoadedFromBackend != null) {
         const patientIDsFromTabular = featuresTabular.map((f) => f.PatientID);
         const combinedPatients = new Set([...patientIDsFromTabular, ...patientsLoadedFromBackend]);
         setAllPatients(Array.from(combinedPatients));
