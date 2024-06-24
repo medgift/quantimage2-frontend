@@ -8,20 +8,26 @@ import './DataLabels.css';
 import {
   OUTCOME_CLASSIFICATION,
   PATIENT_FIELDS,
+  MODEL_TYPES,
+  CLASSIFICATION_OUTCOMES,
+  SURVIVAL_OUTCOMES,
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
+
+import { validateLabelFile } from '../utils/feature-utils.js';
+
 
 export default function DataLabels({
   albumID,
   selectedLabelCategory,
   setSelectedLabelCategory,
   outcomeColumns,
-  validateLabelFile,
   isSavingLabels,
   setIsSavingLabels,
   setLabelCategories,
-  dataPoints,
+  allPatients,
   updateExtractionOrCollection,
+  setAllPatients,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -48,7 +54,7 @@ export default function DataLabels({
 
   const handleOutcomeInputChange = (e, patientID, outcomeColumn) => {
     let updatedOutcomes = { ...editableOutcomes };
-
+  
     let outcomeToUpdate = updatedOutcomes[patientID];
     outcomeToUpdate[outcomeColumn] = e.target.value;
 
@@ -95,22 +101,32 @@ export default function DataLabels({
 
   const updateEditableOutcomes = (labels) => {
     let outcomesToUpdate = { ...editableOutcomes };
+    let allPatientsToUpdate = allPatients; 
 
     for (let patientID in labels) {
-      if (patientID in editableOutcomes) {
         outcomesToUpdate[patientID] = labels[patientID];
-      }
+        if (!allPatientsToUpdate.includes(patientID)){
+          allPatientsToUpdate.push(patientID);
+        }
     }
+    // outcomesToUpdate["My test patient"] = { Outcome: "1" };
 
+    // allPatientsToUpdate.push("My test patient");
+    setAllPatients(allPatientsToUpdate);
+    
     setEditableOutcomes(outcomesToUpdate);
   };
 
   const handleFileInputChange = async () => {
     let [isValid, message, labels] = await validateLabelFile(
       fileInput.current.files[0],
-      dataPoints
+      allPatients,
+      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+        ? CLASSIFICATION_OUTCOMES
+        : SURVIVAL_OUTCOMES,
+      dropNonMatchingOutomcesCheckBox,
     );
-
+    
     if (isValid) {
       updateEditableOutcomes(labels);
     }
@@ -148,7 +164,7 @@ export default function DataLabels({
     let formattedOutcomes = {};
 
     for (let dataPoint of [
-      ...dataPoints.sort((p1, p2) =>
+      ...allPatients.sort((p1, p2) =>
         p1.localeCompare(p2, undefined, { numeric: true })
       ),
     ]) {
@@ -156,8 +172,9 @@ export default function DataLabels({
         (l) => l.patient_id === dataPoint
       );
 
-      if (existingLabel)
+      if (existingLabel){
         formattedOutcomes[dataPoint] = existingLabel.label_content;
+      }
       else
         formattedOutcomes[dataPoint] = Object.assign(
           {},
@@ -174,7 +191,7 @@ export default function DataLabels({
     }
 
     setEditableOutcomes(formattedOutcomes);
-  }, [selectedLabelCategory, dataPoints, outcomeColumns]);
+  }, [selectedLabelCategory, allPatients, outcomeColumns]);
 
   // Reset positive label on category change
   useEffect(() => {
@@ -192,15 +209,32 @@ export default function DataLabels({
       setPosLabel(classes[0]);
   }, [posLabel, classes]);
 
+
+  const [dropNonMatchingOutomcesCheckBox, setdropNonMatchingOutomcesCheckBox] = useState(true);
+
+  const handleCheckboxChange = (event) => {
+    setdropNonMatchingOutomcesCheckBox(event.target.checked);
+  };
+
   return (
     <>
-      <p>
+      <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Button color="primary" onClick={toggleManualLabelling}>
           Manual labelling
-        </Button>{' '}
+        </Button>
+        <span style={{ margin: '0 10px' }}>{'\u00A0'}</span>
         <Button color="success" onClick={toggleAutoLabelling}>
           Import Labels
         </Button>
+        <span style={{ margin: '0 10px' }}>{'\u00A0'}</span>
+        <label>
+          <input
+            type="checkbox"
+            checked={dropNonMatchingOutomcesCheckBox}
+            onChange={handleCheckboxChange}
+          />
+          Drop outcomes without imaging features
+        </label>
       </p>
       <Collapse isOpen={isManualLabellingOpen}>
         <Table className="narrow-table table-fixed">
@@ -214,7 +248,7 @@ export default function DataLabels({
             </tr>
           </thead>
           <tbody className="data-points">
-            {dataPoints.map((dataPoint) => (
+            {Object.entries(editableOutcomes).map(([dataPoint, ouctomeValue]) => (
               <tr key={`${dataPoint}`}>
                 <td>{dataPoint}</td>
                 {outcomeColumns.map((outcomeColumn) => (
@@ -224,7 +258,7 @@ export default function DataLabels({
                       placeholder={outcomeColumn}
                       value={
                         editableOutcomes[dataPoint] &&
-                        editableOutcomes[dataPoint][outcomeColumn]
+                          editableOutcomes[dataPoint][outcomeColumn]
                           ? editableOutcomes[dataPoint][outcomeColumn]
                           : ''
                       }

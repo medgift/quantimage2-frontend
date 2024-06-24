@@ -22,6 +22,7 @@ import {
 } from './config/constants';
 import ModelsTable from './components/ModelsTable';
 import SocketContext from './context/SocketContext';
+import { ConstructionOutlined } from '@mui/icons-material';
 
 export const PATIENT_ID_FIELD = 'PatientID';
 export const ROI_FIELD = 'ROI';
