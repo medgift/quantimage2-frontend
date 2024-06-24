@@ -228,10 +228,20 @@ export default function ModelsTable({
 
   if (data.length === 0) return null;
 
+  console.log("Modes table data");
+  console.log(data);
+
   return (
     <>
       <h4 className="mt-3">
         {title}{' '}
+        <Button
+          size="sm"
+          color="link"
+          className="export-link"
+        >
+          <FontAwesomeIcon icon="file-export" /> Compare Selected Models
+        </Button>
         <Button
           size="sm"
           color="link"

@@ -1,4 +1,14 @@
 .export-link {
-  position: absolute;
-  right: 2em;
+  /* position: absolute; */
+  margin-left: auto;  /* Moves buttons to the right */
+  margin-right: auto;  /* Moves buttons to the right */
+  float: right
+}
+
+h4.mt-3 {
+  /* display: flex; */
+  margin-left: auto;  /* Moves buttons to the right */
+  margin-right: auto;  /* Moves buttons to the right */
+  align-items: center; /* Aligns buttons vertically within the h4 */
+  justify-content: space-between; /* Distributes buttons evenly */  
 }
