@@ -238,7 +238,12 @@ export default function ModelsTable({
     console.log(compareModelsValue);
     if (compareModelsValue != null) {
       let compareModelsArray = compareModelsValue.split(",").map(Number);
-      return Backend.compareModels(keycloak.token, compareModelsArray);
+      let { filename, content } = await Backend.compareModels(
+        keycloak.token,
+        compareModelsArray
+      );
+  
+      saveAs(content, filename);
     }
   };
 

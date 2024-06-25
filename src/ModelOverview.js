@@ -96,14 +96,8 @@ export default function ModelOverview({ albums }) {
       let filteredModels = models.filter(
         (m) => m.feature_extraction_id === featureExtractionID
       );
-
-      let sortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-
-      let newModel = models.map((item) => ({ ...item, ["new_field"]: 1 }));
       
-      setModels(newModel);
+      setModels(sortedModels);
     }
 
     if (featureExtractionID) fetchModels();

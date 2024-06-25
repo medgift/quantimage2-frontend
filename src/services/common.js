@@ -64,12 +64,20 @@ export async function rawRequest(
   }
 }
 
-export async function downloadFile(url, token) {
+export async function downloadFile(url, token, data = null) {
   try {
     let headers = new Headers({});
     headers.append('Authorization', getTokenAuthorization(token));
 
     let options = { headers: headers };
+
+    if (data != null){
+      options["body"] = JSON.stringify(data);
+      options["method"] = "POST";
+    }
+
+    console.log("download file options");
+    console.log(options);
 
     let response = await fetch(url, options);
 

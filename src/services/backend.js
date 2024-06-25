@@ -410,18 +410,11 @@ class Backend {
   }
 
   async compareModels(token, modelIds){
-    try {
-      const url = `${endpoints.models}/compare`;
-      return await request(url, { 
-        method: "POST",
-        data: {
-          "model_ids": modelIds,
-        },
-        token: token 
-      });
-    } catch (err) {
-      throw err; // Just throw it for now
+    let url = `${endpoints.models}/compare`;
+    let data = {
+      "model_ids": modelIds,
     }
+    return downloadFile(url, token, data);
   }
 
   async presets(token) {
