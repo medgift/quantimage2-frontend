@@ -67,11 +67,11 @@ export default function ModelOverview({ albums }) {
   // Model table header
   const columnsClassification = React.useMemo(
     () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
-    [collectionColumn]
+    [collectionColumn, modelIDColumn]
   );
   const columnsSurvival = React.useMemo(
     () => [modelIDColumn, collectionColumn, ...SURVIVAL_COLUMNS],
-    [collectionColumn]
+    [collectionColumn, modelIDColumn]
   );
 
   // Get feature extraction
@@ -100,7 +100,7 @@ export default function ModelOverview({ albums }) {
       let sortedModels = filteredModels.sort(
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
       );
-            
+
       setModels(sortedModels);
     }
 
