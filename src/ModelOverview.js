@@ -36,13 +36,41 @@ export default function ModelOverview({ albums }) {
     [collections]
   );
 
+  // const CheckboxCell = ({ value, onChange, row }) => {
+  //   const [isChecked, setIsChecked] = useState(false); // Initial checkbox state
+  
+  //   const handleChange = (event) => {
+  //     setIsChecked(event.target.checked);
+  //     // Pass the updated state (row data and checkbox value) to the onChange callback
+  //     onChange?.(row.original, event.target.checked);
+  //   };
+  
+  //   return (
+  //     <div>
+  //       <input
+  //         type="checkbox"
+  //         checked={isChecked}
+  //         onChange={handleChange}
+  //       />
+  //       {/* Optionally display the value next to the checkbox */}
+  //       {value}
+  //     </div>
+  //   );
+  // };
+
+  
+  const modelIDColumn =   {
+    Header: 'Model ID',
+    accessor: (r) => r.id,
+  };
+
   // Model table header
   const columnsClassification = React.useMemo(
-    () => [collectionColumn, ...CLASSIFICATION_COLUMNS],
+    () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
     [collectionColumn]
   );
   const columnsSurvival = React.useMemo(
-    () => [collectionColumn, ...SURVIVAL_COLUMNS],
+    () => [modelIDColumn, collectionColumn, ...SURVIVAL_COLUMNS],
     [collectionColumn]
   );
 
@@ -73,7 +101,9 @@ export default function ModelOverview({ albums }) {
         (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
       );
 
-      setModels(sortedModels);
+      let newModel = models.map((item) => ({ ...item, ["new_field"]: 1 }));
+      
+      setModels(newModel);
     }
 
     if (featureExtractionID) fetchModels();
@@ -131,12 +161,14 @@ export default function ModelOverview({ albums }) {
                   (m) => m.type === MODEL_TYPES.CLASSIFICATION
                 )}
                 handleDeleteModelClick={handleDeleteModelClick}
+                showComparisonButtons={true}
               />
               <ModelsTable
                 title="Survival Models"
                 columns={columnsSurvival}
                 data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
                 handleDeleteModelClick={handleDeleteModelClick}
+                showComparisonButtons={true}
               />
             </div>
           ) : (
