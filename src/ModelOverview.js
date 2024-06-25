@@ -36,14 +36,42 @@ export default function ModelOverview({ albums }) {
     [collections]
   );
 
+  // const CheckboxCell = ({ value, onChange, row }) => {
+  //   const [isChecked, setIsChecked] = useState(false); // Initial checkbox state
+  
+  //   const handleChange = (event) => {
+  //     setIsChecked(event.target.checked);
+  //     // Pass the updated state (row data and checkbox value) to the onChange callback
+  //     onChange?.(row.original, event.target.checked);
+  //   };
+  
+  //   return (
+  //     <div>
+  //       <input
+  //         type="checkbox"
+  //         checked={isChecked}
+  //         onChange={handleChange}
+  //       />
+  //       {/* Optionally display the value next to the checkbox */}
+  //       {value}
+  //     </div>
+  //   );
+  // };
+
+  
+  const modelIDColumn =   {
+    Header: 'Model ID',
+    accessor: (r) => r.id,
+  };
+
   // Model table header
   const columnsClassification = React.useMemo(
-    () => [collectionColumn, ...CLASSIFICATION_COLUMNS],
-    [collectionColumn]
+    () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
+    [collectionColumn, modelIDColumn]
   );
   const columnsSurvival = React.useMemo(
-    () => [collectionColumn, ...SURVIVAL_COLUMNS],
-    [collectionColumn]
+    () => [modelIDColumn, collectionColumn, ...SURVIVAL_COLUMNS],
+    [collectionColumn, modelIDColumn]
   );
 
   // Get feature extraction
@@ -131,12 +159,14 @@ export default function ModelOverview({ albums }) {
                   (m) => m.type === MODEL_TYPES.CLASSIFICATION
                 )}
                 handleDeleteModelClick={handleDeleteModelClick}
+                showComparisonButtons={true}
               />
               <ModelsTable
                 title="Survival Models"
                 columns={columnsSurvival}
                 data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
                 handleDeleteModelClick={handleDeleteModelClick}
+                showComparisonButtons={true}
               />
             </div>
           ) : (

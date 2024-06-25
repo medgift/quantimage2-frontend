@@ -1,4 +1,33 @@
 .export-link {
-  position: absolute;
-  right: 2em;
+  /* position: absolute; */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.compare_button {
+  /* margin-left: auto;
+  margin-right: auto; */
+  margin-left: 50;
+  margin-right: 50;
+}
+
+.button-spacer {
+  margin-left: 10px; /* Adjust margin for desired spacing */
+}
+
+.model_input_field {
+  margin-left: 500;
+  margin-right: 500;
+}
+
+.button-container {
+  float: right
+}
+
+h4.mt-3 {
+  /* display: flex; */
+  margin-left: auto;  /* Moves buttons to the right */
+  margin-right: auto;  /* Moves buttons to the right */
+  align-items: center; /* Aligns buttons vertically within the h4 */
+  justify-content: space-between; /* Distributes buttons evenly */  
 }

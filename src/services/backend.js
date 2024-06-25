@@ -409,6 +409,14 @@ class Backend {
     }
   }
 
+  async compareModels(token, modelIds){
+    let url = `${endpoints.models}/compare`;
+    let data = {
+      "model_ids": modelIds,
+    }
+    return downloadFile(url, token, data);
+  }
+
   async presets(token) {
     try {
       const url = `${endpoints.presets}`;

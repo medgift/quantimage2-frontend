@@ -17,6 +17,7 @@ export default function ModelsTable({
   columns,
   data,
   handleDeleteModelClick,
+  showComparisonButtons = false,
 }) {
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
@@ -226,20 +227,61 @@ export default function ModelsTable({
     saveAs(blob, 'models-export.csv');
   };
 
+  const [compareModelsValue, setCompareModelsValue] = useState(''); // State variable for input value
+
+  const handleCompareModelsChange = (event) => {
+    setCompareModelsValue(event.target.value); // Update state on input change
+  };
+
+  const handleCompareModels = async () => {
+    console.log("doing notttthhiiiiiiiinnnnnggggg");
+    console.log(compareModelsValue);
+    if (compareModelsValue != null) {
+      let compareModelsArray = compareModelsValue.split(",").map(Number);
+      let { filename, content } = await Backend.compareModels(
+        keycloak.token,
+        compareModelsArray
+      );
+  
+      saveAs(content, filename);
+    }
+  };
+
   if (data.length === 0) return null;
 
   return (
     <>
       <h4 className="mt-3">
         {title}{' '}
-        <Button
-          size="sm"
-          color="link"
-          className="export-link"
-          onClick={handleExportCSV}
-        >
-          <FontAwesomeIcon icon="file-export" /> Export as CSV
-        </Button>
+        <div className="button-container">
+          {showComparisonButtons &&
+            <>
+              <input
+                type="text"
+                defaultValue={""}
+                className='model_input_field'
+                onChange={handleCompareModelsChange}
+              />
+              <span className="button-spacer">  {/* Add an empty spacer element */}
+              </span>
+              <Button
+                size="sm"
+                className='compare_button'
+                onClick={handleCompareModels}
+              >
+                <FontAwesomeIcon icon="file-export" /> Compare Models
+              </Button>
+            </>
+          }
+          <Button
+            size="sm"
+            color="link"
+            className="export-link"
+            onClick={handleExportCSV}
+          >
+            <FontAwesomeIcon icon="file-export" /> Export as CSV
+          </Button>
+        </div>
       </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
         <thead>
