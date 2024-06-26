@@ -1,6 +1,6 @@
 import { useSortBy, useTable } from 'react-table';
 import React, { useEffect, useState } from 'react';
-import { Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
+import { Alert, Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
@@ -24,6 +24,8 @@ export default function ModelsTable({
 
   let [patientIDs, setPatientIDs] = useState(null);
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
+  let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
+  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] = useState("");
 
   const { keycloak } = useKeycloak();
 
@@ -234,16 +236,20 @@ export default function ModelsTable({
   };
 
   const handleCompareModels = async () => {
-    console.log("doing notttthhiiiiiiiinnnnnggggg");
-    console.log(compareModelsValue);
     if (compareModelsValue != null) {
-      let compareModelsArray = compareModelsValue.split(",").map(Number);
-      let { filename, content } = await Backend.compareModels(
-        keycloak.token,
-        compareModelsArray
-      );
-  
-      saveAs(content, filename);
+      let compareModelsArray = null;
+      compareModelsArray = compareModelsValue.split(",").filter(Number);
+      if (compareModelsArray.length != compareModelsValue.split(",").length) {
+        setIsCompareModelCorrect(false)
+        setIsCompareModelCorrectMessage("Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3")
+      } else {
+        setIsCompareModelCorrect(true)
+        let { filename, content } = await Backend.compareModels(
+          keycloak.token,
+          compareModelsArray
+        );
+        saveAs(content, filename);
+      }
     }
   };
 
@@ -255,7 +261,7 @@ export default function ModelsTable({
         {title}{' '}
         <div className="button-container">
           {showComparisonButtons &&
-            <>
+            <> 
               <input
                 type="text"
                 defaultValue={""}
@@ -281,6 +287,11 @@ export default function ModelsTable({
           >
             <FontAwesomeIcon icon="file-export" /> Export as CSV
           </Button>
+          {!isCompareModelCorrect && (
+                <Alert color="danger">
+                  {isCompareModelCorrectMessage}
+                </Alert>
+          )}
         </div>
       </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
