@@ -76,9 +76,6 @@ export async function downloadFile(url, token, data = null) {
       options["method"] = "POST";
     }
 
-    console.log("download file options");
-    console.log(options);
-
     let response = await fetch(url, options);
 
     let fileContent = await response.blob();
