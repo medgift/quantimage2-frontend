@@ -67,6 +67,16 @@ export default function ModelsTable({
     saveAs(content, filename);
   };
 
+    // Handle download test scores values
+    const handleDownloadTestFeatureImportances = async (modelID) => {
+      let { filename, content } = await Backend.downloadTestFeatureImportances(
+        keycloak.token,
+        modelID
+      );
+  
+      saveAs(content, filename);
+    };
+
   const formatMetrics = (metrics, mode) => {
     let sortedMetrics = Object.fromEntries(
       Object.entries(metrics).sort(([k1, v1], [k2, v2]) => v1.order - v2.order)
@@ -508,6 +518,18 @@ export default function ModelsTable({
                                         >
                                           <FontAwesomeIcon icon="download" />{' '}
                                           <span>Download scores</span>
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          color="link"
+                                          onClick={() =>
+                                            handleDownloadTestFeatureImportances(
+                                              row.original.id
+                                            )
+                                          }
+                                        >
+                                          <FontAwesomeIcon icon="download" />{' '}
+                                          <span>Download feature importances</span>
                                         </Button>
                                       </>
                                     )}

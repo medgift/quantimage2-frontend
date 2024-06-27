@@ -316,6 +316,12 @@ class Backend {
     return downloadFile(url, token);
   }
 
+  async downloadTestFeatureImportances(token, modelID) {
+    let url = `${endpoints.models}/${modelID}/download-feature-importances`;
+
+    return downloadFile(url, token);
+  }
+
   async downloadConfiguration(token, extractionID) {
     let url = `${endpoints.extractions}/${extractionID}/download-configuration`;
 
