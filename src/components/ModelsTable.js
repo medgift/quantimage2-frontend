@@ -246,19 +246,33 @@ export default function ModelsTable({
   };
 
   const handleCompareModels = async () => {
+    let modelIds = data.map((item) => item.id);
+    let existingModelsSelected = true;
     if (compareModelsValue != null) {
       let compareModelsArray = null;
-      compareModelsArray = compareModelsValue.split(",").filter(Number);
+      compareModelsArray = compareModelsValue.split(",").filter(Number).map(Number);
       if (compareModelsArray.length != compareModelsValue.split(",").length) {
         setIsCompareModelCorrect(false)
         setIsCompareModelCorrectMessage("Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3")
+      }  else if (compareModelsArray.length == 1){
+        setIsCompareModelCorrect(false)
+        setIsCompareModelCorrectMessage("Please provide more than one model")
       } else {
-        setIsCompareModelCorrect(true)
-        let { filename, content } = await Backend.compareModels(
-          keycloak.token,
-          compareModelsArray
-        );
-        saveAs(content, filename);
+        for (const selectedModelTocompare of compareModelsArray) {
+          if (!modelIds.includes(selectedModelTocompare)){
+            setIsCompareModelCorrect(false)
+            setIsCompareModelCorrectMessage(`Please select models that exist - got ${selectedModelTocompare}`)
+            existingModelsSelected = false
+          }              
+        }        
+        if (existingModelsSelected){
+          setIsCompareModelCorrect(true)
+          let { filename, content } = await Backend.compareModels(
+            keycloak.token,
+            compareModelsArray
+          );
+          saveAs(content, filename);
+        }
       }
     }
   };
