@@ -104,12 +104,6 @@ function Features({ history }) {
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
 
-  // Patient IDs
-  let [allPatients, setAllPatients] = useState([]);
-
-  // dataPoints
-  let [dataPoints, setDataPoints] = useState([])
-
   const formattedClinicalFeaturesDefinitions = useMemo(() => {
     if (
       !clinicalFeaturesDefinitions ||
@@ -189,31 +183,13 @@ function Features({ history }) {
 
     return filteredFeatures;
   }, [currentCollection, featuresTabular]);
-  
-  // Get all patient IDs from the clinical features. if clinical features were added 
-  // that have no imaging they will not be loaded from kyeops
-  useMemo(() => {
-    async function GetPatientsFromBackend() {
-      // Getting the patients ids from the backend as well
-      if (!featuresTabular) return null;
 
-      let patientsLoadedFromBackend = null;
-      
-      if (selectedLabelCategory != null){
-        patientsLoadedFromBackend = await Backend.getPatientIdsInLabelCategory(keycloak.token, selectedLabelCategory.id);
-      }
+  // Get all patient IDs from the features
+  let allPatients = useMemo(() => {
+    if (!featuresTabular) return null;
 
-      if (patientsLoadedFromBackend != null) {
-        const patientIDsFromTabular = featuresTabular.map((f) => f.PatientID);
-        const combinedPatients = new Set([...patientIDsFromTabular, ...patientsLoadedFromBackend]);
-        setAllPatients(Array.from(combinedPatients));
-      } else {
-        setAllPatients(Array.from(new Set(featuresTabular.map((f) => f.PatientID))));
-      }
-    }
-    GetPatientsFromBackend();
-
-  }, [featuresTabular, selectedLabelCategory]);
+    return Array.from(new Set(featuresTabular.map((f) => f.PatientID)));
+  }, [featuresTabular]);
 
   // Compute unlabelled patients
   const unlabelledPatients = useMemo(() => {
@@ -249,28 +225,19 @@ function Features({ history }) {
   }, [selectedLabelCategory, allPatients]);
 
   // Compute data points based on features
-  useEffect(() => {
-    async function updateDataPoints() {
-  
-      let filteredDataPoints = [];
-  
-      if (!featuresTabular) return null;
-  
-      if (!selectedLabelCategory) return allPatients;
-  
-      // Remove unlabelled patients from the data points
-      // if (unlabelledPatients && unlabelledPatients.length > 0) {
-      //   filteredDataPoints = allPatients.filter(
-      //     (patientID) => !unlabelledPatients.includes(patientID)
-      //   );
-      // } else {
-        filteredDataPoints = allPatients;
-      // }
-  
-      setDataPoints(filteredDataPoints);
-    }
-    updateDataPoints()
+  let dataPoints = useMemo(() => {
+    if (!featuresTabular) return null;
 
+    if (!selectedLabelCategory) return allPatients;
+
+    // Remove unlabelled patients from the data points
+    if (unlabelledPatients && unlabelledPatients.length > 0) {
+      return allPatients.filter(
+        (patientID) => !unlabelledPatients.includes(patientID)
+      );
+    }
+
+    return allPatients;
   }, [allPatients, selectedLabelCategory, featuresTabular, unlabelledPatients]);
 
   // Get outcomes based on the current label category & filter by data points
@@ -394,9 +361,6 @@ function Features({ history }) {
         keycloak.token,
         albumID
       );
-
-      console.log(currentOutcome);
-      console.log("currentOutcome");
 
       if (currentOutcome) setSelectedLabelCategory(currentOutcome);
     }
@@ -609,7 +573,6 @@ function Features({ history }) {
     currentCollection,
     collections,
     dataPoints,
-    allPatients,
   ]);
 
   // Handle download features click
@@ -1104,7 +1067,7 @@ function Features({ history }) {
                         featureExtractionID={featureExtractionID}
                         isSavingLabels={isSavingLabels}
                         setIsSavingLabels={setIsSavingLabels}
-                        allPatients={allPatients}
+                        dataPoints={allPatients}
                         outcomes={outcomes}
                         selectedLabelCategory={selectedLabelCategory}
                         setSelectedLabelCategory={setSelectedLabelCategory}
@@ -1115,7 +1078,6 @@ function Features({ history }) {
                           updateExtractionOrCollection
                         }
                         setNbTrainingPatients={setNbTrainingPatients}
-                        setAllPatients={setAllPatients}
                       />
                     </>
                   ) : (

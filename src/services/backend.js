@@ -150,16 +150,6 @@ class Backend {
     }
   }
 
-  async getPatientIdsInLabelCategory(token, labelCollectionID){
-    try {
-      const url = `${endpoints.labels}/patients_from_label_category/${labelCollectionID}`;
-
-      return await request(url, { method: 'GET', token: token });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
-  }
-
   async saveClinicalFeaturesValues(token, clinicalFeatureMap, album_id) {
     try {
       let data = {
