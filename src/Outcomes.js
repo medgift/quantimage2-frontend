@@ -19,13 +19,14 @@ import {
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import MyModal from './components/MyModal';
+import { validateLabelFile } from './utils/feature-utils.js';
 
 export default function Outcomes({
   albumID,
   featureExtractionID,
   isSavingLabels,
   setIsSavingLabels,
-  allPatients,
+  dataPoints,
   outcomes,
   selectedLabelCategory,
   setSelectedLabelCategory,
@@ -33,7 +34,6 @@ export default function Outcomes({
   setLabelCategories,
   setFeaturesChart,
   updateExtractionOrCollection,
-  setAllPatients,
 }) {
   const { keycloak } = useKeycloak();
 
@@ -225,7 +225,7 @@ export default function Outcomes({
         <>
           <DataLabels
             albumID={albumID}
-            allPatients={allPatients}
+            dataPoints={dataPoints}
             isSavingLabels={isSavingLabels}
             setIsSavingLabels={setIsSavingLabels}
             selectedLabelCategory={selectedLabelCategory}
@@ -239,8 +239,16 @@ export default function Outcomes({
                 ? CLASSIFICATION_OUTCOMES
                 : SURVIVAL_OUTCOMES
             }
+            validateLabelFile={(file, dataPoints) =>
+              validateLabelFile(
+                file,
+                dataPoints,
+                selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
+                  ? CLASSIFICATION_OUTCOMES
+                  : SURVIVAL_OUTCOMES
+              )
+            }
             updateExtractionOrCollection={updateExtractionOrCollection}
-            setAllPatients={setAllPatients}
           />
         </>
       )}

@@ -154,12 +154,6 @@ export default function Visualisation({
   // Chart
   const chartRef = useRef(null);
 
-  console.log("patients in viz");
-  console.log(patients);
-
-  console.log("data points in viz");
-  console.log(dataPoints);
-
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
     if (!featureIDs && !clinicalFeaturesDefinitions) return [];
     if (!featureIDs) return Object.keys(clinicalFeaturesDefinitions);
