@@ -413,6 +413,12 @@ class Backend {
     return downloadFile(url, token, data);
   }
 
+  async plotPredictions(token, modelID){
+    let url = `${endpoints.models}/${modelID}/plot-predictions`;
+
+    return downloadFile(url, token);
+  }
+
   async presets(token) {
     try {
       const url = `${endpoints.presets}`;
