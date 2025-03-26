@@ -149,20 +149,21 @@ export default function ModelOverview({ albums }) {
       
       if (plotModelsArray.length !== plotModelsValue.split(",").length) {
         setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide a number such as 1");
-      } else if (plotModelsArray.length > 1) {
+        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
+      } else if (plotModelsArray.length === 0) {
         setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Please provide only one model ID");
+        setIsPlotModelCorrectMessage("Please provide at least one model ID");
       } else {
-        const selectedModelToPlot = plotModelsArray[0];
-        if (!modelIds.includes(selectedModelToPlot)) {
+        // Check if all provided model IDs exist
+        const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
+        if (invalidModels.length > 0) {
           setIsPlotModelCorrect(false);
-          setIsPlotModelCorrectMessage(`Please select a model that exists - got ${selectedModelToPlot}`);
+          setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
         } else {
           setIsPlotModelCorrect(true);
           let { filename, content } = await Backend.plotPredictions(
             keycloak.token,
-            [selectedModelToPlot] // Pass as array with single ID
+            plotModelsArray
           );
           saveAs(content, filename);
         }
@@ -209,15 +210,19 @@ export default function ModelOverview({ albums }) {
                 <input
                   type="text"
                   value={plotModelsValue}
-                  placeholder="Enter Model ID (e.g. 1)"  // Updated placeholder
+                  placeholder="Enter 1 or 2 Model IDs (e.g. 1,2)"
                   onChange={handlePlotModelsChange}
-                  style={{ marginRight: '10px' }}
+                  style={{ 
+                    marginRight: '10px',
+                    width: '300px',
+                    padding: '5px'
+                  }}
                 />
                 <Button
                   color="primary"
                   onClick={handlePlotModels}
                 >
-                  <FontAwesomeIcon icon="chart-line" /> Plot Model Predictions
+                  <FontAwesomeIcon icon="chart-line" /> Plot Model Test Predictions
                 </Button>
                 {!isPlotModelCorrect && (
                   <Alert color="danger" style={{ marginTop: '10px' }}>

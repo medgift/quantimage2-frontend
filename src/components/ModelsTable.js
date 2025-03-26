@@ -288,9 +288,15 @@ export default function ModelsTable({
             <> 
               <input
                 type="text"
-                defaultValue={""}
-                className='model_input_field'
+                value={compareModelsValue}
+                placeholder="Enter 2 Model IDs (e.g. 1,2)"
                 onChange={handleCompareModelsChange}
+                style={{ 
+                  marginRight: '10px',
+                  width: '300px',
+                  padding: '5px',
+                  fontSize: '14px'
+                }}
               />
               <span className="button-spacer">  {/* Add an empty spacer element */}
               </span>
