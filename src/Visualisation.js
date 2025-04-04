@@ -1379,7 +1379,7 @@ export default function Visualisation({
                     <small>
                       * Feature values are standardized and the scale is clipped
                       to [-2, 2]. Extreme values appear either in 100% blue (
-                      {'<-2'}) or 100% red (>2).
+                      {'<-2'}) or 100% red ({'>2'}).
                     </small>
                   </div>
                   <div className="d-flex justify-content-around">

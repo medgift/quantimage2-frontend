@@ -251,10 +251,10 @@ export default function ModelsTable({
     if (compareModelsValue != null) {
       let compareModelsArray = null;
       compareModelsArray = compareModelsValue.split(",").filter(Number).map(Number);
-      if (compareModelsArray.length != compareModelsValue.split(",").length) {
+      if (compareModelsArray.length !== compareModelsValue.split(",").length) {
         setIsCompareModelCorrect(false)
         setIsCompareModelCorrectMessage("Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3")
-      }  else if (compareModelsArray.length == 1){
+      }  else if (compareModelsArray.length === 1){
         setIsCompareModelCorrect(false)
         setIsCompareModelCorrectMessage("Please provide more than one model")
       } else {
@@ -288,9 +288,15 @@ export default function ModelsTable({
             <> 
               <input
                 type="text"
-                defaultValue={""}
-                className='model_input_field'
+                value={compareModelsValue}
+                placeholder="Enter 2 Model IDs (e.g. 1,2)"
                 onChange={handleCompareModelsChange}
+                style={{ 
+                  marginRight: '10px',
+                  width: '300px',
+                  padding: '5px',
+                  fontSize: '14px'
+                }}
               />
               <span className="button-spacer">  {/* Add an empty spacer element */}
               </span>

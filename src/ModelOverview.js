@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Button } from 'reactstrap';
+import { Button, Alert } from 'reactstrap';
+import { saveAs } from 'file-saver';
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import ModelsTable from './components/ModelsTable';
@@ -19,6 +20,9 @@ export default function ModelOverview({ albums }) {
   const [featureExtractionID, setFeatureExtractionID] = useState(null);
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [plotModelsValue, setPlotModelsValue] = useState('');
+  const [isPlotModelCorrect, setIsPlotModelCorrect] = useState(true);
+  const [isPlotModelCorrectMessage, setIsPlotModelCorrectMessage] = useState("");
 
   const { albumID } = useParams();
 
@@ -133,6 +137,40 @@ export default function ModelOverview({ albums }) {
     setModels(models.filter((model) => model.id !== id));
   };
 
+  const handlePlotModelsChange = (event) => {
+    setPlotModelsValue(event.target.value);
+  };
+
+  const handlePlotModels = async () => {
+    const modelIds = models.map((item) => item.id);
+    
+    if (plotModelsValue != null) {
+      let plotModelsArray = plotModelsValue.split(",").filter(Number).map(Number);
+      
+      if (plotModelsArray.length !== plotModelsValue.split(",").length) {
+        setIsPlotModelCorrect(false);
+        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
+      } else if (plotModelsArray.length === 0) {
+        setIsPlotModelCorrect(false);
+        setIsPlotModelCorrectMessage("Please provide at least one model ID");
+      } else {
+        // Check if all provided model IDs exist
+        const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
+        if (invalidModels.length > 0) {
+          setIsPlotModelCorrect(false);
+          setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
+        } else {
+          setIsPlotModelCorrect(true);
+          let { filename, content } = await Backend.plotPredictions(
+            keycloak.token,
+            plotModelsArray
+          );
+          saveAs(content, filename);
+        }
+      }
+    }
+  };
+
   return (
     albums.length > 0 && (
       <div>
@@ -168,6 +206,30 @@ export default function ModelOverview({ albums }) {
                 handleDeleteModelClick={handleDeleteModelClick}
                 showComparisonButtons={true}
               />
+              <div style={{ marginTop: '20px' }}>
+                <input
+                  type="text"
+                  value={plotModelsValue}
+                  placeholder="Enter 1 or 2 Model IDs (e.g. 1,2)"
+                  onChange={handlePlotModelsChange}
+                  style={{ 
+                    marginRight: '10px',
+                    width: '300px',
+                    padding: '5px'
+                  }}
+                />
+                <Button
+                  color="primary"
+                  onClick={handlePlotModels}
+                >
+                  <FontAwesomeIcon icon="chart-line" /> Plot Model Test Predictions
+                </Button>
+                {!isPlotModelCorrect && (
+                  <Alert color="danger" style={{ marginTop: '10px' }}>
+                    {isPlotModelCorrectMessage}
+                  </Alert>
+                )}
+              </div>
             </div>
           ) : (
             <h2 className="align-self-stretch">No Models Created Yet</h2>
