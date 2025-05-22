@@ -413,8 +413,14 @@ class Backend {
     return downloadFile(url, token, data);
   }
 
-  async plotPredictions(token, modelID){
-    let url = `${endpoints.models}/${modelID}/plot-predictions`;
+  async plotTestPredictions(token, modelID){
+    let url = `${endpoints.models}/${modelID}/plot-test-predictions`;
+
+    return downloadFile(url, token);
+  }
+
+  async plotTrainPredictions(token, modelID){
+    let url = `${endpoints.models}/${modelID}/plot-train-predictions`;
 
     return downloadFile(url, token);
   }
