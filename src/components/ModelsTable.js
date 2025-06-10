@@ -1,6 +1,13 @@
 import { useSortBy, useTable } from 'react-table';
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Collapse, Table, UncontrolledTooltip } from 'reactstrap';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Table,
+  UncontrolledTooltip,
+  Badge,
+} from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
@@ -11,7 +18,119 @@ import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './ModelsTable.css';
+const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
+  const metricDefinitions = {
+    auc: {
+      name: 'AUC',
+      icon: 'chart-area',
+    },
+    accuracy: {
+      name: 'Accuracy',
+      icon: 'bullseye',
+    },
+    precision: {
+      name: 'Precision',
+      icon: 'crosshairs',
+    },
+    sensitivity: {
+      name: 'Sensitivity',
+      icon: 'radar',
+    },
+    specificity: {
+      name: 'Specificity',
+      icon: 'shield-alt',
+    },
+  };
 
+  // Function to determine color based on comparison
+  const getComparisonClass = (value1, value2, isFirst) => {
+    const diff = Math.abs(value1 - value2);
+    // If difference is less than 0.001, consider them equal
+    if (diff < 0.001) return 'equal';
+
+    if (isFirst) {
+      return value1 > value2 ? 'higher' : 'lower';
+    } else {
+      return value2 > value1 ? 'higher' : 'lower';
+    }
+  };
+
+  return (
+    <div className="metrics-modern-container">
+      <div className="metrics-grid-modern">
+        {Object.keys(metricDefinitions).map((metricKey) => {
+          const def = metricDefinitions[metricKey];
+          const trainMetric = trainingMetrics[metricKey];
+          const testMetric = testMetrics?.[metricKey];
+
+          if (!trainMetric && !testMetric) return null;
+
+          const trainValue = trainMetric?.mean || trainMetric?.value || 0;
+          const testValue = testMetric?.mean || testMetric?.value || 0;
+
+          return (
+            <div key={metricKey} className="metric-tile">
+              <div className="metric-header">
+                <FontAwesomeIcon
+                  icon={def.icon}
+                  className="metric-icon-small"
+                />
+                <span className="metric-name-small">{def.name}</span>
+              </div>
+
+              <div className="metric-values-compact">
+                <div
+                  className={`metric-value-item ${
+                    showTest && testMetric
+                      ? getComparisonClass(trainValue, testValue, true)
+                      : ''
+                  }`}
+                >
+                  <span className="value">{trainValue.toFixed(3)}</span>
+                  <span className="label">Train</span>
+                </div>
+
+                {showTest && testMetric && (
+                  <>
+                    <div className="metric-separator"></div>
+                    <div
+                      className={`metric-value-item ${getComparisonClass(
+                        trainValue,
+                        testValue,
+                        false
+                      )}`}
+                    >
+                      <span className="value">{testValue.toFixed(3)}</span>
+                      <span className="label">Test</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {showTest && testMetric && (
+                <div className="metric-diff">
+                  <span
+                    className={
+                      testValue >= trainValue ? 'positive' : 'negative'
+                    }
+                  >
+                    {testValue >= trainValue ? '+' : ''}
+                    {trainValue !== 0
+                      ? (((testValue - trainValue) / trainValue) * 100).toFixed(
+                          1
+                        )
+                      : '0.0'}
+                    %
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 export default function ModelsTable({
   title,
   columns,
@@ -25,7 +144,8 @@ export default function ModelsTable({
   let [patientIDs, setPatientIDs] = useState(null);
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
   let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
-  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] = useState("");
+  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] =
+    useState('');
 
   const { keycloak } = useKeycloak();
 
@@ -67,56 +187,19 @@ export default function ModelsTable({
     saveAs(content, filename);
   };
 
-    // Handle download test scores values
-    const handleDownloadTestFeatureImportances = async (modelID) => {
-      let { filename, content } = await Backend.downloadTestFeatureImportances(
-        keycloak.token,
-        modelID
-      );
-  
-      saveAs(content, filename);
-    };
+  // Handle download test scores values
+  const handleDownloadTestFeatureImportances = async (modelID) => {
+    let { filename, content } = await Backend.downloadTestFeatureImportances(
+      keycloak.token,
+      modelID
+    );
+
+    saveAs(content, filename);
+  };
 
   const formatMetrics = (metrics, mode) => {
-    let sortedMetrics = Object.fromEntries(
-      Object.entries(metrics).sort(([k1, v1], [k2, v2]) => v1.order - v2.order)
-    );
-
-    let formattedOtherMetrics = Object.keys(sortedMetrics).map((metricName) => (
-      <tr key={metricName}>
-        <td>
-          <strong>{metricName}</strong>
-        </td>
-        <td>{formatMetric(metrics[metricName])}</td>
-      </tr>
-    ));
-
-    return (
-      <>
-        <Table className="metrics-table">
-          <thead>
-            <tr>
-              <th>Metric Name</th>
-              <th>
-                Metric Value{' '}
-                <FontAwesomeIcon
-                  icon="question-circle"
-                  id={`ciTooltip-${mode}`}
-                  style={{ cursor: 'pointer' }}
-                />
-                <UncontrolledTooltip
-                  placement="right"
-                  target={`ciTooltip-${mode}`}
-                >
-                  Shows the mean value & 95% confidence interval
-                </UncontrolledTooltip>
-              </th>
-            </tr>
-          </thead>
-          <tbody>{formattedOtherMetrics}</tbody>
-        </Table>
-      </>
-    );
+    // This function is not used with the new design
+    return null;
   };
 
   const {
@@ -156,21 +239,17 @@ export default function ModelsTable({
     let isTrainTest =
       row.original.data_splitting_type ===
       DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
-
     let trainingPatientIDs = row.original.training_patient_ids;
 
     return (
       <>
-        <tr>
-          <td>
-            Number of Observations
-            {isTrainTest && ' (Training)'}
-          </td>
-          <td>
-            {trainingPatientIDs.length}
-            {' - '}
+        <div className="detail-row">
+          <span className="detail-label">Training Set:</span>
+          <span className="detail-value">
+            {trainingPatientIDs.length} observations
             <Button
               color="link"
+              size="sm"
               onClick={(event) => {
                 event.preventDefault();
                 handleShowPatientIDs(
@@ -182,20 +261,20 @@ export default function ModelsTable({
                   )
                 );
               }}
-              className="p-0"
+              className="ms-2 p-0"
             >
-              Show {isTrainTest && 'Training'} Patient IDs
+              View IDs
             </Button>
-          </td>
-        </tr>
+          </span>
+        </div>
         {isTrainTest && (
-          <tr>
-            <td>Number of Observations (Test)</td>
-            <td>
-              {row.original.test_patient_ids.length}
-              {' - '}
+          <div className="detail-row">
+            <span className="detail-label">Test Set:</span>
+            <span className="detail-value">
+              {row.original.test_patient_ids.length} observations
               <Button
                 color="link"
+                size="sm"
                 onClick={(event) => {
                   event.preventDefault();
                   handleShowPatientIDs(
@@ -207,16 +286,17 @@ export default function ModelsTable({
                     )
                   );
                 }}
-                className="p-0"
+                className="ms-2 p-0"
               >
-                Show Test Patient IDs
+                View IDs
               </Button>
-            </td>
-          </tr>
+            </span>
+          </div>
         )}
       </>
     );
   };
+  const [configOpen, setConfigOpen] = useState(false);
 
   const handleExportCSV = () => {
     let header = flatHeaders.map((h) => h.Header);
@@ -250,23 +330,30 @@ export default function ModelsTable({
     let existingModelsSelected = true;
     if (compareModelsValue != null) {
       let compareModelsArray = null;
-      compareModelsArray = compareModelsValue.split(",").filter(Number).map(Number);
-      if (compareModelsArray.length !== compareModelsValue.split(",").length) {
-        setIsCompareModelCorrect(false)
-        setIsCompareModelCorrectMessage("Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3")
-      }  else if (compareModelsArray.length === 1){
-        setIsCompareModelCorrect(false)
-        setIsCompareModelCorrectMessage("Please provide more than one model")
+      compareModelsArray = compareModelsValue
+        .split(',')
+        .filter(Number)
+        .map(Number);
+      if (compareModelsArray.length !== compareModelsValue.split(',').length) {
+        setIsCompareModelCorrect(false);
+        setIsCompareModelCorrectMessage(
+          'Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3'
+        );
+      } else if (compareModelsArray.length === 1) {
+        setIsCompareModelCorrect(false);
+        setIsCompareModelCorrectMessage('Please provide more than one model');
       } else {
         for (const selectedModelTocompare of compareModelsArray) {
-          if (!modelIds.includes(selectedModelTocompare)){
-            setIsCompareModelCorrect(false)
-            setIsCompareModelCorrectMessage(`Please select models that exist - got ${selectedModelTocompare}`)
-            existingModelsSelected = false
-          }              
-        }        
-        if (existingModelsSelected){
-          setIsCompareModelCorrect(true)
+          if (!modelIds.includes(selectedModelTocompare)) {
+            setIsCompareModelCorrect(false);
+            setIsCompareModelCorrectMessage(
+              `Please select models that exist - got ${selectedModelTocompare}`
+            );
+            existingModelsSelected = false;
+          }
+        }
+        if (existingModelsSelected) {
+          setIsCompareModelCorrect(true);
           let { filename, content } = await Backend.compareModels(
             keycloak.token,
             compareModelsArray
@@ -284,31 +371,34 @@ export default function ModelsTable({
       <h4 className="mt-3">
         {title}{' '}
         <div className="button-container">
-          {showComparisonButtons &&
-            <> 
+          {showComparisonButtons && (
+            <>
               <input
                 type="text"
                 value={compareModelsValue}
                 placeholder="Enter 2 Model IDs (e.g. 1,2)"
                 onChange={handleCompareModelsChange}
-                style={{ 
+                style={{
                   marginRight: '10px',
                   width: '300px',
                   padding: '5px',
-                  fontSize: '14px'
+                  fontSize: '14px',
                 }}
               />
-              <span className="button-spacer">  {/* Add an empty spacer element */}
+              <span className="button-spacer">
+                {' '}
+                {/* Empty spacer element */}
               </span>
               <Button
                 size="sm"
-                className='compare_button'
+                className="compare_button"
                 onClick={handleCompareModels}
               >
-                <FontAwesomeIcon icon="file-export" /> Compare Models (Classification Only)
+                <FontAwesomeIcon icon="file-export" /> Compare Models
+                (Classification Only)
               </Button>
             </>
-          }
+          )}
           <Button
             size="sm"
             color="link"
@@ -318,9 +408,7 @@ export default function ModelsTable({
             <FontAwesomeIcon icon="file-export" /> Export as CSV
           </Button>
           {!isCompareModelCorrect && (
-                <Alert color="danger">
-                  {isCompareModelCorrectMessage}
-                </Alert>
+            <Alert color="danger">{isCompareModelCorrectMessage}</Alert>
           )}
         </div>
       </h4>
@@ -405,174 +493,273 @@ export default function ModelsTable({
                   <td colSpan={columns.length + 1} style={{ padding: 0 }}>
                     <Collapse isOpen={openModelID === row.original.id}>
                       <div key={row.original.id} className="model-entry">
-                        <h3>{row.name}</h3>
-                        <div className="model-details-container">
-                          <Table bordered className="model-details-table">
-                            <tbody>
-                              <tr>
-                                <td>Created at</td>
-                                <td>{row.original.created_at}</td>
-                              </tr>
-                              <tr>
-                                <td>Model type</td>
-                                <td>{row.original.type}</td>
-                              </tr>
-                              <tr>
-                                <td>Best Algorithm</td>
-                                <td>{row.original.best_algorithm}</td>
-                              </tr>
-                              <tr>
-                                <td>Best Data Normalization</td>
-                                <td>
-                                  {row.original.best_data_normalization
-                                    ? row.original.best_data_normalization
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              {/* TODO - Put this back once it's implemented */}
-                              {/*
-                              <tr>
-                                <td>Feature Selection</td>
-                                <td>
-                                  {row.feature_selection
-                                    ? row.feature_selection
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              */}
-                              <tr>
-                                <td>Features Used</td>
-                                <td>
-                                  {row.original.feature_names.length}
-                                  {' - '}
-                                  <Button
-                                    color="link"
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      handleShowFeatureNames(
-                                        row.original.feature_names
-                                      );
-                                    }}
-                                    className="p-0"
-                                  >
-                                    Show details
-                                  </Button>
-                                </td>
-                              </tr>
-                              {generateNbObservations(row)}
-                              <tr>
-                                <td>Validation Type</td>
-                                <td>
-                                  {row.original.data_splitting_type ===
-                                    DATA_SPLITTING_TYPES.FULL_DATASET
-                                    ? 'Cross-validation on Full Dataset'
-                                    : 'Training/Test Split'}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td>
-                                  {row.original.data_splitting_type ===
-                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
-                                    'Training '}
-                                  Validation Strategy
-                                </td>
-                                <td>
-                                  {row.original.training_validation
-                                    ? row.original.training_validation
-                                    : 'None'}
-                                </td>
-                              </tr>
-                              {row.original.data_splitting_type ===
-                                DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                  <tr>
-                                    <td>Test Validation Strategy</td>
-                                    <td>
-                                      {row.original.test_validation
-                                        ? row.original.test_validation
-                                        : 'None'}
-                                    </td>
-                                  </tr>
-                                )}
-                            </tbody>
-                          </Table>
-                        </div>
-                        <hr />
-                        <div className="d-flex justify-content-center">
-                          <div>
-                            <strong>
-                              Model Metrics (Training - Cross-Validation)
-                            </strong>
-                            {formatMetrics(
-                              row.original.training_metrics,
-                              'training'
-                            )}
+                        {/* Performance Metrics Section */}
+                        <div className="performance-section">
+                          <div className="section-header">
+                            <h5>
+                              <FontAwesomeIcon
+                                icon="tachometer-alt"
+                                className="me-2"
+                              />
+                              Performance Metrics
+                            </h5>
                           </div>
+
+                          <MetricsComparison
+                            trainingMetrics={row.original.training_metrics}
+                            testMetrics={row.original.test_metrics}
+                            showTest={
+                              row.original.data_splitting_type ===
+                              DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
+                            }
+                          />
+
                           {row.original.data_splitting_type ===
-                            DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                              <>
-                                <div className="ml-5">
-                                  <strong>
-                                    Model Metrics (Test - Bootstrap){' '}
-                                    {row.original.test_bootstrap_values && (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          color="link"
-                                          onClick={() =>
-                                            handleDownloadTestBootstrapValues(
-                                              row.original.id
-                                            )
-                                          }
-                                        >
-                                          <FontAwesomeIcon icon="download" />{' '}
-                                          <span>Download bootstrap</span>
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          color="link"
-                                          onClick={() =>
-                                            handleDownloadTestScoresValues(
-                                              row.original.id
-                                            )
-                                          }
-                                        >
-                                          <FontAwesomeIcon icon="download" />{' '}
-                                          <span>Download scores</span>
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          color="link"
-                                          onClick={() =>
-                                            handleDownloadTestFeatureImportances(
-                                              row.original.id
-                                            )
-                                          }
-                                        >
-                                          <FontAwesomeIcon icon="download" />{' '}
-                                          <span>Download feature importances</span>
-                                        </Button>
-                                      </>
-                                    )}
-                                  </strong>
-                                  {formatMetrics(
-                                    row.original.test_metrics,
-                                    'test'
+                            DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
+                            row.original.test_bootstrap_values && (
+                              <div className="performance-actions">
+                                <Button
+                                  size="sm"
+                                  color="light"
+                                  onClick={() =>
+                                    handleDownloadTestBootstrapValues(
+                                      row.original.id
+                                    )
+                                  }
+                                >
+                                  <FontAwesomeIcon icon="download" size="sm" />{' '}
+                                  Bootstrap
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  color="light"
+                                  onClick={() =>
+                                    handleDownloadTestScoresValues(
+                                      row.original.id
+                                    )
+                                  }
+                                >
+                                  <FontAwesomeIcon icon="download" size="sm" />{' '}
+                                  Scores
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  color="light"
+                                  onClick={() =>
+                                    handleDownloadTestFeatureImportances(
+                                      row.original.id
+                                    )
+                                  }
+                                >
+                                  <FontAwesomeIcon icon="download" size="sm" />{' '}
+                                  Features
+                                </Button>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Configuration Details Section */}
+                        <details
+                          className="configuration-details-accordion"
+                          onToggle={(e) => setConfigOpen(e.target.open)}
+                        >
+                          <summary className="configuration-summary">
+                            <FontAwesomeIcon
+                              icon={configOpen ? 'minus-circle' : 'plus-circle'}
+                              className="expand-icon"
+                            />
+                            <span>Configuration Details</span>
+                          </summary>
+
+                          <div className="configuration-section">
+                            <div className="config-cards">
+                              <div className="config-card">
+                                <div className="config-card-header">
+                                  <FontAwesomeIcon icon="info-circle" />
+                                  <span>Model Info</span>
+                                </div>
+                                <div className="config-items">
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Created
+                                    </span>
+                                    <span className="config-value">
+                                      {new Date(
+                                        row.original.created_at
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  <div className="config-item">
+                                    <span className="config-label">Type</span>
+                                    <span className="config-value">
+                                      {row.original.type}
+                                    </span>
+                                  </div>
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Algorithm
+                                    </span>
+                                    <span className="config-value">
+                                      {row.original.best_algorithm}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="config-card">
+                                <div className="config-card-header">
+                                  <FontAwesomeIcon icon="database" />
+                                  <span>Data Processing</span>
+                                </div>
+                                <div className="config-items">
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Normalization
+                                    </span>
+                                    <span className="config-value">
+                                      {row.original.best_data_normalization ||
+                                        'None'}
+                                    </span>
+                                  </div>
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Features
+                                    </span>
+                                    <span className="config-value">
+                                      <Badge color="secondary">
+                                        {row.original.feature_names.length}
+                                      </Badge>
+                                      <Button
+                                        color="link"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          handleShowFeatureNames(
+                                            row.original.feature_names
+                                          );
+                                        }}
+                                        className="p-0 ms-2"
+                                      >
+                                        View
+                                      </Button>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="config-card">
+                                <div className="config-card-header">
+                                  <FontAwesomeIcon icon="check-double" />
+                                  <span>Validation</span>
+                                </div>
+                                <div className="config-items">
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Strategy
+                                    </span>
+                                    <span className="config-value">
+                                      {row.original.data_splitting_type ===
+                                      DATA_SPLITTING_TYPES.FULL_DATASET
+                                        ? 'Cross-validation'
+                                        : 'Train/Test Split'}
+                                    </span>
+                                  </div>
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Training
+                                    </span>
+                                    <span className="config-value">
+                                      {row.original.training_validation ||
+                                        'Default'}
+                                    </span>
+                                  </div>
+                                  {row.original.data_splitting_type ===
+                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                                    <div className="config-item">
+                                      <span className="config-label">Test</span>
+                                      <span className="config-value">
+                                        {row.original.test_validation ||
+                                          'Bootstrap'}
+                                      </span>
+                                    </div>
                                   )}
                                 </div>
-                              </>
-                            )}
-                        </div>
-                        <br />
-                        <p>
+                              </div>
+
+                              <div className="config-card">
+                                <div className="config-card-header">
+                                  <FontAwesomeIcon icon="users" />
+                                  <span>Dataset</span>
+                                </div>
+                                <div className="config-items">
+                                  <div className="config-item">
+                                    <span className="config-label">
+                                      Training
+                                    </span>
+                                    <span className="config-value">
+                                      <Badge color="primary">
+                                        {
+                                          row.original.training_patient_ids
+                                            .length
+                                        }
+                                      </Badge>
+                                      <Button
+                                        color="link"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          handleShowPatientIDs(
+                                            row.original.training_patient_ids
+                                          );
+                                        }}
+                                        className="p-0 ms-2"
+                                      >
+                                        IDs
+                                      </Button>
+                                    </span>
+                                  </div>
+                                  {row.original.data_splitting_type ===
+                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                                    <div className="config-item">
+                                      <span className="config-label">Test</span>
+                                      <span className="config-value">
+                                        <Badge color="success">
+                                          {row.original.test_patient_ids.length}
+                                        </Badge>
+                                        <Button
+                                          color="link"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            handleShowPatientIDs(
+                                              row.original.test_patient_ids
+                                            );
+                                          }}
+                                          className="p-0 ms-2"
+                                        >
+                                          IDs
+                                        </Button>
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </details>
+
+                        {/* Actions */}
+                        <div className="model-actions">
                           <Button
-                            color="danger"
+                            variant="outline-danger"
+                            size="sm"
                             onClick={() =>
                               handleDeleteModelClick(row.original.id)
                             }
                           >
-                            Delete Model
+                            <FontAwesomeIcon icon="trash" /> Delete Model
                           </Button>
-                        </p>
+                        </div>
                       </div>
                     </Collapse>
                   </td>
