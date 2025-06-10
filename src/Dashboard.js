@@ -3,7 +3,7 @@ import DicomFields from './dicom/fields';
 import './Dashboard.css';
 import Backend from './services/backend';
 import Kheops from './services/kheops';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   Collapse,
@@ -28,7 +28,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
   let [extractions, setExtractions] = useState(null);
   let [models, setModels] = useState(null);
   let { keycloak } = useKeycloak();
-  let history = useHistory();
+  let navigate = useNavigate();
 
   let socket = useContext(SocketContext);
 
@@ -39,7 +39,7 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
   let handleExploreAlbumClick = async (album) => {
     // Redirect to feature table route here
-    history.push(`/features/${album.album_id}/overview`);
+    navigate(`/features/${album.album_id}/overview`);
   };
 
   let toggleModal = () => {
