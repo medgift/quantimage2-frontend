@@ -19,7 +19,15 @@ import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
-import { Alert, Button, Form, FormGroup, Input, Label, ButtonGroup } from 'reactstrap';
+import {
+  Alert,
+  Button,
+  Form,
+  FormGroup,
+  Input,
+  Label,
+  ButtonGroup,
+} from 'reactstrap';
 import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
@@ -61,7 +69,7 @@ const DEFAULT_CORRELATION_THRESHOLD = 0.5;
 // Visualization modes
 const VISUALIZATION_MODES = {
   HEATMAP: 'heatmap',
-  UMAP: 'umap'
+  UMAP: 'umap',
 };
 
 // Instantiate web worker
@@ -122,7 +130,9 @@ export default function Visualisation({
   const [loading, setLoading] = useState(true);
 
   // Visualization mode
-  const [visualizationMode, setVisualizationMode] = useState(VISUALIZATION_MODES.HEATMAP);
+  const [visualizationMode, setVisualizationMode] = useState(
+    VISUALIZATION_MODES.HEATMAP
+  );
 
   // UMAP state
   const [umapData, setUmapData] = useState(null);
@@ -169,8 +179,19 @@ export default function Visualisation({
   const chartRef = useRef(null);
   const umapChartRef = useRef(null);
 
-  // Add new state for selected features for UMAP
+  // New state for selected features for UMAP
   const [selectedUmapFeatures, setSelectedUmapFeatures] = useState([]);
+
+  // UMAP parameters
+  const [umapParams, setUmapParams] = useState({
+    nNeighbors: 15,
+    minDist: 0.1,
+    spread: 1.0,
+    randomState: 42,
+  });
+
+  const [umapError, setUmapError] = useState(null);
+  const [useRandomSeed, setUseRandomSeed] = useState(true);
 
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
     if (!featureIDs && !clinicalFeaturesDefinitions) return [];
@@ -376,6 +397,12 @@ export default function Visualisation({
     }
   }, [featuresChart]);
 
+  useEffect(() => {
+    return () => {
+      // Cleanup is handled in the computeUMAP function when worker terminates
+    };
+  }, []);
+
   // Re-render chart on resize
   useLayoutEffect(() => {
     function handleResize() {
@@ -389,18 +416,103 @@ export default function Visualisation({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Add feature selection component for UMAP
+  // Feature selection component for UMAP
   const UmapFeatureSelection = () => {
+    const [featureSearch, setFeatureSearch] = useState('');
+
     const featureOptions = useMemo(() => {
       if (!filteredFeatures) return [];
-      return filteredFeatures.map(feature => ({
-        value: feature.FeatureID,
-        label: `${feature.FeatureID} (Rank: ${feature.Ranking})`
-      }));
-    }, []);
+      return filteredFeatures
+        .filter((feature) =>
+          feature.FeatureID.toLowerCase().includes(featureSearch.toLowerCase())
+        )
+        .map((feature) => ({
+          value: feature.FeatureID,
+          label: `${feature.FeatureID} (Rank: ${feature.Ranking})`,
+        }));
+    }, [featureSearch]);
 
     return (
       <div className="mb-3">
+        <h6>UMAP Configuration</h6>
+
+        {/* UMAP Parameters */}
+        <div className="row mb-3">
+          <div className="col-md-3">
+            <Label for="nNeighbors">Neighbors</Label>
+            <Input
+              type="number"
+              id="nNeighbors"
+              min="2"
+              max="100"
+              value={umapParams.nNeighbors}
+              onChange={(e) =>
+                setUmapParams((prev) => ({
+                  ...prev,
+                  nNeighbors: parseInt(e.target.value),
+                }))
+              }
+            />
+          </div>
+          <div className="col-md-3">
+            <Label for="minDist">Min Distance</Label>
+            <Input
+              type="number"
+              id="minDist"
+              min="0"
+              max="1"
+              step="0.1"
+              value={umapParams.minDist}
+              onChange={(e) =>
+                setUmapParams((prev) => ({
+                  ...prev,
+                  minDist: parseFloat(e.target.value),
+                }))
+              }
+            />
+          </div>
+          <div className="col-md-3">
+            <Label for="spread">Spread</Label>
+            <Input
+              type="number"
+              id="spread"
+              min="0.1"
+              max="3"
+              step="0.1"
+              value={umapParams.spread}
+              onChange={(e) =>
+                setUmapParams((prev) => ({
+                  ...prev,
+                  spread: parseFloat(e.target.value),
+                }))
+              }
+            />
+          </div>
+          <div className="col-md-3">
+            <FormGroup check className="mt-4">
+              <Label check>
+                <Input
+                  type="checkbox"
+                  checked={useRandomSeed}
+                  onChange={() => setUseRandomSeed(!useRandomSeed)}
+                />
+                Use random seed
+              </Label>
+            </FormGroup>
+          </div>
+        </div>
+
+        {/* Feature Selection */}
+        <Label for="featureSearch">Search Features</Label>
+        <Input
+          type="text"
+          id="featureSearch"
+          placeholder="Search features..."
+          value={featureSearch}
+          onChange={(e) => setFeatureSearch(e.target.value)}
+          className="mb-2"
+        />
+
         <Label for="umapFeatureSelect">Select Features for UMAP Analysis</Label>
         <Input
           type="select"
@@ -408,74 +520,139 @@ export default function Visualisation({
           multiple
           value={selectedUmapFeatures}
           onChange={(e) => {
-            const selected = Array.from(e.target.selectedOptions, option => option.value);
+            const selected = Array.from(
+              e.target.selectedOptions,
+              (option) => option.value
+            );
             setSelectedUmapFeatures(selected);
           }}
           style={{ minHeight: '100px' }}
         >
-          {featureOptions.map(option => (
+          {featureOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
         </Input>
         <small className="text-muted">
-          Hold Ctrl/Cmd to select multiple features. UMAP will be computed using only the selected features.
+          Hold Ctrl/Cmd to select multiple features. Leave empty to use all
+          filtered features.
         </small>
+
+        {/* Error Display */}
+        {umapError && (
+          <Alert color="danger" className="mt-3">
+            UMAP Error: {umapError}
+          </Alert>
+        )}
+
+        {/* Recompute Button */}
+        <Button
+          color="primary"
+          onClick={computeUMAP}
+          disabled={isComputingUmap || filteredFeatures.length === 0}
+          className="mt-2"
+        >
+          {isComputingUmap ? (
+            <span>
+              <FontAwesomeIcon icon="sync" spin /> Computing UMAP...
+            </span>
+          ) : (
+            <span>
+              <FontAwesomeIcon icon="play" /> Compute UMAP
+            </span>
+          )}
+        </Button>
       </div>
     );
   };
 
-  // Modify computeUMAP to use selected features
+  // ComputeUMAP to use selected features
   const computeUMAP = useCallback(async () => {
-    setIsComputingUmap(true);
-    try {
-      // Prepare data matrix (patients x features)
-      const dataMatrix = [];
-      for (let patient of sortedPatientIDs) {
-        const patientFeatures = [];
-        // Only use selected features if any are selected, otherwise use all features
-        const featuresToUse = selectedUmapFeatures.length > 0 
-          ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
-          : filteredFeatures;
-        
-        for (let feature of featuresToUse) {
-          const value = feature[patient];
-          patientFeatures.push(value !== undefined && value !== null ? +value : 0);
-        }
-        dataMatrix.push(patientFeatures);
-      }
-
-      // Configure UMAP with better parameters for visualization
-      const umap = new UMAP({
-        nComponents: 2,
-        nNeighbors: Math.min(30, Math.floor(sortedPatientIDs.length / 3)),
-        minDist: 0.3,
-        spread: 1.5,
-        random_state: 42,
-      });
-
-      // Fit and transform
-      const embedding = await umap.fitAsync(dataMatrix);
-      
-      // Format for Highcharts
-      const umapPoints = embedding.map((coords, idx) => ({
-        x: coords[0],
-        y: coords[1],
-        name: sortedPatientIDs[idx],
-        className: sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN',
-      }));
-
-      setUmapData(umapPoints);
-    } catch (error) {
-      console.error('Error computing UMAP:', error);
-    } finally {
+  setIsComputingUmap(true);
+  setUmapError(null);
+  
+  try {
+    // Parameter validation
+    if (umapParams.nNeighbors < 2 || umapParams.nNeighbors > 100) {
+      setUmapError("nNeighbors must be between 2 and 100");
       setIsComputingUmap(false);
+      return;
     }
-  }, [filteredFeatures, sortedPatientIDs, sortedOutcomes, outcomeField, selectedUmapFeatures]);
+
+    console.log("UMAP input data shape:", `${sortedPatientIDs.length} patients x ${selectedUmapFeatures.length > 0 ? selectedUmapFeatures.length : filteredFeatures.length} features`);
+    console.log("UMAP parameters:", umapParams);
+    console.time("UMAP computation");
+
+    // Prepare data matrix (patients x features)
+    const dataMatrix = [];
+    for (let patient of sortedPatientIDs) {
+      const patientFeatures = [];
+      const featuresToUse = selectedUmapFeatures.length > 0 
+        ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
+        : filteredFeatures;
+      
+      for (let feature of featuresToUse) {
+        const value = feature[patient];
+        patientFeatures.push(value !== undefined && value !== null ? +value : 0);
+      }
+      dataMatrix.push(patientFeatures);
+    }
+
+    // Standardize the data
+    const standardizedData = dataMatrix.map(patientFeatures => {
+      const mean = patientFeatures.reduce((a, b) => a + b, 0) / patientFeatures.length;
+      const std = Math.sqrt(patientFeatures.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / patientFeatures.length);
+      return patientFeatures.map(v => (v - mean) / (std || 1));
+    });
+
+    // Use setTimeout to yield control and show loading state
+    setTimeout(async () => {
+      try {
+        // Configure UMAP with validated parameters
+        const umap = new UMAP({
+          nComponents: 2,
+          nNeighbors: Math.min(umapParams.nNeighbors, Math.floor(sortedPatientIDs.length / 3)),
+          minDist: umapParams.minDist,
+          spread: umapParams.spread,
+          random_state: useRandomSeed ? umapParams.randomState : Date.now(),
+        });
+
+        // Fit and transform
+        const embedding = await umap.fitAsync(standardizedData);
+        
+        console.timeEnd("UMAP computation");
+        
+        // Format for Highcharts
+        const umapPoints = embedding.map((coords, idx) => ({
+          x: coords[0],
+          y: coords[1],
+          name: sortedPatientIDs[idx],
+          className: sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN',
+        }));
+
+        setUmapData(umapPoints);
+        setIsComputingUmap(false);
+      } catch (error) {
+        setUmapError(`UMAP computation failed: ${error.message}`);
+        console.error('UMAP error:', error);
+        setIsComputingUmap(false);
+      }
+    }, 100);
+
+  } catch (error) {
+    setUmapError(`UMAP setup failed: ${error.message}`);
+    console.error('UMAP error:', error);
+    setIsComputingUmap(false);
+  }
+}, [filteredFeatures, sortedPatientIDs, sortedOutcomes, outcomeField, selectedUmapFeatures, umapParams, useRandomSeed]);
 
   useEffect(() => {
-    if (visualizationMode === VISUALIZATION_MODES.UMAP && filteredFeatures.length > 0 && sortedPatientIDs.length > 0) {
+    if (
+      visualizationMode === VISUALIZATION_MODES.UMAP &&
+      filteredFeatures.length > 0 &&
+      sortedPatientIDs.length > 0
+    ) {
       computeUMAP();
     }
   }, [visualizationMode, filteredFeatures, sortedPatientIDs, computeUMAP]);
@@ -490,15 +667,16 @@ export default function Visualisation({
   };
 
   const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
-    console.log("Listing out clinincal feature definition in formatClinicalFeaturesTree")
+    console.log(
+      'Listing out clinincal feature definition in formatClinicalFeaturesTree'
+    );
     console.log(clinicalFeaturesDefinitions);
     return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
-      acc[clinicalFeaturesDefinitions[curr]["name"]] = {
-        id: clinicalFeaturesDefinitions[curr]["name"],
-        description: clinicalFeaturesDefinitions[curr]["name"],
-        shortName: clinicalFeaturesDefinitions[curr]["name"],
+      acc[clinicalFeaturesDefinitions[curr]['name']] = {
+        id: clinicalFeaturesDefinitions[curr]['name'],
+        description: clinicalFeaturesDefinitions[curr]['name'],
+        shortName: clinicalFeaturesDefinitions[curr]['name'],
       };
-
 
       return acc;
     }, {});
@@ -666,8 +844,8 @@ export default function Visualisation({
   // Compute selected feature IDs based on the selected leaf items
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
-    
-    console.log("selected in");
+
+    console.log('selected in');
     console.log(selected);
 
     return new Set(
@@ -924,56 +1102,66 @@ export default function Visualisation({
 
     // Clear distinct colors for binary classification
     const classColors = {
-      '0': '#e74c3c',  
-      '1': '#2ecc71',  // 2ecc71
-      'UNKNOWN': '#95a5a6'  // gray for unknown
+      0: '#e74c3c',
+      1: '#2ecc71', // 2ecc71
+      UNKNOWN: '#95a5a6', // gray for unknown
     };
 
     // Group data by class with enhanced styling
     const series = sortedClasses.map((className) => {
-      const points = umapData.filter(point => String(point.className) === String(className));
-      
+      const points = umapData.filter(
+        (point) => String(point.className) === String(className)
+      );
+
       // Calculate density/clustering information
-      const xValues = points.map(p => p.x);
-      const yValues = points.map(p => p.y);
+      const xValues = points.map((p) => p.x);
+      const yValues = points.map((p) => p.y);
       const xMean = xValues.reduce((a, b) => a + b, 0) / xValues.length;
       const yMean = yValues.reduce((a, b) => a + b, 0) / yValues.length;
 
       const color = classColors[String(className)] || classColors.UNKNOWN;
 
       return {
-        name: `Class ${className}${className === '0' ? ' (Negative)' : className === '1' ? ' (Positive)' : ''}`,
-        data: points.map(point => ({
+        name: `Class ${className}${
+          className === '0'
+            ? ' (Negative)'
+            : className === '1'
+            ? ' (Positive)'
+            : ''
+        }`,
+        data: points.map((point) => ({
           x: point.x,
           y: point.y,
           name: point.name,
           className: point.className,
-          color: color,  // Set point color explicitly
+          color: color, // Set point color explicitly
           distanceFromCenter: Math.sqrt(
             Math.pow(point.x - xMean, 2) + Math.pow(point.y - yMean, 2)
-          )
+          ),
         })),
-        color: color,  // Set series color
+        color: color, // Set series color
         marker: {
           symbol: 'circle',
           radius: 6,
           lineWidth: 1,
           lineColor: '#ffffff',
-          fillOpacity: 0.85
+          fillOpacity: 0.85,
         },
-        center: { x: xMean, y: yMean }
+        center: { x: xMean, y: yMean },
       };
     });
 
     // Add cluster centers as separate series
-    const centerSeries = series.map(s => ({
+    const centerSeries = series.map((s) => ({
       name: `${s.name} center`,
       type: 'scatter',
-      data: [{
-        x: s.center.x,
-        y: s.center.y,
-        color: s.color  // Ensure center color matches series color
-      }],
+      data: [
+        {
+          x: s.center.x,
+          y: s.center.y,
+          color: s.color, // Ensure center color matches series color
+        },
+      ],
       marker: {
         symbol: 'diamond',
         radius: 12,
@@ -981,7 +1169,7 @@ export default function Visualisation({
         lineWidth: 2,
         lineColor: '#ffffff',
       },
-      showInLegend: false
+      showInLegend: false,
     }));
 
     return _.merge({}, COMMON_CHART_OPTIONS, {
@@ -991,42 +1179,43 @@ export default function Visualisation({
         zoomType: 'xy',
         backgroundColor: '#ffffff',
         style: {
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-        }
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        },
       },
       title: {
         text: 'UMAP Projection of Radiomics Features',
         style: {
           fontSize: '18px',
-          fontWeight: 'bold'
-        }
+          fontWeight: 'bold',
+        },
       },
       subtitle: {
         text: 'Red: Negative (Class 0) | Green: Positive (Class 1)',
         style: {
           fontSize: '14px',
-          color: '#666'
-        }
+          color: '#666',
+        },
       },
       xAxis: {
         title: {
           text: 'UMAP Dimension 1',
-          style: { fontSize: '14px' }
+          style: { fontSize: '14px' },
         },
         gridLineWidth: 1,
         gridLineColor: '#f0f0f0',
         lineColor: '#d0d0d0',
-        tickColor: '#d0d0d0'
+        tickColor: '#d0d0d0',
       },
       yAxis: {
         title: {
           text: 'UMAP Dimension 2',
-          style: { fontSize: '14px' }
+          style: { fontSize: '14px' },
         },
         gridLineWidth: 1,
         gridLineColor: '#f0f0f0',
         lineColor: '#d0d0d0',
-        tickColor: '#d0d0d0'
+        tickColor: '#d0d0d0',
       },
       legend: {
         layout: 'vertical',
@@ -1038,8 +1227,8 @@ export default function Visualisation({
         shadow: true,
         padding: 12,
         itemStyle: {
-          fontSize: '13px'
-        }
+          fontSize: '13px',
+        },
       },
       plotOptions: {
         scatter: {
@@ -1053,17 +1242,17 @@ export default function Visualisation({
                 enabled: true,
                 lineColor: '#000000',
                 lineWidth: 2,
-                radius: 8
-              }
-            }
+                radius: 8,
+              },
+            },
           },
           states: {
             hover: {
               enabled: true,
-              brightness: 0.2
-            }
-          }
-        }
+              brightness: 0.2,
+            },
+          },
+        },
       },
       tooltip: {
         useHTML: true,
@@ -1077,10 +1266,10 @@ export default function Visualisation({
         footerFormat: '</table>',
         followPointer: true,
         style: {
-          fontSize: '12px'
-        }
+          fontSize: '12px',
+        },
       },
-      series: [...series, ...centerSeries]
+      series: [...series, ...centerSeries],
     });
   }, [umapData, sortedClasses]);
 
@@ -1493,152 +1682,164 @@ export default function Visualisation({
               )}
 
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
-  <>
-    {/* Visualization mode toggle */}
-    <div className="d-flex justify-content-center mb-3">
-      <ButtonGroup>
-        <Button
-          color={visualizationMode === VISUALIZATION_MODES.HEATMAP ? 'primary' : 'secondary'}
-          onClick={() => setVisualizationMode(VISUALIZATION_MODES.HEATMAP)}
-        >
-          <FontAwesomeIcon icon="th" /> Heatmap
-        </Button>
-        <Button
-          color={visualizationMode === VISUALIZATION_MODES.UMAP ? 'primary' : 'secondary'}
-          onClick={() => setVisualizationMode(VISUALIZATION_MODES.UMAP)}
-        >
-          <FontAwesomeIcon icon="chart-scatter" /> UMAP
-        </Button>
-      </ButtonGroup>
-    </div>
+                <>
+                  {/* Visualization mode toggle */}
+                  <div className="d-flex justify-content-center mb-3">
+                    <ButtonGroup>
+                      <Button
+                        color={
+                          visualizationMode === VISUALIZATION_MODES.HEATMAP
+                            ? 'primary'
+                            : 'secondary'
+                        }
+                        onClick={() =>
+                          setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
+                        }
+                      >
+                        <FontAwesomeIcon icon="th" /> Heatmap
+                      </Button>
+                      <Button
+                        color={
+                          visualizationMode === VISUALIZATION_MODES.UMAP
+                            ? 'primary'
+                            : 'secondary'
+                        }
+                        onClick={() =>
+                          setVisualizationMode(VISUALIZATION_MODES.UMAP)
+                        }
+                      >
+                        <FontAwesomeIcon icon="chart-scatter" /> UMAP
+                      </Button>
+                    </ButtonGroup>
+                  </div>
 
-    <div style={{ position: 'relative' }}>
-      {(isRecomputingChart || isComputingUmap) && (
-        <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
-          <FontAwesomeIcon
-            icon="sync"
-            spin
-            color="white"
-            size="4x"
-          />
-        </div>
-      )}
-      
-      {visualizationMode === VISUALIZATION_MODES.HEATMAP ? (
-        <>
-          <div>
-            <ErrorBoundary>
-              <HighchartsReact
-                highcharts={Highcharts}
-                options={highchartsOptionsFeatures}
-                ref={chartRef}
-              />
-            </ErrorBoundary>
-          </div>
-          {selectedLabelCategory && (
-            <ErrorBoundary>
-              <HighchartsReact
-                highcharts={Highcharts}
-                options={highchartsOptionsOutcome}
-              />
-            </ErrorBoundary>
-          )}
-          {selectedLabelCategory &&
-            selectedLabelCategory.label_type ===
-              MODEL_TYPES.SURVIVAL && (
-              <div className="mt-3">
-                <ErrorBoundary>
-                  <HighchartsReact
-                    highcharts={Highcharts}
-                    options={highchartsOptionsSurvival}
-                  />
-                </ErrorBoundary>
-              </div>
-            )}
-        </>
-      ) : (
-        <div>
-          <UmapFeatureSelection />
-          <ErrorBoundary>
-            <HighchartsReact
-              highcharts={Highcharts}
-              options={highchartsOptionsUMAP}
-              ref={umapChartRef}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
-    </div>
-    
-    {/* Show the feature values explanation only for heatmap */}
-    {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
-      <div>
-        <small>
-          * Feature values are standardized and the scale is clipped
-          to [-2, 2]. Extreme values appear either in 100% blue (
-          {'<-2'}) or 100% red ({'>2'}).
-        </small>
-      </div>
-    )}
-    
-    {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
-    <div className="d-flex justify-content-around">
-      <FeatureSelection
-        allFeatures={featuresChart}
-        modelType={selectedLabelCategory?.label_type}
-        leafItems={leafItems}
-        rankFeatures={rankFeatures}
-        setRankFeatures={setRankFeatures}
-        maxNFeatures={maxNFeatures}
-        featureIDs={featureIDs}
-        selected={selected}
-        setSelected={setSelected}
-        keepNFeatures={keepNFeatures}
-        dropCorrelatedFeatures={dropCorrelatedFeatures}
-        nFeatures={nFeatures}
-        setNFeatures={setNFeatures}
-        corrThreshold={corrThreshold}
-        setCorrThreshold={setCorrThreshold}
-        setIsRecomputingChart={setIsRecomputingChart}
-        isRecomputingChart={isRecomputingChart}
-        selectedFeaturesHistory={selectedFeaturesHistory}
-        handleUndo={handleUndo}
-      />
-    </div>
-  </>
-) : (
-  <Alert
-    color="warning"
-    className="m-3"
-    style={{ whiteSpace: 'normal' }}
-  >
-    <p>
-      Number of values ({nbFeatures}) is too high to display
-      chart.
-    </p>
-    <span>
-      Deselect some features on the left in order to reduce the
-      number of data points to display.{' '}
-      {selectedLabelCategory?.label_type && (
-        <span>
-          Or automatically keep{' '}
-          {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
-            ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
-            : `the maximum number of features that can be displayed`}{' '}
-          by clicking{' '}
-          <Button
-            color="link"
-            className="p-0"
-            onClick={handleAutoDeselect}
-          >
-            here
-          </Button>
-          !
-        </span>
-      )}
-    </span>
-  </Alert>
-)}
+                  <div style={{ position: 'relative' }}>
+                    {(isRecomputingChart || isComputingUmap) && (
+                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+                        <FontAwesomeIcon
+                          icon="sync"
+                          spin
+                          color="white"
+                          size="4x"
+                        />
+                      </div>
+                    )}
+
+                    {visualizationMode === VISUALIZATION_MODES.HEATMAP ? (
+                      <>
+                        <div>
+                          <ErrorBoundary>
+                            <HighchartsReact
+                              highcharts={Highcharts}
+                              options={highchartsOptionsFeatures}
+                              ref={chartRef}
+                            />
+                          </ErrorBoundary>
+                        </div>
+                        {selectedLabelCategory && (
+                          <ErrorBoundary>
+                            <HighchartsReact
+                              highcharts={Highcharts}
+                              options={highchartsOptionsOutcome}
+                            />
+                          </ErrorBoundary>
+                        )}
+                        {selectedLabelCategory &&
+                          selectedLabelCategory.label_type ===
+                            MODEL_TYPES.SURVIVAL && (
+                            <div className="mt-3">
+                              <ErrorBoundary>
+                                <HighchartsReact
+                                  highcharts={Highcharts}
+                                  options={highchartsOptionsSurvival}
+                                />
+                              </ErrorBoundary>
+                            </div>
+                          )}
+                      </>
+                    ) : (
+                      <div>
+                        <UmapFeatureSelection />
+                        <ErrorBoundary>
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={highchartsOptionsUMAP}
+                            ref={umapChartRef}
+                          />
+                        </ErrorBoundary>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show the feature values explanation only for heatmap */}
+                  {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
+                    <div>
+                      <small>
+                        * Feature values are standardized and the scale is
+                        clipped to [-2, 2]. Extreme values appear either in 100%
+                        blue ({'<-2'}) or 100% red ({'>2'}).
+                      </small>
+                    </div>
+                  )}
+
+                  {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
+                  <div className="d-flex justify-content-around">
+                    <FeatureSelection
+                      allFeatures={featuresChart}
+                      modelType={selectedLabelCategory?.label_type}
+                      leafItems={leafItems}
+                      rankFeatures={rankFeatures}
+                      setRankFeatures={setRankFeatures}
+                      maxNFeatures={maxNFeatures}
+                      featureIDs={featureIDs}
+                      selected={selected}
+                      setSelected={setSelected}
+                      keepNFeatures={keepNFeatures}
+                      dropCorrelatedFeatures={dropCorrelatedFeatures}
+                      nFeatures={nFeatures}
+                      setNFeatures={setNFeatures}
+                      corrThreshold={corrThreshold}
+                      setCorrThreshold={setCorrThreshold}
+                      setIsRecomputingChart={setIsRecomputingChart}
+                      isRecomputingChart={isRecomputingChart}
+                      selectedFeaturesHistory={selectedFeaturesHistory}
+                      handleUndo={handleUndo}
+                    />
+                  </div>
+                </>
+              ) : (
+                <Alert
+                  color="warning"
+                  className="m-3"
+                  style={{ whiteSpace: 'normal' }}
+                >
+                  <p>
+                    Number of values ({nbFeatures}) is too high to display
+                    chart.
+                  </p>
+                  <span>
+                    Deselect some features on the left in order to reduce the
+                    number of data points to display.{' '}
+                    {selectedLabelCategory?.label_type && (
+                      <span>
+                        Or automatically keep{' '}
+                        {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
+                          ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
+                          : `the maximum number of features that can be displayed`}{' '}
+                        by clicking{' '}
+                        <Button
+                          color="link"
+                          className="p-0"
+                          onClick={handleAutoDeselect}
+                        >
+                          here
+                        </Button>
+                        !
+                      </span>
+                    )}
+                  </span>
+                </Alert>
+              )}
             </td>
           </tr>
         </tbody>
