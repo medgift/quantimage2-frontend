@@ -7,7 +7,7 @@ import React, {
   useCallback,
 } from 'react';
 import Backend from './services/backend';
-import { useHistory, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -19,7 +19,7 @@ import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
-import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
+import { Alert, Button, Form, FormGroup, Input, Label, ButtonGroup } from 'reactstrap';
 import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
@@ -49,6 +49,7 @@ import FeatureSelection, {
 } from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
 import UndoButton from './components/UndoButton';
+import { UMAP } from 'umap-js';
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -56,6 +57,12 @@ HighchartsBoost(Highcharts);
 
 const MAX_DISPLAYED_FEATURES = 200000;
 const DEFAULT_CORRELATION_THRESHOLD = 0.5;
+
+// Visualization modes
+const VISUALIZATION_MODES = {
+  HEATMAP: 'heatmap',
+  UMAP: 'umap'
+};
 
 // Instantiate web worker
 let filterFeaturesWorker;
@@ -109,10 +116,17 @@ export default function Visualisation({
   const { keycloak } = useKeycloak();
 
   // History
-  const history = useHistory();
+  const navigate = useNavigate();
 
   // Init
   const [loading, setLoading] = useState(true);
+
+  // Visualization mode
+  const [visualizationMode, setVisualizationMode] = useState(VISUALIZATION_MODES.HEATMAP);
+
+  // UMAP state
+  const [umapData, setUmapData] = useState(null);
+  const [isComputingUmap, setIsComputingUmap] = useState(false);
 
   // Features
   const [featureIDs, setFeatureIDs] = useState(null);
@@ -153,6 +167,10 @@ export default function Visualisation({
 
   // Chart
   const chartRef = useRef(null);
+  const umapChartRef = useRef(null);
+
+  // Add new state for selected features for UMAP
+  const [selectedUmapFeatures, setSelectedUmapFeatures] = useState([]);
 
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
     if (!featureIDs && !clinicalFeaturesDefinitions) return [];
@@ -363,12 +381,104 @@ export default function Visualisation({
     function handleResize() {
       console.log('Updating chart');
       if (chartRef.current) chartRef.current.chart.update({});
+      if (umapChartRef.current) umapChartRef.current.chart.update({});
     }
 
     window.addEventListener('resize', handleResize);
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Add feature selection component for UMAP
+  const UmapFeatureSelection = () => {
+    const featureOptions = useMemo(() => {
+      if (!filteredFeatures) return [];
+      return filteredFeatures.map(feature => ({
+        value: feature.FeatureID,
+        label: `${feature.FeatureID} (Rank: ${feature.Ranking})`
+      }));
+    }, []);
+
+    return (
+      <div className="mb-3">
+        <Label for="umapFeatureSelect">Select Features for UMAP Analysis</Label>
+        <Input
+          type="select"
+          id="umapFeatureSelect"
+          multiple
+          value={selectedUmapFeatures}
+          onChange={(e) => {
+            const selected = Array.from(e.target.selectedOptions, option => option.value);
+            setSelectedUmapFeatures(selected);
+          }}
+          style={{ minHeight: '100px' }}
+        >
+          {featureOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Input>
+        <small className="text-muted">
+          Hold Ctrl/Cmd to select multiple features. UMAP will be computed using only the selected features.
+        </small>
+      </div>
+    );
+  };
+
+  // Modify computeUMAP to use selected features
+  const computeUMAP = useCallback(async () => {
+    setIsComputingUmap(true);
+    try {
+      // Prepare data matrix (patients x features)
+      const dataMatrix = [];
+      for (let patient of sortedPatientIDs) {
+        const patientFeatures = [];
+        // Only use selected features if any are selected, otherwise use all features
+        const featuresToUse = selectedUmapFeatures.length > 0 
+          ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
+          : filteredFeatures;
+        
+        for (let feature of featuresToUse) {
+          const value = feature[patient];
+          patientFeatures.push(value !== undefined && value !== null ? +value : 0);
+        }
+        dataMatrix.push(patientFeatures);
+      }
+
+      // Configure UMAP with better parameters for visualization
+      const umap = new UMAP({
+        nComponents: 2,
+        nNeighbors: Math.min(30, Math.floor(sortedPatientIDs.length / 3)),
+        minDist: 0.3,
+        spread: 1.5,
+        random_state: 42,
+      });
+
+      // Fit and transform
+      const embedding = await umap.fitAsync(dataMatrix);
+      
+      // Format for Highcharts
+      const umapPoints = embedding.map((coords, idx) => ({
+        x: coords[0],
+        y: coords[1],
+        name: sortedPatientIDs[idx],
+        className: sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN',
+      }));
+
+      setUmapData(umapPoints);
+    } catch (error) {
+      console.error('Error computing UMAP:', error);
+    } finally {
+      setIsComputingUmap(false);
+    }
+  }, [filteredFeatures, sortedPatientIDs, sortedOutcomes, outcomeField, selectedUmapFeatures]);
+
+  useEffect(() => {
+    if (visualizationMode === VISUALIZATION_MODES.UMAP && filteredFeatures.length > 0 && sortedPatientIDs.length > 0) {
+      computeUMAP();
+    }
+  }, [visualizationMode, filteredFeatures, sortedPatientIDs, computeUMAP]);
 
   // Toggle patients modals
   const toggleTrainingPatientsOpen = () => {
@@ -435,10 +545,6 @@ export default function Visualisation({
       groupedTree['Clinical Features [No visualization]'] =
         formatClinicalFeaturesTreeItems(clinicalFeaturesDefinitions);
     }
-    // groupedTree["Clinical Features"] = {
-    //   "Age": {"shortName": "Age", "id": "Age", "description": "Age of the patient"},
-    //   "Gender": {"shortName": "Gender", "id": "Gender", "description": "Gender of the patient"},
-    // }
 
     console.log('groupedTree', groupedTree);
     return groupedTree;
@@ -812,6 +918,172 @@ export default function Visualisation({
     ]
   );
 
+  // UMAP Highcharts options
+  const highchartsOptionsUMAP = useMemo(() => {
+    if (!umapData) return {};
+
+    // Clear distinct colors for binary classification
+    const classColors = {
+      '0': '#e74c3c',  
+      '1': '#2ecc71',  // 2ecc71
+      'UNKNOWN': '#95a5a6'  // gray for unknown
+    };
+
+    // Group data by class with enhanced styling
+    const series = sortedClasses.map((className) => {
+      const points = umapData.filter(point => String(point.className) === String(className));
+      
+      // Calculate density/clustering information
+      const xValues = points.map(p => p.x);
+      const yValues = points.map(p => p.y);
+      const xMean = xValues.reduce((a, b) => a + b, 0) / xValues.length;
+      const yMean = yValues.reduce((a, b) => a + b, 0) / yValues.length;
+
+      const color = classColors[String(className)] || classColors.UNKNOWN;
+
+      return {
+        name: `Class ${className}${className === '0' ? ' (Negative)' : className === '1' ? ' (Positive)' : ''}`,
+        data: points.map(point => ({
+          x: point.x,
+          y: point.y,
+          name: point.name,
+          className: point.className,
+          color: color,  // Set point color explicitly
+          distanceFromCenter: Math.sqrt(
+            Math.pow(point.x - xMean, 2) + Math.pow(point.y - yMean, 2)
+          )
+        })),
+        color: color,  // Set series color
+        marker: {
+          symbol: 'circle',
+          radius: 6,
+          lineWidth: 1,
+          lineColor: '#ffffff',
+          fillOpacity: 0.85
+        },
+        center: { x: xMean, y: yMean }
+      };
+    });
+
+    // Add cluster centers as separate series
+    const centerSeries = series.map(s => ({
+      name: `${s.name} center`,
+      type: 'scatter',
+      data: [{
+        x: s.center.x,
+        y: s.center.y,
+        color: s.color  // Ensure center color matches series color
+      }],
+      marker: {
+        symbol: 'diamond',
+        radius: 12,
+        fillColor: s.color,
+        lineWidth: 2,
+        lineColor: '#ffffff',
+      },
+      showInLegend: false
+    }));
+
+    return _.merge({}, COMMON_CHART_OPTIONS, {
+      chart: {
+        type: 'scatter',
+        height: 600,
+        zoomType: 'xy',
+        backgroundColor: '#ffffff',
+        style: {
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        }
+      },
+      title: {
+        text: 'UMAP Projection of Radiomics Features',
+        style: {
+          fontSize: '18px',
+          fontWeight: 'bold'
+        }
+      },
+      subtitle: {
+        text: 'Red: Negative (Class 0) | Green: Positive (Class 1)',
+        style: {
+          fontSize: '14px',
+          color: '#666'
+        }
+      },
+      xAxis: {
+        title: {
+          text: 'UMAP Dimension 1',
+          style: { fontSize: '14px' }
+        },
+        gridLineWidth: 1,
+        gridLineColor: '#f0f0f0',
+        lineColor: '#d0d0d0',
+        tickColor: '#d0d0d0'
+      },
+      yAxis: {
+        title: {
+          text: 'UMAP Dimension 2',
+          style: { fontSize: '14px' }
+        },
+        gridLineWidth: 1,
+        gridLineColor: '#f0f0f0',
+        lineColor: '#d0d0d0',
+        tickColor: '#d0d0d0'
+      },
+      legend: {
+        layout: 'vertical',
+        align: 'right',
+        verticalAlign: 'middle',
+        borderWidth: 1,
+        borderRadius: 5,
+        backgroundColor: '#ffffff',
+        shadow: true,
+        padding: 12,
+        itemStyle: {
+          fontSize: '13px'
+        }
+      },
+      plotOptions: {
+        scatter: {
+          marker: {
+            radius: 6,
+            lineWidth: 1,
+            lineColor: '#ffffff',
+            fillOpacity: 0.85,
+            states: {
+              hover: {
+                enabled: true,
+                lineColor: '#000000',
+                lineWidth: 2,
+                radius: 8
+              }
+            }
+          },
+          states: {
+            hover: {
+              enabled: true,
+              brightness: 0.2
+            }
+          }
+        }
+      },
+      tooltip: {
+        useHTML: true,
+        headerFormat: '<table>',
+        pointFormat: `
+          <tr><td style="color: {point.color}"><b>Patient:</b></td><td style="text-align: right"><b>{point.name}</b></td></tr>
+          <tr><td style="color: {point.color}">Class:</td><td style="text-align: right">{point.className === "0" ? "Negative (0)" : point.className === "1" ? "Positive (1)" : point.className}</td></tr>
+          <tr><td style="color: {point.color}">UMAP 1:</td><td style="text-align: right">{point.x:.2f}</td></tr>
+          <tr><td style="color: {point.color}">UMAP 2:</td><td style="text-align: right">{point.y:.2f}</td></tr>
+        `,
+        footerFormat: '</table>',
+        followPointer: true,
+        style: {
+          fontSize: '12px'
+        }
+      },
+      series: [...series, ...centerSeries]
+    });
+  }, [umapData, sortedClasses]);
+
   // Define the Highcharts options dynamically (classification outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
     let colors = ['#0b84a5', '#94e3d5', '#666666'];
@@ -1017,29 +1289,6 @@ export default function Visualisation({
     });
   }, [filteredFeatures, leafItems, selected, corrThreshold]);
 
-  // Filter features (drop and/or keep)
-  /*const filterFeatures = useCallback(
-    (drop, keep, threshold, nFeatures) => {
-      setIsRecomputingChart(true);
-
-      if (drop) console.log('Dropping features with threshold', threshold);
-
-      if (keep) console.log('Keeping features with n =', nFeatures);
-
-      filterFeaturesWorker.postMessage({
-        features: featuresChart,
-        leafItems: leafItems,
-        selected: selected,
-        droppedFeatureIDsCorrelation: droppedFeatureIDsCorrelation,
-        drop: drop,
-        keep: keep,
-        corrThreshold: corrThreshold,
-        nFeatures: nFeatures,
-      });
-    },
-    [corrThreshold, featuresChart, leafItems, droppedFeatureIDsCorrelation]
-  );*/
-
   function getPointCategoryName(point, dimension) {
     const series = point.series;
     const isY = dimension === 'y';
@@ -1047,95 +1296,6 @@ export default function Visualisation({
 
     return axis.categories[point[isY ? 'y' : 'x']];
   }
-
-  // Define spec dynamically
-  /*const lasagnaSpec = useMemo(() => {
-    let finalSpec = _.cloneDeep(Lasagna);
-
-    if (!filteredStatus) {
-      finalSpec.vconcat = finalSpec.vconcat.splice(1, 1);
-      return finalSpec;
-    }
-
-    let statusSorted;
-
-    if (selectedLabelCategory) {
-      let modelType = selectedLabelCategory.label_type;
-
-      // Define field to use for outcomes based on the current label type
-      let outcomeField =
-        modelType === MODEL_TYPES.SURVIVAL
-          ? OUTCOME_SURVIVAL_EVENT
-          : OUTCOME_CLASSIFICATION;
-
-      // Define tooltip
-      let tooltipNode = {
-        field: outcomeField,
-        type: 'nominal',
-        title: outcomeField,
-      };
-
-      // Add tooltip
-      // finalSpec.vconcat[0].encoding.tooltip = [
-      //   ...finalSpec.vconcat[0].encoding.tooltip,
-      //   tooltipNode,
-      // ];
-
-      // Custom sort of patients
-      statusSorted = filteredStatus.sort((p1, p2) => {
-        if (modelType === MODEL_TYPES.SURVIVAL) {
-          if (p1[OUTCOME_SURVIVAL_EVENT] > p2[OUTCOME_SURVIVAL_EVENT]) return 1;
-          else if (p1[OUTCOME_SURVIVAL_EVENT] < p2[OUTCOME_SURVIVAL_EVENT])
-            return -1;
-          else if (+p1[OUTCOME_SURVIVAL_TIME] > +p2[OUTCOME_SURVIVAL_TIME])
-            return 1;
-          else if (+p1[OUTCOME_SURVIVAL_TIME] < +p2[OUTCOME_SURVIVAL_TIME])
-            return -1;
-          else return p1.PatientID > p2.PatientID;
-        } else {
-          if (p1[outcomeField] > p2[outcomeField]) return 1;
-          else if (p1[outcomeField] < p2[outcomeField]) return -1;
-          else return p1.PatientID > p2.PatientID;
-        }
-      });
-
-      // Update patient labels at the bottom
-      finalSpec.vconcat[1].encoding.color.field = outcomeField;
-
-      // Custom color scheme (for UNKNOWN and then others)
-      finalSpec.vconcat[1].encoding.color.scale.domain = [
-        ...new Set(filteredStatus.map((p) => p[outcomeField])),
-      ];
-      finalSpec.vconcat[1].encoding.color.scale.range = [
-        '#f25a38',
-        '#59c26e',
-        '#cccccc',
-      ];
-
-      // Survival, add also time below Event & remove x axis title for the Event
-      if (outcomeField === OUTCOME_SURVIVAL_EVENT) {
-        finalSpec.vconcat[1].encoding.x.title = false;
-        finalSpec.vconcat[2] = { ...lasagnaSurvivalTimeChart };
-      }
-    } else {
-      // No active outcome - Don't show the second chart
-      finalSpec.vconcat.splice(1, 1);
-      statusSorted = filteredStatus.sort(
-        (p1, p2) => p1.PatientID > p2.PatientID
-      );
-    }
-
-    let patientIDsSorted = statusSorted.map((p) => p.PatientID);
-
-    for (let chart of finalSpec.vconcat) {
-      chart.encoding.x.sort = patientIDsSorted;
-    }
-
-    if (rankFeatures) finalSpec.vconcat[0].encoding.y.field = 'Ranking';
-    else finalSpec.vconcat[0].encoding.y.field = 'FeatureID';
-
-    return finalSpec;
-  }, [selectedLabelCategory, filteredStatus, rankFeatures]);*/
 
   const handleCreateCollectionClick = () => {
     console.log(
@@ -1179,7 +1339,7 @@ export default function Visualisation({
 
     setHasPendingChanges(false);
 
-    history.push(
+    navigate(
       `/features/${albumID}/collection/${newCollection.collection.id}/visualize`
     );
   };
@@ -1333,112 +1493,152 @@ export default function Visualisation({
               )}
 
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
-                <>
-                  <div style={{ position: 'relative' }}>
-                    {isRecomputingChart && (
-                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
-                        <FontAwesomeIcon
-                          icon="sync"
-                          spin
-                          color="white"
-                          size="4x"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <ErrorBoundary>
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={highchartsOptionsFeatures}
-                          ref={chartRef}
-                        />
-                      </ErrorBoundary>
-                    </div>
-                    {selectedLabelCategory && (
-                      <ErrorBoundary>
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={highchartsOptionsOutcome}
-                        />
-                      </ErrorBoundary>
-                    )}
-                    {selectedLabelCategory &&
-                      selectedLabelCategory.label_type ===
-                        MODEL_TYPES.SURVIVAL && (
-                        <div className="mt-3">
-                          <ErrorBoundary>
-                            <HighchartsReact
-                              highcharts={Highcharts}
-                              options={highchartsOptionsSurvival}
-                            />
-                          </ErrorBoundary>
-                        </div>
-                      )}
-                  </div>
-                  <div>
-                    <small>
-                      * Feature values are standardized and the scale is clipped
-                      to [-2, 2]. Extreme values appear either in 100% blue (
-                      {'<-2'}) or 100% red ({'>2'}).
-                    </small>
-                  </div>
-                  <div className="d-flex justify-content-around">
-                    <FeatureSelection
-                      allFeatures={featuresChart}
-                      modelType={selectedLabelCategory?.label_type}
-                      leafItems={leafItems}
-                      rankFeatures={rankFeatures}
-                      setRankFeatures={setRankFeatures}
-                      maxNFeatures={maxNFeatures}
-                      featureIDs={featureIDs}
-                      selected={selected}
-                      setSelected={setSelected}
-                      keepNFeatures={keepNFeatures}
-                      dropCorrelatedFeatures={dropCorrelatedFeatures}
-                      nFeatures={nFeatures}
-                      setNFeatures={setNFeatures}
-                      corrThreshold={corrThreshold}
-                      setCorrThreshold={setCorrThreshold}
-                      setIsRecomputingChart={setIsRecomputingChart}
-                      isRecomputingChart={isRecomputingChart}
-                      selectedFeaturesHistory={selectedFeaturesHistory}
-                      handleUndo={handleUndo}
-                    />
-                  </div>
-                </>
-              ) : (
-                <Alert
-                  color="warning"
-                  className="m-3"
-                  style={{ whiteSpace: 'normal' }}
-                >
-                  <p>
-                    Number of values ({nbFeatures}) is too high to display
-                    chart.
-                  </p>
-                  <span>
-                    Deselect some features on the left in order to reduce the
-                    number of data points to display.{' '}
-                    {selectedLabelCategory?.label_type && (
-                      <span>
-                        Or automatically keep{' '}
-                        {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
-                          ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
-                          : `the maximum number of features that can be displayed`}{' '}
-                        by clicking{' '}
-                        <Button
-                          color="link"
-                          className="p-0"
-                          onClick={handleAutoDeselect}
-                        >
-                          here
-                        </Button>
-                        !
-                      </span>
-                    )}
-                  </span>
-                </Alert>
-              )}
+  <>
+    {/* Visualization mode toggle */}
+    <div className="d-flex justify-content-center mb-3">
+      <ButtonGroup>
+        <Button
+          color={visualizationMode === VISUALIZATION_MODES.HEATMAP ? 'primary' : 'secondary'}
+          onClick={() => setVisualizationMode(VISUALIZATION_MODES.HEATMAP)}
+        >
+          <FontAwesomeIcon icon="th" /> Heatmap
+        </Button>
+        <Button
+          color={visualizationMode === VISUALIZATION_MODES.UMAP ? 'primary' : 'secondary'}
+          onClick={() => setVisualizationMode(VISUALIZATION_MODES.UMAP)}
+        >
+          <FontAwesomeIcon icon="chart-scatter" /> UMAP
+        </Button>
+      </ButtonGroup>
+    </div>
+
+    <div style={{ position: 'relative' }}>
+      {(isRecomputingChart || isComputingUmap) && (
+        <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+          <FontAwesomeIcon
+            icon="sync"
+            spin
+            color="white"
+            size="4x"
+          />
+        </div>
+      )}
+      
+      {visualizationMode === VISUALIZATION_MODES.HEATMAP ? (
+        <>
+          <div>
+            <ErrorBoundary>
+              <HighchartsReact
+                highcharts={Highcharts}
+                options={highchartsOptionsFeatures}
+                ref={chartRef}
+              />
+            </ErrorBoundary>
+          </div>
+          {selectedLabelCategory && (
+            <ErrorBoundary>
+              <HighchartsReact
+                highcharts={Highcharts}
+                options={highchartsOptionsOutcome}
+              />
+            </ErrorBoundary>
+          )}
+          {selectedLabelCategory &&
+            selectedLabelCategory.label_type ===
+              MODEL_TYPES.SURVIVAL && (
+              <div className="mt-3">
+                <ErrorBoundary>
+                  <HighchartsReact
+                    highcharts={Highcharts}
+                    options={highchartsOptionsSurvival}
+                  />
+                </ErrorBoundary>
+              </div>
+            )}
+        </>
+      ) : (
+        <div>
+          <UmapFeatureSelection />
+          <ErrorBoundary>
+            <HighchartsReact
+              highcharts={Highcharts}
+              options={highchartsOptionsUMAP}
+              ref={umapChartRef}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
+    </div>
+    
+    {/* Show the feature values explanation only for heatmap */}
+    {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
+      <div>
+        <small>
+          * Feature values are standardized and the scale is clipped
+          to [-2, 2]. Extreme values appear either in 100% blue (
+          {'<-2'}) or 100% red ({'>2'}).
+        </small>
+      </div>
+    )}
+    
+    {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
+    <div className="d-flex justify-content-around">
+      <FeatureSelection
+        allFeatures={featuresChart}
+        modelType={selectedLabelCategory?.label_type}
+        leafItems={leafItems}
+        rankFeatures={rankFeatures}
+        setRankFeatures={setRankFeatures}
+        maxNFeatures={maxNFeatures}
+        featureIDs={featureIDs}
+        selected={selected}
+        setSelected={setSelected}
+        keepNFeatures={keepNFeatures}
+        dropCorrelatedFeatures={dropCorrelatedFeatures}
+        nFeatures={nFeatures}
+        setNFeatures={setNFeatures}
+        corrThreshold={corrThreshold}
+        setCorrThreshold={setCorrThreshold}
+        setIsRecomputingChart={setIsRecomputingChart}
+        isRecomputingChart={isRecomputingChart}
+        selectedFeaturesHistory={selectedFeaturesHistory}
+        handleUndo={handleUndo}
+      />
+    </div>
+  </>
+) : (
+  <Alert
+    color="warning"
+    className="m-3"
+    style={{ whiteSpace: 'normal' }}
+  >
+    <p>
+      Number of values ({nbFeatures}) is too high to display
+      chart.
+    </p>
+    <span>
+      Deselect some features on the left in order to reduce the
+      number of data points to display.{' '}
+      {selectedLabelCategory?.label_type && (
+        <span>
+          Or automatically keep{' '}
+          {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
+            ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
+            : `the maximum number of features that can be displayed`}{' '}
+          by clicking{' '}
+          <Button
+            color="link"
+            className="p-0"
+            onClick={handleAutoDeselect}
+          >
+            here
+          </Button>
+          !
+        </span>
+      )}
+    </span>
+  </Alert>
+)}
             </td>
           </tr>
         </tbody>
@@ -1548,9 +1748,7 @@ function getNodeAndAllChildrenIDs(node, nodeIDs) {
     for (let child of node.children) {
       getNodeAndAllChildrenIDs(child, nodeIDs);
     }
-  } /*else {
-    nodeIDs.push(node.id); // Don't include intermediate nodes (which have children)
-  }*/
+  }
 
   return nodeIDs;
 }

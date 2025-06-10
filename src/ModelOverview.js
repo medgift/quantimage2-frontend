@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button, Alert } from 'reactstrap';
 import { saveAs } from 'file-saver';
@@ -13,7 +13,7 @@ import {
 } from './config/constants';
 
 export default function ModelOverview({ albums }) {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const { keycloak } = useKeycloak();
 
@@ -65,10 +65,10 @@ export default function ModelOverview({ albums }) {
   // };
 
   
-  const modelIDColumn =   {
+  const modelIDColumn = useMemo(() => ({
     Header: 'Model ID',
     accessor: (r) => r.id,
-  };
+  }), []);
 
   // Model table header
   const columnsClassification = React.useMemo(
@@ -220,8 +220,8 @@ export default function ModelOverview({ albums }) {
         >
           <Button
             color="link"
-            onClick={() => history.push(`/features/${albumID}/overview`)}
-          >
+            onClick={() => navigate(`/features/${albumID}/overview`)}
+            >
             <FontAwesomeIcon icon="arrow-left" /> Go Back
           </Button>
 

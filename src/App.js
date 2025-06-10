@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { Switch, Route, withRouter, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom'; // Changed imports
 import Home from './Home';
 import NoMatch from './NoMatch';
-import { PropsRoute } from './utils/PropsRoute';
+// Remove PropsRoute import - not needed anymore
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
 import Profile from './Profile';
 import Footer from './Footer';
@@ -18,9 +18,8 @@ import {
 } from './config/constants';
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
-import { PrivateRoute } from './utils/PrivateRoute';
+import { ProtectedRoute } from './utils/ProtectedRoute'; // Renamed from PrivateRoute
 import Dashboard from './Dashboard';
-
 import Backend from './services/backend';
 import ModelOverview from './ModelOverview';
 
@@ -33,7 +32,6 @@ function App({ setUser, setIsAdmin }) {
   const [kheopsError, setKheopsError] = useState(false);
 
   const { keycloak, initialized } = useKeycloak();
-
   const location = useLocation();
 
   // Log location changes
@@ -94,57 +92,69 @@ function App({ setUser, setIsAdmin }) {
         <div className="App">
           {keycloak.authenticated && <Header onLogout={handleLogout} />}
           <main className="App-content">
-            <Switch>
-              <PropsRoute exact path="/" component={Home} />
-              <PrivateRoute
-                path="/dashboard"
-                component={Dashboard}
-                dataFetched={dataFetched}
-                kheopsError={kheopsError}
-                albums={albums}
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <Dashboard 
+                    dataFetched={dataFetched}
+                    kheopsError={kheopsError}
+                    albums={albums}
+                  />
+                } 
               />
-              <PrivateRoute
-                path={[
-                  '/features/:albumID/:tab',
-                  '/features/:albumID/collection/:collectionID/:tab',
-                ]}
-                exact
-                component={Features}
-                kheopsError={kheopsError}
+              <Route
+                path="/features/:albumID/:tab"
+                element={<Features kheopsError={kheopsError} />}
               />
-              <PrivateRoute
+              <Route
+                path="/features/:albumID/collection/:collectionID/:tab"
+                element={<Features kheopsError={kheopsError} />}
+              />
+              <Route
                 path="/models/:albumID"
-                exact
-                component={ModelOverview}
-                albums={albums}
-                kheopsError={kheopsError}
+                element={
+                  <ModelOverview 
+                    albums={albums}
+                    kheopsError={kheopsError}
+                  />
+                }
               />
-              <PrivateRoute
+              <Route
                 path="/study/:studyUID"
-                component={Study}
-                kheopsError={kheopsError}
+                element={<Study kheopsError={kheopsError} />}
               />
-              <PrivateRoute path="/profile" component={Profile} />
-              <PrivateRoute
+              <Route path="/profile" element={<Profile />} />
+              <Route
                 path="/feature-presets"
-                exact
-                component={FeaturePresets}
+                element={
+                  <ProtectedRoute>
+                    <FeaturePresets />
+                  </ProtectedRoute>
+                }
                 adminOnly={true}
               />
-              <PrivateRoute
+              <Route
                 path="/feature-presets/create"
-                exact
-                component={FeaturePresetCreate}
+                element={
+                  <ProtectedRoute>
+                    <FeaturePresetCreate />
+                  </ProtectedRoute>
+                }
                 adminOnly={true}
               />
-              <PrivateRoute
+              <Route
                 path="/feature-presets/edit/:featurePresetID"
-                exact
-                component={FeaturePresetCreate}
+                element={
+                  <ProtectedRoute>
+                    <FeaturePresetCreate />
+                  </ProtectedRoute>
+                }
                 adminOnly={true}
               />
-              <Route component={NoMatch} />
-            </Switch>
+              <Route path="*" element={<NoMatch />} />
+            </Routes>
           </main>
           {keycloak.authenticated && <Footer />}
         </div>
@@ -159,4 +169,4 @@ function App({ setUser, setIsAdmin }) {
   );
 }
 
-export default withRouter(App);
+export default App;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Prompt } from 'react-router-dom';
 import fileDownload from 'js-file-download';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import Backend from './services/backend';
 import {
   Badge,
@@ -53,8 +54,9 @@ import DataSplitting from './DataSplitting';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
 import useExitPrompt from './utils/useExitPrompt';
 
-function Features({ history }) {
+function Features() {
   const { keycloak } = useKeycloak();
+  const navigate = useNavigate();
 
   // Check if the user is an "alternative" user, i.e. with no visualization features
   const isAlternativeUser = useMemo(
@@ -508,9 +510,9 @@ function Features({ history }) {
   // Toggle active
   const toggle = (newTab) => {
     if (newTab !== tab) {
-      if (!collectionID) history.push(`/features/${albumID}/${newTab}`);
+      if (!collectionID) navigate(`/features/${albumID}/${newTab}`);
       else
-        history.push(
+        navigate(
           `/features/${albumID}/collection/${collectionID}/${newTab}`
         );
     }
@@ -633,7 +635,7 @@ function Features({ history }) {
       return collections;
     });
 
-    history.push(`/features/${albumID}/overview`);
+    navigate(`/features/${albumID}/overview`);
   };
 
   // Print modalities
@@ -801,8 +803,8 @@ function Features({ history }) {
               <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
               <Button
                 color="link"
-                onClick={() => history.push(`/models/${albumID}`)}
-              >
+                onClick={() => navigate(`/models/${albumID}`)}
+                >
                 <FontAwesomeIcon icon="table" /> See All Models
               </Button>
             </div>
@@ -1240,32 +1242,7 @@ function Features({ history }) {
           <Spinner />
         </div>
       )}
-      <Prompt
-        message={(location, action) => {
-          let movingAway = false;
-
-          console.log('location', location);
-          console.log('action', action);
-
-          if (
-            collectionID &&
-            !location.pathname.match(
-              `/features/${albumID}/collection/${collectionID}/.*`
-            )
-          )
-            movingAway = true;
-
-          if (
-            !collectionID &&
-            !location.pathname.match(`/features/${albumID}/(?!collection).*`)
-          )
-            movingAway = true;
-
-          return movingAway && hasPendingChanges
-            ? 'You have unsaved changes to the selected features, are you sure you want to leave and lose these changes?'
-            : true;
-        }}
-      />
+      
     </>
   );
 }
