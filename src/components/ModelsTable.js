@@ -9,6 +9,8 @@ import {
   Badge,
 } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
@@ -750,15 +752,18 @@ export default function ModelsTable({
 
                         {/* Actions */}
                         <div className="model-actions">
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() =>
-                              handleDeleteModelClick(row.original.id)
-                            }
-                          >
-                            <FontAwesomeIcon icon="trash" /> Delete Model
-                          </Button>
+                        <Button
+  size="sm"
+  color="danger"
+  onClick={() =>
+    handleDeleteModelClick(row.original.id)
+  }
+  className="ms-2"
+  title="Delete this model permanently"
+>
+  <FontAwesomeIcon icon={faTrash} />{' '}
+  Delete
+</Button>
                         </div>
                       </div>
                     </Collapse>
