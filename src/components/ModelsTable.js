@@ -576,7 +576,6 @@ export default function ModelsTable({
                             <div className="config-cards">
                               <div className="config-card">
                                 <div className="config-card-header">
-                                  <FontAwesomeIcon icon="info-circle" />
                                   <span>Model Info</span>
                                 </div>
                                 <div className="config-items">
@@ -650,7 +649,6 @@ export default function ModelsTable({
 
                               <div className="config-card">
                                 <div className="config-card-header">
-                                  <FontAwesomeIcon icon="check-double" />
                                   <span>Validation</span>
                                 </div>
                                 <div className="config-items">
@@ -698,7 +696,7 @@ export default function ModelsTable({
                                       Training
                                     </span>
                                     <span className="config-value">
-                                      <Badge color="primary">
+                                      <Badge color="secondary">
                                         {
                                           row.original.training_patient_ids
                                             .length
@@ -715,7 +713,7 @@ export default function ModelsTable({
                                         }}
                                         className="p-0 ms-2"
                                       >
-                                        IDs
+                                        View
                                       </Button>
                                     </span>
                                   </div>
@@ -724,7 +722,7 @@ export default function ModelsTable({
                                     <div className="config-item">
                                       <span className="config-label">Test</span>
                                       <span className="config-value">
-                                        <Badge color="success">
+                                        <Badge color="secondary">
                                           {row.original.test_patient_ids.length}
                                         </Badge>
                                         <Button
@@ -738,7 +736,7 @@ export default function ModelsTable({
                                           }}
                                           className="p-0 ms-2"
                                         >
-                                          IDs
+                                          View
                                         </Button>
                                       </span>
                                     </div>
