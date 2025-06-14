@@ -16,17 +16,15 @@ export default function ModelOverview({ albums }) {
   const navigate = useNavigate();
 
   const { keycloak } = useKeycloak();
-
   const [featureExtractionID, setFeatureExtractionID] = useState(null);
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
-  const [plotTestModelsValue, setPlotTestModelsValue] = useState('');
-  const [plotTrainModelsValue, setPlotTrainModelsValue] = useState('');
-  const [isPlotModelCorrect, setIsPlotModelCorrect] = useState(true);
-  const [isPlotModelCorrectMessage, setIsPlotModelCorrectMessage] = useState("");
+  const [selectedModels, setSelectedModels] = useState([]);
+  const [plotType, setPlotType] = useState('test');
+  const [plotError, setPlotError] = useState(null);
+  const [isPlotting, setIsPlotting] = useState(false);
 
   const { albumID } = useParams();
-
   const collectionColumn = useMemo(
     () => ({
       Header: 'Collection',
@@ -41,34 +39,10 @@ export default function ModelOverview({ albums }) {
     [collections]
   );
 
-  // const CheckboxCell = ({ value, onChange, row }) => {
-  //   const [isChecked, setIsChecked] = useState(false); // Initial checkbox state
-  
-  //   const handleChange = (event) => {
-  //     setIsChecked(event.target.checked);
-  //     // Pass the updated state (row data and checkbox value) to the onChange callback
-  //     onChange?.(row.original, event.target.checked);
-  //   };
-  
-  //   return (
-  //     <div>
-  //       <input
-  //         type="checkbox"
-  //         checked={isChecked}
-  //         onChange={handleChange}
-  //       />
-  //       {/* Optionally display the value next to the checkbox */}
-  //       {value}
-  //     </div>
-  //   );
-  // };
-
-  
   const modelIDColumn = useMemo(() => ({
     Header: 'Model ID',
     accessor: (r) => r.id,
   }), []);
-
   // Model table header
   const columnsClassification = React.useMemo(
     () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
@@ -132,77 +106,46 @@ export default function ModelOverview({ albums }) {
   }, [albumID, keycloak.token]);
 
   const album = albums.find((a) => a.album_id === albumID);
-
   const handleDeleteModelClick = async (id) => {
     await Backend.deleteModel(keycloak.token, id);
     setModels(models.filter((model) => model.id !== id));
+    // Remove from selection if it was selected
+    setSelectedModels(selectedModels.filter(modelId => modelId !== id));
   };
 
-  const handlePlotTestModelsChange = (event) => {
-    setPlotTestModelsValue(event.target.value);
+  const handleModelSelectionChange = (newSelectedModels) => {
+    setSelectedModels(newSelectedModels);
+    setPlotError(null); // Clear any previous errors when selection changes
   };
 
-  const handlePlotTestModels = async () => {
-    const modelIds = models.map((item) => item.id);
-    
-    if (plotTestModelsValue != null) {
-      let plotModelsArray = plotTestModelsValue.split(",").filter(Number).map(Number);
-      
-      if (plotModelsArray.length !== plotTestModelsValue.split(",").length) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
-      } else if (plotModelsArray.length === 0) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Please provide at least one model ID");
-      } else {
-        // Check if all provided model IDs exist
-        const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
-        if (invalidModels.length > 0) {
-          setIsPlotModelCorrect(false);
-          setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
-        } else {
-          setIsPlotModelCorrect(true);
-          let { filename, content } = await Backend.plotTestPredictions(
-            keycloak.token,
-            plotModelsArray
-          );
-          saveAs(content, filename);
-        }
-      }
+  const handlePlotModels = async () => {
+    if (selectedModels.length === 0) {
+      setPlotError("Please select at least one model to plot");
+      return;
     }
-  };
 
-  const handlePlotTrainModelsChange = (event) => {
-    setPlotTrainModelsValue(event.target.value);
-  };
+    if (selectedModels.length > 5) {
+      setPlotError("Please select no more than 5 models for better visualization");
+      return;
+    }
 
-  const handlePlotTrainModels = async () => {
-    const modelIds = models.map((item) => item.id);
-    
-    if (plotTrainModelsValue != null) {
-      let plotModelsArray = plotTrainModelsValue.split(",").filter(Number).map(Number);
-      
-      if (plotModelsArray.length !== plotTrainModelsValue.split(",").length) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
-      } else if (plotModelsArray.length === 0) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Please provide at least one model ID");
+    setIsPlotting(true);
+    setPlotError(null);
+
+    try {
+      let result;
+      if (plotType === 'test') {
+        result = await Backend.plotTestPredictions(keycloak.token, selectedModels);
       } else {
-        // Check if all provided model IDs exist
-        const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
-        if (invalidModels.length > 0) {
-          setIsPlotModelCorrect(false);
-          setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
-        } else {
-          setIsPlotModelCorrect(true);
-          let { filename, content } = await Backend.plotTrainPredictions(
-            keycloak.token,
-            plotModelsArray
-          );
-          saveAs(content, filename);
-        }
+        result = await Backend.plotTrainPredictions(keycloak.token, selectedModels);
       }
+      
+      const { filename, content } = result;
+      saveAs(content, filename);
+    } catch (error) {
+      setPlotError(`Failed to generate plot: ${error.message}`);
+    } finally {
+      setIsPlotting(false);
     }
   };
 
@@ -221,9 +164,7 @@ export default function ModelOverview({ albums }) {
             onClick={() => navigate(`/features/${albumID}/overview`)}
             >
             <FontAwesomeIcon icon="arrow-left" /> Go Back
-          </Button>
-
-          {models.length > 0 ? (
+          </Button>          {models.length > 0 ? (
             <div style={{ width: '98%' }}>
               <ModelsTable
                 title="Classification Models"
@@ -233,6 +174,9 @@ export default function ModelOverview({ albums }) {
                 )}
                 handleDeleteModelClick={handleDeleteModelClick}
                 showComparisonButtons={true}
+                selectedModels={selectedModels}
+                onModelSelectionChange={handleModelSelectionChange}
+                showSelection={true}
               />
               <ModelsTable
                 title="Survival Models"
@@ -240,55 +184,90 @@ export default function ModelOverview({ albums }) {
                 data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
                 handleDeleteModelClick={handleDeleteModelClick}
                 showComparisonButtons={true}
+                selectedModels={selectedModels}
+                onModelSelectionChange={handleModelSelectionChange}
+                showSelection={true}
               />
-              <div style={{ marginTop: '20px' }}>
-                <input
-                  type="text"
-                  value={plotTestModelsValue}
-                  placeholder="Enter 1 or 2 Model IDs (e.g. 1,2)"
-                  onChange={handlePlotTestModelsChange}
-                  style={{ 
-                    marginRight: '10px',
-                    width: '300px',
-                    padding: '5px'
-                  }}
-                />
-                <Button
-                  color="primary"
-                  onClick={handlePlotTestModels}
-                >
-                  <FontAwesomeIcon icon="chart-line" /> Plot Model Test Predictions
-                </Button>
-                {!isPlotModelCorrect && (
-                  <Alert color="danger" style={{ marginTop: '10px' }}>
-                    {isPlotModelCorrectMessage}
-                  </Alert>
-                )}
-              </div>
-              <div style={{ marginTop: '20px' }}>
-                <input
-                  type="text"
-                  value={plotTrainModelsValue}
-                  placeholder="Enter 1 or 2 Model IDs (e.g. 1,2)"
-                  onChange={handlePlotTrainModelsChange}
-                  style={{ 
-                    marginRight: '10px',
-                    width: '300px',
-                    padding: '5px'
-                  }}
-                />
-                <Button
-                  color="primary"
-                  onClick={handlePlotTrainModels}
-                >
-                  <FontAwesomeIcon icon="chart-line" /> Plot Model Train Predictions
-                </Button>
-                {!isPlotModelCorrect && (
-                  <Alert color="danger" style={{ marginTop: '10px' }}>
-                    {isPlotModelCorrectMessage}
-                  </Alert>
-                )}
-              </div>
+              
+              {/* Unified Plotting Interface */}
+              {selectedModels.length > 0 && (
+                <div style={{ 
+                  marginTop: '30px', 
+                  padding: '20px', 
+                  border: '1px solid #dee2e6', 
+                  borderRadius: '8px',
+                  backgroundColor: '#f8f9fa'
+                }}>
+                  <h5 style={{ marginBottom: '15px', color: '#495057' }}>
+                    <FontAwesomeIcon icon="chart-line" className="me-2" />
+                    Plot Selected Models ({selectedModels.length} selected)
+                  </h5>
+                  
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ marginRight: '15px', fontWeight: 'bold' }}>Plot Type:</label>
+                    <label style={{ marginRight: '15px', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="test"
+                        checked={plotType === 'test'}
+                        onChange={(e) => setPlotType(e.target.value)}
+                        style={{ marginRight: '5px' }}
+                      />
+                      Test Predictions
+                    </label>
+                    <label style={{ cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        value="train"
+                        checked={plotType === 'train'}
+                        onChange={(e) => setPlotType(e.target.value)}
+                        style={{ marginRight: '5px' }}
+                      />
+                      Training Predictions
+                    </label>
+                  </div>
+                  
+                  <div style={{ marginBottom: '15px' }}>
+                    <Button
+                      color="primary"
+                      onClick={handlePlotModels}
+                      disabled={isPlotting || selectedModels.length === 0}
+                      style={{ marginRight: '10px' }}
+                    >
+                      {isPlotting ? (
+                        <>
+                          <FontAwesomeIcon icon="spinner" spin className="me-2" />
+                          Generating Plot...
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon="chart-line" className="me-2" />
+                          Generate {plotType === 'test' ? 'Test' : 'Training'} Plot
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      color="secondary"
+                      onClick={() => setSelectedModels([])}
+                      disabled={isPlotting}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                  
+                  {plotError && (
+                    <Alert color="danger" style={{ marginBottom: '10px' }}>
+                      {plotError}
+                    </Alert>
+                  )}
+                  
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>
+                    <FontAwesomeIcon icon="info-circle" className="me-1" />
+                    Select up to 5 models using the checkboxes above, then choose plot type and generate visualization.
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <h2 className="align-self-stretch">No Models Created Yet</h2>
