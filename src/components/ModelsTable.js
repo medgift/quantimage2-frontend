@@ -14,7 +14,6 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
-import { formatMetric } from '../utils/feature-utils';
 import { saveAs } from 'file-saver';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
@@ -44,19 +43,6 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
     },
   };
 
-  // Function to determine color based on comparison
-  const getComparisonClass = (value1, value2, isFirst) => {
-    const diff = Math.abs(value1 - value2);
-    // If difference is less than 0.001, consider them equal
-    if (diff < 0.001) return 'equal';
-
-    if (isFirst) {
-      return value1 > value2 ? 'higher' : 'lower';
-    } else {
-      return value2 > value1 ? 'higher' : 'lower';
-    }
-  };
-
   return (
     <div className="metrics-modern-container">
       <div className="metrics-grid-modern">
@@ -65,10 +51,20 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
           const trainMetric = trainingMetrics[metricKey];
           const testMetric = testMetrics?.[metricKey];
 
-          if (!trainMetric && !testMetric) return null;
-
-          const trainValue = trainMetric?.mean || trainMetric?.value || 0;
-          const testValue = testMetric?.mean || testMetric?.value || 0;
+          if (!trainMetric && !testMetric) return null;          const trainValue = trainMetric?.mean || trainMetric?.value || 0;
+          const testValue = testMetric?.mean || testMetric?.value || 0;          // Format value with range for AUC
+          const formatValueWithRange = (metric, value) => {
+            if (metricKey === 'auc' && metric) {
+              // Use inf_value and sup_value for confidence intervals
+              const lowerCI = metric.inf_value;
+              const upperCI = metric.sup_value;
+              
+              if (lowerCI !== undefined && upperCI !== undefined) {
+                return `${value.toFixed(3)} [${lowerCI.toFixed(3)}-${upperCI.toFixed(3)}]`;
+              }
+            }
+            return value.toFixed(3);
+          };
 
           return (
             <div key={metricKey} className="metric-tile">
@@ -81,28 +77,16 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
               </div>
 
               <div className="metric-values-compact">
-                <div
-                  className={`metric-value-item ${
-                    showTest && testMetric
-                      ? getComparisonClass(trainValue, testValue, true)
-                      : ''
-                  }`}
-                >
-                  <span className="value">{trainValue.toFixed(3)}</span>
+                <div className="metric-value-item">
+                  <span className="value">{formatValueWithRange(trainMetric, trainValue)}</span>
                   <span className="label">Train</span>
                 </div>
 
                 {showTest && testMetric && (
                   <>
                     <div className="metric-separator"></div>
-                    <div
-                      className={`metric-value-item ${getComparisonClass(
-                        trainValue,
-                        testValue,
-                        false
-                      )}`}
-                    >
-                      <span className="value">{testValue.toFixed(3)}</span>
+                    <div className="metric-value-item">
+                      <span className="value">{formatValueWithRange(testMetric, testValue)}</span>
                       <span className="label">Test</span>
                     </div>
                   </>
@@ -139,6 +123,9 @@ export default function ModelsTable({
   data,
   handleDeleteModelClick,
   showComparisonButtons = false,
+  selectedModels = [],
+  onModelSelectionChange,
+  showSelection = false,
 }) {
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
@@ -198,11 +185,11 @@ export default function ModelsTable({
 
     saveAs(content, filename);
   };
-
-  const formatMetrics = (metrics, mode) => {
-    // This function is not used with the new design
-    return null;
-  };
+  // Create columns with optional checkbox column
+  const columnsWithSelection = React.useMemo(() => {
+    // We're rendering the checkbox column manually, so just return the original columns
+    return columns;
+  }, [columns]);
 
   const {
     flatHeaders,
@@ -214,7 +201,7 @@ export default function ModelsTable({
     prepareRow,
   } = useTable(
     {
-      columns,
+      columns: columnsWithSelection,
       data,
       initialState: {
         sortBy: [{ id: 'created_at', desc: true }],
@@ -237,67 +224,6 @@ export default function ModelsTable({
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
   };
 
-  const generateNbObservations = (row) => {
-    let isTrainTest =
-      row.original.data_splitting_type ===
-      DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT;
-    let trainingPatientIDs = row.original.training_patient_ids;
-
-    return (
-      <>
-        <div className="detail-row">
-          <span className="detail-label">Training Set:</span>
-          <span className="detail-value">
-            {trainingPatientIDs.length} observations
-            <Button
-              color="link"
-              size="sm"
-              onClick={(event) => {
-                event.preventDefault();
-                handleShowPatientIDs(
-                  trainingPatientIDs.sort((p1, p2) =>
-                    p1.localeCompare(p2, undefined, {
-                      numeric: true,
-                      sensitivity: 'base',
-                    })
-                  )
-                );
-              }}
-              className="ms-2 p-0"
-            >
-              View IDs
-            </Button>
-          </span>
-        </div>
-        {isTrainTest && (
-          <div className="detail-row">
-            <span className="detail-label">Test Set:</span>
-            <span className="detail-value">
-              {row.original.test_patient_ids.length} observations
-              <Button
-                color="link"
-                size="sm"
-                onClick={(event) => {
-                  event.preventDefault();
-                  handleShowPatientIDs(
-                    row.original.test_patient_ids.sort((p1, p2) =>
-                      p1.localeCompare(p2, undefined, {
-                        numeric: true,
-                        sensitivity: 'base',
-                      })
-                    )
-                  );
-                }}
-                className="ms-2 p-0"
-              >
-                View IDs
-              </Button>
-            </span>
-          </div>
-        )}
-      </>
-    );
-  };
   const [configOpen, setConfigOpen] = useState(false);
 
   const handleExportCSV = () => {
@@ -414,53 +340,74 @@ export default function ModelsTable({
         </div>
       </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
-        <thead>
-          {headerGroups.map((headerGroup) => (
+        <thead>          {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
-              <th> </th>
-              {headerGroup.headers.map((column) => (
-                // Add the sorting props to control sorting. For this example
-                // we can add them into the header props
-                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
-                  {column.render('Header')}
-                  {/* Add a sort direction indicator */}
-                  <span>
-                    {column.isSorted ? (
-                      column.isSortedDesc ? (
-                        <>
-                          {' '}
-                          <FontAwesomeIcon
-                            style={{ color: 'grey' }}
-                            icon="caret-up"
-                          />
-                          <FontAwesomeIcon icon="caret-down" />
-                        </>
-                      ) : (
-                        <>
-                          {' '}
-                          <FontAwesomeIcon icon="caret-up" />
-                          <FontAwesomeIcon
-                            style={{ color: 'grey' }}
-                            icon="caret-down"
-                          />
-                        </>
-                      )
-                    ) : (
-                      <>
-                        {' '}
-                        <FontAwesomeIcon
-                          style={{ color: 'grey' }}
-                          icon="caret-up"
-                        />
-                        <FontAwesomeIcon
-                          style={{ color: 'grey' }}
-                          icon="caret-down"
-                        />
-                      </>
-                    )}
-                  </span>
+              {showSelection && (
+                <th style={{ width: '50px' }}>
+                  <input
+                    type="checkbox"
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      if (e.target.checked) {
+                        onModelSelectionChange(data.map(model => model.id));
+                      } else {
+                        onModelSelectionChange([]);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    checked={data.length > 0 && selectedModels.length === data.length}
+                    style={{ cursor: 'pointer' }}
+                  />
                 </th>
-              ))}
+              )}
+              <th> </th>
+              {headerGroup.headers.map((column) => {
+                // Skip the checkbox column since we're rendering it manually above
+                if (column.accessor === 'selection') return null;
+                
+                return (
+                  <th {...column.getHeaderProps(column.canSort !== false ? column.getSortByToggleProps() : {})} key={column.id}>
+                    {column.render('Header')}
+                    {/* Add a sort direction indicator only for sortable columns */}
+                    {column.canSort !== false && (
+                      <span>
+                        {column.isSorted ? (
+                          column.isSortedDesc ? (
+                            <>
+                              {' '}
+                              <FontAwesomeIcon
+                                style={{ color: 'grey' }}
+                                icon="caret-up"
+                              />
+                              <FontAwesomeIcon icon="caret-down" />
+                            </>
+                          ) : (
+                            <>
+                              {' '}
+                              <FontAwesomeIcon icon="caret-up" />
+                              <FontAwesomeIcon
+                                style={{ color: 'grey' }}
+                                icon="caret-down"
+                              />
+                            </>
+                          )
+                        ) : (
+                          <>
+                            {' '}
+                            <FontAwesomeIcon
+                              style={{ color: 'grey' }}
+                              icon="caret-up"
+                            />
+                            <FontAwesomeIcon
+                              style={{ color: 'grey' }}
+                              icon="caret-down"
+                            />
+                          </>
+                        )}
+                      </span>
+                    )}                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
@@ -468,13 +415,31 @@ export default function ModelsTable({
           {rows.map((row, i) => {
             prepareRow(row);
             return (
-              <React.Fragment key={row.getRowProps().key}>
-                <tr
+              <React.Fragment key={row.getRowProps().key}>                <tr
                   {...row.getRowProps()}
                   className="model-row"
                   style={{ cursor: 'pointer' }}
                   onClick={() => toggleModel(row.original.id)}
                 >
+                  {showSelection && (
+                    <td style={{ width: '50px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedModels.includes(row.original.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const modelId = row.original.id;
+                          if (e.target.checked) {
+                            onModelSelectionChange([...selectedModels, modelId]);
+                          } else {
+                            onModelSelectionChange(selectedModels.filter(id => id !== modelId));
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </td>
+                  )}
                   <td style={{ width: '40px' }} className="model-row-icon">
                     <FontAwesomeIcon
                       icon={
@@ -483,15 +448,14 @@ export default function ModelsTable({
                           : 'plus-circle'
                       }
                     />
-                  </td>
-                  {row.cells.map((cell) => {
+                  </td>                  {row.cells.map((cell) => {
                     return (
-                      <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                      <td {...cell.getCellProps()} key={cell.column.id}>{cell.render('Cell')}</td>
                     );
                   })}
                 </tr>
                 <tr>
-                  <td colSpan={columns.length + 1} style={{ padding: 0 }}>
+                  <td colSpan={columnsWithSelection.length + (showSelection ? 2 : 1)} style={{ padding: 0 }}>
                     <Collapse isOpen={openModelID === row.original.id}>
                       <div key={row.original.id} className="model-entry">
                         {/* Performance Metrics Section */}
