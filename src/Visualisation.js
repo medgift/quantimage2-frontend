@@ -771,38 +771,14 @@ export default function Visualisation({
             <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
             <strong>UMAP Error:</strong> {umapError}
           </Alert>
-        )}
-
-        {/* Analysis Controls */}
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <Button
-              color="primary"
-              size="lg"
-              onClick={computeUMAP}
-              disabled={isComputingUmap || filteredFeatures.length === 0}
-              className="me-2"
-            >
-              {isComputingUmap ? (
-                <span>
-                  <FontAwesomeIcon icon="sync" spin className="me-2" />
-                  Computing UMAP...
-                </span>
-              ) : (
-                <span>
-                  <FontAwesomeIcon icon="play" className="me-2" />
-                  Run UMAP Analysis
-                </span>
-              )}            </Button>
-          </div>
-          <div className="text-muted">
-            {preprocessingStats && (
-              <small>
-                Ready: {preprocessingStats.totalFeatures} features ×{' '}
-                {preprocessingStats.patients} patients
-              </small>
-            )}
-          </div>
+        )}        {/* Analysis Status */}
+        <div className="text-muted text-center">
+          {preprocessingStats && (
+            <small>
+              Ready: {preprocessingStats.totalFeatures} features ×{' '}
+              {preprocessingStats.patients} patients
+            </small>
+          )}
         </div>
       </div>
     );
@@ -1095,8 +1071,32 @@ export default function Visualisation({
               : parseInt(o[outcomeField], 10)
           );
 umap.setSupervisedProjection(labels, { targetWeight: 0.7 });
-const embedding = await umap.fitAsync(finalProcessedData);
-          console.timeEnd('Enhanced UMAP computation');
+const embedding = await umap.fitAsync(finalProcessedData);          console.timeEnd('Enhanced UMAP computation');
+
+          // Calculate centroids for each outcome group before processing individual points
+          const outcomeGroups = {};
+          embedding.forEach((point, idx) => {
+            const outcome = sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN';
+            if (!outcomeGroups[outcome]) {
+              outcomeGroups[outcome] = [];
+            }
+            outcomeGroups[outcome].push(point);
+          });
+
+          // Calculate centroid for each outcome
+          const outcomeCentroids = {};
+          Object.keys(outcomeGroups).forEach(outcome => {
+            const points = outcomeGroups[outcome];
+            outcomeCentroids[outcome] = {
+              x: points.reduce((sum, point) => sum + point[0], 0) / points.length,
+              y: points.reduce((sum, point) => sum + point[1], 0) / points.length,
+              count: points.length
+            };
+          });
+
+          // Calculate overall centroid
+          const overallCentroidX = embedding.reduce((sum, point) => sum + point[0], 0) / embedding.length;
+          const overallCentroidY = embedding.reduce((sum, point) => sum + point[1], 0) / embedding.length;
 
           // Step 7: Post-process and enhance results with comprehensive patient analytics
           // Calculate additional metrics for each patient in the UMAP embedding
@@ -1222,25 +1222,22 @@ const embedding = await umap.fitAsync(finalProcessedData);
                   value: value.toFixed(3),
                 });
               }
-            });
-
-            // Sort extreme features by z-score for display
+            });            // Sort extreme features by z-score for display
             extremeFeatures.sort(
               (a, b) => parseFloat(b.zScore) - parseFloat(a.zScore)
             );
             const topExtremeFeatures = extremeFeatures.slice(0, 3);
 
-            // Calculate distance from embedding centroid for spatial analysis
-            const centroidX =
-              embedding.reduce((sum, point) => sum + point[0], 0) /
-              embedding.length;
-            const centroidY =
-              embedding.reduce((sum, point) => sum + point[1], 0) /
-              embedding.length;
-            const distanceFromCenter = Math.sqrt(
-              Math.pow(coords[0] - centroidX, 2) +
-                Math.pow(coords[1] - centroidY, 2)
+            // Calculate distances to centroids
+            const outcomeCentroid = outcomeCentroids[outcome];
+            const distanceFromOverallCenter = Math.sqrt(
+              Math.pow(coords[0] - overallCentroidX, 2) +
+                Math.pow(coords[1] - overallCentroidY, 2)
             );
+            const distanceFromOutcomeCenter = outcomeCentroid ? Math.sqrt(
+              Math.pow(coords[0] - outcomeCentroid.x, 2) +
+                Math.pow(coords[1] - outcomeCentroid.y, 2)
+            ) : distanceFromOverallCenter;
 
             return {
               x: coords[0],
@@ -1256,11 +1253,12 @@ const embedding = await umap.fitAsync(finalProcessedData);
               numFeatures: finalFeaturesToUse.length,
               preprocessing: preprocessingMethod,
               correlationFiltered:
-                featuresToUse.length !== finalFeaturesToUse.length,
-
-              // Enhanced radiomics analytics for tooltip
+                featuresToUse.length !== finalFeaturesToUse.length,              // Enhanced radiomics analytics for tooltip
               heterogeneityScore,
-              distanceFromCenter,
+              distanceFromCenter: distanceFromOverallCenter,
+              distanceFromOutcomeCenter,
+              outcomeCentroid: outcomeCentroid,
+              allOutcomeCentroids: outcomeCentroids,
 
               // Feature category statistics
               shapeFeatures,
@@ -1898,6 +1896,9 @@ const embedding = await umap.fitAsync(finalProcessedData);
             numFeatures: point.numFeatures || 0,
             heterogeneityScore: point.heterogeneityScore || 0,
             distanceFromCenter: point.distanceFromCenter || 0,
+            distanceFromOutcomeCenter: point.distanceFromOutcomeCenter || 0,
+            outcomeCentroid: point.outcomeCentroid || null,
+            allOutcomeCentroids: point.allOutcomeCentroids || {},
 
             // Radiomics category breakdown
             shapeFeatures: point.shapeFeatures || 0,
@@ -1959,6 +1960,9 @@ const embedding = await umap.fitAsync(finalProcessedData);
             numFeatures: point.numFeatures || 0,
             heterogeneityScore: point.heterogeneityScore || 0,
             distanceFromCenter: point.distanceFromCenter || 0,
+            distanceFromOutcomeCenter: point.distanceFromOutcomeCenter || 0,
+            outcomeCentroid: point.outcomeCentroid || null,
+            allOutcomeCentroids: point.allOutcomeCentroids || {},
 
             // Radiomics category breakdown
             shapeFeatures: point.shapeFeatures || 0,
@@ -1995,9 +1999,74 @@ const embedding = await umap.fitAsync(finalProcessedData);
               },
             },
           },
+        },      ];
+    }    // Add centroid markers to the series
+    // Calculate centroids at the dataset level
+    const datasetOutcomeCentroids = {};
+    const datasetOutcomeGroups = {};
+    
+    // Group all UMAP points by outcome
+    umapData.forEach((point) => {
+      const outcome = point.className;
+      if (!datasetOutcomeGroups[outcome]) {
+        datasetOutcomeGroups[outcome] = [];
+      }
+      datasetOutcomeGroups[outcome].push(point);
+    });
+    
+    // Calculate centroid for each outcome group
+    Object.keys(datasetOutcomeGroups).forEach(outcome => {
+      const points = datasetOutcomeGroups[outcome];
+      datasetOutcomeCentroids[outcome] = {
+        x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+        y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+        count: points.length
+      };
+    });    // Add centroid markers as separate series
+    Object.entries(datasetOutcomeCentroids).forEach(([outcome, centroid]) => {
+      const outcomeName = outcome === '0' ? 'Negative' : outcome === '1' ? 'Positive' : `Outcome ${outcome}`;
+      // Pink color for all centroids to distinguish them from patient points
+      const centroidColor = '#e91e63'; // Pink color for all centroids
+      
+      series.push({
+        name: `${outcomeName} Centroid`,
+        data: [{
+          x: centroid.x,
+          y: centroid.y,
+          name: `${outcomeName} Center`,
+          count: centroid.count
+        }],
+        color: centroidColor,        marker: {
+          symbol: 'star',
+          radius: 7,
+          lineWidth: 2,
+          lineColor: '#ffffff',
+          fillOpacity: 0.8,
+          states: {
+            hover: {
+              radius: 9,
+              lineWidth: 3,
+              lineColor: '#000000',
+            },
+          },
         },
-      ];
-    }
+        type: 'scatter',
+        colorAxis: false, // Disable gradient coloring for centroids
+        tooltip: {
+          pointFormatter: function() {
+            return `<div style="font-size: 12px; line-height: 1.4;">
+              <div><strong>${this.name}</strong></div>
+              <div><strong>Position:</strong> (${this.x.toFixed(2)}, ${this.y.toFixed(2)})</div>
+              <div><strong>Patients:</strong> ${this.count}</div>
+              <div><em>Center of all ${this.name.split(' ')[0].toLowerCase()} cases</em></div>
+            </div>`;
+          }
+        },
+        enableMouseTracking: true,
+        showInLegend: true,
+        zIndex: 10 // Ensure centroids appear on top
+      });
+    });
 
     // Enhanced chart configuration with scientific styling
     const chartOptions = _.merge({}, COMMON_CHART_OPTIONS, {
@@ -2231,13 +2300,12 @@ const embedding = await umap.fitAsync(finalProcessedData);
               <!-- Clinical & Position Info -->
               <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
                 <div style="font-weight: 600; color: #495057; margin-bottom: 6px; font-size: 12px;">📍 POSITION & OUTCOME</div>
-                <div style="font-size: 11px; line-height: 1.4;">
-                  <div><strong>UMAP:</strong> (${safeToFixed(
+                <div style="font-size: 11px; line-height: 1.4;">                  <div><strong>UMAP:</strong> (${safeToFixed(
                     point.x,
                     2
                   )}, ${safeToFixed(point.y, 2)})</div>
-                  <div><strong>Distance:</strong> ${safeToFixed(
-                    point.distanceFromCenter,
+                  <div><strong>Distance to ${point.className === '0' ? 'Negative' : point.className === '1' ? 'Positive' : 'Unknown'} Centroid:</strong> ${safeToFixed(
+                    point.distanceFromOutcomeCenter,
                     2
                   )}</div>
                   <div><strong>Outcome:</strong> <span style="color: ${
