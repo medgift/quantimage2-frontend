@@ -572,7 +572,6 @@ export default function ModelsTable({
 
                               <div className="config-card">
                                 <div className="config-card-header">
-                                  <FontAwesomeIcon icon="database" />
                                   <span>Data Processing</span>
                                 </div>
                                 <div className="config-items">

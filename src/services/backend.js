@@ -413,27 +413,45 @@ class Backend {
     return downloadFile(url, token, data);
   }
 
-  async plotTestPredictions(token, modelID){
-    let url = `${endpoints.models}/${modelID}/plot-test-predictions`;
-
-    return downloadFile(url, token);
+async plotTestPredictions(token, modelIds) {
+  // Debug logging
+  console.log('plotTestPredictions called with modelIds:', modelIds);
+  console.log('modelIds type:', typeof modelIds);
+  console.log('modelIds is array:', Array.isArray(modelIds));
+  
+  // Use the first model ID in the URL and send all IDs in the body
+  const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+  let url = `${endpoints.models}/${primaryModelId}/plot-test-predictions`;
+  
+  let requestData = {
+    "model_ids": modelIds, // Send array of model IDs
   }
-
-  // TODO: Uncomment when plot training predictions feature is needed
-  // async plotTrainPredictions(token, modelID){
-  //   let url = `${endpoints.models}/${modelID}/plot-train-predictions`;
-  //
-  //   return downloadFile(url, token);
-  // }
-
-  async presets(token) {
-    try {
-      const url = `${endpoints.presets}`;
-      return await request(url, { token: token });
-    } catch (err) {
-      throw err; // Just throw it for now
-    }
+  
+  console.log('Sending request to URL:', url);
+  console.log('Sending data:', requestData);
+  
+  // FIXED: Use 'data' parameter instead of 'body'
+  return await request(url, { 
+    token: token, 
+    method: 'POST',
+    data: requestData  // ← Changed from 'body' to 'data'
+  });
+} async plotTrainPredictions(token, modelIds) {
+  // Use the first model ID in the URL and send all IDs in the body
+  const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+  let url = `${endpoints.models}/${primaryModelId}/plot-train-predictions`;
+  
+  let requestData = {
+    "model_ids": modelIds,
   }
+  
+  // FIXED: Use 'data' parameter instead of 'body'
+  return await request(url, { 
+    token: token, 
+    method: 'POST',
+    data: requestData  // ← Changed from 'body' to 'data'
+  });
+}
 
   async preset(token, featurePresetID) {
     try {

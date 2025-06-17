@@ -426,15 +426,7 @@ export default function Visualisation({
   }) => {
     // State for feature filtering and search
     const [featureSearch, setFeatureSearch] = useState('');
-    const [selectedFeatureCategory, setSelectedFeatureCategory] =
-      useState('all');
-    const [advancedMode, setAdvancedMode] = useState(false);
-    const [qualityMetrics, setQualityMetrics] = useState(null);
-    const [preprocessingMethod, setPreprocessingMethod] = useState('robust');
-    const [dimensionalityReduction, setDimensionalityReduction] =
-      useState('none');
-    const [excludeCorrelated, setExcludeCorrelated] = useState(true);
-    const [correlationThreshold, setCorrelationThreshold] = useState(0.95);
+    const [selectedFeatureCategory, setSelectedFeatureCategory] =      useState('all');    const [advancedMode, setAdvancedMode] = useState(false);
 
     // Extract feature categories for radiomics
     const featureCategories = useMemo(() => {
@@ -541,159 +533,9 @@ export default function Visualisation({
               className="me-2"
             >
               <FontAwesomeIcon icon="sliders-h" className="me-1" />
-              {advancedMode ? 'Basic' : 'Advanced'}
-            </Button>
-            {qualityMetrics && (
-              <Button
-                size="sm"
-                color="info"
-                onClick={() => setQualityMetrics(null)}
-              >
-                <FontAwesomeIcon icon="chart-line" className="me-1" />
-                Quality: {qualityMetrics.trustworthiness?.toFixed(2) || 'N/A'}
-              </Button>
-            )}
+              {advancedMode ? 'Basic' : 'Advanced'}            </Button>
           </div>
-        </div>
-
-        {/* Data Preprocessing Section */}
-        <div className="card mb-3">
-          <div className="card-header">
-            <h6 className="mb-0">
-              <FontAwesomeIcon icon="database" className="me-2" />
-              Data Preprocessing & Quality
-            </h6>
-          </div>
-          <div className="card-body">
-            {preprocessingStats && (
-              <div className="row mb-3">
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className="metric-value h4 mb-0">
-                      {preprocessingStats.totalFeatures}
-                    </div>
-                    <div className="metric-label small text-muted">
-                      Features
-                    </div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className="metric-value h4 mb-0">
-                      {preprocessingStats.patients}
-                    </div>
-                    <div className="metric-label small text-muted">
-                      Patients
-                    </div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div
-                      className={`metric-value h4 mb-0 ${
-                        preprocessingStats.missingValueRate > 5
-                          ? 'text-warning'
-                          : 'text-success'
-                      }`}
-                    >
-                      {preprocessingStats.missingValueRate.toFixed(1)}%
-                    </div>
-                    <div className="metric-label small text-muted">Missing</div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div
-                      className={`metric-value h4 mb-0 ${
-                        preprocessingStats.dimensionality > 0.5
-                          ? 'text-danger'
-                          : preprocessingStats.dimensionality > 0.1
-                          ? 'text-warning'
-                          : 'text-success'
-                      }`}
-                    >
-                      {preprocessingStats.dimensionality.toFixed(2)}
-                    </div>
-                    <div className="metric-label small text-muted">
-                      p/n ratio
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="row">
-              <div className="col-md-4">
-                <Label for="preprocessingMethod">Preprocessing Method</Label>
-                <Input
-                  type="select"
-                  id="preprocessingMethod"
-                  value={preprocessingMethod}
-                  onChange={(e) => setPreprocessingMethod(e.target.value)}
-                >
-                  <option value="standard">Standard Scaling (z-score)</option>
-                  <option value="robust">Robust Scaling (median/IQR)</option>
-                  <option value="minmax">Min-Max Scaling</option>
-                  <option value="quantile">Quantile Transformation</option>
-                </Input>
-                <small className="text-muted">
-                  Robust scaling recommended for radiomics
-                </small>
-              </div>
-              <div className="col-md-4">
-                <FormGroup check className="mt-4">
-                  <Label check>
-                    <Input
-                      type="checkbox"
-                      checked={excludeCorrelated}
-                      onChange={(e) => setExcludeCorrelated(e.target.checked)}
-                    />
-                    Remove highly correlated features
-                  </Label>
-                </FormGroup>
-                {excludeCorrelated && (
-                  <Input
-                    type="range"
-                    min="0.8"
-                    max="0.99"
-                    step="0.01"
-                    value={correlationThreshold}
-                    onChange={(e) =>
-                      setCorrelationThreshold(parseFloat(e.target.value))
-                    }
-                    className="mt-1"
-                  />
-                )}
-                {excludeCorrelated && (
-                  <small className="text-muted">
-                    Threshold: {correlationThreshold}
-                  </small>
-                )}
-              </div>
-              {advancedMode && (
-                <div className="col-md-4">
-                  <Label for="dimensionalityReduction">Pre-reduction</Label>
-                  <Input
-                    type="select"
-                    id="dimensionalityReduction"
-                    value={dimensionalityReduction}
-                    onChange={(e) => setDimensionalityReduction(e.target.value)}
-                  >
-                    <option value="none">No pre-reduction</option>
-                    <option value="pca">PCA (preserve 95% variance)</option>
-                    <option value="variance">Variance threshold</option>
-                    <option value="univariate">Univariate selection</option>
-                  </Input>
-                  <small className="text-muted">
-                    Optional dimensionality reduction
-                  </small>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Selection Section */}
+        </div>        {/* Feature Selection Section */}
         <div className="card mb-3">
           <div className="card-header">
             <h6 className="mb-0">
@@ -703,24 +545,8 @@ export default function Visualisation({
           </div>
           <div className="card-body">
             <div className="row mb-3">
-              <div className="col-md-4">
-                <Label for="featureCategory">Feature Category</Label>
-                <Input
-                  type="select"
-                  id="featureCategory"
-                  value={selectedFeatureCategory}
-                  onChange={(e) => setSelectedFeatureCategory(e.target.value)}
-                >
-                  {featureCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category === 'all'
-                        ? 'All Categories'
-                        : category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </Input>
-              </div>
-              <div className="col-md-8">
+              
+              <div className="col-md-12">
                 <Label for="featureSearch">Search Features</Label>
                 <Input
                   type="text"
@@ -967,27 +793,7 @@ export default function Visualisation({
                   <FontAwesomeIcon icon="play" className="me-2" />
                   Run UMAP Analysis
                 </span>
-              )}
-            </Button>
-            {umapData && (
-              <Button
-                color="outline-info"
-                size="lg"
-                onClick={() => {
-                  // Calculate and show quality metrics
-                  // This would be implemented with proper UMAP quality assessment
-                  setQualityMetrics({
-                    trustworthiness: 0.85,
-                    continuity: 0.82,
-                    stress: 0.15,
-                  });
-                }}
-                className="me-2"
-              >
-                <FontAwesomeIcon icon="chart-line" className="me-2" />
-                Quality Metrics
-              </Button>
-            )}
+              )}            </Button>
           </div>
           <div className="text-muted">
             {preprocessingStats && (
@@ -1471,23 +1277,9 @@ const embedding = await umap.fitAsync(finalProcessedData);
               // Extreme features for clinical interpretation
               topExtremeFeatures,
               extremeFeatureCount: extremeFeatures.length,
-            };
-          });
-
-          // Step 8: Calculate quality metrics for the analysis
-          const qualityMetrics = {
-            finalFeatureCount: finalFeaturesToUse.length,
-            originalFeatureCount: featuresToUse.length,
-            correlationFiltered:
-              featuresToUse.length - finalFeaturesToUse.length,
-            dimensionalityRatio:
-              finalFeaturesToUse.length / sortedPatientIDs.length,
-            preprocessing: preprocessingMethod,
-            umapParams: optimizedParams,
-          };
+            };          });
 
           console.log('UMAP Analysis Complete:');
-          console.log('- Quality metrics:', qualityMetrics);
           console.log(
             `- Final dataset: ${sortedPatientIDs.length} patients × ${finalFeaturesToUse.length} features`
           );
