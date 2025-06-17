@@ -11,6 +11,7 @@ import {
   MODEL_TYPES,
   SURVIVAL_COLUMNS,
 } from './config/constants';
+import InteractivePredictionsPlot from './components/InteractivePredictionsPlot';
 
 export default function ModelOverview({ albums }) {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function ModelOverview({ albums }) {
   const [plotType, setPlotType] = useState('test');
   const [plotError, setPlotError] = useState(null);
   const [isPlotting, setIsPlotting] = useState(false);
+  const [plotHtml, setPlotHtml] = useState(null);
 
   const { albumID } = useParams();
   const collectionColumn = useMemo(
@@ -39,10 +41,13 @@ export default function ModelOverview({ albums }) {
     [collections]
   );
 
-  const modelIDColumn = useMemo(() => ({
-    Header: 'Model ID',
-    accessor: (r) => r.id,
-  }), []);
+  const modelIDColumn = useMemo(
+    () => ({
+      Header: 'Model ID',
+      accessor: (r) => r.id,
+    }),
+    []
+  );
   // Model table header
   const columnsClassification = React.useMemo(
     () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
@@ -110,7 +115,7 @@ export default function ModelOverview({ albums }) {
     await Backend.deleteModel(keycloak.token, id);
     setModels(models.filter((model) => model.id !== id));
     // Remove from selection if it was selected
-    setSelectedModels(selectedModels.filter(modelId => modelId !== id));
+    setSelectedModels(selectedModels.filter((modelId) => modelId !== id));
   };
 
   const handleModelSelectionChange = (newSelectedModels) => {
@@ -120,29 +125,54 @@ export default function ModelOverview({ albums }) {
 
   const handlePlotModels = async () => {
     if (selectedModels.length === 0) {
-      setPlotError("Please select at least one model to plot");
+      setPlotError('Please select at least one model to plot');
       return;
     }
 
     if (selectedModels.length > 5) {
-      setPlotError("Please select no more than 5 models for better visualization");
+      setPlotError(
+        'Please select no more than 5 models for better visualization'
+      );
       return;
     }
-
     setIsPlotting(true);
     setPlotError(null);
+
+    // Debug: Log what models are selected
+    console.log('Selected models for plotting:', selectedModels);
+    console.log('Selected models type:', typeof selectedModels);
+    console.log('Selected models length:', selectedModels.length);
 
     try {
       let result;
       if (plotType === 'test') {
-        result = await Backend.plotTestPredictions(keycloak.token, selectedModels);
+        result = await Backend.plotTestPredictions(
+          keycloak.token,
+          selectedModels
+        );
       } else {
-        result = await Backend.plotTrainPredictions(keycloak.token, selectedModels);
+        result = await Backend.plotTrainPredictions(
+          keycloak.token,
+          selectedModels
+        );
       }
-      
-      const { filename, content } = result;
-      saveAs(content, filename);
+      console.log('Backend result:', result);
+      console.log('Backend result data length:', result?.data?.length);
+
+      // Show debug info if available
+      if (result?.debug) {
+        console.log('Backend debug info:', result.debug);
+        alert('Backend debug info:\n' + JSON.stringify(result.debug, null, 2));
+      }
+
+      // Check for the new data format
+      if (result && result.data) {
+        setPlotHtml(result.data); // Store the data instead of HTML
+      } else {
+        setPlotError('No plot data received from backend');
+      }
     } catch (error) {
+      console.error('Plot error:', error);
       setPlotError(`Failed to generate plot: ${error.message}`);
     } finally {
       setIsPlotting(false);
@@ -162,9 +192,10 @@ export default function ModelOverview({ albums }) {
           <Button
             color="link"
             onClick={() => navigate(`/features/${albumID}/overview`)}
-            >
+          >
             <FontAwesomeIcon icon="arrow-left" /> Go Back
-          </Button>          {models.length > 0 ? (
+          </Button>{' '}
+          {models.length > 0 ? (
             <div style={{ width: '98%' }}>
               <ModelsTable
                 title="Classification Models"
@@ -188,23 +219,27 @@ export default function ModelOverview({ albums }) {
                 onModelSelectionChange={handleModelSelectionChange}
                 showSelection={true}
               />
-              
+
               {/* Unified Plotting Interface */}
               {selectedModels.length > 0 && (
-                <div style={{ 
-                  marginTop: '30px', 
-                  padding: '20px', 
-                  border: '1px solid #dee2e6', 
-                  borderRadius: '8px',
-                  backgroundColor: '#f8f9fa'
-                }}>
+                <div
+                  style={{
+                    marginTop: '30px',
+                    padding: '20px',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8f9fa',
+                  }}
+                >
                   <h5 style={{ marginBottom: '15px', color: '#495057' }}>
                     <FontAwesomeIcon icon="chart-line" className="me-2" />
                     Plot Selected Models ({selectedModels.length} selected)
                   </h5>
-                  
+
                   <div style={{ marginBottom: '15px' }}>
-                    <label style={{ marginRight: '15px', fontWeight: 'bold' }}>Plot Type:</label>
+                    <label style={{ marginRight: '15px', fontWeight: 'bold' }}>
+                      Plot Type:
+                    </label>
                     <label style={{ marginRight: '15px', cursor: 'pointer' }}>
                       <input
                         type="radio"
@@ -226,7 +261,7 @@ export default function ModelOverview({ albums }) {
                       Training Predictions
                     </label>
                   </div>
-                  
+
                   <div style={{ marginBottom: '15px' }}>
                     <Button
                       color="primary"
@@ -236,17 +271,24 @@ export default function ModelOverview({ albums }) {
                     >
                       {isPlotting ? (
                         <>
-                          <FontAwesomeIcon icon="spinner" spin className="me-2" />
+                          <FontAwesomeIcon
+                            icon="spinner"
+                            spin
+                            className="me-2"
+                          />
                           Generating Plot...
                         </>
                       ) : (
                         <>
                           <FontAwesomeIcon icon="chart-line" className="me-2" />
-                          Generate {plotType === 'test' ? 'Test' : 'Training'} Plot
+                          Generate {plotType === 'test'
+                            ? 'Test'
+                            : 'Training'}{' '}
+                          Plot
                         </>
                       )}
                     </Button>
-                    
+
                     <Button
                       color="secondary"
                       onClick={() => setSelectedModels([])}
@@ -255,18 +297,26 @@ export default function ModelOverview({ albums }) {
                       Clear Selection
                     </Button>
                   </div>
-                  
+
                   {plotError && (
                     <Alert color="danger" style={{ marginBottom: '10px' }}>
                       {plotError}
                     </Alert>
                   )}
-                  
                   <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>
                     <FontAwesomeIcon icon="info-circle" className="me-1" />
-                    Select up to 5 models using the checkboxes above, then choose plot type and generate visualization.
+                    Select up to 5 models using the checkboxes above, then
+                    choose plot type and generate visualization.
                   </div>
                 </div>
+              )}
+
+              {plotHtml && (
+                <InteractivePredictionsPlot
+                  modelsData={plotHtml}
+                  plotType={plotType}
+                  onClose={() => setPlotHtml(null)}
+                />
               )}
             </div>
           ) : (
