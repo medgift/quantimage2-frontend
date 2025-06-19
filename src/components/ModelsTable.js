@@ -23,23 +23,18 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
   const metricDefinitions = {
     auc: {
       name: 'AUC',
-      icon: 'chart-area',
     },
     accuracy: {
       name: 'Accuracy',
-      icon: 'bullseye',
     },
     precision: {
       name: 'Precision',
-      icon: 'crosshairs',
     },
     sensitivity: {
       name: 'Sensitivity',
-      icon: 'radar',
     },
     specificity: {
       name: 'Specificity',
-      icon: 'shield-alt',
     },
   };
 

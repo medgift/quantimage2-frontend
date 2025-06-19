@@ -626,8 +626,7 @@ async plotTestPredictions(token, modelIds) {
 
       return await request(url, { token: token, method: 'PATCH' });
     } catch (err) {
-      throw err;
-    }
+      throw err;    }
   }
 }
 

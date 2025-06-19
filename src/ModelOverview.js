@@ -6,6 +6,7 @@ import { saveAs } from 'file-saver';
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import ModelsTable from './components/ModelsTable';
+import ROCCurveComponent from './components/ROCCurveComponent';
 import {
   CLASSIFICATION_COLUMNS,
   MODEL_TYPES,
@@ -21,10 +22,10 @@ export default function ModelOverview({ albums }) {
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
-  const [plotType, setPlotType] = useState('test');
-  const [plotError, setPlotError] = useState(null);
-  const [isPlotting, setIsPlotting] = useState(false);
-  const [plotHtml, setPlotHtml] = useState(null);
+  const [plotType, setPlotType] = useState('test');  const [plotError, setPlotError] = useState(null);
+  const [isPlotting, setIsPlotting] = useState(false);  const [plotHtml, setPlotHtml] = useState(null);
+  const [threshold, setThreshold] = useState(0.5);
+  const [predictionMetrics, setPredictionMetrics] = useState(null);
 
   const { albumID } = useParams();
   const collectionColumn = useMemo(
@@ -280,7 +281,6 @@ export default function ModelOverview({ albums }) {
                         </>
                       ) : (
                         <>
-                          <FontAwesomeIcon icon="chart-line" className="me-2" />
                           Generate {plotType === 'test'
                             ? 'Test'
                             : 'Training'}{' '}
@@ -308,10 +308,144 @@ export default function ModelOverview({ albums }) {
                     Select up to 5 models using the checkboxes above, then
                     choose plot type and generate visualization.
                   </div>
-                </div>
+                </div>              )}              {/* Single Model Analysis with separate components */}
+              {selectedModels.length === 1 && plotHtml && (
+                <>
+                  {/* Shared Threshold Control */}
+                  <div className="card mt-3">
+                    <div className="card-header">
+                      <FontAwesomeIcon icon="sliders-h" className="me-2" />
+                      Model Analysis Controls
+                    </div>
+                    <div className="card-body">
+                      <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                        <label htmlFor="threshold-slider" className="form-label mb-2">
+                          <strong>🎯 Decision Threshold: {threshold.toFixed(3)}</strong>
+                        </label>                        <input
+                          id="threshold-slider"
+                          type="range"
+                          className="form-range"
+                          min="0"
+                          max="1"
+                          step="0.001"
+                          value={threshold}
+                          onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                          style={{ width: '100%' }}
+                        />                        <div className="d-flex justify-content-between mt-1">
+                          <small className="text-muted">0.000</small>
+                          <small className="text-muted">1.000</small>
+                        </div>                      </div>
+                    </div>
+                  </div>                  {/* Performance Metrics */}
+                  {predictionMetrics && (
+                    <div className="performance-section">
+                      <div className="section-header">
+                        <h5>
+                          <FontAwesomeIcon icon="chart-bar" className="me-2" />
+                          Performance Metrics at Threshold {threshold.toFixed(3)}
+                        </h5>
+                      </div>
+                      <div className="metrics-modern-container">
+                        <div className="metrics-grid-modern">
+                          <div className="metric-tile">
+                            <div className="metric-header">
+                              <span className="metric-name-small">Accuracy</span>
+                            </div>
+                            <div className="metric-values-compact">
+                              <div className="metric-value-item">
+                                <span className="value">{predictionMetrics.accuracy.toFixed(3)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="metric-tile">
+                            <div className="metric-header">
+                              <span className="metric-name-small">Precision</span>
+                            </div>
+                            <div className="metric-values-compact">
+                              <div className="metric-value-item">
+                                <span className="value">{predictionMetrics.precision.toFixed(3)}</span>
+                              </div>
+                            </div>
+                          </div>                          <div className="metric-tile">
+                            <div className="metric-header">
+                              <span className="metric-name-small">Recall</span>
+                            </div>
+                            <div className="metric-values-compact">
+                              <div className="metric-value-item">
+                                <span className="value">{predictionMetrics.recall.toFixed(3)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="metric-tile">
+                            <div className="metric-header">
+                              <span className="metric-name-small">Specificity</span>
+                            </div>
+                            <div className="metric-values-compact">
+                              <div className="metric-value-item">
+                                <span className="value">{predictionMetrics.specificity.toFixed(3)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="metric-tile">
+                            <div className="metric-header">
+                              <span className="metric-name-small">F1-Score</span>
+                            </div>
+                            <div className="metric-values-compact">
+                              <div className="metric-value-item">
+                                <span className="value">{predictionMetrics.f1.toFixed(3)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="row mt-3">
+                    {/* Interactive Predictions Plot */}
+                    <div className="col-md-6">
+                      <div className="card">                        <div className="card-header">
+                          <FontAwesomeIcon icon="chart-line" className="me-2" />
+                          Interactive Predictions - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
+                        </div>
+                        <div className="card-body p-0">                          <InteractivePredictionsPlot
+                            modelsData={plotHtml}
+                            plotType={plotType}
+                            externalThreshold={threshold}
+                            hideThresholdControl={true}
+                            hideContainer={true}
+                            externalHeight={500}
+                            onClose={() => setPlotHtml(null)}
+                            onMetricsUpdate={setPredictionMetrics}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                     
+                    {/* ROC Curve Component */}
+                    <div className="col-md-6">
+                      <div className="card">                        <div className="card-header">
+                          <FontAwesomeIcon icon="chart-bar" className="me-2" />
+                          ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
+                        </div>
+                        <div className="card-body p-0">
+                          <ROCCurveComponent
+                            selectedModel={models.find(m => m.id === selectedModels[0])}
+                            plotData={plotHtml}
+                            plotType={plotType}
+                            threshold={threshold}
+                            height={500}
+                            hideContainer={true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
-              {plotHtml && (
+              {/* Multi-model comparison plot */}
+              {selectedModels.length > 1 && plotHtml && (
                 <InteractivePredictionsPlot
                   modelsData={plotHtml}
                   plotType={plotType}
