@@ -26,11 +26,11 @@ const UMAPAnalysis = ({
   setIsComputingUmap,
 }) => {
   // UMAP state
-  const [umapData, setUmapData] = useState(null);
-  const [umapError, setUmapError] = useState(null);
+  const [umapData, setUmapData] = useState(null);  const [umapError, setUmapError] = useState(null);
   const [selectedUmapFeatures, setSelectedUmapFeatures] = useState([]);
-  const [umapColorBy, setUmapColorBy] = useState('feature_density');
   const [useRandomSeed, setUseRandomSeed] = useState(true);
+
+  
 
   // UMAP parameters
   const [umapParams, setUmapParams] = useState({
@@ -302,24 +302,8 @@ const UMAPAnalysis = ({
                       ...prev,
                       spread: parseFloat(e.target.value),
                     }))
-                  }
-                />
+                  }                />
                 <small className="text-muted">0.1-3.0 (recommended: 1.0)</small>
-              </div>
-              <div className="col-md-3">
-                <Label for="umapColorBy">Color Scheme</Label>
-                <Input
-                  type="select"
-                  id="umapColorBy"
-                  value={umapColorBy}
-                  onChange={(e) => setUmapColorBy(e.target.value)}
-                >
-                  <option value="feature_density">Feature Density</option>
-                  <option value="feature_mean">Feature Mean</option>
-                  <option value="feature_variance">Feature Variance</option>
-                  <option value="outcome">Clinical Outcome</option>
-                  <option value="cluster">Automated Clustering</option>
-                </Input>
               </div>
             </div>
 
@@ -446,78 +430,21 @@ const UMAPAnalysis = ({
       console.time('Enhanced UMAP computation');
 
       // Step 1: Advanced data matrix preparation with missing value handling
-      const dataMatrix = [];
-      const featureStatistics = {};
-
-      // Calculate feature-wise statistics for robust preprocessing
-      featuresToUse.forEach((feature) => {
-        const values = sortedPatientIDs
-          .map((patient) => {
-            const value = feature[patient];
-            return value !== undefined && value !== null && !isNaN(+value)
-              ? +value
-              : null;
-          })
-          .filter((v) => v !== null);
-
-        if (values.length === 0) {
-          throw new Error(`Feature ${feature.FeatureID} has no valid values`);
-        }
-
-        const sorted = values.sort((a, b) => a - b);
-        const q25 = sorted[Math.floor(sorted.length * 0.25)];
-        const q75 = sorted[Math.floor(sorted.length * 0.75)];
-        const median = sorted[Math.floor(sorted.length * 0.5)];
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const std = Math.sqrt(
-          values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
-        );
-        const iqr = q75 - q25;
-
-        featureStatistics[feature.FeatureID] = {
-          mean,
-          std,
-          median,
-          q25,
-          q75,
-          iqr,
-          min: Math.min(...values),
-          max: Math.max(...values),
-          validCount: values.length,
-          missingRate:
-            (sortedPatientIDs.length - values.length) / sortedPatientIDs.length,
-        };
-      });
-
-      // Step 2: Build data matrix with missing value imputation
+      const dataMatrix = [];      // Step 2: Build data matrix directly from raw data (like heatmap)
       for (let patientIdx = 0; patientIdx < sortedPatientIDs.length; patientIdx++) {
         const patient = sortedPatientIDs[patientIdx];
         const patientFeatures = [];
 
         for (let feature of featuresToUse) {
           let value = feature[patient];
-
-          // Handle missing values with median imputation
-          if (value === undefined || value === null || isNaN(+value)) {
-            value = featureStatistics[feature.FeatureID].median;
-          } else {
-            value = +value;
-          }
-
-          patientFeatures.push(value);
+          // Use raw values directly, convert to number or use 0 for missing
+          patientFeatures.push(value !== undefined && value !== null ? +value : 0);
         }
         dataMatrix.push(patientFeatures);
       }
 
-      // Step 3: Robust scaling using median and IQR
-      const processedData = dataMatrix.map((patientFeatures) =>
-        patientFeatures.map((value, featureIdx) => {
-          const stats = featureStatistics[featuresToUse[featureIdx].FeatureID];
-          const scaledValue =
-            stats.iqr > 0 ? (value - stats.median) / stats.iqr : 0;
-          return scaledValue;
-        })
-      );
+      // Use the raw data matrix directly for UMAP
+      const processedData = dataMatrix;
 
       // Step 4: Configure UMAP with radiomics-optimized parameters
       const optimizedParams = {
@@ -538,17 +465,10 @@ const UMAPAnalysis = ({
         transformSeed: useRandomSeed ? umapParams.randomState : Date.now(),
       };
 
-      console.log('Optimized UMAP parameters:', optimizedParams);
-
-      // Step 5: Run UMAP
+      console.log('Optimized UMAP parameters:', optimizedParams);      // Step 3: Run UMAP
       setTimeout(async () => {
         try {
           const umap = new UMAP();
-          const labels = sortedOutcomes.map((o) =>
-            typeof o[outcomeField] === 'number'
-              ? o[outcomeField]
-              : parseInt(o[outcomeField], 10)
-          );
           
           //umap.setSupervisedProjection(labels, { targetWeight: 0.7 });
           const embedding = await umap.fit(processedData);
@@ -649,49 +569,11 @@ const UMAPAnalysis = ({
   const enhancedRadiomicsUMAPOptions = useMemo(() => {
     if (!umapData || umapData.length === 0) return null;
 
-    // Define color schemes for different data aspects
+    // Only outcome color scheme needed
     const colorSchemes = {
-      feature_density: {
-        title: 'Feature Density',
-        getColor: (point) => point.featureMean || 0,
-        colorAxis: {
-          min: Math.min(...umapData.map(p => p.featureMean || 0)),
-          max: Math.max(...umapData.map(p => p.featureMean || 0)),
-          stops: [
-            [0, '#3498db'],
-            [0.5, '#f39c12'],
-            [1, '#e74c3c']
-          ]
-        }
-      },
-      feature_mean: {
-        title: 'Feature Mean',
-        getColor: (point) => point.featureMean || 0,
-        colorAxis: {
-          min: Math.min(...umapData.map(p => p.featureMean || 0)),
-          max: Math.max(...umapData.map(p => p.featureMean || 0)),
-          stops: [
-            [0, '#2c3e50'],
-            [1, '#e74c3c']
-          ]
-        }
-      },
-      feature_variance: {
-        title: 'Feature Variance',
-        getColor: (point) => point.featureStd || 0,
-        colorAxis: {
-          min: Math.min(...umapData.map(p => p.featureStd || 0)),
-          max: Math.max(...umapData.map(p => p.featureStd || 0)),
-          stops: [
-            [0, '#95a5a6'],
-            [1, '#9b59b6']
-          ]
-        }
-      },
       outcome: {
         title: 'Clinical Outcome',
-        discrete: true,
-        series: [
+        discrete: true,        series: [
           {
             name: 'Outcome 0',
             data: umapData.filter(p => p.className === 0 || p.className === '0').map(p => ({
@@ -700,7 +582,10 @@ const UMAPAnalysis = ({
               name: p.name,
               ...p
             })),
-            color: '#e74c3c'
+            color: '#0b84a5',
+            marker: {
+              symbol: 'circle'
+            }
           },
           {
             name: 'Outcome 1',
@@ -710,7 +595,10 @@ const UMAPAnalysis = ({
               name: p.name,
               ...p
             })),
-            color: '#28a745'
+            color: '#94e3d5',
+            marker: {
+              symbol: 'circle'
+            }
           },
           {
             name: 'Unknown',
@@ -720,30 +608,16 @@ const UMAPAnalysis = ({
               name: p.name,
               ...p
             })),
-            color: '#95a5a6'
+            color: '#666666',
+            marker: {
+              symbol: 'circle'
+            }
           }
         ]
-      }
-    };
+      }    };
 
-    const currentScheme = colorSchemes[umapColorBy] || colorSchemes.feature_density;
-
-    let series;
-    if (currentScheme.discrete) {
-      series = currentScheme.series.filter(s => s.data.length > 0);
-    } else {
-      series = [{
-        name: 'Patients',
-        data: umapData.map(point => ({
-          x: point.x,
-          y: point.y,
-          name: point.name,
-          color: currentScheme.getColor(point),
-          ...point
-        })),
-        turboThreshold: 0
-      }];
-    }
+    // Always use outcome color scheme
+    const series = colorSchemes.outcome.series.filter(s => s.data.length > 0);
 
     const safeGet = (value, defaultValue = 'N/A') => {
       return value !== undefined && value !== null ? value : defaultValue;
@@ -773,10 +647,8 @@ const UMAPAnalysis = ({
           fontWeight: '600',
           color: '#2c3e50'
         }
-      },
-
-      subtitle: {
-        text: `${filteredFeatures.length} features • ${umapData.length} patients • Colored by ${currentScheme.title}`,
+      },      subtitle: {
+        text: `${filteredFeatures.length} features • ${umapData.length} patients • Colored by Clinical Outcome`,
         style: {
           fontSize: '13px',
           color: '#7f8c8d'
@@ -799,19 +671,16 @@ const UMAPAnalysis = ({
         },
         gridLineColor: '#ecf0f1',
         lineColor: '#bdc3c7'
-      },
-
-      legend: {
-        enabled: currentScheme.discrete,
+      },      legend: {
+        enabled: true,
         itemStyle: {
           color: '#2c3e50',
           fontWeight: '500'
         }
-      },
-
-      plotOptions: {
+      },plotOptions: {
         scatter: {
           marker: {
+            symbol: 'circle',
             radius: 6,
             fillOpacity: 0.8,
             lineWidth: 1,
@@ -820,6 +689,7 @@ const UMAPAnalysis = ({
           states: {
             hover: {
               marker: {
+                symbol: 'circle',
                 radius: 8,
                 lineWidth: 2
               }
@@ -896,36 +766,11 @@ const UMAPAnalysis = ({
           color: '#95a5a6',
           fontSize: '11px',
         },
-      },
-
-      series: series,
+      },      series: series,
     };
 
-    // Add color axis for continuous coloring schemes
-    if (currentScheme.colorAxis) {
-      chartOptions.colorAxis = {
-        ...currentScheme.colorAxis,
-        startOnTick: false,
-        endOnTick: false,
-        labels: {
-          style: {
-            color: '#7f8c8d',
-            fontSize: '11px',
-          },
-        },
-        title: {
-          text: currentScheme.title,
-          style: {
-            color: '#34495e',
-            fontSize: '12px',
-            fontWeight: '500',
-          },
-        },
-      };
-    }
-
     return chartOptions;
-  }, [umapData, filteredFeatures, umapColorBy]);
+  }, [umapData, filteredFeatures]);
 
   // Auto-trigger UMAP computation when data changes
   React.useEffect(() => {
