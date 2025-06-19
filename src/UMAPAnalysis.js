@@ -1,16 +1,5 @@
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-} from 'react';
-import {
-  Alert,
-  Button,
-  FormGroup,
-  Input,
-  Label,
-} from 'reactstrap';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { Alert, Button, FormGroup, Input, Label } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
@@ -26,11 +15,12 @@ const UMAPAnalysis = ({
   setIsComputingUmap,
 }) => {
   // UMAP state
-  const [umapData, setUmapData] = useState(null);  const [umapError, setUmapError] = useState(null);
+  const [umapData, setUmapData] = useState(null);
+  const [umapError, setUmapError] = useState(null);
   const [selectedUmapFeatures, setSelectedUmapFeatures] = useState([]);
   const [useRandomSeed, setUseRandomSeed] = useState(true);
 
-  
+  const [supervisedStrength, setSupervisedStrength] = useState(0.5);
 
   // UMAP parameters
   const [umapParams, setUmapParams] = useState({
@@ -49,7 +39,8 @@ const UMAPAnalysis = ({
     selectedUmapFeatures,
     setSelectedUmapFeatures,
     sortedPatientIDs,
-  }) => {    // State for feature filtering and search
+  }) => {
+    // State for feature filtering and search
     const [featureSearch, setFeatureSearch] = useState('');
     const [advancedMode, setAdvancedMode] = useState(false);
 
@@ -170,8 +161,7 @@ const UMAPAnalysis = ({
             </div>
 
             <Label for="umapFeatureSelect">
-              Select Radiomics Features ({availableFeatures.length}{' '}
-              available)
+              Select Radiomics Features ({availableFeatures.length} available)
             </Label>
             <Input
               type="select"
@@ -302,7 +292,8 @@ const UMAPAnalysis = ({
                       ...prev,
                       spread: parseFloat(e.target.value),
                     }))
-                  }                />
+                  }
+                />
                 <small className="text-muted">0.1-3.0 (recommended: 1.0)</small>
               </div>
             </div>
@@ -354,6 +345,30 @@ const UMAPAnalysis = ({
                     }
                     disabled={!useRandomSeed}
                   />
+                </div>
+                <div className="col-md-4">
+                  <Label for="supervisedStrength">
+                    Supervised Strength
+                    <FontAwesomeIcon
+                      icon="info-circle"
+                      className="ms-1 text-muted"
+                      title="0 = unsupervised, 1 = fully supervised. 0.3-0.7 recommended for semi-supervised."
+                    />
+                  </Label>
+                  <Input
+                    type="number"
+                    id="supervisedStrength"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={supervisedStrength}
+                    onChange={(e) =>
+                      setSupervisedStrength(parseFloat(e.target.value))
+                    }
+                  />
+                  <small className="text-muted">
+                    0-1 (recommended: 0.3-0.7)
+                  </small>
                 </div>
               </div>
             )}
@@ -430,21 +445,50 @@ const UMAPAnalysis = ({
       console.time('Enhanced UMAP computation');
 
       // Step 1: Advanced data matrix preparation with missing value handling
-      const dataMatrix = [];      // Step 2: Build data matrix directly from raw data (like heatmap)
-      for (let patientIdx = 0; patientIdx < sortedPatientIDs.length; patientIdx++) {
+      const dataMatrix = []; // Step 2: Build data matrix directly from raw data (like heatmap)
+      for (
+        let patientIdx = 0;
+        patientIdx < sortedPatientIDs.length;
+        patientIdx++
+      ) {
         const patient = sortedPatientIDs[patientIdx];
         const patientFeatures = [];
 
         for (let feature of featuresToUse) {
           let value = feature[patient];
           // Use raw values directly, convert to number or use 0 for missing
-          patientFeatures.push(value !== undefined && value !== null ? +value : 0);
+          patientFeatures.push(
+            value !== undefined && value !== null ? +value : 0
+          );
         }
         dataMatrix.push(patientFeatures);
       }
 
-      // Use the raw data matrix directly for UMAP
-      const processedData = dataMatrix;
+      const standardizedMatrix = dataMatrix.map((row) => [...row]); // Deep copy
+
+      // Calculate mean and std for each feature
+      for (
+        let featureIdx = 0;
+        featureIdx < featuresToUse.length;
+        featureIdx++
+      ) {
+        const featureValues = dataMatrix.map((row) => row[featureIdx]);
+        const mean =
+          featureValues.reduce((a, b) => a + b, 0) / featureValues.length;
+        const std = Math.sqrt(
+          featureValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
+            featureValues.length
+        );
+
+        // Standardize this feature across all patients
+        for (let patientIdx = 0; patientIdx < dataMatrix.length; patientIdx++) {
+          standardizedMatrix[patientIdx][featureIdx] =
+            std > 0 ? (dataMatrix[patientIdx][featureIdx] - mean) / std : 0;
+        }
+      }
+
+      // Use the standardized data instead
+      const processedData = standardizedMatrix;
 
       // Step 4: Configure UMAP with radiomics-optimized parameters
       const optimizedParams = {
@@ -465,14 +509,35 @@ const UMAPAnalysis = ({
         transformSeed: useRandomSeed ? umapParams.randomState : Date.now(),
       };
 
-      console.log('Optimized UMAP parameters:', optimizedParams);      // Step 3: Run UMAP
+      console.log('Optimized UMAP parameters:', optimizedParams); // Step 3: Run UMAP
       setTimeout(async () => {
         try {
-          const umap = new UMAP();
-          
-          //umap.setSupervisedProjection(labels, { targetWeight: 0.7 });
+          const umap = new UMAP({
+            nNeighbors: optimizedParams.nNeighbors,
+            minDist: optimizedParams.minDist,
+            spread: optimizedParams.spread,
+            nComponents: 2,
+            metric: optimizedParams.metric,
+            randomState: optimizedParams.random_state,
+            nEpochs: optimizedParams.nEpochs,
+          });
+
+          // Add semi-supervised learning if strength > 0
+          if (supervisedStrength > 0) {
+            // Create numeric labels for supervision
+            const labels = sortedOutcomes.map((outcome) => {
+              const value = outcome?.[outcomeField];
+              return value === 1 || value === '1' ? 1 : 0;
+            });
+
+            // Apply supervised projection
+            umap.setSupervisedProjection(labels, {
+              targetWeight: supervisedStrength,
+            });
+          }
+
           const embedding = await umap.fit(processedData);
-          
+
           console.timeEnd('Enhanced UMAP computation');
 
           // Calculate outcome groups and centroids
@@ -486,17 +551,25 @@ const UMAPAnalysis = ({
           });
 
           const outcomeCentroids = {};
-          Object.keys(outcomeGroups).forEach(outcome => {
+          Object.keys(outcomeGroups).forEach((outcome) => {
             const points = outcomeGroups[outcome];
             outcomeCentroids[outcome] = {
-              x: points.reduce((sum, point) => sum + point[0], 0) / points.length,
-              y: points.reduce((sum, point) => sum + point[1], 0) / points.length,
-              count: points.length
+              x:
+                points.reduce((sum, point) => sum + point[0], 0) /
+                points.length,
+              y:
+                points.reduce((sum, point) => sum + point[1], 0) /
+                points.length,
+              count: points.length,
             };
           });
 
-          const overallCentroidX = embedding.reduce((sum, point) => sum + point[0], 0) / embedding.length;
-          const overallCentroidY = embedding.reduce((sum, point) => sum + point[1], 0) / embedding.length;
+          const overallCentroidX =
+            embedding.reduce((sum, point) => sum + point[0], 0) /
+            embedding.length;
+          const overallCentroidY =
+            embedding.reduce((sum, point) => sum + point[1], 0) /
+            embedding.length;
 
           // Process and enhance results
           const enhancedUmapPoints = embedding.map((coords, idx) => {
@@ -508,9 +581,14 @@ const UMAPAnalysis = ({
               return value !== undefined && value !== null ? +value : 0;
             });
 
-            const featureMean = patientOriginalFeatures.reduce((a, b) => a + b, 0) / patientOriginalFeatures.length;
+            const featureMean =
+              patientOriginalFeatures.reduce((a, b) => a + b, 0) /
+              patientOriginalFeatures.length;
             const featureStd = Math.sqrt(
-              patientOriginalFeatures.reduce((a, b) => a + Math.pow(b - featureMean, 2), 0) / patientOriginalFeatures.length
+              patientOriginalFeatures.reduce(
+                (a, b) => a + Math.pow(b - featureMean, 2),
+                0
+              ) / patientOriginalFeatures.length
             );
             const featureMax = Math.max(...patientOriginalFeatures);
             const featureMin = Math.min(...patientOriginalFeatures);
@@ -518,11 +596,15 @@ const UMAPAnalysis = ({
 
             const outcomeCentroid = outcomeCentroids[outcome];
             const distanceFromOverallCenter = Math.sqrt(
-              Math.pow(coords[0] - overallCentroidX, 2) + Math.pow(coords[1] - overallCentroidY, 2)
+              Math.pow(coords[0] - overallCentroidX, 2) +
+                Math.pow(coords[1] - overallCentroidY, 2)
             );
-            const distanceFromOutcomeCenter = outcomeCentroid ? Math.sqrt(
-              Math.pow(coords[0] - outcomeCentroid.x, 2) + Math.pow(coords[1] - outcomeCentroid.y, 2)
-            ) : distanceFromOverallCenter;
+            const distanceFromOutcomeCenter = outcomeCentroid
+              ? Math.sqrt(
+                  Math.pow(coords[0] - outcomeCentroid.x, 2) +
+                    Math.pow(coords[1] - outcomeCentroid.y, 2)
+                )
+              : distanceFromOverallCenter;
 
             return {
               x: coords[0],
@@ -540,7 +622,11 @@ const UMAPAnalysis = ({
             };
           });
 
-          console.log('UMAP Analysis Complete:', enhancedUmapPoints.length, 'points');
+          console.log(
+            'UMAP Analysis Complete:',
+            enhancedUmapPoints.length,
+            'points'
+          );
           setUmapData(enhancedUmapPoints);
           setIsComputingUmap(false);
         } catch (error) {
@@ -555,14 +641,19 @@ const UMAPAnalysis = ({
       setIsComputingUmap(false);
     }
   }, [
-    filteredFeatures,
+    setIsComputingUmap,
+    umapParams.nNeighbors,
+    umapParams.minDist,
+    umapParams.spread,
+    umapParams.metric,
+    umapParams.randomState,
     sortedPatientIDs,
+    selectedUmapFeatures,
+    filteredFeatures,
+    useRandomSeed,
+    supervisedStrength,
     sortedOutcomes,
     outcomeField,
-    selectedUmapFeatures,
-    umapParams,
-    useRandomSeed,
-    setIsComputingUmap
   ]);
 
   // Enhanced Radiomics UMAP Chart Options
@@ -573,59 +664,67 @@ const UMAPAnalysis = ({
     const colorSchemes = {
       outcome: {
         title: 'Clinical Outcome',
-        discrete: true,        series: [
+        discrete: true,
+        series: [
           {
             name: 'Outcome 0',
-            data: umapData.filter(p => p.className === 0 || p.className === '0').map(p => ({
-              x: p.x,
-              y: p.y,
-              name: p.name,
-              ...p
-            })),
+            data: umapData
+              .filter((p) => p.className === 0 || p.className === '0')
+              .map((p) => ({
+                x: p.x,
+                y: p.y,
+                name: p.name,
+                ...p,
+              })),
             color: '#0b84a5',
             marker: {
-              symbol: 'circle'
-            }
+              symbol: 'circle',
+            },
           },
           {
             name: 'Outcome 1',
-            data: umapData.filter(p => p.className === 1 || p.className === '1').map(p => ({
-              x: p.x,
-              y: p.y,
-              name: p.name,
-              ...p
-            })),
+            data: umapData
+              .filter((p) => p.className === 1 || p.className === '1')
+              .map((p) => ({
+                x: p.x,
+                y: p.y,
+                name: p.name,
+                ...p,
+              })),
             color: '#94e3d5',
             marker: {
-              symbol: 'circle'
-            }
+              symbol: 'circle',
+            },
           },
           {
             name: 'Unknown',
-            data: umapData.filter(p => p.className === 'UNKNOWN').map(p => ({
-              x: p.x,
-              y: p.y,
-              name: p.name,
-              ...p
-            })),
+            data: umapData
+              .filter((p) => p.className === 'UNKNOWN')
+              .map((p) => ({
+                x: p.x,
+                y: p.y,
+                name: p.name,
+                ...p,
+              })),
             color: '#666666',
             marker: {
-              symbol: 'circle'
-            }
-          }
-        ]
-      }    };
+              symbol: 'circle',
+            },
+          },
+        ],
+      },
+    };
 
     // Always use outcome color scheme
-    const series = colorSchemes.outcome.series.filter(s => s.data.length > 0);
+    const series = colorSchemes.outcome.series.filter((s) => s.data.length > 0);
 
     const safeGet = (value, defaultValue = 'N/A') => {
       return value !== undefined && value !== null ? value : defaultValue;
     };
 
     const safeToFixed = (value, decimals = 2) => {
-      return value !== undefined && value !== null && !isNaN(value) 
-        ? parseFloat(value).toFixed(decimals) 
+      return value !== undefined && value !== null && !isNaN(value)
+        ? parseFloat(value).toFixed(decimals)
         : 'N/A';
     };
 
@@ -636,8 +735,9 @@ const UMAPAnalysis = ({
         zoomType: 'xy',
         backgroundColor: '#fafafa',
         style: {
-          fontFamily: '"Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
-        }
+          fontFamily:
+            '"Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+        },
       },
 
       title: {
@@ -645,57 +745,66 @@ const UMAPAnalysis = ({
         style: {
           fontSize: '18px',
           fontWeight: '600',
-          color: '#2c3e50'
-        }
-      },      subtitle: {
-        text: `${filteredFeatures.length} features • ${umapData.length} patients • Colored by Clinical Outcome`,
+          color: '#2c3e50',
+        },
+      },
+      subtitle: {
+        text: `${filteredFeatures.length} features • ${
+          umapData.length
+        } patients • Colored by Clinical Outcome${
+          supervisedStrength > 0
+            ? ` • Semi-supervised (${(supervisedStrength * 100).toFixed(0)}%)`
+            : ''
+        }`,
         style: {
           fontSize: '13px',
-          color: '#7f8c8d'
-        }
+          color: '#7f8c8d',
+        },
       },
 
       xAxis: {
         title: {
           text: 'UMAP Dimension 1',
-          style: { color: '#34495e', fontWeight: '500' }
+          style: { color: '#34495e', fontWeight: '500' },
         },
         gridLineColor: '#ecf0f1',
-        lineColor: '#bdc3c7'
+        lineColor: '#bdc3c7',
       },
 
       yAxis: {
         title: {
           text: 'UMAP Dimension 2',
-          style: { color: '#34495e', fontWeight: '500' }
+          style: { color: '#34495e', fontWeight: '500' },
         },
         gridLineColor: '#ecf0f1',
-        lineColor: '#bdc3c7'
-      },      legend: {
+        lineColor: '#bdc3c7',
+      },
+      legend: {
         enabled: true,
         itemStyle: {
           color: '#2c3e50',
-          fontWeight: '500'
-        }
-      },plotOptions: {
+          fontWeight: '500',
+        },
+      },
+      plotOptions: {
         scatter: {
           marker: {
             symbol: 'circle',
             radius: 6,
             fillOpacity: 0.8,
             lineWidth: 1,
-            lineColor: '#ffffff'
+            lineColor: '#ffffff',
           },
           states: {
             hover: {
               marker: {
                 symbol: 'circle',
                 radius: 8,
-                lineWidth: 2
-              }
-            }
-          }
-        }
+                lineWidth: 2,
+              },
+            },
+          },
+        },
       },
 
       tooltip: {
@@ -706,11 +815,11 @@ const UMAPAnalysis = ({
         shadow: true,
         style: {
           fontSize: '12px',
-          padding: '0'
+          padding: '0',
         },
-        formatter: function() {
+        formatter: function () {
           const point = this.point;
-          
+
           let html = `
             <div style="padding: 12px; max-width: 320px;">
               <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin: -12px -12px 12px -12px; padding: 10px; border-radius: 8px 8px 0 0;">
@@ -718,7 +827,10 @@ const UMAPAnalysis = ({
                   🔬 ${point.name}
                 </div>
                 <div style="font-size: 11px; opacity: 0.9;">
-                  UMAP Coordinates: (${safeToFixed(point.x, 3)}, ${safeToFixed(point.y, 3)})
+                  UMAP Coordinates: (${safeToFixed(point.x, 3)}, ${safeToFixed(
+            point.y,
+            3
+          )})
                 </div>
               </div>
 
@@ -726,10 +838,14 @@ const UMAPAnalysis = ({
                 <div style="font-weight: 600; color: #27ae60; margin-bottom: 8px; font-size: 13px;">🎯 OUTCOME CLASSIFICATION</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
                   <div>
-                    <div><strong>Class:</strong> ${safeGet(point.className)}</div>
+                    <div><strong>Class:</strong> ${safeGet(
+                      point.className
+                    )}</div>
                   </div>
                   <div>
-                    <div><strong>Features:</strong> ${safeGet(point.numFeatures)}</div>
+                    <div><strong>Features:</strong> ${safeGet(
+                      point.numFeatures
+                    )}</div>
                   </div>
                 </div>
               </div>
@@ -738,12 +854,24 @@ const UMAPAnalysis = ({
                 <div style="font-weight: 600; color: #f57c00; margin-bottom: 8px; font-size: 13px;">📊 STATISTICAL INSIGHTS</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
                   <div>
-                    <div><strong>Range:</strong> ${safeToFixed(point.featureRange, 3)}</div>
-                    <div><strong>Std Dev:</strong> ${safeToFixed(point.featureStd, 3)}</div>
+                    <div><strong>Range:</strong> ${safeToFixed(
+                      point.featureRange,
+                      3
+                    )}</div>
+                    <div><strong>Std Dev:</strong> ${safeToFixed(
+                      point.featureStd,
+                      3
+                    )}</div>
                   </div>
                   <div>
-                    <div><strong>Max Value:</strong> ${safeToFixed(point.featureMax, 3)}</div>
-                    <div><strong>Min Value:</strong> ${safeToFixed(point.featureMin, 3)}</div>
+                    <div><strong>Max Value:</strong> ${safeToFixed(
+                      point.featureMax,
+                      3
+                    )}</div>
+                    <div><strong>Min Value:</strong> ${safeToFixed(
+                      point.featureMin,
+                      3
+                    )}</div>
                   </div>
                 </div>
               </div>
@@ -766,11 +894,12 @@ const UMAPAnalysis = ({
           color: '#95a5a6',
           fontSize: '11px',
         },
-      },      series: series,
+      },
+      series: series,
     };
 
     return chartOptions;
-  }, [umapData, filteredFeatures]);
+  }, [umapData, filteredFeatures.length, supervisedStrength]);
 
   // Auto-trigger UMAP computation when data changes
   React.useEffect(() => {
@@ -787,7 +916,7 @@ const UMAPAnalysis = ({
         setSelectedUmapFeatures={setSelectedUmapFeatures}
         sortedPatientIDs={sortedPatientIDs}
       />
-      
+
       {umapError && (
         <Alert color="danger" className="mb-3">
           <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
