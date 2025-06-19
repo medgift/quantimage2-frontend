@@ -19,7 +19,7 @@ import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './ModelsTable.css';
-const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
+const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainValues }) => {  
   const metricDefinitions = {
     auc: {
       name: 'AUC',
@@ -44,7 +44,7 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
   };
 
   return (
-    <div className="metrics-modern-container">
+    <div className="metrics-modern-container">      
       <div className="metrics-grid-modern">
         {Object.keys(metricDefinitions).map((metricKey) => {
           const def = metricDefinitions[metricKey];
@@ -74,26 +74,26 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest }) => {
                   className="metric-icon-small"
                 />
                 <span className="metric-name-small">{def.name}</span>
-              </div>
-
-              <div className="metric-values-compact">
-                <div className="metric-value-item">
-                  <span className="value">{formatValueWithRange(trainMetric, trainValue)}</span>
-                  <span className="label">Train</span>
-                </div>
-
+              </div>              <div className="metric-values-compact">
+                {/* Show test values first (primary) */}
                 {showTest && testMetric && (
+                  <div className="metric-value-item">
+                    <span className="value">{formatValueWithRange(testMetric, testValue)}</span>
+                    <span className="label">Test</span>
+                  </div>
+                )}
+
+                {/* Show train values only when toggled or when there's no test data */}
+                {(showTrainValues || !showTest) && trainMetric && (
                   <>
-                    <div className="metric-separator"></div>
+                    {showTest && testMetric && <div className="metric-separator"></div>}
                     <div className="metric-value-item">
-                      <span className="value">{formatValueWithRange(testMetric, testValue)}</span>
-                      <span className="label">Test</span>
+                      <span className="value">{formatValueWithRange(trainMetric, trainValue)}</span>
+                      <span className="label">Train</span>
                     </div>
                   </>
                 )}
-              </div>
-
-              {showTest && testMetric && (
+              </div>              {showTest && testMetric && showTrainValues && (
                 <div className="metric-diff">
                   <span
                     className={
@@ -126,8 +126,7 @@ export default function ModelsTable({
   selectedModels = [],
   onModelSelectionChange,
   showSelection = false,
-}) {
-  let [featureNames, setFeatureNames] = useState(null);
+}) {  let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
   let [patientIDs, setPatientIDs] = useState(null);
@@ -135,6 +134,7 @@ export default function ModelsTable({
   let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
   let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] =
     useState('');
+  let [showTrainValues, setShowTrainValues] = useState(false);
 
   const { keycloak } = useKeycloak();
 
@@ -458,17 +458,16 @@ export default function ModelsTable({
                 <tr>
                   <td colSpan={columnsWithSelection.length + (showSelection ? 2 : 1)} style={{ padding: 0 }}>
                     <Collapse isOpen={openModelID === row.original.id}>
-                      <div key={row.original.id} className="model-entry">
-                        {/* Performance Metrics Section */}
+                      <div key={row.original.id} className="model-entry">                        {/* Performance Metrics Section */}
                         <div className="performance-section">
                           <div className="section-header">
-                            <h5>
+                            <h3>
                               <FontAwesomeIcon
                                 icon="tachometer-alt"
                                 className="me-2"
                               />
                               Performance Metrics
-                            </h5>
+                            </h3>
                           </div>
 
                           <MetricsComparison
@@ -478,12 +477,25 @@ export default function ModelsTable({
                               row.original.data_splitting_type ===
                               DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT
                             }
+                            showTrainValues={showTrainValues}
                           />
 
                           {row.original.data_splitting_type ===
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
                             row.original.test_bootstrap_values && (
                               <div className="performance-actions">
+                                <Button
+                                  size="sm"
+                                  color="outline-secondary"
+                                  onClick={() => setShowTrainValues(!showTrainValues)}
+                                  className="me-2"
+                                >
+                                  <FontAwesomeIcon 
+                                    icon={showTrainValues ? "eye-slash" : "eye"} 
+                                    className="me-1" 
+                                  />
+                                  {showTrainValues ? 'Hide' : 'Show'} Train Values
+                                </Button>
                                 <Button
                                   size="sm"
                                   color="light"
@@ -534,7 +546,7 @@ export default function ModelsTable({
                               icon={configOpen ? 'minus-circle' : 'plus-circle'}
                               className="expand-icon"
                             />
-                            <span>Configuration Details</span>
+                            <span>Meta information</span>
                           </summary>
 
                           <div className="configuration-section">
