@@ -18,6 +18,10 @@ import {
   faCheckDouble,
   faCheckCircle,
   faChartBar,
+  faBullseye,
+  faCrosshairs,
+  faShieldAlt,
+  faChartLine,
   faComment,
   faGraduationCap,
   faPlus,
@@ -75,8 +79,11 @@ export default function registerIcons() {
   library.add(faInfoCircle);
   library.add(faCheck);
   library.add(faCheckDouble);
-  library.add(faCheckCircle);
-  library.add(faChartBar);
+  library.add(faCheckCircle);  library.add(faChartBar);
+  library.add(faBullseye);
+  library.add(faCrosshairs);
+  library.add(faShieldAlt);
+  library.add(faChartLine);
   library.add(faGraduationCap);
   library.add(faPlus);
   library.add(faPlusCircle);

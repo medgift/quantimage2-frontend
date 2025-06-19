@@ -3,11 +3,23 @@ import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Plotly from 'plotly.js-dist';
 
-const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
-  const [threshold, setThreshold] = useState(0.5);
-  const [metrics, setMetrics] = useState(null);
+const InteractivePredictionsPlot = ({ 
+  modelsData, 
+  plotType, 
+  onClose, 
+  externalThreshold = null, 
+  hideThresholdControl = false,
+  hideContainer = false,
+  onMetricsUpdate = null,
+  externalHeight = null
+}) => {
+  const [internalThreshold, setInternalThreshold] = useState(0.5);
   const plotRef = useRef(null);
   const plotDivRef = useRef(null);
+
+  // Use external threshold if provided, otherwise use internal
+  const threshold = externalThreshold !== null ? externalThreshold : internalThreshold;
+  const setThreshold = externalThreshold !== null ? () => {} : setInternalThreshold;
 
   // Calculate metrics for given threshold
   const calculateMetrics = (currentThreshold, data) => {
@@ -47,10 +59,8 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
     // Create traces for each model and class
     modelsData.forEach((model, modelIndex) => {
       const yPos = modelsData.length > 1 ? modelIndex * 0.4 : 0;
-      
-      // Get model display name (use model name if available, otherwise ID)
+        // Get model display name (use model name if available, otherwise ID)
       const modelDisplayName = model.model_name || `Model ${model.model_id}`;
-      const modelMetrics = model.auc ? `(AUC: ${model.auc.toFixed(3)})` : '';
       
       // Class 0 points (Negative cases) - Always RED circles
       const class0Data = model.patients.filter(p => p.ground_truth === 0);
@@ -94,10 +104,7 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
         });
       }
     });const layout = {
-      title: {
-        text: `Interactive ${plotType} Predictions${modelsData.length > 1 ? ` (${modelsData.length} Models)` : ''}`,
-        font: { size: 18 }
-      },
+
       xaxis: { 
         title: 'Probability of Positive Class (1)',
         range: [-0.05, 1.05],
@@ -115,9 +122,8 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
           return `${modelName}${auc}`;
         }) : undefined,
         range: modelsData.length > 1 ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3] : [-0.5, 0.5],
-        gridcolor: '#e1e5e9'
-      },
-      height: Math.max(500, modelsData.length * 120 + 200),
+        gridcolor: '#e1e5e9'      },
+      height: externalHeight || Math.max(500, modelsData.length * 120 + 200),
       showlegend: true,
       legend: {
         orientation: 'h',
@@ -159,16 +165,16 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
     const config = { 
       responsive: true,
       displayModeBar: true,
-      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']    };
     
     Plotly.newPlot(plotDivRef.current, traces, layout, config);
-    plotRef.current = plotDivRef.current;
+    plotRef.current = plotDivRef.current;    // Calculate initial metrics
+    const calculatedMetrics = calculateMetrics(threshold, modelsData);
+    if (onMetricsUpdate) {
+      onMetricsUpdate(calculatedMetrics);
+    }
     
-    // Calculate initial metrics
-    setMetrics(calculateMetrics(threshold, modelsData));
-    
-  }, [modelsData, plotType, threshold]);
+  }, [modelsData, plotType, threshold, onMetricsUpdate, externalHeight]);
   // Update plot when threshold changes
   const handleThresholdChange = (newThreshold) => {
     setThreshold(newThreshold);
@@ -198,13 +204,12 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
             font: { color: 'white', size: 12 }
           }
         ]
-      };
-      
-      Plotly.relayout(plotRef.current, update);
+      };      Plotly.relayout(plotRef.current, update);
+    }    // Update metrics
+    const calculatedMetrics = calculateMetrics(newThreshold, modelsData);
+    if (onMetricsUpdate) {
+      onMetricsUpdate(calculatedMetrics);
     }
-    
-    // Update metrics
-    setMetrics(calculateMetrics(newThreshold, modelsData));
   };
 
   if (!modelsData || modelsData.length === 0) {
@@ -214,25 +219,24 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
       </div>
     );
   }
-
   return (
     <div style={{ 
-      marginTop: '30px', 
-      padding: '20px', 
-      border: '1px solid #dee2e6', 
-      borderRadius: '8px',
-      backgroundColor: '#ffffff'
+      marginTop: hideContainer ? '0' : '30px', 
+      padding: hideContainer ? '0' : '20px', 
+      border: hideContainer ? 'none' : '1px solid #dee2e6', 
+      borderRadius: hideContainer ? '0' : '8px',
+      backgroundColor: hideContainer ? 'transparent' : '#ffffff'
     }}>      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <h5 style={{ margin: 0, color: '#495057' }}>
-          <FontAwesomeIcon icon="chart-line" className="me-2" />
-          Interactive {plotType} Predictions
         </h5>
-        <Button color="secondary" size="sm" onClick={onClose}>
-          <FontAwesomeIcon icon="times" className="me-1" />
-          Close
-        </Button>
-      </div>      {/* Model Summary - only show for multiple models */}
+        {!hideContainer && (
+          <Button color="secondary" size="sm" onClick={onClose}>
+            <FontAwesomeIcon icon="times" className="me-1" />
+            Close
+          </Button>
+        )}
+      </div>{/* Model Summary - only show for multiple models */}
       {modelsData.length > 1 && (
         <div style={{ 
           marginBottom: '20px', 
@@ -311,132 +315,54 @@ const InteractivePredictionsPlot = ({ modelsData, plotType, onClose }) => {
             <em>Models are distinguished by their Y-axis position and labels.</em>
           </div>
         </div>
-      )}
+      )}      {/* Threshold Slider - conditionally rendered */}
+      {!hideThresholdControl && (
+        <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <label style={{ fontWeight: 'bold', color: '#495057', minWidth: 'fit-content' }}>
+              Decision Threshold:
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={threshold}
+              onChange={(e) => handleThresholdChange(parseFloat(e.target.value))}
+              style={{ 
+                flex: 1, 
+                minWidth: '200px',
+                height: '8px',
+                background: '#dee2e6',
+                borderRadius: '4px',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            />
+            <span style={{ 
+              backgroundColor: '#007bff', 
+              color: 'white', 
+              padding: '5px 10px', 
+              borderRadius: '15px', 
+              fontSize: '14px',
+              fontWeight: 'bold',
+              minWidth: 'fit-content'
+            }}>
+              {threshold.toFixed(2)}
+            </span>
+          </div>        </div>      )}
 
-      {/* Threshold Slider */}
-      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <label style={{ fontWeight: 'bold', color: '#495057', minWidth: 'fit-content' }}>
-            Decision Threshold:
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={threshold}
-            onChange={(e) => handleThresholdChange(parseFloat(e.target.value))}
-            style={{ 
-              flex: 1, 
-              minWidth: '200px',
-              height: '8px',
-              background: '#dee2e6',
-              borderRadius: '4px',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          />
-          <span style={{ 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            padding: '5px 10px', 
-            borderRadius: '15px', 
-            fontSize: '14px',
-            fontWeight: 'bold',
-            minWidth: 'fit-content'
-          }}>
-            {threshold.toFixed(2)}
-          </span>
-        </div>
-      </div>      {/* Plot Container */}
+      {/* Plot Container */}
       <div 
-        ref={plotDivRef}
-        style={{ 
+        ref={plotDivRef}        style={{ 
           width: '100%', 
-          height: `${Math.max(500, modelsData.length * 120 + 200)}px`,
-          border: '1px solid #dee2e6', 
-          borderRadius: '4px',
-          marginBottom: '20px'
-        }}
-      />
+          height: `${externalHeight || Math.max(500, modelsData.length * 120 + 200)}px`,
+          border: hideContainer ? 'none' : '1px solid #dee2e6', 
+          borderRadius: hideContainer ? '0' : '4px',
+          marginBottom: hideContainer ? '0' : '20px'
+        }}/>
 
-      {/* Metrics Display */}
-      {metrics && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-          {/* Performance Metrics */}
-          <div style={{ border: '1px solid #007bff', borderRadius: '8px', padding: '15px', backgroundColor: '#f8f9ff' }}>
-            <h6 style={{ color: '#007bff', fontWeight: 'bold', marginBottom: '15px' }}>Performance Metrics</h6>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Accuracy:</span>
-                <span style={{ fontWeight: 'bold', color: '#28a745' }}>{metrics.accuracy.toFixed(3)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Precision:</span>
-                <span style={{ fontWeight: 'bold', color: '#007bff' }}>{metrics.precision.toFixed(3)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Recall:</span>
-                <span style={{ fontWeight: 'bold', color: '#6610f2' }}>{metrics.recall.toFixed(3)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Specificity:</span>
-                <span style={{ fontWeight: 'bold', color: '#6c757d' }}>{metrics.specificity.toFixed(3)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gridColumn: 'span 2' }}>
-                <span>F1-Score:</span>
-                <span style={{ fontWeight: 'bold', color: '#fd7e14' }}>{metrics.f1.toFixed(3)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Confusion Matrix */}
-          <div style={{ border: '1px solid #6c757d', borderRadius: '8px', padding: '15px', backgroundColor: '#f8f9fa' }}>
-            <h6 style={{ color: '#6c757d', fontWeight: 'bold', marginBottom: '15px' }}>Confusion Matrix</h6>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <table style={{ borderCollapse: 'collapse', textAlign: 'center' }}>
-                <thead>
-                  <tr>
-                    <th style={{ border: '1px solid #6c757d', padding: '8px', backgroundColor: '#e9ecef' }}></th>
-                    <th style={{ border: '1px solid #6c757d', padding: '8px', backgroundColor: '#e9ecef' }}>Pred 0</th>
-                    <th style={{ border: '1px solid #6c757d', padding: '8px', backgroundColor: '#e9ecef' }}>Pred 1</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th style={{ border: '1px solid #6c757d', padding: '8px', backgroundColor: '#e9ecef' }}>Actual 0</th>
-                    <td style={{ border: '1px solid #6c757d', padding: '12px', backgroundColor: '#d4edda', fontWeight: 'bold', color: '#155724' }}>
-                      {metrics.tn}
-                    </td>
-                    <td style={{ border: '1px solid #6c757d', padding: '12px', backgroundColor: '#f8d7da', fontWeight: 'bold', color: '#721c24' }}>
-                      {metrics.fp}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th style={{ border: '1px solid #6c757d', padding: '8px', backgroundColor: '#e9ecef' }}>Actual 1</th>
-                    <td style={{ border: '1px solid #6c757d', padding: '12px', backgroundColor: '#fff3cd', fontWeight: 'bold', color: '#856404' }}>
-                      {metrics.fn}
-                    </td>
-                    <td style={{ border: '1px solid #6c757d', padding: '12px', backgroundColor: '#d4edda', fontWeight: 'bold', color: '#155724' }}>
-                      {metrics.tp}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}      <div style={{ marginTop: '15px', color: '#6c757d', fontSize: '14px' }}>
-        <FontAwesomeIcon icon="info-circle" className="me-1" />
-        Drag the threshold slider to see how different decision boundaries affect model performance.
-        The green dashed line shows the current threshold.
-        {modelsData.length > 1 && (
-          <span>
-            {' '}All models use simple circles with consistent colors: <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>red for negative</span> and <span style={{ color: '#3498db', fontWeight: 'bold' }}>blue for positive</span> cases. 
-            Models are distinguished by their Y-axis position and labels.
-          </span>
-        )}
-      </div>
+      
     </div>
   );
 };
