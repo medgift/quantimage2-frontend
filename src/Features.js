@@ -800,13 +800,6 @@ function Features() {
                 collections={collections}
                 collectionID={collectionID}
               />
-              <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
-              <Button
-                color="link"
-                onClick={() => navigate(`/models/${albumID}`)}
-                >
-                <FontAwesomeIcon icon="table" /> See All Models
-              </Button>
             </div>
             <div className="feature-tabs">
               <Nav tabs>
@@ -906,6 +899,16 @@ function Features() {
                     {getTabSymbol()}
                     Model Training{' '}
                     {models.length > 0 && <Badge>{models.length}</Badge>}
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={classnames({ active: false })}
+                    onClick={() => {
+                      navigate(`/models/${albumID}`);
+                    }}
+                  >
+                    All Models
                   </NavLink>
                 </NavItem>
                 {/* <NavItem>
