@@ -8,11 +8,11 @@ import {
   Badge,
 } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
 
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
+import FeatureImportanceModal from './FeatureImportanceModal';
 import { saveAs } from 'file-saver';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
@@ -67,10 +67,25 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
 
           return (
             <div key={metricKey} className="col">
-              <div className="card h-100 metric-card-bootstrap">
+              <div className="card h-100 metric-card-bootstrap position-relative">
                 <div className="card-body p-3">
-                  <div className="d-flex align-items-center mb-2">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted">{def.name}</span>
+                    {showTest && testMetric && showTrainValues && (
+                      <span
+                        className={`badge small ${
+                          testValue >= trainValue ? 'text-success' : 'text-danger'
+                        }`}
+                      >
+                        {testValue >= trainValue ? '+' : ''}
+                        {trainValue !== 0
+                          ? (((testValue - trainValue) / trainValue) * 100).toFixed(
+                              1
+                            )
+                          : '0.0'}
+                        %
+                      </span>
+                    )}
                   </div>                  <div className="d-flex align-items-center justify-content-between">
                     {/* Show test values first (primary) */}
                     {showTest && testMetric && (
@@ -90,23 +105,7 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
                         </div>
                       </>
                     )}
-                  </div>                  {showTest && testMetric && showTrainValues && (
-                    <div className="position-absolute top-0 end-0 p-2">
-                      <span
-                        className={`badge small ${
-                          testValue >= trainValue ? 'text-success' : 'text-danger'
-                        }`}
-                      >
-                        {testValue >= trainValue ? '+' : ''}
-                        {trainValue !== 0
-                          ? (((testValue - trainValue) / trainValue) * 100).toFixed(
-                              1
-                            )
-                          : '0.0'}
-                        %
-                      </span>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -130,6 +129,10 @@ export default function ModelsTable({
 
   let [patientIDs, setPatientIDs] = useState(null);
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
+  
+  let [featureImportanceOpen, setFeatureImportanceOpen] = useState(false);
+  let [featureImportanceModelId, setFeatureImportanceModelId] = useState(null);
+  
   let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
   let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] =
     useState('');
@@ -143,6 +146,13 @@ export default function ModelsTable({
 
   const togglePatientIDs = () => {
     setPatientIDsOpen((open) => !open);
+  };
+
+  const toggleFeatureImportance = (modelId = null) => {
+    setFeatureImportanceOpen((open) => !open);
+    if (modelId) {
+      setFeatureImportanceModelId(modelId);
+    }
   };
 
   const handleShowFeatureNames = (names) => {
@@ -494,6 +504,7 @@ export default function ModelsTable({
                                   />
                                   {showTrainValues ? ' Hide' : ' Show'} Train Values
                                 </Button>
+                                
                                 <Button
                                   size="sm"
                                   color="light"
@@ -529,6 +540,18 @@ export default function ModelsTable({
                                 >
                                   <FontAwesomeIcon icon="download" size="sm" />{' '}
                                   Features
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  color="outline-primary"
+                                  onClick={() => toggleFeatureImportance(row.original.id)}
+                                  className="me-2"
+                                >
+                                  <FontAwesomeIcon 
+                                    icon="chart-bar" 
+                                    className="me-1" 
+                                  />
+                                  Feature Importance
                                 </Button>
                               </div>
                             )}
@@ -668,7 +691,6 @@ export default function ModelsTable({
                               <div className="col-md-6 col-lg-3">
                                 <div className="card h-100">
                                   <div className="card-header bg-light">
-                                    <FontAwesomeIcon icon="users" className="me-2" />
                                     <span className="fw-semibold">Dataset</span>
                                   </div>
                                   <div className="card-body p-3">
@@ -740,7 +762,7 @@ export default function ModelsTable({
   className="ms-2"
   title="Delete this model permanently"
 >
-  <FontAwesomeIcon icon={faTrash} />{' '}
+  <FontAwesomeIcon icon="trash-alt" />{' '}
   Delete
 </Button>
                         </div>
@@ -767,6 +789,11 @@ export default function ModelsTable({
       >
         <ListValues values={patientIDs} />
       </MyModal>
+      <FeatureImportanceModal
+        isOpen={featureImportanceOpen}
+        toggle={() => toggleFeatureImportance()}
+        modelId={featureImportanceModelId}
+      />
     </>
   );
 }

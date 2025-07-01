@@ -61,6 +61,8 @@ import {
   faFileExport,
   faChartArea,
   faFilter,
+  faTachometerAlt,
+  faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -125,4 +127,6 @@ export default function registerIcons() {
   library.add(faFileExport);
   library.add(faChartArea);
   library.add(faFilter);
+  library.add(faTachometerAlt);
+  library.add(faUsers);
 }
