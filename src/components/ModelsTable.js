@@ -5,7 +5,6 @@ import {
   Button,
   Collapse,
   Table,
-  UncontrolledTooltip,
   Badge,
 } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -23,24 +22,29 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
   const metricDefinitions = {
     auc: {
       name: 'AUC',
+      icon: 'chart-area',
     },
     accuracy: {
       name: 'Accuracy',
+      icon: 'bullseye',
     },
     precision: {
       name: 'Precision',
+      icon: 'crosshairs',
     },
     sensitivity: {
       name: 'Sensitivity',
+      icon: 'search-plus',
     },
     specificity: {
       name: 'Specificity',
+      icon: 'filter',
     },
   };
 
   return (
-    <div className="metrics-modern-container">      
-      <div className="metrics-grid-modern">
+    <div className="container-fluid">      
+      <div className="row g-3">
         {Object.keys(metricDefinitions).map((metricKey) => {
           const def = metricDefinitions[metricKey];
           const trainMetric = trainingMetrics[metricKey];
@@ -62,49 +66,49 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
           };
 
           return (
-            <div key={metricKey} className="metric-tile">
-              <div className="metric-header">
-                <FontAwesomeIcon
-                  icon={def.icon}
-                  className="metric-icon-small"
-                />
-                <span className="metric-name-small">{def.name}</span>
-              </div>              <div className="metric-values-compact">
-                {/* Show test values first (primary) */}
-                {showTest && testMetric && (
-                  <div className="metric-value-item">
-                    <span className="value">{formatValueWithRange(testMetric, testValue)}</span>
-                    <span className="label">Test</span>
-                  </div>
-                )}
+            <div key={metricKey} className="col">
+              <div className="card h-100 metric-card-bootstrap">
+                <div className="card-body p-3">
+                  <div className="d-flex align-items-center mb-2">
+                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted">{def.name}</span>
+                  </div>                  <div className="d-flex align-items-center justify-content-between">
+                    {/* Show test values first (primary) */}
+                    {showTest && testMetric && (
+                      <div className="text-center flex-fill">
+                        <div className="fs-6 fw-semibold text-primary metric-value-bold">{formatValueWithRange(testMetric, testValue)}</div>
+                        <div className="text-muted text-uppercase small">Test</div>
+                      </div>
+                    )}
 
-                {/* Show train values only when toggled or when there's no test data */}
-                {(showTrainValues || !showTest) && trainMetric && (
-                  <>
-                    {showTest && testMetric && <div className="metric-separator"></div>}
-                    <div className="metric-value-item">
-                      <span className="value">{formatValueWithRange(trainMetric, trainValue)}</span>
-                      <span className="label">Train</span>
+                    {/* Show train values only when toggled or when there's no test data */}
+                    {(showTrainValues || !showTest) && trainMetric && (
+                      <>
+                        {showTest && testMetric && <div className="vr mx-2" style={{ height: '40px' }}></div>}
+                        <div className="text-center flex-fill">
+                          <div className="fs-6 fw-semibold text-primary metric-value-bold">{formatValueWithRange(trainMetric, trainValue)}</div>
+                          <div className="text-muted text-uppercase small">Train</div>
+                        </div>
+                      </>
+                    )}
+                  </div>                  {showTest && testMetric && showTrainValues && (
+                    <div className="position-absolute top-0 end-0 p-2">
+                      <span
+                        className={`badge small ${
+                          testValue >= trainValue ? 'text-success' : 'text-danger'
+                        }`}
+                      >
+                        {testValue >= trainValue ? '+' : ''}
+                        {trainValue !== 0
+                          ? (((testValue - trainValue) / trainValue) * 100).toFixed(
+                              1
+                            )
+                          : '0.0'}
+                        %
+                      </span>
                     </div>
-                  </>
-                )}
-              </div>              {showTest && testMetric && showTrainValues && (
-                <div className="metric-diff">
-                  <span
-                    className={
-                      testValue >= trainValue ? 'positive' : 'negative'
-                    }
-                  >
-                    {testValue >= trainValue ? '+' : ''}
-                    {trainValue !== 0
-                      ? (((testValue - trainValue) / trainValue) * 100).toFixed(
-                          1
-                        )
-                      : '0.0'}
-                    %
-                  </span>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -489,7 +493,7 @@ export default function ModelsTable({
                                     icon={showTrainValues ? "eye-slash" : "eye"} 
                                     className="me-1" 
                                   />
-                                  {showTrainValues ? 'Hide' : 'Show'} Train Values
+                                  {showTrainValues ? ' Hide' : ' Show'} Train Values
                                 </Button>
                                 <Button
                                   size="sm"
@@ -545,156 +549,140 @@ export default function ModelsTable({
                           </summary>
 
                           <div className="configuration-section">
-                            <div className="config-cards">
-                              <div className="config-card">
-                                <div className="config-card-header">
-                                  <span>Model Info</span>
-                                </div>
-                                <div className="config-items">
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Created
-                                    </span>
-                                    <span className="config-value">
-                                      {new Date(
-                                        row.original.created_at
-                                      ).toLocaleDateString()}
-                                    </span>
+                            <div className="row g-3">
+                              <div className="col-md-6 col-lg-3">
+                                <div className="card h-100">
+                                  <div className="card-header bg-light">
+                                    <span className="fw-semibold">Model Info</span>
                                   </div>
-                                  <div className="config-item">
-                                    <span className="config-label">Type</span>
-                                    <span className="config-value">
-                                      {row.original.type}
-                                    </span>
-                                  </div>
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Algorithm
-                                    </span>
-                                    <span className="config-value">
-                                      {row.original.best_algorithm}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="config-card">
-                                <div className="config-card-header">
-                                  <span>Data Processing</span>
-                                </div>
-                                <div className="config-items">
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Normalization
-                                    </span>
-                                    <span className="config-value">
-                                      {row.original.best_data_normalization ||
-                                        'None'}
-                                    </span>
-                                  </div>
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Features
-                                    </span>
-                                    <span className="config-value">
-                                      <Badge color="secondary">
-                                        {row.original.feature_names.length}
-                                      </Badge>
-                                      <Button
-                                        color="link"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleShowFeatureNames(
-                                            row.original.feature_names
-                                          );
-                                        }}
-                                        className="p-0 ms-2"
-                                      >
-                                        View
-                                      </Button>
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="config-card">
-                                <div className="config-card-header">
-                                  <span>Validation</span>
-                                </div>
-                                <div className="config-items">
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Strategy
-                                    </span>
-                                    <span className="config-value">
-                                      {row.original.data_splitting_type ===
-                                      DATA_SPLITTING_TYPES.FULL_DATASET
-                                        ? 'Cross-validation'
-                                        : 'Train/Test Split'}
-                                    </span>
-                                  </div>
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Training
-                                    </span>
-                                    <span className="config-value">
-                                      {row.original.training_validation ||
-                                        'Default'}
-                                    </span>
-                                  </div>
-                                  {row.original.data_splitting_type ===
-                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                    <div className="config-item">
-                                      <span className="config-label">Test</span>
-                                      <span className="config-value">
-                                        {row.original.test_validation ||
-                                          'Bootstrap'}
+                                  <div className="card-body p-3">
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">
+                                        Created
+                                      </span>
+                                      <span className="fw-medium small">
+                                        {new Date(
+                                          row.original.created_at
+                                        ).toLocaleDateString()}
                                       </span>
                                     </div>
-                                  )}
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">Type</span>
+                                      <span className="fw-medium small">
+                                        {row.original.type}
+                                      </span>
+                                    </div>
+                                    <div className="d-flex justify-content-between">
+                                      <span className="text-muted small">
+                                        Algorithm
+                                      </span>
+                                      <span className="fw-medium small">
+                                        {row.original.best_algorithm}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div className="config-card">
-                                <div className="config-card-header">
-                                  <FontAwesomeIcon icon="users" />
-                                  <span>Dataset</span>
-                                </div>
-                                <div className="config-items">
-                                  <div className="config-item">
-                                    <span className="config-label">
-                                      Training
-                                    </span>
-                                    <span className="config-value">
-                                      <Badge color="secondary">
-                                        {
-                                          row.original.training_patient_ids
-                                            .length
-                                        }
-                                      </Badge>
-                                      <Button
-                                        color="link"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          handleShowPatientIDs(
-                                            row.original.training_patient_ids
-                                          );
-                                        }}
-                                        className="p-0 ms-2"
-                                      >
-                                        View
-                                      </Button>
-                                    </span>
+                              <div className="col-md-6 col-lg-3">
+                                <div className="card h-100">
+                                  <div className="card-header bg-light">
+                                    <span className="fw-semibold">Data Processing</span>
                                   </div>
-                                  {row.original.data_splitting_type ===
-                                    DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
-                                    <div className="config-item">
-                                      <span className="config-label">Test</span>
-                                      <span className="config-value">
-                                        <Badge color="secondary">
-                                          {row.original.test_patient_ids.length}
+                                  <div className="card-body p-3">
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">
+                                        Normalization
+                                      </span>
+                                      <span className="fw-medium small">
+                                        {row.original.best_data_normalization ||
+                                          'None'}
+                                      </span>
+                                    </div>
+                                    <div className="d-flex justify-content-between">
+                                      <span className="text-muted small">
+                                        Features
+                                      </span>
+                                      <span className="fw-medium small">
+                                        <Badge color="secondary" className="me-1">
+                                          {row.original.feature_names.length}
+                                        </Badge>
+                                        <Button
+                                          color="link"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            handleShowFeatureNames(
+                                              row.original.feature_names
+                                            );
+                                          }}
+                                          className="p-0"
+                                        >
+                                          View
+                                        </Button>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="col-md-6 col-lg-3">
+                                <div className="card h-100">
+                                  <div className="card-header bg-light">
+                                    <span className="fw-semibold">Validation</span>
+                                  </div>
+                                  <div className="card-body p-3">
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">
+                                        Strategy
+                                      </span>
+                                      <span className="fw-medium small">
+                                        {row.original.data_splitting_type ===
+                                        DATA_SPLITTING_TYPES.FULL_DATASET
+                                          ? 'Cross-validation'
+                                          : 'Train/Test Split'}
+                                      </span>
+                                    </div>
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">
+                                        Training
+                                      </span>
+                                      <span className="fw-medium small">
+                                        {row.original.training_validation ||
+                                          'Default'}
+                                      </span>
+                                    </div>
+                                    {row.original.data_splitting_type ===
+                                      DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                                      <div className="d-flex justify-content-between">
+                                        <span className="text-muted small">Test</span>
+                                        <span className="fw-medium small">
+                                          {row.original.test_validation ||
+                                            'Bootstrap'}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="col-md-6 col-lg-3">
+                                <div className="card h-100">
+                                  <div className="card-header bg-light">
+                                    <FontAwesomeIcon icon="users" className="me-2" />
+                                    <span className="fw-semibold">Dataset</span>
+                                  </div>
+                                  <div className="card-body p-3">
+                                    <div className="d-flex justify-content-between mb-2">
+                                      <span className="text-muted small">
+                                        Training
+                                      </span>
+                                      <span className="fw-medium small">
+                                        <Badge color="secondary" className="me-1">
+                                          {
+                                            row.original.training_patient_ids
+                                              .length
+                                          }
                                         </Badge>
                                         <Button
                                           color="link"
@@ -702,16 +690,40 @@ export default function ModelsTable({
                                           onClick={(e) => {
                                             e.preventDefault();
                                             handleShowPatientIDs(
-                                              row.original.test_patient_ids
+                                              row.original.training_patient_ids
                                             );
                                           }}
-                                          className="p-0 ms-2"
+                                          className="p-0"
                                         >
                                           View
                                         </Button>
                                       </span>
                                     </div>
-                                  )}
+                                    {row.original.data_splitting_type ===
+                                      DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && (
+                                      <div className="d-flex justify-content-between">
+                                        <span className="text-muted small">Test</span>
+                                        <span className="fw-medium small">
+                                          <Badge color="secondary" className="me-1">
+                                            {row.original.test_patient_ids.length}
+                                          </Badge>
+                                          <Button
+                                            color="link"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              handleShowPatientIDs(
+                                                row.original.test_patient_ids
+                                              );
+                                            }}
+                                            className="p-0"
+                                          >
+                                            View
+                                          </Button>
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>

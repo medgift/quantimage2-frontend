@@ -59,6 +59,8 @@ import {
   faFileImport,
   faFileUpload,
   faFileExport,
+  faChartArea,
+  faFilter,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -121,4 +123,6 @@ export default function registerIcons() {
   library.add(faFileImport);
   library.add(faFileUpload);
   library.add(faFileExport);
+  library.add(faChartArea);
+  library.add(faFilter);
 }
