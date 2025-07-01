@@ -1,3 +1,22 @@
+/* Ensure Bootstrap font-size and font-weight classes work properly */
+.metric-card-bootstrap .card-body div.fs-6.fw-semibold.text-primary {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+
+/* Fallback for metric values */
+.metric-card-bootstrap .card-body .text-center .text-primary {
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+/* Custom metric value class */
+.metric-value-bold {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0d6efd;
+}
+
 .export-link {
   /* position: absolute; */
   margin-left: auto;
@@ -245,12 +264,14 @@ h4.mt-3 {
   margin-bottom: 4px;
 }
 
+/* Commented out - replaced with Bootstrap font-size classes
 .metric-value {
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 4px;
 }
+*/
 
 .metric-description {
   font-size: 0.75rem;
@@ -440,6 +461,27 @@ details[open] .summary-chevron {
   background: #10b981;
 }
 
+/* Bootstrap-based Metrics Cards */
+.metric-card-bootstrap {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.metric-card-bootstrap:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.metric-name-bootstrap {
+  font-size: 0.8125rem;
+  letter-spacing: 0.025em;
+  color: #374151;
+}
+
 /* Metrics Grid */
 .metrics-grid-modern {
   display: grid;
@@ -489,27 +531,8 @@ details[open] .summary-chevron {
   gap: 12px;
 }
 
-.metric-value-item {
-  flex: 1;
-  text-align: center;
-}
 
-.metric-value-item .value {
-  
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
 
-.metric-value-item .label {
-  display: block;
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-}
 
 .metric-separator {
   width: 1px;
@@ -578,7 +601,7 @@ details[open] .summary-chevron {
 
 /* Configuration Section */
 .configuration-section {
-  padding: 30px;
+  padding: 15px;
   background: #fafbfc;
 }
 
@@ -729,11 +752,7 @@ details[open] .configuration-summary .summary-chevron {
   transform: rotate(180deg);
 }
 
-/* Update existing configuration section */
-.configuration-section {
-  padding: 30px;
-  background: #fafbfc;
-}
+
 
 /* Comparison-based colors */
 .metric-value-item.higher .value {

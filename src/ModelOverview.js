@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button, Alert } from 'reactstrap';
-import { saveAs } from 'file-saver';
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import ModelsTable from './components/ModelsTable';
@@ -345,54 +344,55 @@ export default function ModelOverview({ albums }) {
                           Performance Metrics at Threshold {threshold.toFixed(3)}
                         </h5>
                       </div>
-                      <div className="metrics-modern-container">
-                        <div className="metrics-grid-modern">
-                          <div className="metric-tile">
-                            <div className="metric-header">
-                              <span className="metric-name-small">Accuracy</span>
-                            </div>
-                            <div className="metric-values-compact">
-                              <div className="metric-value-item">
-                                <span className="value">{predictionMetrics.accuracy.toFixed(3)}</span>
+                      <div className="container-fluid">
+                        <div className="row g-3">
+                          <div className="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <div className="card h-100 metric-card-bootstrap">
+                              <div className="card-body p-3">
+                                <div className="metric-name-bootstrap text-uppercase fw-bold text-muted mb-2" style={{ fontSize: '0.8125rem' }}>Accuracy</div>
+                                <div className="text-center">
+                                  <div className="fs-5 fw-bold text-dark">{predictionMetrics.accuracy.toFixed(3)}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="metric-tile">
-                            <div className="metric-header">
-                              <span className="metric-name-small">Precision</span>
-                            </div>
-                            <div className="metric-values-compact">
-                              <div className="metric-value-item">
-                                <span className="value">{predictionMetrics.precision.toFixed(3)}</span>
-                              </div>
-                            </div>
-                          </div>                          <div className="metric-tile">
-                            <div className="metric-header">
-                              <span className="metric-name-small">Recall</span>
-                            </div>
-                            <div className="metric-values-compact">
-                              <div className="metric-value-item">
-                                <span className="value">{predictionMetrics.recall.toFixed(3)}</span>
+                          <div className="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <div className="card h-100 metric-card-bootstrap">
+                              <div className="card-body p-3">
+                                <div className="metric-name-bootstrap text-uppercase fw-bold text-muted mb-2" style={{ fontSize: '0.8125rem' }}>Precision</div>
+                                <div className="text-center">
+                                  <div className="fs-5 fw-bold text-dark">{predictionMetrics.precision.toFixed(3)}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="metric-tile">
-                            <div className="metric-header">
-                              <span className="metric-name-small">Specificity</span>
-                            </div>
-                            <div className="metric-values-compact">
-                              <div className="metric-value-item">
-                                <span className="value">{predictionMetrics.specificity.toFixed(3)}</span>
+                          <div className="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <div className="card h-100 metric-card-bootstrap">
+                              <div className="card-body p-3">
+                                <div className="metric-name-bootstrap text-uppercase fw-bold text-muted mb-2" style={{ fontSize: '0.8125rem' }}>Recall</div>
+                                <div className="text-center">
+                                  <div className="fs-5 fw-bold text-dark">{predictionMetrics.recall.toFixed(3)}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="metric-tile">
-                            <div className="metric-header">
-                              <span className="metric-name-small">F1-Score</span>
+                          <div className="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <div className="card h-100 metric-card-bootstrap">
+                              <div className="card-body p-3">
+                                <div className="metric-name-bootstrap text-uppercase fw-bold text-muted mb-2" style={{ fontSize: '0.8125rem' }}>Specificity</div>
+                                <div className="text-center">
+                                  <div className="fs-5 fw-bold text-dark">{predictionMetrics.specificity.toFixed(3)}</div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="metric-values-compact">
-                              <div className="metric-value-item">
-                                <span className="value">{predictionMetrics.f1.toFixed(3)}</span>
+                          </div>
+                          <div className="col-lg-2 col-md-3 col-sm-4 col-6">
+                            <div className="card h-100 metric-card-bootstrap">
+                              <div className="card-body p-3">
+                                <div className="metric-name-bootstrap text-uppercase fw-bold text-muted mb-2" style={{ fontSize: '0.8125rem' }}>F1-Score</div>
+                                <div className="text-center">
+                                  <div className="fs-5 fw-bold text-dark">{predictionMetrics.f1.toFixed(3)}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
