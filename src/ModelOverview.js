@@ -157,7 +157,8 @@ export default function ModelOverview({ albums }) {
         );
       }
       console.log('Backend result:', result);
-      console.log('Backend result data length:', result?.data?.length);
+      console.log('Backend result length:', result?.length);
+      console.log('Backend result type:', typeof result);
 
       // Show debug info if available
       if (result?.debug) {
@@ -165,9 +166,12 @@ export default function ModelOverview({ albums }) {
         alert('Backend debug info:\n' + JSON.stringify(result.debug, null, 2));
       }
 
-      // Check for the new data format
-      if (result && result.data) {
-        setPlotHtml(result.data); // Store the data instead of HTML
+      // Check if result is directly an array of models (new backend format)
+      if (Array.isArray(result) && result.length > 0) {
+        setPlotHtml(result); // Store the array of models directly
+      } else if (result && result.data) {
+        // Fallback for old format with data property
+        setPlotHtml(result.data);
       } else {
         setPlotError('No plot data received from backend');
       }
