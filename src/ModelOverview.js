@@ -13,7 +13,7 @@ import {
 } from './config/constants';
 import InteractivePredictionsPlot from './components/InteractivePredictionsPlot';
 
-export default function ModelOverview({ albums }) {
+export default function ModelOverview({ albums, showBackButton = true, initialModels = null }) {
   const navigate = useNavigate();
 
   const { keycloak } = useKeycloak();
@@ -73,6 +73,12 @@ export default function ModelOverview({ albums }) {
   }, [albumID, keycloak.token]);
 
   useEffect(() => {
+    if (initialModels) {
+      // Use the models passed from parent (Features component)
+      setModels(initialModels);
+      return;
+    }
+
     async function fetchModels() {
       let models = await Backend.models(keycloak.token, albumID);
 
@@ -89,7 +95,7 @@ export default function ModelOverview({ albums }) {
     }
 
     if (featureExtractionID) fetchModels();
-  }, [keycloak.token, albumID, featureExtractionID]);
+  }, [keycloak.token, albumID, featureExtractionID, initialModels]);
 
   // Get collections
   useEffect(() => {
@@ -193,12 +199,14 @@ export default function ModelOverview({ albums }) {
           className="d-flex flex-column justify-content-start align-items-start tab-content"
           style={{ borderTop: '1px solid #dee2e6' }}
         >
-          <Button
-            color="link"
-            onClick={() => navigate(`/features/${albumID}/overview`)}
-          >
-            <FontAwesomeIcon icon="arrow-left" /> Go Back
-          </Button>{' '}
+          {showBackButton && (
+            <Button
+              color="link"
+              onClick={() => navigate(`/features/${albumID}/overview`)}
+            >
+              <FontAwesomeIcon icon="arrow-left" /> Go Back
+            </Button>
+          )}{' '}
           {models.length > 0 ? (
             <div style={{ width: '98%' }}>
               <ModelsTable
