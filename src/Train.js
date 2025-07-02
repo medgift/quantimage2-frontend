@@ -2,7 +2,6 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Button, ListGroup, ListGroupItem } from 'reactstrap';
 
 import './Train.css';
-import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import Kheops from './services/kheops';
@@ -13,14 +12,12 @@ import {
   MODEL_TYPES,
   DATA_SPLITTING_TYPES,
   TRAINING_PHASES,
-  CLASSIFICATION_COLUMNS,
-  SURVIVAL_COLUMNS,
   SOCKETIO_MESSAGES,
   CV_SPLITS,
   CLASSIFICATION_OUTCOMES,
   SURVIVAL_OUTCOMES,
 } from './config/constants';
-import ModelsTable from './components/ModelsTable';
+import TrainingQueue from './components/TrainingQueue';
 import SocketContext from './context/SocketContext';
 
 export const PATIENT_ID_FIELD = 'PatientID';
@@ -73,10 +70,6 @@ export default function Train({
   let [showNewModel, setShowNewModel] = useState(false);
 
   let socket = useContext(SocketContext);
-
-  // Model table header
-  const columnsClassification = React.useMemo(() => CLASSIFICATION_COLUMNS, []);
-  const columnsSurvival = React.useMemo(() => SURVIVAL_COLUMNS, []);
 
   const reinitTraining = () => {
     setIsTraining(false);
@@ -184,11 +177,6 @@ export default function Train({
       reinitTraining();
       setTrainingError(e.message);
     }
-  };
-
-  const handleDeleteModelClick = async (id) => {
-    await Backend.deleteModel(keycloak.token, id);
-    setModels(models.filter((model) => model.id !== id));
   };
 
   const handleShowNewModelClick = () => {
@@ -738,17 +726,15 @@ export default function Train({
     <>
       {albumExtraction && (
         <>
-          <ModelsTable
-            title="Classification Models"
-            columns={columnsClassification}
-            data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
-            handleDeleteModelClick={handleDeleteModelClick}
-          />
-          <ModelsTable
-            title="Survival Models"
-            columns={columnsSurvival}
-            data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
-            handleDeleteModelClick={handleDeleteModelClick}
+          <h3>Model Training Queue</h3>
+          <TrainingQueue
+            collections={[{ id: featureExtractionID, name: collectionInfos?.collection?.name || 'Current Collection' }]}
+            onTrainModel={handleShowNewModelClick}
+            isTraining={isTraining}
+            trainingProgress={currentStep / nSteps}
+            models={models}
+            featureExtractionID={featureExtractionID}
+            selectedLabelCategory={selectedLabelCategory}
           />
         </>
       )}
