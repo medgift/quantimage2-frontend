@@ -41,6 +41,7 @@ import Kheops from './services/kheops';
 import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
+import ModelOverview from './ModelOverview';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -84,6 +85,7 @@ function Features() {
 
   // Models management
   const [models, setModels] = useState([]);
+  const [allModels, setAllModels] = useState([]); // For ModelOverview tab
 
   // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
@@ -466,6 +468,12 @@ function Features() {
       let filteredModels = models.filter(
         (m) => m.feature_extraction_id === featureExtractionID
       );
+
+      // Store all models for ModelOverview
+      let allSortedModels = filteredModels.sort(
+        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+      );
+      setAllModels(allSortedModels);
 
       // Filter out models that are not for this collection / original feature set
       filteredModels = collectionID
@@ -903,12 +911,14 @@ function Features() {
                 </NavItem>
                 <NavItem>
                   <NavLink
-                    className={classnames({ active: false })}
+                    className={getTabClassName('models')}
                     onClick={() => {
-                      navigate(`/models/${albumID}`);
+                      toggle('models');
                     }}
                   >
-                    All Models
+                    {getTabSymbol()}
+                    All Models{' '}
+                    {models.length > 0 && <Badge>{models.length}</Badge>}
                   </NavLink>
                 </NavItem>
                 {/* <NavItem>
@@ -1231,6 +1241,17 @@ function Features() {
                         }
                       />
                     </>
+                  ) : (
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="models">
+                  {tab === 'models' && album ? (
+                    <ModelOverview 
+                      albums={[album]} 
+                      showBackButton={false}
+                      initialModels={allModels}
+                    />
                   ) : (
                     <span>Loading...</span>
                   )}
