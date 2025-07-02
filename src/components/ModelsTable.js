@@ -44,7 +44,7 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
 
   return (
     <div className="container-fluid">      
-      <div className="row g-3">
+      <div className="row g-2 g-md-3">
         {Object.keys(metricDefinitions).map((metricKey) => {
           const def = metricDefinitions[metricKey];
           const trainMetric = trainingMetrics[metricKey];
@@ -66,11 +66,11 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
           };
 
           return (
-            <div key={metricKey} className="col">
+            <div key={metricKey} className="col-12 col-sm-6 col-lg-4 col-xl">
               <div className="card h-100 metric-card-bootstrap position-relative">
-                <div className="card-body p-3">
+                <div className="card-body p-2 p-md-3">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted">{def.name}</span>
+                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">{def.name}</span>
                     {showTest && testMetric && showTrainValues && (
                       <span
                         className={`badge small ${
@@ -86,22 +86,30 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
                         %
                       </span>
                     )}
-                  </div>                  <div className="d-flex align-items-center justify-content-between">
+                  </div>                  
+                  {/* Stack values vertically on smaller screens, side by side on larger screens */}
+                  <div className={`d-flex ${showTest && testMetric && showTrainValues ? 'flex-column flex-lg-row' : ''} align-items-center justify-content-center`}>
                     {/* Show test values first (primary) */}
                     {showTest && testMetric && (
-                      <div className="text-center flex-fill">
-                        <div className="fs-6 fw-semibold text-primary metric-value-bold">{formatValueWithRange(testMetric, testValue)}</div>
-                        <div className="text-muted text-uppercase small">Test</div>
+                      <div className="text-center flex-fill mb-2 mb-lg-0">
+                        <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                          {formatValueWithRange(testMetric, testValue)}
+                        </div>
+                        <div className="text-muted text-uppercase" style={{ fontSize: '0.7rem' }}>Test</div>
                       </div>
                     )}
 
                     {/* Show train values only when toggled or when there's no test data */}
                     {(showTrainValues || !showTest) && trainMetric && (
                       <>
-                        {showTest && testMetric && <div className="vr mx-2" style={{ height: '40px' }}></div>}
+                        {showTest && testMetric && showTrainValues && (
+                          <div className="d-none d-lg-block vr mx-2" style={{ height: '40px' }}></div>
+                        )}
                         <div className="text-center flex-fill">
-                          <div className="fs-6 fw-semibold text-primary metric-value-bold">{formatValueWithRange(trainMetric, trainValue)}</div>
-                          <div className="text-muted text-uppercase small">Train</div>
+                          <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                            {formatValueWithRange(trainMetric, trainValue)}
+                          </div>
+                          <div className="text-muted text-uppercase" style={{ fontSize: '0.7rem' }}>Train</div>
                         </div>
                       </>
                     )}

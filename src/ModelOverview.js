@@ -236,7 +236,6 @@ export default function ModelOverview({ albums }) {
                   }}
                 >
                   <h5 style={{ marginBottom: '15px', color: '#495057' }}>
-                    <FontAwesomeIcon icon="chart-line" className="me-2" />
                     Plot Selected Models ({selectedModels.length} selected)
                   </h5>
 
@@ -317,13 +316,12 @@ export default function ModelOverview({ albums }) {
                   {/* Shared Threshold Control */}
                   <div className="card mt-3">
                     <div className="card-header">
-                      <FontAwesomeIcon icon="sliders-h" className="me-2" />
                       Model Analysis Controls
                     </div>
                     <div className="card-body">
                       <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
                         <label htmlFor="threshold-slider" className="form-label mb-2">
-                          <strong>🎯 Decision Threshold: {threshold.toFixed(3)}</strong>
+                          <strong>Decision Threshold: {threshold.toFixed(3)}</strong>
                         </label>                        <input
                           id="threshold-slider"
                           type="range"
@@ -344,7 +342,6 @@ export default function ModelOverview({ albums }) {
                     <div className="performance-section">
                       <div className="section-header">
                         <h5>
-                          <FontAwesomeIcon icon="chart-bar" className="me-2" />
                           Performance Metrics at Threshold {threshold.toFixed(3)}
                         </h5>
                       </div>
@@ -409,7 +406,6 @@ export default function ModelOverview({ albums }) {
                     {/* Interactive Predictions Plot */}
                     <div className="col-md-6">
                       <div className="card">                        <div className="card-header">
-                          <FontAwesomeIcon icon="chart-line" className="me-2" />
                           Interactive Predictions - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
                         </div>
                         <div className="card-body p-0">                          <InteractivePredictionsPlot
@@ -429,7 +425,6 @@ export default function ModelOverview({ albums }) {
                     {/* ROC Curve Component */}
                     <div className="col-md-6">
                       <div className="card">                        <div className="card-header">
-                          <FontAwesomeIcon icon="chart-bar" className="me-2" />
                           ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
                         </div>
                         <div className="card-body p-0">

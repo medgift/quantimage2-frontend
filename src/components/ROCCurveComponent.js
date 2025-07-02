@@ -188,7 +188,6 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
     return (
       <div className="card">
         <div className="card-header">
-          <FontAwesomeIcon icon="chart-line" className="me-2" />
           ROC Curve
         </div>
         <div className="card-body">
@@ -214,7 +213,6 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
       <div className="card">
         <div className="card-header d-flex justify-content-between align-items-center">
           <div>
-            <FontAwesomeIcon icon="chart-line" className="me-2" />
             ROC Curve - {selectedModel.name || `Model ${selectedModel.id}`}
           </div>
           {onClose && (
