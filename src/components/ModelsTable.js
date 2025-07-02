@@ -18,6 +18,7 @@ import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import './ModelsTable.css';
+
 const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainValues }) => {  
   const metricDefinitions = {
     auc: {
@@ -50,8 +51,12 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
           const trainMetric = trainingMetrics[metricKey];
           const testMetric = testMetrics?.[metricKey];
 
-          if (!trainMetric && !testMetric) return null;          const trainValue = trainMetric?.mean || trainMetric?.value || 0;
-          const testValue = testMetric?.mean || testMetric?.value || 0;          // Format value with range for AUC
+          if (!trainMetric && !testMetric) return null;
+
+          const trainValue = trainMetric?.mean || trainMetric?.value || 0;
+          const testValue = testMetric?.mean || testMetric?.value || 0;
+
+          // Format value with range for AUC
           const formatValueWithRange = (metric, value) => {
             if (metricKey === 'auc' && metric) {
               // Use inf_value and sup_value for confidence intervals
@@ -86,7 +91,8 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
                         %
                       </span>
                     )}
-                  </div>                  
+                  </div>
+
                   {/* Stack values vertically on smaller screens, side by side on larger screens */}
                   <div className={`d-flex ${showTest && testMetric && showTrainValues ? 'flex-column flex-lg-row' : ''} align-items-center justify-content-center`}>
                     {/* Show test values first (primary) */}
@@ -123,6 +129,7 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
     </div>
   );
 };
+
 export default function ModelsTable({
   title,
   columns,
@@ -132,7 +139,8 @@ export default function ModelsTable({
   selectedModels = [],
   onModelSelectionChange,
   showSelection = false,
-}) {  let [featureNames, setFeatureNames] = useState(null);
+}) {
+  let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
   let [patientIDs, setPatientIDs] = useState(null);
@@ -202,6 +210,7 @@ export default function ModelsTable({
 
     saveAs(content, filename);
   };
+
   // Create columns with optional checkbox column
   const columnsWithSelection = React.useMemo(() => {
     // We're rendering the checkbox column manually, so just return the original columns
@@ -264,10 +273,10 @@ export default function ModelsTable({
     saveAs(blob, 'models-export.csv');
   };
 
-  const [compareModelsValue, setCompareModelsValue] = useState(''); // State variable for input value
+  const [compareModelsValue, setCompareModelsValue] = useState('');
 
   const handleCompareModelsChange = (event) => {
-    setCompareModelsValue(event.target.value); // Update state on input change
+    setCompareModelsValue(event.target.value);
   };
 
   const handleCompareModels = async () => {
@@ -332,7 +341,6 @@ export default function ModelsTable({
               />
               <span className="button-spacer">
                 {' '}
-                {/* Empty spacer element */}
               </span>
               <Button
                 size="sm"
@@ -357,7 +365,8 @@ export default function ModelsTable({
         </div>
       </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
-        <thead>          {headerGroups.map((headerGroup) => (
+        <thead>
+          {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {showSelection && (
                 <th style={{ width: '50px' }}>
@@ -379,13 +388,11 @@ export default function ModelsTable({
               )}
               <th> </th>
               {headerGroup.headers.map((column) => {
-                // Skip the checkbox column since we're rendering it manually above
                 if (column.accessor === 'selection') return null;
                 
                 return (
                   <th {...column.getHeaderProps(column.canSort !== false ? column.getSortByToggleProps() : {})} key={column.id}>
                     {column.render('Header')}
-                    {/* Add a sort direction indicator only for sortable columns */}
                     {column.canSort !== false && (
                       <span>
                         {column.isSorted ? (
@@ -422,7 +429,8 @@ export default function ModelsTable({
                           </>
                         )}
                       </span>
-                    )}                  </th>
+                    )}
+                  </th>
                 );
               })}
             </tr>
@@ -432,7 +440,8 @@ export default function ModelsTable({
           {rows.map((row, i) => {
             prepareRow(row);
             return (
-              <React.Fragment key={row.getRowProps().key}>                <tr
+              <React.Fragment key={row.getRowProps().key}>
+                <tr
                   {...row.getRowProps()}
                   className="model-row"
                   style={{ cursor: 'pointer' }}
@@ -465,7 +474,8 @@ export default function ModelsTable({
                           : 'plus-circle'
                       }
                     />
-                  </td>                  {row.cells.map((cell) => {
+                  </td>
+                  {row.cells.map((cell) => {
                     return (
                       <td {...cell.getCellProps()} key={cell.column.id}>{cell.render('Cell')}</td>
                     );
@@ -474,7 +484,8 @@ export default function ModelsTable({
                 <tr>
                   <td colSpan={columnsWithSelection.length + (showSelection ? 2 : 1)} style={{ padding: 0 }}>
                     <Collapse isOpen={openModelID === row.original.id}>
-                      <div key={row.original.id} className="model-entry">                        {/* Performance Metrics Section */}
+                      <div key={row.original.id} className="model-entry">
+                        {/* Performance Metrics Section */}
                         <div className="performance-section">
                           <div className="section-header">
                             <h3>
@@ -761,18 +772,18 @@ export default function ModelsTable({
 
                         {/* Actions */}
                         <div className="model-actions">
-                        <Button
-  size="sm"
-  color="danger"
-  onClick={() =>
-    handleDeleteModelClick(row.original.id)
-  }
-  className="ms-2"
-  title="Delete this model permanently"
->
-  <FontAwesomeIcon icon="trash-alt" />{' '}
-  Delete
-</Button>
+                          <Button
+                            size="sm"
+                            color="danger"
+                            onClick={() =>
+                              handleDeleteModelClick(row.original.id)
+                            }
+                            className="ms-2"
+                            title="Delete this model permanently"
+                          >
+                            <FontAwesomeIcon icon="trash-alt" />{' '}
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </Collapse>
