@@ -230,92 +230,9 @@ const InteractivePredictionsPlot = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <h5 style={{ margin: 0, color: '#495057' }}>
         </h5>
-        {!hideContainer && (
-          <Button color="secondary" size="sm" onClick={onClose}>
-            <FontAwesomeIcon icon="times" className="me-1" />
-            Close
-          </Button>
-        )}
+        
       </div>{/* Model Summary - only show for multiple models */}
-      {modelsData.length > 1 && (
-        <div style={{ 
-          marginBottom: '20px', 
-          padding: '15px', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
-        }}>
-          <h6 style={{ marginBottom: '15px', color: '#495057', fontWeight: 'bold' }}>
-            <FontAwesomeIcon icon="info-circle" className="me-2" />
-            Models in Plot ({modelsData.length} total)
-          </h6>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: '15px' 
-          }}>
-            {modelsData.map((model, index) => {
-              const modelName = model.model_name || `Model ${model.model_id}`;
-              
-              return (
-                <div 
-                  key={model.model_id}
-                  style={{ 
-                    padding: '12px', 
-                    backgroundColor: 'white', 
-                    borderRadius: '6px',
-                    border: '2px solid #6c757d',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {/* Simple color indicators - consistent circles */}
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      <div 
-                        style={{ 
-                          width: '12px', 
-                          height: '12px', 
-                          backgroundColor: '#e74c3c',
-                          borderRadius: '50%',
-                          border: '1px solid #c0392b'
-                        }}
-                        title="Negative cases (red circles)"
-                      />
-                      <div 
-                        style={{ 
-                          width: '12px', 
-                          height: '12px', 
-                          backgroundColor: '#3498db',
-                          borderRadius: '50%',
-                          border: '1px solid #2980b9'
-                        }}
-                        title="Positive cases (blue circles)"
-                      />
-                    </div>
-                    <span style={{ fontWeight: 'bold', color: '#495057' }}>
-                      {modelName}
-                    </span>
-                  </div>
-                  <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#6c757d', textAlign: 'right' }}>
-                    {model.auc && <div>AUC: {model.auc.toFixed(3)}</div>}
-                    {model.patients && <div>{model.patients.length} patients</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: '15px', fontSize: '12px', color: '#6c757d', padding: '10px', backgroundColor: '#fff3cd', borderRadius: '4px' }}>
-            <strong>Color Legend:</strong>
-            <br />
-            <span style={{ color: '#e74c3c' }}>● Red circles</span> = Negative cases (Ground truth = 0) | 
-            <span style={{ color: '#3498db' }}> ● Blue circles</span> = Positive cases (Ground truth = 1)
-            <br />
-            <em>Models are distinguished by their Y-axis position and labels.</em>
-          </div>
-        </div>
-      )}      {/* Threshold Slider - conditionally rendered */}
+         {/* Threshold Slider - conditionally rendered */}
       {!hideThresholdControl && (
         <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
