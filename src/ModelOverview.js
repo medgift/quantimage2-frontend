@@ -475,11 +475,18 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                   </div>
 
                   {/* Bootstrap Analysis */}
-                  <BootstrapHistogram
-                    modelsData={plotHtml}
-                    height={400}
-                    metric="accuracy"
-                  />
+                  <div className="card mt-3">
+                    <div className="card-header">
+                      <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
+                    </div>
+                    <div className="card-body">
+                      <BootstrapHistogram
+                        modelsData={plotHtml}
+                        height={400}
+                        metric="auc"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -494,11 +501,18 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                   />
                   
                   {/* Bootstrap Analysis for Multiple Models */}
-                  <BootstrapHistogram
-                    modelsData={plotHtml}
-                    height={400}
-                    metric="accuracy"
-                  />
+                  <div className="card mt-3">
+                    <div className="card-header">
+                      <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
+                    </div>
+                    <div className="card-body">
+                      <BootstrapHistogram
+                        modelsData={plotHtml}
+                        height={400}
+                        metric="auc"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
             </div>

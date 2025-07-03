@@ -1,45 +1,184 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Plotly from 'plotly.js-dist';
+import Backend from '../services/backend';
+import { useKeycloak } from '@react-keycloak/web';
 
 const BootstrapHistogram = ({ 
   modelsData, 
   height = 500, 
   onClose, 
   hideContainer = false,
-  metric = 'accuracy' // which metric to show: 'accuracy', 'auc', 'precision', etc.
+  metric = 'auc' // Fixed to AUC for bootstrap analysis
 }) => {
   const plotRef = useRef(null);
   const plotDivRef = useRef(null);
+  const [bootstrapData, setBootstrapData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { keycloak } = useKeycloak();
 
-  // Generate dummy bootstrap data for demonstration
-  const generateBootstrapData = (modelName, modelId, baseValue) => {
-    const bootstrapSamples = [];
-    const numBootstraps = 1000; // Number of bootstrap samples
-    
-    // Generate normally distributed values around the base value
-    for (let i = 0; i < numBootstraps; i++) {
-      // Simple normal distribution approximation using Box-Muller transform
-      const u = 0.01 + Math.random() * 0.98; // avoid 0 and 1
-      const v = 0.01 + Math.random() * 0.98;
-      const normal = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-      
-      // Scale and shift to create realistic bootstrap distribution
-      const variance = 0.05; // Bootstrap variance
-      const value = baseValue + normal * variance;
-      
-      // Clamp to realistic bounds (0-1 for most metrics)
-      bootstrapSamples.push(Math.max(0, Math.min(1, value)));
-    }
-    
-    return bootstrapSamples;
-  };
+  // Fetch real bootstrap data from backend
+  useEffect(() => {
+    const fetchBootstrapData = async () => {
+      if (!modelsData || modelsData.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = [];
+        
+        for (const model of modelsData) {
+          const modelId = model.model_id || model.id;
+          const modelName = model.model_name || `Model ${modelId}`;
+          
+          try {
+            const response = await Backend.getTestScoresValues(keycloak.token, modelId);
+            
+            // Debug log to see the actual response structure
+            console.log(`Response for model ${modelId}:`, response);
+            
+            // Additional debug: Let's compare the first few values of different metrics
+            if (response.test_scores && Array.isArray(response.test_scores) && response.test_scores.length > 0) {
+              const firstScores = response.test_scores.slice(0, 5);
+              console.log(`First 5 test scores for model ${modelId}:`, firstScores);
+              
+              // Extract values for different metrics for comparison
+              const accuracyValues = firstScores.map(s => s.accuracy).filter(v => v !== undefined);
+              const aucValues = firstScores.map(s => s.auc).filter(v => v !== undefined);
+              const precisionValues = firstScores.map(s => s.precision).filter(v => v !== undefined);
+              
+              console.log(`Comparison for model ${modelId}:`, {
+                accuracy: accuracyValues,
+                auc: aucValues,
+                precision: precisionValues,
+                requestedMetric: metric,
+                requestedValues: firstScores.map(s => s[metric]).filter(v => v !== undefined)
+              });
+            }
+            
+            if (response.test_scores && Array.isArray(response.test_scores)) {
+              // Debug: log a sample of the test scores structure
+              console.log(`Sample test score objects for model ${modelId}:`, response.test_scores.slice(0, 3));
+              
+              // Extract the specific metric values from the test scores objects
+              const metricValues = response.test_scores
+                .map((scoreObj, index) => {
+                  if (typeof scoreObj === 'object' && scoreObj !== null) {
+                    // Debug: log the specific metric extraction for first few items
+                    if (index < 3) {
+                      console.log(`Score object ${index}:`, scoreObj);
+                      console.log(`Available keys:`, Object.keys(scoreObj));
+                      console.log(`Looking for metric '${metric}':`, scoreObj[metric]);
+                      console.log(`Has auc:`, scoreObj.auc);
+                      console.log(`Has accuracy:`, scoreObj.accuracy);
+                    }
+                    
+                    // Extract the metric value (auc, accuracy, precision, etc.)
+                    const metricValue = scoreObj[metric];
+                    if (metricValue !== undefined && metricValue !== null) {
+                      return metricValue;
+                    }
+                    
+                    // If the requested metric is not found, return undefined instead of falling back
+                    // This prevents mixing different metrics
+                    if (index < 3) {
+                      console.warn(`Metric '${metric}' not found in score object. Available keys:`, Object.keys(scoreObj));
+                    }
+                    return undefined;
+                  }
+                  return scoreObj; // In case it's already a number
+                })
+                .filter(score => 
+                  score !== undefined && 
+                  score !== null &&
+                  typeof score === 'number' && 
+                  !isNaN(score) && 
+                  isFinite(score)
+                )
+                .map(score => Number(score)); // Ensure numbers
+              
+              if (metricValues.length > 0) {
+                // Debug: show statistics of extracted values
+                const min = Math.min(...metricValues);
+                const max = Math.max(...metricValues);
+                const mean = metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
+                
+                console.log(`Model ${modelId} - ${metric} values:`, {
+                  count: metricValues.length,
+                  min: min,
+                  max: max,
+                  mean: mean,
+                  first5: metricValues.slice(0, 5),
+                  last5: metricValues.slice(-5),
+                  allValues: metricValues.slice(0, 20) // Show first 20 values for comparison
+                });
+                
+                data.push({
+                  name: modelName,
+                  modelId: modelId,
+                  algorithm: response.algorithm || 'Unknown',
+                  normalization: response.normalization || 'Unknown',
+                  samples: metricValues
+                });
+                
+                console.log(`Model ${modelId}: ${metricValues.length} valid ${metric} scores out of ${response.test_scores.length} total`);
+              } else {
+                console.warn(`Model ${modelId}: No valid ${metric} scores found in test_scores objects`);
+                console.warn(`Available metrics in first test score:`, response.test_scores[0] ? Object.keys(response.test_scores[0]) : 'No test scores');
+              }
+            } else {
+              console.warn(`Model ${modelId}: Invalid test_scores format:`, response.test_scores);
+            }
+          } catch (modelError) {
+            console.warn(`Failed to fetch test scores for model ${modelId}:`, modelError);
+            // Continue with other models even if one fails
+          }
+        }
+
+        // Debug: Final summary of all extracted data
+        console.log(`=== BOOTSTRAP DATA SUMMARY for metric '${metric}' ===`);
+        data.forEach((model, index) => {
+          const samples = model.samples;
+          if (samples && samples.length > 0) {
+            console.log(`Model ${index + 1} (${model.name}):`, {
+              sampleCount: samples.length,
+              min: Math.min(...samples),
+              max: Math.max(...samples),
+              mean: samples.reduce((a, b) => a + b, 0) / samples.length,
+              samplePreview: samples.slice(0, 10),
+              uniqueValues: [...new Set(samples)].slice(0, 10), // Show unique values
+              histogram: samples.reduce((acc, val) => {
+                const bin = Math.floor(val * 10) / 10; // Round to 1 decimal place
+                acc[bin] = (acc[bin] || 0) + 1;
+                return acc;
+              }, {})
+            });
+          }
+        });
+        console.log(`=== END SUMMARY ===`);
+        
+        setBootstrapData(data);
+      } catch (err) {
+        console.error('Error fetching bootstrap data:', err);
+        setError(err.message || 'Failed to fetch bootstrap data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBootstrapData();
+  }, [modelsData, keycloak.token, metric]);
 
   // Create bootstrap histogram plot
   useEffect(() => {
-    if (!modelsData || modelsData.length === 0 || !plotDivRef.current) return;
+    if (!bootstrapData || bootstrapData.length === 0 || !plotDivRef.current || loading) return;
 
-    // Calculate p-value using permutation test (dummy implementation)
+    // Calculate p-value using permutation test
     const calculatePValue = (samples1, samples2) => {
       const mean1 = samples1.reduce((a, b) => a + b, 0) / samples1.length;
       const mean2 = samples2.reduce((a, b) => a + b, 0) / samples2.length;
@@ -49,7 +188,6 @@ const BootstrapHistogram = ({
       // In real implementation, this would be a proper permutation test
       const combinedSamples = [...samples1, ...samples2];
       const n1 = samples1.length;
-      const n2 = samples2.length;
       let extremeCount = 0;
       const numPermutations = 1000;
       
@@ -72,13 +210,13 @@ const BootstrapHistogram = ({
     };
 
     // Calculate all pairwise p-values
-    const calculatePairwisePValues = (bootstrapData) => {
+    const calculatePairwisePValues = (data) => {
       const pValues = [];
       
-      for (let i = 0; i < bootstrapData.length; i++) {
-        for (let j = i + 1; j < bootstrapData.length; j++) {
-          const model1 = bootstrapData[i];
-          const model2 = bootstrapData[j];
+      for (let i = 0; i < data.length; i++) {
+        for (let j = i + 1; j < data.length; j++) {
+          const model1 = data[i];
+          const model2 = data[j];
           const pValue = calculatePValue(model1.samples, model2.samples);
           
           pValues.push({
@@ -95,27 +233,31 @@ const BootstrapHistogram = ({
 
     const traces = [];
     const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']; // Blue, Red, Green, Orange, Purple
-    const bootstrapData = [];
 
-    // Generate bootstrap data for each model
-    modelsData.forEach((model, index) => {
-      const modelName = model.model_name || `Model ${model.model_id}`;
+    // Create traces from real bootstrap data
+    bootstrapData.forEach((model, index) => {
+      // Additional validation before creating trace
+      if (!model.samples || model.samples.length === 0) {
+        console.warn(`Skipping model ${model.name}: no samples`);
+        return;
+      }
       
-      // Use model's actual metric if available, otherwise use dummy base value
-      const baseValue = model.auc || (0.7 + Math.random() * 0.25); // Random between 0.7-0.95
+      // Ensure all samples are valid numbers
+      const validSamples = model.samples.filter(sample => 
+        typeof sample === 'number' && 
+        !isNaN(sample) && 
+        isFinite(sample)
+      );
       
-      const bootstrapValues = generateBootstrapData(modelName, model.model_id, baseValue);
-      
-      // Store for p-value calculations
-      bootstrapData.push({
-        name: modelName,
-        samples: bootstrapValues
-      });
+      if (validSamples.length === 0) {
+        console.warn(`Skipping model ${model.name}: no valid samples`);
+        return;
+      }
       
       traces.push({
-        x: bootstrapValues,
+        x: validSamples,
         type: 'histogram',
-        name: modelName,
+        name: `${model.name} (${model.algorithm})`,
         opacity: 0.7,
         marker: {
           color: colors[index % colors.length],
@@ -124,32 +266,54 @@ const BootstrapHistogram = ({
             width: 1
           }
         },
-        nbinsx: 50, // Number of bins
+        nbinsx: Math.min(50, Math.max(10, Math.floor(validSamples.length / 10))), // Dynamic bin count
         hovertemplate: 
-          `<b>${modelName}</b><br>` +
+          `<b>${model.name}</b><br>` +
+          `Algorithm: ${model.algorithm}<br>` +
+          `Normalization: ${model.normalization}<br>` +
           `${metric.charAt(0).toUpperCase() + metric.slice(1)}: %{x:.3f}<br>` +
           `Count: %{y}<br>` +
           `<extra></extra>`
       });
     });
 
+    // Check if we have any valid traces
+    if (traces.length === 0) {
+      console.error('No valid traces created for plotting');
+      setError('No valid data available for plotting');
+      return;
+    }
+
     // Calculate p-values for pairwise comparisons
     const pValues = calculatePairwisePValues(bootstrapData);
 
+    // Calculate data range for better axis configuration
+    const allValues = traces.flatMap(trace => trace.x);
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const range = maxValue - minValue;
+    
+    // Ensure valid range
+    const safeRange = range > 0 ? range : 1;
+    const padding = safeRange * 0.05; // 5% padding
+
     const layout = {
       title: {
-        text: `Bootstrap Distribution Comparison - ${metric.charAt(0).toUpperCase() + metric.slice(1)}`,
+        text: `Bootstrap Test Scores Distribution - ${metric.charAt(0).toUpperCase() + metric.slice(1)}`,
         font: { size: 16 }
       },
       xaxis: {
-        title: `${metric.charAt(0).toUpperCase() + metric.slice(1)} Value`,
+        title: `${metric.charAt(0).toUpperCase() + metric.slice(1)} Score`,
         gridcolor: '#e1e5e9',
-        showgrid: true
+        showgrid: true,
+        range: [minValue - padding, maxValue + padding],
+        autorange: false
       },
       yaxis: {
         title: 'Frequency',
         gridcolor: '#e1e5e9',
-        showgrid: true
+        showgrid: true,
+        autorange: true
       },
       barmode: 'overlay', // Overlay histograms for comparison
       height: height,
@@ -208,32 +372,87 @@ const BootstrapHistogram = ({
 
     const config = {
       responsive: true,
-      displayModeBar: false,
-      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+      displayModeBar: true, // Enable the Plotly toolbar
+      modeBarButtonsToRemove: ['lasso2d', 'select2d'] // Keep most tools but remove selection tools
     };
 
-    Plotly.newPlot(plotDivRef.current, traces, layout, config);
-    plotRef.current = plotDivRef.current;
+    try {
+      Plotly.newPlot(plotDivRef.current, traces, layout, config);
+      plotRef.current = plotDivRef.current;
+    } catch (plotError) {
+      console.error('Plotly error:', plotError);
+      setError(`Failed to create plot: ${plotError.message}`);
+    }
 
-  }, [modelsData, metric, height]);
+  }, [bootstrapData, metric, height, loading]);
 
-  if (!modelsData || modelsData.length === 0) {
+  if (loading) {
     if (hideContainer) {
       return (
-        <div className="alert alert-info">
-          No data available for bootstrap analysis
+        <div className="text-center p-4">
+          <FontAwesomeIcon icon="spinner" spin className="me-2" />
+          Loading bootstrap data...
         </div>
       );
     }
     
     return (
-      <div className="card">
+      <div className="card mt-3">
+        <div className="card-header">
+          <FontAwesomeIcon icon="chart-bar" className="me-2" />
+          Bootstrap Distribution Analysis
+        </div>
+        <div className="card-body text-center">
+          <FontAwesomeIcon icon="spinner" spin className="me-2" />
+          Loading bootstrap data...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    if (hideContainer) {
+      return (
+        <div className="alert alert-danger">
+          <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
+          {error}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="card mt-3">
+        <div className="card-header">
+          <FontAwesomeIcon icon="chart-bar" className="me-2" />
+          Bootstrap Distribution Analysis
+        </div>
+        <div className="card-body">
+          <div className="alert alert-danger">
+            <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
+            {error}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!bootstrapData || bootstrapData.length === 0) {
+    if (hideContainer) {
+      return (
+        <div className="alert alert-info">
+          No bootstrap test scores data available for analysis
+        </div>
+      );
+    }
+    
+    return (
+      <div className="card mt-3">
         <div className="card-header">
           Bootstrap Distribution Analysis
         </div>
         <div className="card-body">
           <div className="alert alert-info">
-            No data available for bootstrap analysis
+            No bootstrap test scores data available for analysis. Make sure your models have test scores data.
           </div>
         </div>
       </div>
@@ -257,7 +476,7 @@ const BootstrapHistogram = ({
       <div className="card-header d-flex justify-content-between align-items-center">
         <div>
           <FontAwesomeIcon icon="chart-bar" className="me-2" />
-          Bootstrap Distribution Analysis ({modelsData.length} {modelsData.length === 1 ? 'Model' : 'Models'})
+          Bootstrap Test Scores Analysis ({bootstrapData.length} {bootstrapData.length === 1 ? 'Model' : 'Models'})
         </div>
         {onClose && (
           <button className="btn btn-sm btn-secondary" onClick={onClose}>
@@ -270,9 +489,9 @@ const BootstrapHistogram = ({
         <div className="p-3 bg-light border-bottom">
           <div className="small text-muted">
             <FontAwesomeIcon icon="info-circle" className="me-2" />
-            <strong>Bootstrap Analysis:</strong> This histogram shows the distribution of {metric} values 
-            from 1,000 bootstrap samples for each model. The spread indicates the variance and reliability 
-            of the model's performance estimate.
+            <strong>Bootstrap Test Scores Analysis:</strong> This histogram shows the distribution of actual test scores 
+            from your trained models. Each distribution represents the bootstrap samples used during model evaluation, 
+            providing insights into model performance variability and statistical significance.
           </div>
         </div>
         <div 
