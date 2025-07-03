@@ -119,7 +119,7 @@ const InteractivePredictionsPlot = ({
         ticktext: modelsData.length > 1 ? modelsData.map((model, i) => {
           const modelName = model.model_name || `Model ${model.model_id}`;
           const auc = model.auc ? ` (AUC: ${model.auc.toFixed(3)})` : '';
-          return `${modelName}${auc}`;
+          return `${modelName}`;
         }) : undefined,
         range: modelsData.length > 1 ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3] : [-0.5, 0.5],
         gridcolor: '#e1e5e9'      },
