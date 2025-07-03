@@ -6,6 +6,7 @@ import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import ModelsTable from './components/ModelsTable';
 import ROCCurveComponent from './components/ROCCurveComponent';
+import BootstrapHistogram from './components/BootstrapHistogram';
 import {
   CLASSIFICATION_COLUMNS,
   MODEL_TYPES,
@@ -472,17 +473,33 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                       </div>
                     </div>
                   </div>
+
+                  {/* Bootstrap Analysis */}
+                  <BootstrapHistogram
+                    modelsData={plotHtml}
+                    height={400}
+                    metric="accuracy"
+                  />
                 </>
               )}
 
               {/* Multi-model comparison plot */}
               {selectedModels.length > 1 && plotHtml && (
-                <InteractivePredictionsPlot
-                  modelsData={plotHtml}
-                  plotType={plotType}
-                  onClose={() => setPlotHtml(null)}
-                  hideThresholdControl={true}
-                />
+                <>
+                  <InteractivePredictionsPlot
+                    modelsData={plotHtml}
+                    plotType={plotType}
+                    onClose={() => setPlotHtml(null)}
+                    hideThresholdControl={true}
+                  />
+                  
+                  {/* Bootstrap Analysis for Multiple Models */}
+                  <BootstrapHistogram
+                    modelsData={plotHtml}
+                    height={400}
+                    metric="accuracy"
+                  />
+                </>
               )}
             </div>
           ) : (
