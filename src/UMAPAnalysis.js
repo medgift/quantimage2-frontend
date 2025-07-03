@@ -19,7 +19,15 @@ const UMAPAnalysis = ({
   const computeUMAP = useCallback(async () => {
     try {
       setIsComputingUmap(true);
-      setUmapError(null);      // Build data matrix directly from raw data
+      setUmapError(null);
+      
+      console.log('UMAP - Starting computation with:', {
+        featuresCount: filteredFeatures.length,
+        patientsCount: sortedPatientIDs.length,
+        firstFeature: filteredFeatures[0] // Debug
+      });
+      
+      // Build data matrix directly from raw data
       const dataMatrix = [];
       
       for (
@@ -44,13 +52,15 @@ const UMAPAnalysis = ({
       // Process results
       const umapPoints = embedding.map((coords, idx) => {
         const patient = sortedPatientIDs[idx];
-        const outcome = sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN';
+        const outcomeData = sortedOutcomes[idx] || {};
+        const outcome = outcomeData[outcomeField] || 'UNKNOWN';
 
         return {
           x: coords[0],
           y: coords[1],
           name: patient,
           className: outcome,
+          patientData: outcomeData, // Store full patient data for tooltip
         };
       });
 
@@ -82,7 +92,8 @@ const UMAPAnalysis = ({
             x: p.x,
             y: p.y,
             name: p.name,
-            ...p,
+            className: p.className,
+            patientData: p.patientData,
           })),
         color: '#0b84a5',
         marker: { symbol: 'circle' },
@@ -95,7 +106,8 @@ const UMAPAnalysis = ({
             x: p.x,
             y: p.y,
             name: p.name,
-            ...p,
+            className: p.className,
+            patientData: p.patientData,
           })),
         color: '#94e3d5',
         marker: { symbol: 'circle' },
@@ -108,7 +120,8 @@ const UMAPAnalysis = ({
             x: p.x,
             y: p.y,
             name: p.name,
-            ...p,
+            className: p.className,
+            patientData: p.patientData,
           })),
         color: '#666666',
         marker: { symbol: 'circle' },
@@ -149,9 +162,15 @@ const UMAPAnalysis = ({
       },
       tooltip: {
         formatter: function () {
-          return `<b>Patient ${this.point.name}</b><br/>
-                  UMAP: (${this.point.x.toFixed(2)}, ${this.point.y.toFixed(2)})<br/>
-                  Outcome: ${this.point.className}`;
+          const point = this.point;
+          console.log('UMAP Tooltip - Point data:', point); // Debug logging
+          
+          // Simplified tooltip - only patient, value, and info
+          return (
+            `<strong>Patient:</strong> ${point.name}<br />` +
+            `<strong>Value:</strong> (${point.x.toFixed(3)}, ${point.y.toFixed(3)})<br /><br />` +
+            `<strong>INFO:</strong> UMAP projection of ${filteredFeatures.length} features`
+          );
         },
       },
       series: series,
