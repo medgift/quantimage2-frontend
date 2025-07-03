@@ -312,6 +312,19 @@ class Backend {
     return downloadFile(url, token);
   }
 
+  async getTestScoresValues(token, modelID) {
+    try {
+      let url = `${endpoints.models}/${modelID}/test-scores-values`;
+      
+      return await request(url, { 
+        token: token,
+        method: 'GET'
+      });
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async getFeatureImportances(token, modelID) {
     try {
       let url = `${endpoints.models}/${modelID}/feature-importances`;
