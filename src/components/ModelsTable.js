@@ -140,6 +140,34 @@ export default function ModelsTable({
   onModelSelectionChange,
   showSelection = false,
 }) {
+  // Find latest model (most recent created_at)
+  const latestModelId = React.useMemo(() => {
+    if (!data || data.length === 0) return null;
+    return data.reduce((latest, model) => {
+      if (!latest) return model.id;
+      const latestDate = new Date(data.find(m => m.id === latest).created_at);
+      const modelDate = new Date(model.created_at);
+      return modelDate > latestDate ? model.id : latest;
+    }, null);
+  }, [data]);
+
+  // Find best model (highest test AUC, fallback to train AUC if no test)
+  const bestModelId = React.useMemo(() => {
+    if (!data || data.length === 0) return null;
+    let bestId = null;
+    let bestAUC = -Infinity;
+    data.forEach(model => {
+      // Prefer test AUC if available, else train AUC
+      const testAUC = model.test_metrics?.auc?.mean ?? model.test_metrics?.auc?.value;
+      const trainAUC = model.training_metrics?.auc?.mean ?? model.training_metrics?.auc?.value;
+      const auc = testAUC !== undefined ? testAUC : trainAUC;
+      if (auc !== undefined && auc > bestAUC) {
+        bestAUC = auc;
+        bestId = model.id;
+      }
+    });
+    return bestId;
+  }, [data]);
   let [featureNames, setFeatureNames] = useState(null);
   let [featureNamesOpen, setFeatureNamesOpen] = useState(false);
 
@@ -478,7 +506,22 @@ export default function ModelsTable({
                       }
                     />
                   </td>
-                  {row.cells.map((cell) => {
+                  {row.cells.map((cell, cellIdx) => {
+                    // Add badges for latest/best model in the first column (e.g. model name or id)
+                    if (cellIdx === 0) {
+                      return (
+                        <td {...cell.getCellProps()} key={cell.column.id} className="align-middle">
+                          {/* Place badges before the model id/name */}
+                          {row.original.id === latestModelId && (
+                            <Badge color="info" className="me-2" title="Most recently trained model">Latest</Badge>
+                          )}
+                          {row.original.id === bestModelId && (
+                            <Badge color="success" className="me-2" title="Best model by AUC">Best</Badge>
+                          )}
+                          {cell.render('Cell')}
+                        </td>
+                      );
+                    }
                     return (
                       <td {...cell.getCellProps()} key={cell.column.id}>{cell.render('Cell')}</td>
                     );
