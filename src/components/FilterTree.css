@@ -4,35 +4,11 @@
   overflow: auto;
 }
 
-.FilterTree .MuiTreeItem-root:focus > .MuiTreeItem-content .MuiTreeItem-label,
-.FilterTree .MuiTreeItem-root:hover > .MuiTreeItem-content .MuiTreeItem-label {
-  background-color: transparent !important;
+.FilterTree .check-all-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.FilterTree
-  .MuiTreeItem-root.Mui-selected
-  > .MuiTreeItem-content
-  .MuiTreeItem-label {
-  background-color: transparent !important;
-}
-
-.FilterTree
-  .MuiTreeItem-root.Mui-selected:focus
-  > .MuiTreeItem-content
-  .MuiTreeItem-label {
-  background-color: transparent !important;
-}
-
-.FilterTree span {
-  font-size: small !important;
-}
-
-.FilterTree .Check-All {
-  visibility: hidden;
-  padding: 0;
-  border: 0;
-}
-
-.FilterTree .MuiTreeItem-content:hover .Check-All {
-  visibility: visible;
+.FilterTree div:hover .check-all-btn {
+  opacity: 1;
 }
