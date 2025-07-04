@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { FEATURE_ID_SEPARATOR } from '../Visualisation';
 import _ from 'lodash';
 
@@ -148,23 +149,16 @@ export default function FilterTree({
         >
           {/* Expand/collapse button */}
           {hasChildren && (
-            <button
-              onClick={() => toggleExpanded(node.id)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '2px 6px',
-                cursor: 'pointer',
-                marginRight: '6px',
-                fontSize: '12px'
-              }}
-              title={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              <FontAwesomeIcon 
-                icon={isExpanded ? 'chevron-down' : 'chevron-right'} 
-                size="sm"
-              />
-            </button>
+  <button
+  type="button"
+  className="btn btn-link btn-sm p-0"
+  style={{ minWidth: 20, marginRight: 6, verticalAlign: 'middle' }}
+  onClick={() => toggleExpanded(node.id)}
+  title={isExpanded ? 'Collapse' : 'Expand'}
+>
+  <FontAwesomeIcon icon={isExpanded ? faChevronDown : faChevronRight} size="sm" />
+</button>
+
           )}
           
           {/* Spacer if no children */}
@@ -230,7 +224,7 @@ export default function FilterTree({
   };
 
   return (
-    <div>
+<div className="FilterTree">
       <style>
         {`
           .check-all-btn {
