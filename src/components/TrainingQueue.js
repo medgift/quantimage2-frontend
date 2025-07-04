@@ -44,6 +44,17 @@ const TrainingQueue = ({
               <FontAwesomeIcon icon="info-circle" className="me-2" />
               This model has already been trained. View details in the "All Models" tab.
             </Alert>
+            <div className="d-flex justify-content-center mb-4">
+              <Button
+                color="primary"
+                size="md"
+                onClick={() => onTrainModel(collections[0])}
+                disabled={isTraining}
+              >
+                <FontAwesomeIcon icon="redo" className="me-2" />
+                {isTraining ? 'Retraining...' : ' Train Again'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
