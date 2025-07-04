@@ -145,14 +145,16 @@ export default function ModelsTable({
 
   let [patientIDs, setPatientIDs] = useState(null);
   let [patientIDsOpen, setPatientIDsOpen] = useState(false);
-  
+
   let [featureImportanceOpen, setFeatureImportanceOpen] = useState(false);
   let [featureImportanceModelId, setFeatureImportanceModelId] = useState(null);
-  
+
   let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
-  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] =
-    useState('');
+  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] = useState('');
   let [showTrainValues, setShowTrainValues] = useState(false);
+
+  // Delete confirmation modal state (move to end of component, after table)
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const { keycloak } = useKeycloak();
 
@@ -573,10 +575,22 @@ export default function ModelsTable({
                                   />
                                   Feature Importance
                                 </Button>
+                                {/* Move Delete button here, at the end of the action buttons */}
+                                <Button
+                                  size="sm"
+                                  color="danger"
+                                  className="me-2"
+                                  title="Delete this model permanently"
+                                  style={{ transition: 'background 0.2s, border 0.2s, color 0.2s' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteConfirmId(row.original.id);
+                                  }}
+                                >
+                                  <FontAwesomeIcon icon="trash-alt" className="me-1" /> Delete
+                                </Button>
                               </div>
                             )}
-                        </div>
-
                         {/* Configuration Details Section */}
                         <details
                           className="configuration-details-accordion"
@@ -770,21 +784,6 @@ export default function ModelsTable({
                             </div>
                           </div>
                         </details>
-
-                        {/* Actions */}
-                        <div className="model-actions">
-                          <Button
-                            size="sm"
-                            color="danger"
-                            onClick={() =>
-                              handleDeleteModelClick(row.original.id)
-                            }
-                            className="ms-2"
-                            title="Delete this model permanently"
-                          >
-                            <FontAwesomeIcon icon="trash-alt" />{' '}
-                            Delete
-                          </Button>
                         </div>
                       </div>
                     </Collapse>
@@ -814,6 +813,46 @@ export default function ModelsTable({
         toggle={() => toggleFeatureImportance()}
         modelId={featureImportanceModelId}
       />
+      {/* Place Delete Confirmation Modal at the very end for clarity */}
+      <ModelsTableDeleteModal
+        deleteConfirmId={deleteConfirmId}
+        setDeleteConfirmId={setDeleteConfirmId}
+        data={data}
+        handleDeleteModelClick={handleDeleteModelClick}
+      />
     </>
+  );
+}
+
+
+// Delete Confirmation Modal (helper, now above main component)
+function ModelsTableDeleteModal({ deleteConfirmId, setDeleteConfirmId, data, handleDeleteModelClick }) {
+  const modelToDelete = data.find((m) => m.id === deleteConfirmId);
+  return (
+    <MyModal
+      isOpen={!!deleteConfirmId}
+      toggle={() => setDeleteConfirmId(null)}
+      title={<span>Confirm Delete</span>}
+    >
+      <div className="text-center p-3">
+        <FontAwesomeIcon icon="exclamation-triangle" className="text-danger mb-2" style={{ fontSize: '2rem' }} />
+        <p className="mb-3">Are you sure you want to delete this model? This action cannot be undone.</p>
+        {modelToDelete && (
+          <div className="mb-2">
+            <strong>Model ID:</strong> {modelToDelete.id} <br />
+            <strong>Type:</strong> {modelToDelete.type} <br />
+            <strong>Algorithm:</strong> {modelToDelete.best_algorithm}
+          </div>
+        )}
+        <div className="d-flex justify-content-center gap-2">
+          <Button color="danger" onClick={() => { handleDeleteModelClick(deleteConfirmId); setDeleteConfirmId(null); }}>
+            <FontAwesomeIcon icon="trash-alt" className="me-1" /> Delete
+          </Button>
+          <Button color="secondary" outline onClick={() => setDeleteConfirmId(null)}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </MyModal>
   );
 }

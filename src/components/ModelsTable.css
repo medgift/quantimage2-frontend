@@ -1,3 +1,9 @@
+/* Make the delete button red on hover */
+.performance-actions .btn-danger:hover, .performance-actions .btn-danger:focus {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
 /* Ensure Bootstrap font-size and font-weight classes work properly */
 .metric-card-bootstrap .card-body div.fs-6.fw-semibold.text-primary {
   font-size: 1rem !important;
