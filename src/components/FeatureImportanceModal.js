@@ -8,7 +8,7 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
   const [featureData, setFeatureData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [maxFeatures, setMaxFeatures] = useState(10);
+  // Always show all features, so no maxFeatures state
   const { keycloak } = useKeycloak();
 
   useEffect(() => {
@@ -34,30 +34,26 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
 
   // Separate useEffect for plot creation/updates
   useEffect(() => {
-    console.log(`useEffect triggered - featureData: ${!!featureData}, loading: ${loading}, maxFeatures: ${maxFeatures}`);
     if (featureData && !loading) {
-      setTimeout(() => createPlot(featureData, maxFeatures), 100);
+      setTimeout(() => createPlot(featureData), 100);
     }
-  }, [featureData, maxFeatures, loading]);
+  }, [featureData, loading]);
 
-  const createPlot = (data, maxFeaturesToShow = 10) => {
+  const createPlot = (data) => {
     if (!data?.feature_importances) return;
 
     const plotDiv = document.getElementById('feature-importance-plot');
     if (!plotDiv) return;
 
-    console.log(`Creating plot with ${maxFeaturesToShow} features out of ${data.feature_importances.length} total`);
-    console.log('Raw feature data:', data.feature_importances);
-
-    // Sort features by importance value and take top N (or all if -1)
-    const sortedFeatures = data.feature_importances
+    // Sort features by importance value (descending by abs value)
+    let sortedFeatures = data.feature_importances
+      .slice() // avoid mutating original
       .sort((a, b) => Math.abs(b.importance_value) - Math.abs(a.importance_value));
-    
-    console.log('Sorted features:', sortedFeatures);
-    
-    const featuresToShow = maxFeaturesToShow === -1 ? sortedFeatures : sortedFeatures.slice(0, maxFeaturesToShow);
 
-    console.log(`Displaying ${featuresToShow.length} features:`, featuresToShow);
+    // Remove features with 0 or negative importance
+    sortedFeatures = sortedFeatures.filter(item => item.importance_value > 0);
+
+    const featuresToShow = sortedFeatures;
 
     const trace = {
       x: featuresToShow.map(item => item.importance_value),
@@ -76,7 +72,7 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
 
     const layout = {
       title: {
-        text: maxFeaturesToShow === -1 ? 'All Features' : `Top ${maxFeaturesToShow} Features`,
+        text: 'Feature Importances',
         font: { size: 16 }
       },
       xaxis: {
@@ -87,7 +83,6 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
         title: 'Features',
         automargin: true,
         gridcolor: 'rgba(128, 128, 128, 0.2)',
-        // Force all categories to be shown
         type: 'category',
         categoryorder: 'array',
         categoryarray: featuresToShow.map(item => item.feature_name)
@@ -96,7 +91,6 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
       plot_bgcolor: 'rgba(0,0,0,0)',
       paper_bgcolor: 'rgba(0,0,0,0)',
       font: { size: 12 },
-      // Dynamic height based on number of features
       height: Math.max(400, featuresToShow.length * 25 + 100)
     };
 
@@ -110,12 +104,7 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
     Plotly.newPlot(plotDiv, [trace], layout, config);
   };
 
-  const handleMaxFeaturesChange = (event) => {
-    const newMaxFeatures = parseInt(event.target.value);
-    console.log(`Dropdown changed to: ${newMaxFeatures}`);
-    setMaxFeatures(newMaxFeatures);
-    // The useEffect will handle plot recreation
-  };
+  // No dropdown or handler needed anymore
 
   return (
     <MyModal
@@ -125,29 +114,10 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
       size="xl"
     >
       <div className="container-fluid p-0">
-        {/* Elegant control header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <p className="text-muted mb-0 small">
-              {featureData ? `Analyzing ${featureData.feature_importances?.length || 0} features` : 'Loading analysis...'}
-            </p>
-          </div>
-          {featureData && (
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-muted small">Display:</span>
-              <select
-                className="form-select form-select-sm border-0 bg-light"
-                style={{ width: 'auto', minWidth: '120px' }}
-                value={maxFeatures}
-                onChange={handleMaxFeaturesChange}
-              >
-                <option value={5}>Top 5</option>
-                <option value={10}>Top 10</option>
-                <option value={20}>Top 20</option>
-                <option value={-1}>All features</option>
-              </select>
-            </div>
-          )}
+        <div className="mb-4">
+          <p className="text-muted mb-0 small">
+            {featureData ? `Analyzing ${featureData.feature_importances?.filter(f => f.importance_value > 0).length || 0} features (excluding zero or negative importance)` : 'Loading analysis...'}
+          </p>
         </div>
 
         {loading && (
@@ -168,10 +138,7 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
           <div 
             id="feature-importance-plot" 
             className="w-100"
-            style={{ 
-              height: maxFeatures === -1 ? 'auto' : '600px',
-              minHeight: '400px'
-            }}
+            style={{ minHeight: '400px' }}
           ></div>
         )}
       </div>
