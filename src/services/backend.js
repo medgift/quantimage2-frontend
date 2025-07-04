@@ -479,6 +479,15 @@ async plotTestPredictions(token, modelIds) {
   });
 }
 
+  async presets(token) {
+    try {
+      const url = endpoints.presets;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async preset(token, featurePresetID) {
     try {
       const url = `${endpoints.presets}/${featurePresetID}`;
@@ -656,4 +665,5 @@ async plotTestPredictions(token, modelIds) {
   }
 }
 
-export default new Backend();
+const backendInstance = new Backend();
+export default backendInstance;
