@@ -460,36 +460,45 @@ function Features() {
   ]);
 
   // Get models
-  useEffect(() => {
-    async function getModels() {
-      let models = await Backend.models(keycloak.token, albumID);
+  // Define getModels outside so it can be called from multiple places
+  const getModels = React.useCallback(async () => {
+    let models = await Backend.models(keycloak.token, albumID);
 
-      // Keep only models of the latest feature extraction
-      let filteredModels = models.filter(
-        (m) => m.feature_extraction_id === featureExtractionID
-      );
+    // Keep only models of the latest feature extraction
+    let filteredModels = models.filter(
+      (m) => m.feature_extraction_id === featureExtractionID
+    );
 
-      // Store all models for ModelOverview
-      let allSortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-      setAllModels(allSortedModels);
+    // Store all models for ModelOverview
+    let allSortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setAllModels(allSortedModels);
 
-      // Filter out models that are not for this collection / original feature set
-      filteredModels = collectionID
-        ? filteredModels.filter(
-            (m) => m.feature_collection_id === +collectionID
-          )
-        : filteredModels.filter((m) => m.feature_collection_id === null);
+    // Filter out models that are not for this collection / original feature set
+    filteredModels = collectionID
+      ? filteredModels.filter(
+          (m) => m.feature_collection_id === +collectionID
+        )
+      : filteredModels.filter((m) => m.feature_collection_id === null);
 
-      let sortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-      setModels(sortedModels);
-    }
-
-    if (albumID && featureExtractionID) getModels();
+    let sortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setModels(sortedModels);
   }, [keycloak.token, albumID, collectionID, featureExtractionID]);
+
+  // Fetch models on mount and when dependencies change
+  useEffect(() => {
+    if (albumID && featureExtractionID) getModels();
+  }, [getModels, albumID, featureExtractionID]);
+
+  // Refresh models when switching to the "All Models" tab
+  useEffect(() => {
+    if (tab === 'models' && albumID && featureExtractionID) {
+      getModels();
+    }
+  }, [tab, albumID, featureExtractionID, getModels]);
 
   // Get classes of a tab
   const getTabClassName = (targetTab) => {

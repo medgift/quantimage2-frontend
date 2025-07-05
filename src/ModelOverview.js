@@ -296,10 +296,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         </>
                       ) : (
                         <>
-                          Generate {plotType === 'test'
-                            ? 'Test'
-                            : 'Training'}{' '}
-                          Plot
+                          Generate Performances Plots
                         </>
                       )}
                     </Button>
@@ -329,12 +326,12 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                   {/* Shared Threshold Control */}
                   <div className="card mt-3">
                     <div className="card-header">
-                      Model Analysis Controls
+                      <h5>Model Analysis Controls</h5>
                     </div>
                     <div className="card-body">
                       <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
                         <label htmlFor="threshold-slider" className="form-label mb-2">
-                          <strong>Decision Threshold: {threshold.toFixed(3)}</strong>
+                          Decision Threshold: {threshold.toFixed(3)}
                         </label>                        <input
                           id="threshold-slider"
                           type="range"
