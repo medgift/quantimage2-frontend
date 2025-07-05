@@ -1,22 +1,14 @@
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-} from 'react';
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
 import Backend from './services/backend';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
+import { UncontrolledTooltip, Modal, ModalHeader, ModalBody } from 'reactstrap';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
 import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
-
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
 import {
@@ -48,7 +40,6 @@ import {
   ZRAD_GROUP_PREFIXES,
 } from './config/constants';
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
-
 import './Visualisation.css';
 import ListValues from './components/ListValues';
 import FeatureSelection, {
@@ -58,6 +49,14 @@ import FeatureSelection, {
 import ErrorBoundary from './utils/ErrorBoundary';
 import UndoButton from './components/UndoButton';
 import UMAPAnalysis from './UMAPAnalysis';
+
+// ================= CONSTANTS =================
+export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+
+
+
+
+// ...existing code...
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -78,7 +77,7 @@ if (window.Worker) {
   filterFeaturesWorker = new Worker('/workers/filter-features.js');
 }
 
-export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+
 
 let featureIDPattern = `(?<modality>.*?)${FEATURE_ID_SEPARATOR}(?<roi>.*?)${FEATURE_ID_SEPARATOR}(?<featureName>(?:${[
   ...ZRAD_FEATURE_PREFIXES,
@@ -117,6 +116,21 @@ export default function Visualisation({
   setHasPendingChanges,
   clinicalFeaturesDefinitions,
 }) {
+  // Help modal state
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const toggleHelpModal = () => setHelpModalOpen((open) => !open);
+  const [featureDefModal, setFeatureDefModal] = useState({ open: false, name: '', definition: '' });
+  const openFeatureDefModal = (name) => {
+    let def = null;
+    if (FEATURE_DEFINITIONS && Array.isArray(FEATURE_DEFINITIONS)) {
+      const found = FEATURE_DEFINITIONS.find((f) => f.name === name);
+      if (found && found.definition) def = found.definition;
+    }
+    if (!def) def = 'No definition available.';
+    setFeatureDefModal({ open: true, name, definition: def });
+  };
+  const closeFeatureDefModal = () => setFeatureDefModal({ open: false, name: '', definition: '' });
+
   // Route
   const { albumID } = useParams();
 
@@ -1134,14 +1148,24 @@ export default function Visualisation({
   }
 
   return (
-    <div className="Visualisation">
+    <div className="Visualisation position-relative">
+      {/* Contextual Help Button */}
+      <button
+        type="button"
+        className="btn btn-link position-absolute"
+        style={{ top: 10, right: 18, zIndex: 10, fontSize: 22, color: '#007bff' }}
+        aria-label="Help"
+        onClick={toggleHelpModal}
+      >
+        <FontAwesomeIcon icon="question-circle" />
+      </button>
       {/* TODO - Would be better NOT to use a table here*/}
-      <table className="visualization-table">
+      <table className="visualization-table" style={{ marginTop: 16, marginBottom: 24 }}>
         <tbody>
           <tr>
-            <td className="filter-data">
-              <div>
-                <h6>Filter Features (Lines)</h6>
+            <td className="filter-data" style={{ borderRight: '1px solid #e0e0e0', paddingRight: 24, minWidth: 320 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h6 style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12 }}>Filter Features (Lines)</h6>
                 {active && (
                   <>
                     <FilterTree
@@ -1153,13 +1177,32 @@ export default function Visualisation({
                       selected={selected}
                       setSelected={setSelected}
                       disabled={isRecomputingChart}
+                      // Feature definition tooltips/modal trigger
+                      renderFeatureLabel={(name) => (
+                        <span style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
+                          onClick={() => openFeatureDefModal(name)}
+                          title="Click for feature definition"
+                        >
+                          {name}
+                          <FontAwesomeIcon icon="info-circle" style={{ marginLeft: 4, fontSize: 13, color: '#007bff' }} />
+                        </span>
+                      )}
                     />
                     {selectedFeaturesHistory.length > 1 && (
                       <UndoButton handleClick={handleUndo} />
                     )}
                   </>
                 )}
-                <h6 className="mt-2">Show Patients</h6>
+                <h6 className="mt-2" style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12, marginTop: 24 }}>Show Patients</h6>
+                {/* UMAP projection info tooltip for user guidance */}
+                <span style={{ display: 'inline-block', marginLeft: 8 }}>
+                  <FontAwesomeIcon icon="info-circle" id="umapInfoIcon" style={{ color: '#007bff', cursor: 'pointer' }} />
+                </span>
+                <UncontrolledTooltip placement="right" target="umapInfoIcon">
+                  <div style={{ maxWidth: 320 }}>
+                    <strong>UMAP projection:</strong> UMAP (Uniform Manifold Approximation and Projection) is a dimensionality reduction technique that projects high-dimensional data (such as features) into 2D for visualization. Each point represents a patient, and the spatial arrangement reflects similarity in feature space. Use this to visually explore clusters or patterns among patients based on selected features.
+                  </div>
+                </UncontrolledTooltip>
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
@@ -1202,9 +1245,17 @@ export default function Visualisation({
                     </MyModal>
                   </h6>
                 )}
+                {/* UMAP projection info tooltip moved here from UMAPAnalysis.js */}
+                <div className="d-flex align-items-center mt-2" style={{ marginBottom: 16 }}>
+                  <span className="mr-1">UMAP projection</span>
+                  <FontAwesomeIcon id="umap-info-icon" icon="info-circle" style={{ cursor: 'pointer', color: '#007bff' }} />
+                  <UncontrolledTooltip placement="right" target="umap-info-icon">
+                    UMAP (Uniform Manifold Approximation and Projection) is a dimensionality reduction technique used to visualize high-dimensional data in 2D. Here, each point represents a patient, and the distance between points reflects similarity in their selected features. Use this plot to explore patient clusters and patterns in the data.
+                  </UncontrolledTooltip>
+                </div>
               </div>
             </td>
-            <td className="chart-cell">
+            <td className="chart-cell" style={{ paddingLeft: 32, verticalAlign: 'top' }}>
               {hasPendingChanges &&
                 selectedFeatureIDs &&
                 collectionInfos?.collection &&
@@ -1246,7 +1297,7 @@ export default function Visualisation({
               {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
                 <>
                   {/* Visualization mode toggle */}
-                  <div className="d-flex justify-content-center mb-3">
+                  <div className="d-flex justify-content-center mb-3" style={{ gap: 16 }}>
                     <ButtonGroup>
                       <Button
                         color={
@@ -1254,9 +1305,15 @@ export default function Visualisation({
                             ? 'primary'
                             : 'secondary'
                         }
+                        style={
+                          visualizationMode === VISUALIZATION_MODES.HEATMAP
+                            ? { border: '2px solid #007bff', fontWeight: 'bold', background: '#eaf3ff' }
+                            : {}
+                        }
                         onClick={() =>
                           setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
                         }
+                        aria-pressed={visualizationMode === VISUALIZATION_MODES.HEATMAP}
                       >
                         <FontAwesomeIcon icon="th" /> Heatmap
                       </Button>
@@ -1266,16 +1323,22 @@ export default function Visualisation({
                             ? 'primary'
                             : 'secondary'
                         }
+                        style={
+                          visualizationMode === VISUALIZATION_MODES.UMAP
+                            ? { border: '2px solid #007bff', fontWeight: 'bold', background: '#eaf3ff' }
+                            : {}
+                        }
                         onClick={() =>
                           setVisualizationMode(VISUALIZATION_MODES.UMAP)
                         }
+                        aria-pressed={visualizationMode === VISUALIZATION_MODES.UMAP}
                       >
                         <FontAwesomeIcon icon="chart-scatter" /> UMAP
                       </Button>
                     </ButtonGroup>
                   </div>
 
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', marginBottom: 24, marginTop: 8 }}>
                     {(isRecomputingChart || isComputingUmap) && (
                       <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
                         <FontAwesomeIcon
@@ -1332,7 +1395,7 @@ export default function Visualisation({
 
                   {/* Show the feature values explanation only for heatmap */}
                   {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
-                    <div>
+                    <div style={{ marginTop: 12, marginBottom: 12 }}>
                       <small>
                         * Feature values are standardized and the scale is
                         clipped to [-2, 2]. Extreme values appear either in 100%
@@ -1342,7 +1405,36 @@ export default function Visualisation({
                   )}
 
                   {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
-                  <div className="d-flex justify-content-around">
+                  <div className="d-flex justify-content-around" style={{ marginTop: 24 }}>
+      {/* Help Modal */}
+      <Modal isOpen={helpModalOpen} toggle={toggleHelpModal} size="lg">
+        <ModalHeader toggle={toggleHelpModal}>Help & Documentation</ModalHeader>
+        <ModalBody>
+          <h5>How to Use This Page</h5>
+          <ul>
+            <li><strong>Visualization Mode:</strong> Use the Heatmap/UMAP toggle to switch between feature heatmap and patient clustering views. The active mode is highlighted.</li>
+            <li><strong>Feature Selection:</strong> Select features on the left. Click on a feature name <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> to see its definition (IBSI standard where available).</li>
+            <li><strong>Show Patients:</strong> View training/test patient IDs and explore UMAP projection explanations.</li>
+            <li><strong>Collections:</strong> Save or update feature collections for further analysis.</li>
+          </ul>
+          <h5>Radiomics Standards</h5>
+          <p>This tool follows <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI</a> (Image Biomarker Standardisation Initiative) nomenclature for feature definitions where possible. For more, see the <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI documentation</a>.</p>
+          <h5>Troubleshooting</h5>
+          <ul>
+            <li>If a chart fails to load, check your feature selection and try reducing the number of features.</li>
+            <li>For errors, look for clear messages below or in the alert banners. If a computation fails, try again or contact support with the error details.</li>
+          </ul>
+        </ModalBody>
+      </Modal>
+
+      {/* Feature Definition Modal */}
+      <Modal isOpen={featureDefModal.open} toggle={closeFeatureDefModal}>
+        <ModalHeader toggle={closeFeatureDefModal}>Feature Definition: {featureDefModal.name}</ModalHeader>
+        <ModalBody>
+          <p>{featureDefModal.definition}</p>
+          <p style={{ fontSize: 13, color: '#888' }}>Source: <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI Standard</a> (where available)</p>
+        </ModalBody>
+      </Modal>
                     <FeatureSelection
                       allFeatures={featuresChart}
                       modelType={selectedLabelCategory?.label_type}

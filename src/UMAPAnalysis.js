@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Alert } from 'reactstrap';
+import { Alert, UncontrolledTooltip } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
@@ -192,6 +192,21 @@ const UMAPAnalysis = ({
           Computing UMAP projection...
         </Alert>
       )}
+
+      {/* Chart title with info icon and tooltip */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontWeight: 'bold', fontSize: 20 }}>
+          UMAP Projection
+        </span>
+        <FontAwesomeIcon icon="info-circle" id="umap-projection-info" style={{ color: '#007bff', cursor: 'pointer' }} />
+        <UncontrolledTooltip placement="right" target="umap-projection-info">
+          UMAP (Uniform Manifold Approximation and Projection) is a dimensionality reduction technique.<br />
+          It projects high-dimensional feature data into 2D for visualization.<br />
+          Each point represents a patient, positioned so that similar patients are close together.<br />
+          <br />
+          <strong>Tip:</strong> The axes (UMAP 1 and UMAP 2) have no direct clinical meaning, but clusters and patterns can reveal structure in your data.
+        </UncontrolledTooltip>
+      </div>
 
       <HighchartsReact highcharts={Highcharts} options={chartOptions} />
     </div>
