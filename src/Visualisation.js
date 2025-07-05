@@ -1268,6 +1268,9 @@ export default function Visualisation({
                         onClick={() => setVisualizationMode(VISUALIZATION_MODES.HEATMAP)}
                         aria-pressed={visualizationMode === VISUALIZATION_MODES.HEATMAP}
                         style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Heatmap: Visualizes feature values for all patients as a color-coded matrix. Rows are features, columns are patients. Useful for spotting patterns, outliers, and feature distributions."
                       >
                         <FontAwesomeIcon icon="th" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 1 : 0.7 }} />
                         Heatmap
@@ -1278,6 +1281,9 @@ export default function Visualisation({
                         onClick={() => setVisualizationMode(VISUALIZATION_MODES.UMAP)}
                         aria-pressed={visualizationMode === VISUALIZATION_MODES.UMAP}
                         style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.UMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="UMAP: Projects patients into 2D space based on feature similarity. Each point is a patient; similar patients cluster together. Useful for visualizing patient groups and outliers."
                       >
                         <FontAwesomeIcon icon="chart-scatter" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.UMAP ? 1 : 0.7 }} />
                         UMAP
@@ -1364,6 +1370,19 @@ export default function Visualisation({
             <li><strong>Show Patients:</strong> View training and test patient IDs using the "Show Patient IDs" buttons.</li>
             <li><strong>Undo:</strong> Use the Undo button to revert your last feature selection change.</li>
           </ul>
+
+          <h5 className="mt-4 mb-2">Visualization Modes Explained</h5>
+          <ul>
+            <li>
+              <span className="badge badge-primary mr-2">Heatmap</span>
+              <strong>Feature Heatmap:</strong> Visualizes feature values for all patients as a color-coded matrix. Each row is a feature, each column is a patient. This mode helps you spot patterns, outliers, and feature distributions across the cohort. Hovering over a cell shows details for that patient-feature pair.
+            </li>
+            <li className="mt-2">
+              <span className="badge badge-primary mr-2">UMAP</span>
+              <strong>UMAP Projection:</strong> Projects patients into a 2D space based on feature similarity using the UMAP algorithm. Each point represents a patient; patients with similar feature profiles cluster together. This mode is useful for visualizing patient groups, outliers, and overall data structure.
+            </li>
+          </ul>
+
           <h5 className="mt-4 mb-2">Radiomics Standards & Feature Definitions</h5>
           <p>
             This tool follows IBSI (Image Biomarker Standardisation Initiative) nomenclature for feature definitions when possible. Feature names are standardized, and clinical features are listed separately. For more, see the <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI documentation</a>.
@@ -1372,7 +1391,7 @@ export default function Visualisation({
           <ul>
             <li>If a chart fails to load, check your feature selection and try reducing the number of features. The maximum number of values for visualization is limited for performance.</li>
             <li>Look for error messages below the chart or in alert banners. If a computation fails, try again or contact support with the error details.</li>
-            <li>Hover over icons <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> for additional explanations and tooltips throughout the page.</li>
+            <li>Hover over icons <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> for additional explanations and tooltips throughout the page. The Heatmap/UMAP toggle buttons also have tooltips for quick explanations.</li>
           </ul>
         </ModalBody>
       </Modal>
