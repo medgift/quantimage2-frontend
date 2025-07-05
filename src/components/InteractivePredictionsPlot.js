@@ -48,20 +48,21 @@ const InteractivePredictionsPlot = ({
   };
   // Create initial plot
   useEffect(() => {
-    if (!modelsData || modelsData.length === 0 || !plotDivRef.current) return;    const traces = [];
+    if (!modelsData || modelsData.length === 0 || !plotDivRef.current) return;
+    const traces = [];
     // Consistent colors: Red for negative, Blue for positive
     // Simple points/circles for all cases - distinction through Y-positioning and colors only
     const baseColors = {
       negative: '#e74c3c',  // Red for negative cases
       positive: '#3498db'   // Blue for positive cases
     };
-    
+
     // Create traces for each model and class
     modelsData.forEach((model, modelIndex) => {
       const yPos = modelsData.length > 1 ? modelIndex * 0.4 : 0;
-        // Get model display name (use model name if available, otherwise ID)
+      // Get model display name (use model name if available, otherwise ID)
       const modelDisplayName = model.model_name || `Model ${model.model_id}`;
-      
+
       // Class 0 points (Negative cases) - Always RED circles
       const class0Data = model.patients.filter(p => p.ground_truth === 0);
       if (class0Data.length > 0) {
@@ -71,7 +72,7 @@ const InteractivePredictionsPlot = ({
           mode: 'markers',
           name: `${modelDisplayName} - Negative`,
           legendgroup: `model_${modelIndex}`,
-          marker: { 
+          marker: {
             color: baseColors.negative,
             size: 8,
             symbol: 'circle',
@@ -82,7 +83,7 @@ const InteractivePredictionsPlot = ({
           type: 'scatter'
         });
       }
-      
+
       // Class 1 points (Positive cases) - Always BLUE circles
       const class1Data = model.patients.filter(p => p.ground_truth === 1);
       if (class1Data.length > 0) {
@@ -92,7 +93,7 @@ const InteractivePredictionsPlot = ({
           mode: 'markers',
           name: `${modelDisplayName} - Positive`,
           legendgroup: `model_${modelIndex}`,
-          marker: { 
+          marker: {
             color: baseColors.positive,
             size: 8,
             symbol: 'circle',
@@ -103,7 +104,24 @@ const InteractivePredictionsPlot = ({
           type: 'scatter'
         });
       }
-    });const layout = {
+    });
+
+    // Add a dummy scatter trace for the threshold to show in the legend
+    traces.push({
+      x: [threshold, threshold],
+      y: [
+        modelsData.length > 1 ? -0.3 : -0.5,
+        modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5
+      ],
+      mode: 'lines',
+      name: `Threshold ${threshold.toFixed(3)}`,
+      line: { color: '#F18F01', width: 3, dash: 'dash' },
+      showlegend: true,
+      hoverinfo: 'skip',
+      legendgroup: 'threshold',
+    });
+
+    const layout = {
 
       xaxis: { 
         title: 'Probability of Positive Class (1)',
@@ -143,7 +161,7 @@ const InteractivePredictionsPlot = ({
           x1: threshold,
           y0: -0.5,
           y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
-          line: { color: '#27ae60', width: 3, dash: 'dash' }
+          line: { color: '#F18F01', width: 3, dash: 'dash' }
         }
       ],
       annotations: [
@@ -154,9 +172,9 @@ const InteractivePredictionsPlot = ({
           text: `Threshold: ${threshold.toFixed(2)}`,
           showarrow: true,
           arrowhead: 2,
-          arrowcolor: '#27ae60',
-          bgcolor: '#27ae60',
-          bordercolor: '#27ae60',
+          arrowcolor: '#F18F01',
+          bgcolor: '#F18F01',
+          bordercolor: '#F18F01',
           font: { color: 'white', size: 12 }
         }
       ]
@@ -188,7 +206,7 @@ const InteractivePredictionsPlot = ({
             x1: newThreshold,
             y0: -0.5,
             y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
-            line: { color: '#27ae60', width: 3, dash: 'dash' }
+            line: { color: '#F18F01', width: 3, dash: 'dash' }
           }
         ],
         annotations: [
@@ -198,9 +216,9 @@ const InteractivePredictionsPlot = ({
             text: `Threshold: ${newThreshold.toFixed(2)}`,
             showarrow: true,
             arrowhead: 2,
-            arrowcolor: '#27ae60',
-            bgcolor: '#27ae60',
-            bordercolor: '#27ae60',
+            arrowcolor: '#F18F01',
+            bgcolor: '#F18F01',
+            bordercolor: '#F18F01',
             font: { color: 'white', size: 12 }
           }
         ]
