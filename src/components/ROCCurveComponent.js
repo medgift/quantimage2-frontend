@@ -65,31 +65,21 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
   }, [plotData, selectedModel]);
 
   // Calculate current threshold point on ROC curve
+  // Calculate current threshold point on ROC curve (snap to ROC curve thresholds for perfect alignment)
   const currentROCPoint = useMemo(() => {
     if (!rocData || !threshold) return null;
-    
-    const predictions = rocData.predictions;
-    const trueLabels = rocData.trueLabels;
-    
-    // Calculate confusion matrix for current threshold
-    let tp = 0, fp = 0, tn = 0, fn = 0;
-    
-    for (let i = 0; i < predictions.length; i++) {
-      const predicted = predictions[i] >= threshold ? 1 : 0;
-      const actual = trueLabels[i];
-      
-      if (predicted === 1 && actual === 1) tp++;
-      else if (predicted === 1 && actual === 0) fp++;
-      else if (predicted === 0 && actual === 0) tn++;
-      else if (predicted === 0 && actual === 1) fn++;
+    const { thresholds, fpr, tpr } = rocData;
+    // Find the closest threshold index
+    let closestIdx = 0;
+    let minDiff = Math.abs(thresholds[0] - threshold);
+    for (let i = 1; i < thresholds.length; i++) {
+      const diff = Math.abs(thresholds[i] - threshold);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
     }
-    
-    const sensitivity = tp + fn > 0 ? tp / (tp + fn) : 0;
-    const specificity = tn + fp > 0 ? tn / (tn + fp) : 0;
-    const fpr = 1 - specificity;
-    const tpr = sensitivity;
-    
-    return { fpr, tpr };
+    return { fpr: fpr[closestIdx], tpr: tpr[closestIdx] };
   }, [rocData, threshold]);
 
   // Create/Update ROC Plot using Plotly
@@ -134,13 +124,19 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
     const layout = {
       
       xaxis: {
-        title: 'False Positive Rate (1 - Specificity)',
+        title: {
+          text: 'False Positive Rate (1 - Specificity)',
+          font: { size: 15, family: 'Arial, sans-serif' }
+        },
         range: [0, 1],
         gridcolor: '#e1e5ea',
         zeroline: false
       },
       yaxis: {
-        title: 'True Positive Rate (Sensitivity)',
+        title: {
+          text: 'True Positive Rate (Sensitivity)',
+          font: { size: 15, family: 'Arial, sans-serif' }
+        },
         range: [0, 1],
         gridcolor: '#e1e5ea',
         zeroline: false
@@ -149,14 +145,14 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
       legend: {
         orientation: 'h',
         x: 0,
-        y: -0.1,
+        y: -0.25, // Move legend lower to avoid overlap with x-axis title
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
         borderwidth: 1
       },
       plot_bgcolor: '#ffffff',
       paper_bgcolor: '#ffffff',
-      margin: { l: 60, r: 30, t: 80, b: 80 },
+      margin: { l: 60, r: 30, t: 80, b: 110 }, // Increase bottom margin for axis title
       height: height
     };
 

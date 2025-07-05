@@ -123,8 +123,11 @@ const InteractivePredictionsPlot = ({
 
     const layout = {
 
-      xaxis: { 
-        title: 'Probability of Positive Class (1)',
+      xaxis: {
+        title: {
+          text: 'Predicted Probability',
+          font: { size: 15, family: 'Arial, sans-serif' }
+        },
         range: [-0.05, 1.05],
         gridcolor: '#e1e5e9',
         showgrid: true
