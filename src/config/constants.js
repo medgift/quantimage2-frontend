@@ -114,10 +114,6 @@ export const MODEL_COLUMNS = [
   { Header: 'Outcome', accessor: 'label_category' },
   { Header: 'Best Algorithm', accessor: 'best_algorithm' },
   {
-    Header: 'Best Data Normalization',
-    accessor: 'best_data_normalization',
-  },
-  {
     Header: 'Model Validation',
     accessor: (r) => {
       let isTrainTest =
@@ -142,14 +138,6 @@ export const MODEL_COLUMNS = [
 
 export const CLASSIFICATION_COLUMNS = [
   ...MODEL_COLUMNS,
-  {
-    Header: 'Training AUC (cross-validation)',
-    accessor: (r) => formatMetric(r.training_metrics.auc),
-    sortDescFirst: true,
-    sortType: (r1, r2) =>
-      +r1.original.training_metrics.auc.mean -
-      +r2.original.training_metrics.auc.mean,
-  },
   {
     Header: 'Test AUC (bootstrap)',
     accessor: (r) =>
