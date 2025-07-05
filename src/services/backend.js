@@ -439,6 +439,16 @@ class Backend {
     return downloadFile(url, token, data);
   }
 
+  async compareModelsData(token, modelIds) {
+  const url = `${endpoints.models}/compare-data`;
+  const data = { model_ids: modelIds };
+  return await request(url, {
+    token: token,
+    method: 'POST',
+    data: data,
+  });
+}
+
 async plotTestPredictions(token, modelIds) {
   // Debug logging
   console.log('plotTestPredictions called with modelIds:', modelIds);

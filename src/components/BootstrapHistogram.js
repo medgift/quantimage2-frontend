@@ -16,6 +16,7 @@ const BootstrapHistogram = ({
   const [bootstrapData, setBootstrapData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pValues, setPValues] = useState([]);
   const { keycloak } = useKeycloak();
 
   // Fetch real bootstrap data from backend
@@ -174,62 +175,43 @@ const BootstrapHistogram = ({
     fetchBootstrapData();
   }, [modelsData, keycloak.token, metric]);
 
+  // Fetch p-values from backend when bootstrapData is ready
+  useEffect(() => {
+    if (!bootstrapData || bootstrapData.length < 2) {
+      setPValues([]);
+      return;
+    }
+    const fetchPValues = async () => {
+      try {
+        const modelIds = bootstrapData.map(m => m.modelId);
+        const result = await Backend.compareModelsData(keycloak.token, modelIds);
+        // Convert backend p_values to the frontend format for annotations
+        const pValueList = [];
+        for (let i = 0; i < modelIds.length; i++) {
+          for (let j = i + 1; j < modelIds.length; j++) {
+            const id1 = modelIds[i];
+            const id2 = modelIds[j];
+            const p = result.p_values[`model_${id1}`][`model_${id2}`];
+            pValueList.push({
+              model1Name: bootstrapData[i].name,
+              model2Name: bootstrapData[j].name,
+              pValue: p,
+              significant: p < 0.05
+            });
+          }
+        }
+        setPValues(pValueList);
+      } catch (err) {
+        setPValues([]);
+        setError('Failed to fetch p-values from backend');
+      }
+    };
+    fetchPValues();
+  }, [bootstrapData, keycloak.token]);
+
   // Create bootstrap histogram plot
   useEffect(() => {
     if (!bootstrapData || bootstrapData.length === 0 || !plotDivRef.current || loading) return;
-
-    // Calculate p-value using permutation test
-    const calculatePValue = (samples1, samples2) => {
-      const mean1 = samples1.reduce((a, b) => a + b, 0) / samples1.length;
-      const mean2 = samples2.reduce((a, b) => a + b, 0) / samples2.length;
-      const observedDiff = Math.abs(mean1 - mean2);
-      
-      // Dummy p-value calculation for demonstration
-      // In real implementation, this would be a proper permutation test
-      const combinedSamples = [...samples1, ...samples2];
-      const n1 = samples1.length;
-      let extremeCount = 0;
-      const numPermutations = 1000;
-      
-      for (let i = 0; i < numPermutations; i++) {
-        // Shuffle combined samples
-        const shuffled = [...combinedSamples].sort(() => Math.random() - 0.5);
-        const perm1 = shuffled.slice(0, n1);
-        const perm2 = shuffled.slice(n1);
-        
-        const permMean1 = perm1.reduce((a, b) => a + b, 0) / perm1.length;
-        const permMean2 = perm2.reduce((a, b) => a + b, 0) / perm2.length;
-        const permDiff = Math.abs(permMean1 - permMean2);
-        
-        if (permDiff >= observedDiff) {
-          extremeCount++;
-        }
-      }
-      
-      return extremeCount / numPermutations;
-    };
-
-    // Calculate all pairwise p-values
-    const calculatePairwisePValues = (data) => {
-      const pValues = [];
-      
-      for (let i = 0; i < data.length; i++) {
-        for (let j = i + 1; j < data.length; j++) {
-          const model1 = data[i];
-          const model2 = data[j];
-          const pValue = calculatePValue(model1.samples, model2.samples);
-          
-          pValues.push({
-            model1Name: model1.name,
-            model2Name: model2.name,
-            pValue: pValue,
-            significant: pValue < 0.05
-          });
-        }
-      }
-      
-      return pValues;
-    };
 
     const traces = [];
     const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']; // Blue, Red, Green, Orange, Purple
@@ -284,8 +266,7 @@ const BootstrapHistogram = ({
       return;
     }
 
-    // Calculate p-values for pairwise comparisons
-    const pValues = calculatePairwisePValues(bootstrapData);
+
 
     // Calculate data range for better axis configuration
     const allValues = traces.flatMap(trace => trace.x);
@@ -298,10 +279,7 @@ const BootstrapHistogram = ({
     const padding = safeRange * 0.05; // 5% padding
 
     const layout = {
-      title: {
-        text: `Bootstrap Test Scores Distribution - ${metric.charAt(0).toUpperCase() + metric.slice(1)}`,
-        font: { size: 16 }
-      },
+
       xaxis: {
         title: `${metric.charAt(0).toUpperCase() + metric.slice(1)} Score`,
         gridcolor: '#e1e5e9',
@@ -333,15 +311,27 @@ const BootstrapHistogram = ({
       annotations: []
     };
 
-    // Add p-value annotations to the plot
+    // Add p-value annotations to the plot using backend p-values
     if (pValues.length > 0) {
       pValues.forEach((comparison, index) => {
+        // Display "< 0.001" for small values, but show exact value in hovertext (tooltip)
+        let displayP = 'N/A';
+        let hoverP = 'N/A';
+        if (comparison.pValue !== undefined) {
+          if (comparison.pValue < 0.001) {
+            displayP = '< 0.001';
+            hoverP = comparison.pValue.toExponential(3);
+          } else {
+            displayP = comparison.pValue.toFixed(3);
+            hoverP = comparison.pValue.toExponential(3);
+          }
+        }
         layout.annotations.push({
           x: 0.02,
           y: 0.98 - (index * 0.08),
           xref: 'paper',
           yref: 'paper',
-          text: `<b>${comparison.model1Name} vs ${comparison.model2Name}:</b> p=${comparison.pValue.toFixed(3)}${comparison.significant ? ' *' : ''}`,
+          text: `<b>${comparison.model1Name} vs ${comparison.model2Name}:</b> p=${displayP}${comparison.significant ? ' *' : ''}`,
           showarrow: false,
           font: {
             size: 12,
@@ -349,7 +339,10 @@ const BootstrapHistogram = ({
           },
           bgcolor: 'rgba(255,255,255,0.8)',
           bordercolor: comparison.significant ? '#e74c3c' : '#dddddd',
-          borderwidth: 1
+          borderwidth: 1,
+          // Add hovertext for precision
+          hovertext: `Exact p-value: ${hoverP}`,
+          captureevents: true
         });
       });
 
@@ -384,7 +377,7 @@ const BootstrapHistogram = ({
       setError(`Failed to create plot: ${plotError.message}`);
     }
 
-  }, [bootstrapData, metric, height, loading]);
+  }, [bootstrapData, metric, height, loading, pValues]);
 
   if (loading) {
     if (hideContainer) {
