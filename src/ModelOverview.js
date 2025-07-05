@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Button, Alert } from 'reactstrap';
+import { Button, Alert, Modal, ModalHeader, ModalBody } from 'reactstrap';
 import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import ModelsTable from './components/ModelsTable';
@@ -14,8 +14,15 @@ import {
 } from './config/constants';
 import InteractivePredictionsPlot from './components/InteractivePredictionsPlot';
 
+
 export default function ModelOverview({ albums, showBackButton = true, initialModels = null }) {
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const toggleHelpModal = () => setHelpModalOpen((open) => !open);
   const navigate = useNavigate();
+
+  // Place help button absolutely at the top right, as in Visualisation.js
+  // Render help button and modal at the top of the returned JSX
+  // ...existing code...
 
   const { keycloak } = useKeycloak();
   const [featureExtractionID, setFeatureExtractionID] = useState(null);
@@ -196,7 +203,45 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
 
   return (
     albums.length > 0 && (
-      <div>
+      <div className="position-relative">
+        {/* Contextual Help Button (top right, absolute, as in Visualisation.js) */}
+        <button
+          type="button"
+          className="btn btn-link position-absolute"
+          style={{ top: 10, right: 18, zIndex: 10, fontSize: 22, color: '#007bff' }}
+          aria-label="Help"
+          onClick={toggleHelpModal}
+        >
+          <FontAwesomeIcon icon="question-circle" />
+        </button>
+        <Modal isOpen={helpModalOpen} toggle={toggleHelpModal} size="lg">
+          <ModalHeader toggle={toggleHelpModal}>Help & Documentation</ModalHeader>
+          <ModalBody>
+            <h5 className="mb-3">How to Use This Page</h5>
+            <ul>
+              <li><strong>Model Tables:</strong> View all classification and survival models for the selected album. Use the checkboxes to select models for comparison and plotting.</li>
+              <li><strong>Plot Selected Models:</strong> After selecting up to 5 models, choose the plot type (Test or Training Predictions) and click <span className="badge badge-primary">Generate Performances Plots</span> to visualize predictions and performance.</li>
+              <li><strong>Single Model Analysis:</strong> When one model is selected, you can interactively adjust the decision threshold, view performance metrics, ROC curve, and bootstrap AUC analysis.</li>
+              <li><strong>Multi-Model Comparison:</strong> When multiple models are selected, compare their predictions and AUC distributions side by side.</li>
+              <li><strong>Delete Models:</strong> Use the trash icon in the table to remove unwanted models.</li>
+            </ul>
+            <h5 className="mt-4 mb-2">Troubleshooting & Tips</h5>
+            <ul>
+              <li>If no models appear, ensure you have run feature extraction and model training for this album.</li>
+              <li>If a plot fails to load, try reducing the number of selected models or check for error messages in the alert banners.</li>
+              <li>Hover over <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> icons for additional explanations and tooltips throughout the page.</li>
+            </ul>
+            <h5 className="mt-4 mb-2">Performance Metrics Explained</h5>
+            <ul>
+              <li><strong>Accuracy:</strong> Proportion of correct predictions among all cases.</li>
+              <li><strong>Precision:</strong> Proportion of positive identifications that were actually correct.</li>
+              <li><strong>Recall:</strong> Proportion of actual positives that were identified correctly.</li>
+              <li><strong>Specificity:</strong> Proportion of actual negatives that were identified correctly.</li>
+              <li><strong>F1-Score:</strong> Harmonic mean of precision and recall.</li>
+              <li><strong>AUC:</strong> Area under the ROC curve, summarizing model discrimination ability.</li>
+            </ul>
+          </ModalBody>
+        </Modal>
         <h1>
           Model Overview for <strong>{album.name}</strong> album
         </h1>
