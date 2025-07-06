@@ -365,6 +365,7 @@ const BootstrapHistogram = ({
 
     const config = {
       responsive: true,
+      displaylogo: false,
       displayModeBar: true, // Enable the Plotly toolbar
       modeBarButtonsToRemove: ['lasso2d', 'select2d'] // Keep most tools but remove selection tools
     };

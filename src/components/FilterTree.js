@@ -250,9 +250,7 @@ export default function FilterTree({
             backgroundColor: '#fff'
           }}
         >
-          <div style={{ marginBottom: '10px', fontSize: '12px', color: '#666' }}>
-            <strong>{selected ? selected.length : 0}</strong> features selected
-          </div>
+         
           {treeData.map(node => renderTreeNode(node, 0))}
         </div>
       )}
