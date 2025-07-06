@@ -159,6 +159,7 @@ const ROCCurveComponent = ({ selectedModel, plotData, plotType, threshold = 0.5,
     const config = {
       responsive: true,
       displayModeBar: true,
+      displaylogo: false,
       modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
     };
 
