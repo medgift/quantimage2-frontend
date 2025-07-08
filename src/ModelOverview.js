@@ -230,6 +230,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
               <li>If no models appear, ensure you have run feature extraction and model training for this album.</li>
               <li>If a plot fails to load, try reducing the number of selected models or check for error messages in the alert banners.</li>
               <li>Hover over <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> icons for additional explanations and tooltips throughout the page.</li>
+              <li><strong>Exporting Charts:</strong> Each chart includes a built-in screenshot tool (camera icon) in the toolbar. Click it to quickly export the current chart as a PNG image, which you can easily paste into papers or presentations.</li>
             </ul>
             <h5 className="mt-4 mb-2">Performance Metrics Explained</h5>
             <ul>
