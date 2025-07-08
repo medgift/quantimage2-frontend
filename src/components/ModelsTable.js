@@ -6,6 +6,7 @@ import {
   Collapse,
   Table,
   Badge,
+  Tooltip,
 } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -16,35 +17,51 @@ import FeatureImportanceModal from './FeatureImportanceModal';
 import { saveAs } from 'file-saver';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
+import { formatMetric } from '../utils/feature-utils';
 
 import './ModelsTable.css';
 
-const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainValues }) => {  
+const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainValues }) => {
+  const [tooltipOpen, setTooltipOpen] = useState({});
+  
+  const toggleTooltip = (id) => {
+    setTooltipOpen(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+  
   const metricDefinitions = {
     auc: {
       name: 'AUC',
       icon: 'chart-area',
+      description: 'Area Under the ROC Curve - measures the ability of the model to distinguish between classes',
     },
     accuracy: {
       name: 'Accuracy',
       icon: 'bullseye',
+      description: 'Proportion of correctly classified samples',
     },
     precision: {
       name: 'Precision',
       icon: 'crosshairs',
+      description: 'Proportion of positive predictions that are actually positive',
     },
     sensitivity: {
       name: 'Sensitivity',
       icon: 'search-plus',
+      description: 'Proportion of actual positives that are correctly identified (also called Recall)',
     },
     specificity: {
       name: 'Specificity',
       icon: 'filter',
+      description: 'Proportion of actual negatives that are correctly identified',
     },
   };
 
   return (
-    <div className="container-fluid">      
+    <div className="container-fluid">
+      
       <div className="row g-2 g-md-3">
         {Object.keys(metricDefinitions).map((metricKey) => {
           const def = metricDefinitions[metricKey];
@@ -56,17 +73,13 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
           const trainValue = trainMetric?.mean || trainMetric?.value || 0;
           const testValue = testMetric?.mean || testMetric?.value || 0;
 
-          // Format value with range for AUC
+          // Format value with confidence intervals for all metrics
           const formatValueWithRange = (metric, value) => {
-            if (metricKey === 'auc' && metric) {
-              // Use inf_value and sup_value for confidence intervals
-              const lowerCI = metric.inf_value;
-              const upperCI = metric.sup_value;
-              
-              if (lowerCI !== undefined && upperCI !== undefined) {
-                return `${value.toFixed(3)} [${lowerCI.toFixed(3)}-${upperCI.toFixed(3)}]`;
-              }
+            // Check if metric has confidence interval structure (mean, inf_value, sup_value)
+            if (metric && metric.mean !== undefined && metric.inf_value !== undefined && metric.sup_value !== undefined) {
+              return formatMetric(metric);
             }
+            // Fallback to simple value formatting
             return value.toFixed(3);
           };
 
@@ -75,7 +88,28 @@ const MetricsComparison = ({ trainingMetrics, testMetrics, showTest, showTrainVa
               <div className="card h-100 metric-card-bootstrap position-relative">
                 <div className="card-body p-2 p-md-3">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">{def.name}</span>
+                    <span 
+                      className="metric-name-bootstrap text-uppercase fw-bold text-muted small d-flex align-items-center"
+                      id={`metric-${metricKey}-tooltip`}
+                      style={{ cursor: 'help' }}
+                    >
+                      {def.name}
+                      <FontAwesomeIcon icon="question-circle" className="ms-1" size="xs" />
+                    </span>
+                    <Tooltip
+                      placement="top"
+                      isOpen={tooltipOpen[`metric-${metricKey}`]}
+                      target={`metric-${metricKey}-tooltip`}
+                      toggle={() => toggleTooltip(`metric-${metricKey}`)}
+                    >
+                      <div className="text-start">
+                        <div className="fw-bold">{def.name}</div>
+                        <div className="small">{def.description}</div>
+                        <div className="small text-muted mt-1">
+                          Values shown as: <strong>mean (95% CI)</strong>
+                        </div>
+                      </div>
+                    </Tooltip>
                     {showTest && testMetric && showTrainValues && (
                       <span
                         className={`badge small ${
