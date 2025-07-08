@@ -915,7 +915,7 @@ function Features() {
                   >
                     {getTabSymbol()}
                     Model Training{' '}
-                    {models.length > 0 && <Badge>{models.length}</Badge>}
+                    
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -926,8 +926,8 @@ function Features() {
                     }}
                   >
                     {getTabSymbol()}
-                    All Models{' '}
-                    {models.length > 0 && <Badge>{models.length}</Badge>}
+                    Model Evaluation{' '}
+                    
                   </NavLink>
                 </NavItem>
                 {/* <NavItem>
