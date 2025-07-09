@@ -53,6 +53,7 @@ export default function Train({
   dataSplittingType,
   trainTestSplitType,
   patients,
+  onNavigateToModels,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -735,6 +736,7 @@ export default function Train({
             models={models}
             featureExtractionID={featureExtractionID}
             selectedLabelCategory={selectedLabelCategory}
+            onNavigateToModels={onNavigateToModels}
           />
         </>
       )}

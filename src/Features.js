@@ -1211,6 +1211,7 @@ function Features() {
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
                           patients={patients}
+                          onNavigateToModels={() => toggle('models')}
                         />
                       </>
                     ) : (
