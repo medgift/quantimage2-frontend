@@ -7,6 +7,7 @@ const ROCCurveComponent = ({
   selectedModel,
   selectedModels,
   plotType,
+  plotData,
   threshold = 0.5,
   height = 500,
   onClose,
@@ -33,46 +34,51 @@ const ROCCurveComponent = ({
     return [];
   }, [selectedModels, selectedModel]);
 
-  // Fetch ROC curve data from backend when models or plotType changes
-  useEffect(() => {
-    if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
-      setRocData(null);
-      return;
-    }
+  // Fetch ROC curve data from backend when models or plotData changes
+useEffect(() => {
+  if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
+    setRocData(null);
+    return;
+  }
 
-    const fetchROCData = async () => {
-      setLoading(true);
-      setError(null);
+  if (!plotData || !Array.isArray(plotData) || plotData.length === 0) {
+    setRocData(null);
+    return;
+  }
 
-      try {
-        let response;
-        if (plotType === 'test') {
-          response = await Backend.getROCCurveTestData(token, modelsToProcess);
-        } else if (plotType === 'train') {
-          response = await Backend.getROCCurveTrainData(token, modelsToProcess);
-        } else {
-          response = await Backend.getROCCurveTestData(token, modelsToProcess);
-        }
+  const fetchROCData = async () => {
+    setLoading(true);
+    setError(null);
 
-        if (response && Array.isArray(response) && response.length > 0) {
- 
-          setRocData(response);
-        } else {
-          console.log('No valid data in response');
-          setError('No ROC data returned from server');
-        }
-      } catch (err) {
-        console.error('=== Error fetching ROC data ===');
-        console.error('Error object:', err);
-        console.error('Error message:', err.message);
-        setError(err.message || 'Failed to fetch ROC curve data');
-      } finally {
-        setLoading(false);
+    try {
+      let response;
+      if (plotType === 'test') {
+        response = await Backend.getROCCurveTestData(token, modelsToProcess);
+      } else if (plotType === 'train') {
+        response = await Backend.getROCCurveTrainData(token, modelsToProcess);
+      } else {
+        response = await Backend.getROCCurveTestData(token, modelsToProcess);
       }
-    };
 
-    fetchROCData();
-  }, [modelsToProcess, plotType, token]);
+      if (response && Array.isArray(response) && response.length > 0) {
+        setRocData(response);
+      } else {
+        console.log('No valid data in response');
+        setError('No ROC data returned from server');
+      }
+    } catch (err) {
+      console.error('=== Error fetching ROC data ===');
+      console.error('Error object:', err);
+      console.error('Error message:', err.message);
+      setError(err.message || 'Failed to fetch ROC curve data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchROCData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [modelsToProcess, plotData, token]); // plotType intentionally omitted
 
   // Calculate current threshold points for all models (memoized for performance)
   const currentROCPoints = useMemo(() => {
@@ -110,12 +116,12 @@ const ROCCurveComponent = ({
 
   // Debounced threshold for smoother performance
   const [debouncedThreshold, setDebouncedThreshold] = useState(threshold);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedThreshold(threshold);
     }, 50); // 50ms delay for smooth interaction
-    
+
     return () => clearTimeout(timer);
   }, [threshold]);
 
@@ -143,7 +149,7 @@ const ROCCurveComponent = ({
         );
         return;
       }
-      
+
       if (
         !modelData.fpr ||
         !modelData.tpr ||
@@ -155,7 +161,7 @@ const ROCCurveComponent = ({
         );
         return;
       }
-      
+
       const color = colors[index % colors.length];
 
       traces.push({
@@ -271,10 +277,10 @@ const ROCCurveComponent = ({
 
     // Create updated traces with threshold points
     const baseTraces = rocDivRef.current.data.slice(0, rocData.length + 1); // ROC curves + random classifier
-    
+
     const pointTraces = currentROCPoints.map((point) => {
       const pointColor = pointColors[point.index % pointColors.length];
-      
+
       return {
         x: [point.fpr],
         y: [point.tpr],
@@ -300,21 +306,18 @@ const ROCCurveComponent = ({
 
     // Efficiently update just the threshold points while preserving layout
     const allTraces = [...baseTraces, ...pointTraces];
-    
+
     // Update traces first
     Plotly.react(rocDivRef.current, allTraces);
-    
+
     // Then force the axis ranges to stay fixed (this ensures no auto-scaling occurs)
     Plotly.relayout(rocDivRef.current, {
       'xaxis.range': [0, 1],
       'yaxis.range': [0, 1],
       'xaxis.autorange': false,
-      'yaxis.autorange': false
+      'yaxis.autorange': false,
     });
-    
   }, [currentROCPoints, debouncedThreshold, rocData]);
-
-
 
   // Loading state
   if (loading) {
@@ -395,7 +398,6 @@ const ROCCurveComponent = ({
 
   // No models selected
   if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
-
     if (hideContainer) {
       return (
         <div className="alert alert-info">
