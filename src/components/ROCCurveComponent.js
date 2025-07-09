@@ -34,47 +34,47 @@ const ROCCurveComponent = ({
   }, [selectedModels, selectedModel]);
 
   // Fetch ROC curve data from backend when models or plotData changes
-useEffect(() => {
-  if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
-    setRocData(null);
-    return;
-  }
-
-  if (!plotData || !Array.isArray(plotData) || plotData.length === 0) {
-    setRocData(null);
-    return;
-  }
-
-  const fetchROCData = async () => {
-    setError(null);
-
-    try {
-      let response;
-      if (plotType === 'test') {
-        response = await Backend.getROCCurveTestData(token, modelsToProcess);
-      } else if (plotType === 'train') {
-        response = await Backend.getROCCurveTrainData(token, modelsToProcess);
-      } else {
-        response = await Backend.getROCCurveTestData(token, modelsToProcess);
-      }
-
-      if (response && Array.isArray(response) && response.length > 0) {
-        setRocData(response);
-      } else {
-        console.log('No valid data in response');
-        setError('No ROC data returned from server');
-      }
-    } catch (err) {
-      console.error('=== Error fetching ROC data ===');
-      console.error('Error object:', err);
-      console.error('Error message:', err.message);
-      setError(err.message || 'Failed to fetch ROC curve data');
+  useEffect(() => {
+    if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
+      setRocData(null);
+      return;
     }
-  };
 
-  fetchROCData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [modelsToProcess, plotData, token]); // plotType intentionally omitted
+    if (!plotData || !Array.isArray(plotData) || plotData.length === 0) {
+      setRocData(null);
+      return;
+    }
+
+    const fetchROCData = async () => {
+      setError(null);
+
+      try {
+        let response;
+        if (plotType === 'test') {
+          response = await Backend.getROCCurveTestData(token, modelsToProcess);
+        } else if (plotType === 'train') {
+          response = await Backend.getROCCurveTrainData(token, modelsToProcess);
+        } else {
+          response = await Backend.getROCCurveTestData(token, modelsToProcess);
+        }
+
+        if (response && Array.isArray(response) && response.length > 0) {
+          setRocData(response);
+        } else {
+          console.log('No valid data in response');
+          setError('No ROC data returned from server');
+        }
+      } catch (err) {
+        console.error('=== Error fetching ROC data ===');
+        console.error('Error object:', err);
+        console.error('Error message:', err.message);
+        setError(err.message || 'Failed to fetch ROC curve data');
+      }
+    };
+
+    fetchROCData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelsToProcess, plotData, token]); // plotType intentionally omitted
 
   // Calculate current threshold points for all models (memoized for performance)
   const currentROCPoints = useMemo(() => {
@@ -224,7 +224,6 @@ useEffect(() => {
         })`;
 
     const layout = {
-
       xaxis: {
         title: {
           text: 'False Positive Rate (1 - Specificity)',
@@ -270,6 +269,15 @@ useEffect(() => {
       displayModeBar: true,
       displaylogo: false,
       modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+      editable: true,
+      edits: {
+        legendText: true,
+        legendPosition: true,
+        axisTitleText: true,
+        colorbarTitleText: true,
+        annotationText: true,
+        annotationPosition: true,
+      },
     };
 
     // Create or update the base plot (without threshold points)
