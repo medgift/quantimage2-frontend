@@ -115,7 +115,7 @@ const InteractivePredictionsPlot = ({
       ],
       mode: 'lines',
       name: `Threshold ${threshold.toFixed(3)}`,
-      line: { color: '#F18F01', width: 3, dash: 'dash' },
+      line: { color: '#F18F01', width: 3, dash: '10px,8px' },
       showlegend: true,
       hoverinfo: 'skip',
       legendgroup: 'threshold',
@@ -165,7 +165,7 @@ const InteractivePredictionsPlot = ({
           x1: threshold,
           y0: -0.5,
           y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
-          line: { color: '#F18F01', width: 3, dash: 'dash' }
+          line: { color: '#F18F01', width: 3, dash: '10px,8px' }
         }
       ],
       annotations: [
@@ -211,7 +211,7 @@ const InteractivePredictionsPlot = ({
             x1: newThreshold,
             y0: -0.5,
             y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
-            line: { color: '#F18F01', width: 3, dash: 'dash' }
+            line: { color: '#F18F01', width: 3, dash: '10px,8px' }
           }
         ],
         annotations: [
