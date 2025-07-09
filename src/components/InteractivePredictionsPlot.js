@@ -149,11 +149,12 @@ const InteractivePredictionsPlot = ({
       legend: {
         orientation: 'h',
         x: 0,
-        y: -0.1,
+        y: -0.2,
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
         borderwidth: 1
       },
+      margin: { l: 80, r: 30, t: 60, b: 120 },
       hovermode: 'closest',
       plot_bgcolor: '#fafafa',
       shapes: [
