@@ -110,17 +110,6 @@ useEffect(() => {
       .filter((point) => point !== null);
   }, [rocData, threshold]);
 
-  // Debounced threshold for smoother performance
-  const [debouncedThreshold, setDebouncedThreshold] = useState(threshold);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedThreshold(threshold);
-    }, 50); // 50ms delay for smooth interaction
-
-    return () => clearTimeout(timer);
-  }, [threshold]);
-
   // Create/Update ROC Plot using Plotly (optimized)
   useEffect(() => {
     if (!rocData || !rocDivRef.current) return;
@@ -185,6 +174,46 @@ useEffect(() => {
         '<b>Random Classifier</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>',
     });
 
+    // Add initial threshold points to the base plot
+    if (currentROCPoints.length > 0) {
+      const pointColors = [
+        '#F18F01',
+        '#e74c3c',
+        '#2ecc71',
+        '#f39c12',
+        '#9b59b6',
+        '#1abc9c',
+        '#e67e22',
+        '#34495e',
+      ];
+
+      currentROCPoints.forEach((point) => {
+        const pointColor = pointColors[point.index % pointColors.length];
+
+        traces.push({
+          x: [point.fpr],
+          y: [point.tpr],
+          mode: 'markers',
+          name:
+            rocData.length === 1
+              ? `Threshold ${threshold.toFixed(3)}`
+              : `Threshold ${threshold.toFixed(3)}`,
+          marker: {
+            color: pointColor,
+            size: 12,
+            line: { color: '#ffffff', width: 2 },
+            symbol: 'circle',
+          },
+          hovertemplate: `<b>Operating Point - ${
+            point.modelName
+          }</b><br>Threshold: ${threshold.toFixed(
+            3
+          )}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>`,
+          showlegend: true, // Show threshold points in legend
+        });
+      });
+    }
+
     const isMultiModel = rocData.length > 1;
     const titleText = isMultiModel
       ? `ROC Curve Comparison - ${
@@ -195,10 +224,7 @@ useEffect(() => {
         })`;
 
     const layout = {
-      title: {
-        text: titleText,
-        font: { size: 16, family: 'Arial, sans-serif' },
-      },
+
       xaxis: {
         title: {
           text: 'False Positive Rate (1 - Specificity)',
@@ -221,9 +247,9 @@ useEffect(() => {
       },
       showlegend: true,
       legend: {
-        orientation: isMultiModel ? 'v' : 'h',
-        x: isMultiModel ? 1.02 : 0,
-        y: isMultiModel ? 1 : -0.25,
+        orientation: 'h',
+        x: 0,
+        y: -0.2,
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
         borderwidth: 1,
@@ -232,9 +258,9 @@ useEffect(() => {
       paper_bgcolor: '#ffffff',
       margin: {
         l: 60,
-        r: isMultiModel ? 200 : 30,
+        r: 30,
         t: 80,
-        b: isMultiModel ? 60 : 110,
+        b: 120,
       },
       height: height,
     };
@@ -254,66 +280,7 @@ useEffect(() => {
         rocPlotRef.current = plot;
       });
     }
-  }, [rocData, plotType, height]); // Removed threshold dependency
-
-  // Separate effect for updating threshold points (optimized for performance)
-  useEffect(() => {
-    if (!rocPlotRef.current || !currentROCPoints.length || !rocData) return;
-
-    const pointColors = [
-      '#F18F01',
-      '#e74c3c',
-      '#2ecc71',
-      '#f39c12',
-      '#9b59b6',
-      '#1abc9c',
-      '#e67e22',
-      '#34495e',
-    ];
-
-    // Create updated traces with threshold points
-    const baseTraces = rocDivRef.current.data.slice(0, rocData.length + 1); // ROC curves + random classifier
-
-    const pointTraces = currentROCPoints.map((point) => {
-      const pointColor = pointColors[point.index % pointColors.length];
-
-      return {
-        x: [point.fpr],
-        y: [point.tpr],
-        mode: 'markers',
-        name:
-          rocData.length === 1
-            ? `Threshold ${debouncedThreshold.toFixed(3)}`
-            : `${point.modelName} @ ${debouncedThreshold.toFixed(3)}`,
-        marker: {
-          color: pointColor,
-          size: 12,
-          line: { color: '#ffffff', width: 2 },
-          symbol: 'circle',
-        },
-        hovertemplate: `<b>Operating Point - ${
-          point.modelName
-        }</b><br>Threshold: ${debouncedThreshold.toFixed(
-          3
-        )}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>`,
-        showlegend: rocData.length > 1,
-      };
-    });
-
-    // Efficiently update just the threshold points while preserving layout
-    const allTraces = [...baseTraces, ...pointTraces];
-
-    // Update traces first
-    Plotly.react(rocDivRef.current, allTraces);
-
-    // Then force the axis ranges to stay fixed (this ensures no auto-scaling occurs)
-    Plotly.relayout(rocDivRef.current, {
-      'xaxis.range': [0, 1],
-      'yaxis.range': [0, 1],
-      'xaxis.autorange': false,
-      'yaxis.autorange': false,
-    });
-  }, [currentROCPoints, debouncedThreshold, rocData]);
+  }, [rocData, plotType, height, currentROCPoints, threshold]); // Added currentROCPoints and threshold
 
   // Error state
   if (error) {
