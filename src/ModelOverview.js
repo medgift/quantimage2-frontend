@@ -550,6 +550,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                             modelsData={plotHtml}
                             height={400}
                             metric="auc"
+                            hideContainer={true}
                           />
                         </div>
                       </div>
@@ -643,6 +644,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                             modelsData={plotHtml}
                             height={400}
                             metric="auc"
+                            hideContainer={true}
                           />
                         </div>
                       </div>
