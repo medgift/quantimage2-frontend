@@ -243,230 +243,227 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
             </ul>
           </ModalBody>
         </Modal>
-        <h1>
-          Model Overview for <strong>{album.name}</strong> album
-        </h1>
-        <div
-          className="d-flex flex-column justify-content-start align-items-start tab-content"
-          style={{ borderTop: '1px solid #dee2e6' }}
-        >
+
+        <div className="container-fluid">
+          <div className="row">
+            <div className="col-12">
+              <h1 className="mb-4">
+                Model Overview for <strong>{album.name}</strong> album
+              </h1>
+            </div>
+          </div>
+          
           {showBackButton && (
-            <Button
-              color="link"
-              onClick={() => navigate(`/features/${albumID}/overview`)}
-            >
-              <FontAwesomeIcon icon="arrow-left" /> Go Back
-            </Button>
-          )}{' '}
-          {models.length > 0 ? (
-            <div style={{ width: '98%' }}>
-              <ModelsTable
-                title="Classification Models"
-                columns={columnsClassification}
-                data={models.filter(
-                  (m) => m.type === MODEL_TYPES.CLASSIFICATION
-                )}
-                handleDeleteModelClick={handleDeleteModelClick}
-                showComparisonButtons={true}
-                selectedModels={selectedModels}
-                onModelSelectionChange={handleModelSelectionChange}
-                showSelection={true}
-              />
-              <ModelsTable
-                title="Survival Models"
-                columns={columnsSurvival}
-                data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
-                handleDeleteModelClick={handleDeleteModelClick}
-                showComparisonButtons={true}
-                selectedModels={selectedModels}
-                onModelSelectionChange={handleModelSelectionChange}
-                showSelection={true}
-              />
-
-              {/* Unified Plotting Interface */}
-              {selectedModels.length > 0 && (
-                <div
-                  style={{
-                    marginTop: '30px',
-                    padding: '20px',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    backgroundColor: '#f8f9fa',
-                  }}
+            <div className="row mb-3">
+              <div className="col-12">
+                <Button
+                  color="link"
+                  onClick={() => navigate(`/features/${albumID}/overview`)}
+                  className="p-0"
                 >
-                  <h5 style={{ marginBottom: '15px', color: '#495057' }}>
-                    Plot Selected Models ({selectedModels.length} selected)
-                  </h5>
+                  <FontAwesomeIcon icon="arrow-left" /> Go Back
+                </Button>
+              </div>
+            </div>
+          )}
 
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ marginRight: '15px', fontWeight: 'bold' }}>
-                      Plot Type:
-                    </label>
-                    <label style={{ marginRight: '15px', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        value="test"
-                        checked={plotType === 'test'}
-                        onChange={(e) => setPlotType(e.target.value)}
-                        style={{ marginRight: '5px' }}
-                      />
-                      Test Predictions
-                    </label>
-                    <label style={{ cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        value="train"
-                        checked={plotType === 'train'}
-                        onChange={(e) => setPlotType(e.target.value)}
-                        style={{ marginRight: '5px' }}
-                      />
-                      Training Predictions
-                    </label>
-                  </div>
-
-                  <div style={{ marginBottom: '15px' }}>
-                    <Button
-                      color="primary"
-                      onClick={handlePlotModels}
-                      disabled={isPlotting || selectedModels.length === 0}
-                      style={{ marginRight: '10px' }}
-                    >
-                      {isPlotting ? (
-                        <>
-                          <FontAwesomeIcon
-                            icon="spinner"
-                            spin
-                            className="me-2"
-                          />
-                          Generating Plot...
-                        </>
-                      ) : (
-                        <>
-                          Generate Performances Plots
-                        </>
-                      )}
-                    </Button>
-
-                    <Button
-                      color="secondary"
-                      onClick={() => setSelectedModels([])}
-                      disabled={isPlotting}
-                    >
-                      Clear Selection
-                    </Button>
-                  </div>
-
-                  {plotError && (
-                    <Alert color="danger" style={{ marginBottom: '10px' }}>
-                      {plotError}
-                    </Alert>
+          {models.length > 0 ? (
+            <div className="row">
+              <div className="col-12">
+                <ModelsTable
+                  title="Classification Models"
+                  columns={columnsClassification}
+                  data={models.filter(
+                    (m) => m.type === MODEL_TYPES.CLASSIFICATION
                   )}
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>
-                    <FontAwesomeIcon icon="info-circle" className="me-1" />
-                    Select up to 5 models using the checkboxes above, then
-                    choose plot type and generate visualization.
-                  </div>
-                </div>              )}              {/* Single Model Analysis with separate components */}
-              {selectedModels.length === 1 && plotHtml && (
-                <>
-                  {/* Shared Threshold Control */}
-                  <div className="card mt-3">
-                    <div className="card-header">
-                      <h5>Model Analysis Controls</h5>
+                  handleDeleteModelClick={handleDeleteModelClick}
+                  showComparisonButtons={true}
+                  selectedModels={selectedModels}
+                  onModelSelectionChange={handleModelSelectionChange}
+                  showSelection={true}
+                />
+                <ModelsTable
+                  title="Survival Models"
+                  columns={columnsSurvival}
+                  data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
+                  handleDeleteModelClick={handleDeleteModelClick}
+                  showComparisonButtons={true}
+                  selectedModels={selectedModels}
+                  onModelSelectionChange={handleModelSelectionChange}
+                  showSelection={true}
+                />
+
+                {/* Unified Plotting Interface */}
+                {selectedModels.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: '30px',
+                      padding: '20px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '8px',
+                      backgroundColor: '#f8f9fa',
+                    }}
+                  >
+                    <h5 style={{ marginBottom: '15px', color: '#495057' }}>
+                      Plot Selected Models ({selectedModels.length} selected)
+                    </h5>
+
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ marginRight: '15px', fontWeight: 'bold' }}>
+                        Plot Type:
+                      </label>
+                      <label style={{ marginRight: '15px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          value="test"
+                          checked={plotType === 'test'}
+                          onChange={(e) => setPlotType(e.target.value)}
+                          style={{ marginRight: '5px' }}
+                        />
+                        Test Predictions
+                      </label>
+                      <label style={{ cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          value="train"
+                          checked={plotType === 'train'}
+                          onChange={(e) => setPlotType(e.target.value)}
+                          style={{ marginRight: '5px' }}
+                        />
+                        Training Predictions
+                      </label>
                     </div>
-                    <div className="card-body">
-                      <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
-                        <label htmlFor="threshold-slider" className="form-label mb-2">
-                          Decision Threshold: {threshold.toFixed(3)}
-                        </label>                        <input
-                          id="threshold-slider"
-                          type="range"
-                          className="form-range"
-                          min="0"
-                          max="1"
-                          step="0.001"
-                          value={threshold}
-                          onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                          style={{ width: '100%' }}
-                        />                        <div className="d-flex justify-content-between mt-1">
-                          <small className="text-muted">0.000</small>
-                          <small className="text-muted">1.000</small>
-                        </div>                      </div>
+
+                    <div style={{ marginBottom: '15px' }}>
+                      <Button
+                        color="primary"
+                        onClick={handlePlotModels}
+                        disabled={isPlotting || selectedModels.length === 0}
+                        style={{ marginRight: '10px' }}
+                      >
+                        {isPlotting ? (
+                          <>
+                            <FontAwesomeIcon
+                              icon="spinner"
+                              spin
+                              className="me-2"
+                            />
+                            Generating Plot...
+                          </>
+                        ) : (
+                          <>
+                            Generate Performances Plots
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        color="secondary"
+                        onClick={() => setSelectedModels([])}
+                        disabled={isPlotting}
+                      >
+                        Clear Selection
+                      </Button>
                     </div>
-                  </div>                  {/* Performance Metrics */}
-                  {predictionMetrics && (
-                    <div className="performance-section">
-                      <div className="section-header">
-                        <h5>
-                          Performance Metrics at Threshold {threshold.toFixed(3)}
-                        </h5>
+
+                    {plotError && (
+                      <Alert color="danger" style={{ marginBottom: '10px' }}>
+                        {plotError}
+                      </Alert>
+                    )}
+                    <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>
+                      <FontAwesomeIcon icon="info-circle" className="me-1" />
+                      Select up to 5 models using the checkboxes above, then
+                      choose plot type and generate visualization.
+                    </div>
+                  </div>              )}
+
+                {/* Single Model Analysis */}
+                {selectedModels.length === 1 && plotHtml && (
+                  <>
+                    {/* Shared Threshold Control */}
+                    <div className="card mt-4">
+                      <div className="card-header">
+                        <h5 className="mb-0">Model Analysis Controls</h5>
                       </div>
-                      <div className="container-fluid">
-                        <div className="row g-2 g-md-3">
-                          <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                            <div className="card h-100 metric-card-bootstrap position-relative">
-                              <div className="card-body p-2 p-md-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Accuracy</span>
-                                </div>
-                                <div className="text-center">
-                                  <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                      <div className="card-body">
+                        <div className="p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                          <label htmlFor="threshold-slider" className="form-label mb-2">
+                            Decision Threshold: <strong>{threshold.toFixed(3)}</strong>
+                          </label>
+                          <input
+                            id="threshold-slider"
+                            type="range"
+                            className="form-range"
+                            min="0"
+                            max="1"
+                            step="0.001"
+                            value={threshold}
+                            onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                          />
+                          <div className="d-flex justify-content-between mt-1">
+                            <small className="text-muted">0.000</small>
+                            <small className="text-muted">1.000</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    {predictionMetrics && (
+                      <div className="card mt-3">
+                        <div className="card-header">
+                          <h5 className="mb-0">
+                            Performance Metrics at Threshold {threshold.toFixed(3)}
+                          </h5>
+                        </div>
+                        <div className="card-body">
+                          <div className="row g-3">
+                            <div className="col-12 col-sm-6 col-lg-4 col-xl">
+                              <div className="card h-100 border-primary">
+                                <div className="card-body text-center">
+                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Accuracy</span>
+                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
                                     {predictionMetrics.accuracy.toFixed(3)}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                            <div className="card h-100 metric-card-bootstrap position-relative">
-                              <div className="card-body p-2 p-md-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Precision</span>
-                                </div>
-                                <div className="text-center">
-                                  <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                            <div className="col-12 col-sm-6 col-lg-4 col-xl">
+                              <div className="card h-100 border-primary">
+                                <div className="card-body text-center">
+                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Precision</span>
+                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
                                     {predictionMetrics.precision.toFixed(3)}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                            <div className="card h-100 metric-card-bootstrap position-relative">
-                              <div className="card-body p-2 p-md-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Recall</span>
-                                </div>
-                                <div className="text-center">
-                                  <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                            <div className="col-12 col-sm-6 col-lg-4 col-xl">
+                              <div className="card h-100 border-primary">
+                                <div className="card-body text-center">
+                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Recall</span>
+                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
                                     {predictionMetrics.recall.toFixed(3)}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                            <div className="card h-100 metric-card-bootstrap position-relative">
-                              <div className="card-body p-2 p-md-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Specificity</span>
-                                </div>
-                                <div className="text-center">
-                                  <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                            <div className="col-12 col-sm-6 col-lg-4 col-xl">
+                              <div className="card h-100 border-primary">
+                                <div className="card-body text-center">
+                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Specificity</span>
+                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
                                     {predictionMetrics.specificity.toFixed(3)}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                            <div className="card h-100 metric-card-bootstrap position-relative">
-                              <div className="card-body p-2 p-md-3">
-                                <div className="d-flex align-items-center justify-content-between mb-2">
-                                  <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">F1-Score</span>
-                                </div>
-                                <div className="text-center">
-                                  <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                            <div className="col-12 col-sm-6 col-lg-4 col-xl">
+                              <div className="card h-100 border-primary">
+                                <div className="card-body text-center">
+                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">F1-Score</span>
+                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
                                     {predictionMetrics.f1.toFixed(3)}
                                   </div>
                                 </div>
@@ -475,161 +472,171 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="row mt-3">
-                    {/* Interactive Predictions Plot */}
-                    <div className="col-md-6">
-                      <div className="card">                        <div className="card-header">
-                          Interactive Predictions - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
+                    {/* Two-column layout for plots */}
+                    <div className="row mt-3 g-3">
+                      {/* Interactive Predictions Plot */}
+                      <div className="col-md-6">
+                        <div className="card h-100">
+                          <div className="card-header">
+                            <h6 className="mb-0">Interactive Predictions - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}</h6>
+                          </div>
+                          <div className="card-body p-0">
+                            <InteractivePredictionsPlot
+                              modelsData={plotHtml}
+                              plotType={plotType}
+                              externalThreshold={threshold}
+                              hideThresholdControl={true}
+                              hideContainer={true}
+                              externalHeight={500}
+                              onClose={() => setPlotHtml(null)}
+                              onMetricsUpdate={setPredictionMetrics}
+                            />
+                          </div>
                         </div>
-                        <div className="card-body p-0">                          <InteractivePredictionsPlot
+                      </div>
+                       
+                      {/* ROC Curve Component */}
+                      <div className="col-md-6">
+                        <div className="card h-100">
+                          <div className="card-header">
+                            <h6 className="mb-0">ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}</h6>
+                          </div>
+                          <div className="card-body p-0">
+                            <ROCCurveComponent
+                             selectedModels={selectedModels}
+                              plotData={plotHtml}
+                              plotType={plotType}
+                              threshold={threshold}
+                              height={500}
+                              hideContainer={true}
+                              token={keycloak.token}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bootstrap Analysis - Only show for Test Predictions */}
+                    {plotType === 'test' && (
+                      <div className="card mt-3">
+                        <div className="card-header">
+                          <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
+                        </div>
+                        <div className="card-body">
+                          <BootstrapHistogram
                             modelsData={plotHtml}
-                            plotType={plotType}
-                            externalThreshold={threshold}
-                            hideThresholdControl={true}
-                            hideContainer={true}
-                            externalHeight={500}
-                            onClose={() => setPlotHtml(null)}
-                            onMetricsUpdate={setPredictionMetrics}
+                            height={400}
+                            metric="auc"
                           />
                         </div>
                       </div>
-                    </div>
-                     
-                    {/* ROC Curve Component */}
-                    <div className="col-md-6">
-                      <div className="card">                        <div className="card-header">
-                          ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}
-                        </div>
-                        <div className="card-body p-0">
-                          <ROCCurveComponent
-                           selectedModels={selectedModels}
-                            plotData={plotHtml}
-                            plotType={plotType}
-                            threshold={threshold}
-                            height={500}
-                            hideContainer={true}
-                            token={keycloak.token}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
+                )}
 
-                  {/* Bootstrap Analysis - Only show for Test Predictions */}
-                  {plotType === 'test' && (
+                {/* Multi-model comparison */}
+                {selectedModels.length > 1 && plotHtml && (
+                  <>
+                    {/* Shared Threshold Control for Multiple Models */}
                     <div className="card mt-3">
                       <div className="card-header">
-                        <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
+                        <h5>Multi-Model Analysis Controls</h5>
                       </div>
                       <div className="card-body">
-                        <BootstrapHistogram
-                          modelsData={plotHtml}
-                          height={400}
-                          metric="auc"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Multi-model comparison plot */}
-              {selectedModels.length > 1 && plotHtml && (
-                <>
-                  {/* Shared Threshold Control for Multiple Models */}
-                  <div className="card mt-3">
-                    <div className="card-header">
-                      <h5>Multi-Model Analysis Controls</h5>
-                    </div>
-                    <div className="card-body">
-                      <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
-                        <label htmlFor="multi-threshold-slider" className="form-label mb-2">
-                          Decision Threshold (Applied to All Models): {threshold.toFixed(3)}
-                        </label>
-                        <input
-                          id="multi-threshold-slider"
-                          type="range"
-                          className="form-range"
-                          min="0"
-                          max="1"
-                          step="0.001"
-                          value={threshold}
-                          onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                          style={{ width: '100%' }}
-                        />
-                        <div className="d-flex justify-content-between mt-1">
-                          <small className="text-muted">0.000</small>
-                          <small className="text-muted">1.000</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="row mt-3">
-                    {/* Interactive Predictions Plot */}
-                    <div className="col-md-6">
-                      <div className="card">
-                        <div className="card-header">
-                          <h5 className="mb-0">Interactive Predictions Comparison ({selectedModels.length} models)</h5>
-                        </div>
-                        <div className="card-body p-0">
-                          <InteractivePredictionsPlot
-                            modelsData={plotHtml}
-                            plotType={plotType}
-                            externalThreshold={threshold}
-                            onClose={() => setPlotHtml(null)}
-                            hideThresholdControl={true}
-                            hideContainer={true}
-                            externalHeight={500}
+                        <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                          <label htmlFor="multi-threshold-slider" className="form-label mb-2">
+                            Decision Threshold (Applied to All Models): {threshold.toFixed(3)}
+                          </label>
+                          <input
+                            id="multi-threshold-slider"
+                            type="range"
+                            className="form-range"
+                            min="0"
+                            max="1"
+                            step="0.001"
+                            value={threshold}
+                            onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                            style={{ width: '100%' }}
                           />
+                          <div className="d-flex justify-content-between mt-1">
+                            <small className="text-muted">0.000</small>
+                            <small className="text-muted">1.000</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Two-column layout for multi-model plots */}
+                    <div className="row mt-3 g-3">
+                      {/* Interactive Predictions Plot */}
+                      <div className="col-md-6">
+                        <div className="card h-100">
+                          <div className="card-header">
+                            <h6 className="mb-0">Interactive Predictions Comparison ({selectedModels.length} models)</h6>
+                          </div>
+                          <div className="card-body p-0">
+                            <InteractivePredictionsPlot
+                              modelsData={plotHtml}
+                              plotType={plotType}
+                              externalThreshold={threshold}
+                              onClose={() => setPlotHtml(null)}
+                              hideThresholdControl={true}
+                              hideContainer={true}
+                              externalHeight={500}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* ROC Curve Component for Multiple Models */}
+                      <div className="col-md-6">
+                        <div className="card h-100">
+                          <div className="card-header">
+                            <h6 className="mb-0">ROC Curves Comparison ({selectedModels.length} models)</h6>
+                          </div>
+                          <div className="card-body p-0">
+                            <ROCCurveComponent
+                              selectedModels={selectedModels}
+                              plotData={plotHtml}
+                              plotType={plotType}
+                              threshold={threshold}
+                              height={500}
+                              hideContainer={true}
+                              token={keycloak.token}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
                     
-                    {/* ROC Curve Component for Multiple Models */}
-                    <div className="col-md-6">
-                      <div className="card">
+                    {/* Bootstrap Analysis for Multiple Models - Only show for Test Predictions */}
+                    {plotType === 'test' && (
+                      <div className="card mt-3">
                         <div className="card-header">
-                          <h5 className="mb-0">ROC Curves Comparison ({selectedModels.length} models)</h5>
+                          <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
                         </div>
-                        <div className="card-body p-0">
-                          <ROCCurveComponent
-                            selectedModels={selectedModels}
-                            plotData={plotHtml}
-                            plotType={plotType}
-                            threshold={threshold}
-                            height={500}
-                            hideContainer={true}
-                            token={keycloak.token}
+                        <div className="card-body">
+                          <BootstrapHistogram
+                            modelsData={plotHtml}
+                            height={400}
+                            metric="auc"
                           />
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Bootstrap Analysis for Multiple Models - Only show for Test Predictions */}
-                  {plotType === 'test' && (
-                    <div className="card mt-3">
-                      <div className="card-header">
-                        <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
-                      </div>
-                      <div className="card-body">
-                        <BootstrapHistogram
-                          modelsData={plotHtml}
-                          height={400}
-                          metric="auc"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           ) : (
-            <h2 className="align-self-stretch">No Models Created Yet</h2>
+            <div className="row">
+              <div className="col-12 text-center py-5">
+                <h2>No Models Created Yet</h2>
+                <p className="text-muted">Train some models to see them here.</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
