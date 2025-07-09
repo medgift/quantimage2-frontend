@@ -427,7 +427,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Accuracy</span>
                                   </div>
                                   <div className="text-center">
-                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
                                       {predictionMetrics.accuracy.toFixed(3)}
                                     </div>
                                   </div>
@@ -441,7 +441,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Precision</span>
                                   </div>
                                   <div className="text-center">
-                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
                                       {predictionMetrics.precision.toFixed(3)}
                                     </div>
                                   </div>
@@ -455,7 +455,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Recall</span>
                                   </div>
                                   <div className="text-center">
-                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
                                       {predictionMetrics.recall.toFixed(3)}
                                     </div>
                                   </div>
@@ -469,7 +469,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Specificity</span>
                                   </div>
                                   <div className="text-center">
-                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
                                       {predictionMetrics.specificity.toFixed(3)}
                                     </div>
                                   </div>
@@ -483,7 +483,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                     <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">F1-Score</span>
                                   </div>
                                   <div className="text-center">
-                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
                                       {predictionMetrics.f1.toFixed(3)}
                                     </div>
                                   </div>
