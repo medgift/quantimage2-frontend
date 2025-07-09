@@ -315,10 +315,10 @@ class Backend {
   async getTestScoresValues(token, modelID) {
     try {
       let url = `${endpoints.models}/${modelID}/test-scores-values`;
-      
-      return await request(url, { 
+
+      return await request(url, {
         token: token,
-        method: 'GET'
+        method: 'GET',
       });
     } catch (err) {
       throw err;
@@ -328,10 +328,10 @@ class Backend {
   async getFeatureImportances(token, modelID) {
     try {
       let url = `${endpoints.models}/${modelID}/feature-importances`;
-      
-      return await request(url, { 
+
+      return await request(url, {
         token: token,
-        method: 'GET'
+        method: 'GET',
       });
     } catch (err) {
       throw err;
@@ -431,62 +431,118 @@ class Backend {
     }
   }
 
-  async compareModels(token, modelIds){
+  async compareModels(token, modelIds) {
     let url = `${endpoints.models}/compare`;
     let data = {
-      "model_ids": modelIds,
-    }
+      model_ids: modelIds,
+    };
     return downloadFile(url, token, data);
   }
 
   async compareModelsData(token, modelIds) {
-  const url = `${endpoints.models}/compare-data`;
-  const data = { model_ids: modelIds };
-  return await request(url, {
-    token: token,
-    method: 'POST',
-    data: data,
-  });
+    const url = `${endpoints.models}/compare-data`;
+    const data = { model_ids: modelIds };
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: data,
+    });
+  }
+
+  async plotTestPredictions(token, modelIds) {
+    // Debug logging
+    console.log('plotTestPredictions called with modelIds:', modelIds);
+    console.log('modelIds type:', typeof modelIds);
+    console.log('modelIds is array:', Array.isArray(modelIds));
+
+    // Use the first model ID in the URL and send all IDs in the body
+    const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+    let url = `${endpoints.models}/${primaryModelId}/plot-test-predictions`;
+
+    let requestData = {
+      model_ids: modelIds, // Send array of model IDs
+    };
+
+    console.log('Sending request to URL:', url);
+    console.log('Sending data:', requestData);
+
+    // FIXED: Use 'data' parameter instead of 'body'
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: requestData, // ← Changed from 'body' to 'data'
+    });
+  }
+  async plotTrainPredictions(token, modelIds) {
+    // Use the first model ID in the URL and send all IDs in the body
+    const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+    let url = `${endpoints.models}/${primaryModelId}/plot-train-predictions`;
+
+    let requestData = {
+      model_ids: modelIds,
+    };
+
+    // FIXED: Use 'data' parameter instead of 'body'
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: requestData, // ← Changed from 'body' to 'data'
+    });
+  }
+
+
+    async getROCCurveTestData(token, modelIds) {
+  try {
+    if (Array.isArray(modelIds) && modelIds.length > 1) {
+      // Multiple models - use POST
+      const primaryModelId = modelIds[0];
+      let url = `${endpoints.models}/${primaryModelId}/roc-curve-test-data`;
+      
+      return await request(url, {
+        token: token,
+        method: 'POST',
+        data: { model_ids: modelIds }
+      });
+    } else {
+      // Single model - use GET
+      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+      let url = `${endpoints.models}/${modelId}/roc-curve-test-data`;
+      
+      return await request(url, { 
+        token: token,
+        method: 'GET'
+      });
+    }
+  } catch (err) {
+    throw err;
+  }
 }
 
-async plotTestPredictions(token, modelIds) {
-  // Debug logging
-  console.log('plotTestPredictions called with modelIds:', modelIds);
-  console.log('modelIds type:', typeof modelIds);
-  console.log('modelIds is array:', Array.isArray(modelIds));
-  
-  // Use the first model ID in the URL and send all IDs in the body
-  const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
-  let url = `${endpoints.models}/${primaryModelId}/plot-test-predictions`;
-  
-  let requestData = {
-    "model_ids": modelIds, // Send array of model IDs
+async getROCCurveTrainData(token, modelIds) {
+  try {
+    if (Array.isArray(modelIds) && modelIds.length > 1) {
+      // Multiple models - use POST
+      const primaryModelId = modelIds[0];
+      let url = `${endpoints.models}/${primaryModelId}/roc-curve-train-data`;
+      
+      return await request(url, {
+        token: token,
+        method: 'POST',
+        data: { model_ids: modelIds }
+      });
+    } else {
+      // Single model - use GET
+      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+      let url = `${endpoints.models}/${modelId}/roc-curve-train-data`;
+      
+      return await request(url, { 
+        token: token,
+        method: 'GET'
+      });
+    }
+  } catch (err) {
+    throw err;
   }
-  
-  console.log('Sending request to URL:', url);
-  console.log('Sending data:', requestData);
-  
-  // FIXED: Use 'data' parameter instead of 'body'
-  return await request(url, { 
-    token: token, 
-    method: 'POST',
-    data: requestData  // ← Changed from 'body' to 'data'
-  });
-} async plotTrainPredictions(token, modelIds) {
-  // Use the first model ID in the URL and send all IDs in the body
-  const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
-  let url = `${endpoints.models}/${primaryModelId}/plot-train-predictions`;
-  
-  let requestData = {
-    "model_ids": modelIds,
-  }
-  
-  // FIXED: Use 'data' parameter instead of 'body'
-  return await request(url, { 
-    token: token, 
-    method: 'POST',
-    data: requestData  // ← Changed from 'body' to 'data'
-  });
 }
 
   async presets(token) {
@@ -671,8 +727,11 @@ async plotTestPredictions(token, modelIds) {
 
       return await request(url, { token: token, method: 'PATCH' });
     } catch (err) {
-      throw err;    }
+      throw err;
+    }
   }
+
+ 
 }
 
 const backendInstance = new Backend();
