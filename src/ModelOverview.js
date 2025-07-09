@@ -387,9 +387,9 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         <h5 className="mb-0">Model Analysis Controls</h5>
                       </div>
                       <div className="card-body">
-                        <div className="p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                        <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
                           <label htmlFor="threshold-slider" className="form-label mb-2">
-                            Decision Threshold: <strong>{threshold.toFixed(3)}</strong>
+                            Decision Threshold: {threshold.toFixed(3)}
                           </label>
                           <input
                             id="threshold-slider"
@@ -400,6 +400,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                             step="0.001"
                             value={threshold}
                             onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                            style={{ width: '100%' }}
                           />
                           <div className="d-flex justify-content-between mt-1">
                             <small className="text-muted">0.000</small>
@@ -411,60 +412,80 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
 
                     {/* Performance Metrics */}
                     {predictionMetrics && (
-                      <div className="card mt-3">
-                        <div className="card-header">
-                          <h5 className="mb-0">
+                      <div className="performance-section">
+                        <div className="section-header">
+                          <h5>
                             Performance Metrics at Threshold {threshold.toFixed(3)}
                           </h5>
                         </div>
-                        <div className="card-body">
-                          <div className="row g-3">
+                        <div className="container-fluid">
+                          <div className="row g-2 g-md-3">
                             <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                              <div className="card h-100 border-primary">
-                                <div className="card-body text-center">
-                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Accuracy</span>
-                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
-                                    {predictionMetrics.accuracy.toFixed(3)}
+                              <div className="card h-100 metric-card-bootstrap position-relative">
+                                <div className="card-body p-2 p-md-3">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Accuracy</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                      {predictionMetrics.accuracy.toFixed(3)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                              <div className="card h-100 border-primary">
-                                <div className="card-body text-center">
-                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Precision</span>
-                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
-                                    {predictionMetrics.precision.toFixed(3)}
+                              <div className="card h-100 metric-card-bootstrap position-relative">
+                                <div className="card-body p-2 p-md-3">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Precision</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                      {predictionMetrics.precision.toFixed(3)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                              <div className="card h-100 border-primary">
-                                <div className="card-body text-center">
-                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Recall</span>
-                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
-                                    {predictionMetrics.recall.toFixed(3)}
+                              <div className="card h-100 metric-card-bootstrap position-relative">
+                                <div className="card-body p-2 p-md-3">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Recall</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                      {predictionMetrics.recall.toFixed(3)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                              <div className="card h-100 border-primary">
-                                <div className="card-body text-center">
-                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">Specificity</span>
-                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
-                                    {predictionMetrics.specificity.toFixed(3)}
+                              <div className="card h-100 metric-card-bootstrap position-relative">
+                                <div className="card-body p-2 p-md-3">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Specificity</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                      {predictionMetrics.specificity.toFixed(3)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                             <div className="col-12 col-sm-6 col-lg-4 col-xl">
-                              <div className="card h-100 border-primary">
-                                <div className="card-body text-center">
-                                  <span className="text-uppercase fw-bold text-muted small d-block mb-2">F1-Score</span>
-                                  <div className="fw-semibold text-primary" style={{ fontSize: '1.5rem' }}>
-                                    {predictionMetrics.f1.toFixed(3)}
+                              <div className="card h-100 metric-card-bootstrap position-relative">
+                                <div className="card-body p-2 p-md-3">
+                                  <div className="d-flex align-items-center justify-content-between mb-2">
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">F1-Score</span>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>
+                                      {predictionMetrics.f1.toFixed(3)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
