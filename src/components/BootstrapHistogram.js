@@ -4,12 +4,12 @@ import Plotly from 'plotly.js-dist';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
-const BootstrapHistogram = ({ 
-  modelsData, 
-  height = 500, 
-  onClose, 
+const BootstrapHistogram = ({
+  modelsData,
+  height = 500,
+  onClose,
   hideContainer = false,
-  metric = 'auc' // Fixed to AUC for bootstrap analysis
+  metric = 'auc', // Fixed to AUC for bootstrap analysis
 }) => {
   const plotRef = useRef(null);
   const plotDivRef = useRef(null);
@@ -32,40 +32,61 @@ const BootstrapHistogram = ({
 
       try {
         const data = [];
-        
+
         for (const model of modelsData) {
           const modelId = model.model_id || model.id;
           const modelName = model.model_name || `Model ${modelId}`;
-          
+
           try {
-            const response = await Backend.getTestScoresValues(keycloak.token, modelId);
-            
+            const response = await Backend.getTestScoresValues(
+              keycloak.token,
+              modelId
+            );
+
             // Debug log to see the actual response structure
             console.log(`Response for model ${modelId}:`, response);
-            
+
             // Additional debug: Let's compare the first few values of different metrics
-            if (response.test_scores && Array.isArray(response.test_scores) && response.test_scores.length > 0) {
+            if (
+              response.test_scores &&
+              Array.isArray(response.test_scores) &&
+              response.test_scores.length > 0
+            ) {
               const firstScores = response.test_scores.slice(0, 5);
-              console.log(`First 5 test scores for model ${modelId}:`, firstScores);
-              
+              console.log(
+                `First 5 test scores for model ${modelId}:`,
+                firstScores
+              );
+
               // Extract values for different metrics for comparison
-              const accuracyValues = firstScores.map(s => s.accuracy).filter(v => v !== undefined);
-              const aucValues = firstScores.map(s => s.auc).filter(v => v !== undefined);
-              const precisionValues = firstScores.map(s => s.precision).filter(v => v !== undefined);
-              
+              const accuracyValues = firstScores
+                .map((s) => s.accuracy)
+                .filter((v) => v !== undefined);
+              const aucValues = firstScores
+                .map((s) => s.auc)
+                .filter((v) => v !== undefined);
+              const precisionValues = firstScores
+                .map((s) => s.precision)
+                .filter((v) => v !== undefined);
+
               console.log(`Comparison for model ${modelId}:`, {
                 accuracy: accuracyValues,
                 auc: aucValues,
                 precision: precisionValues,
                 requestedMetric: metric,
-                requestedValues: firstScores.map(s => s[metric]).filter(v => v !== undefined)
+                requestedValues: firstScores
+                  .map((s) => s[metric])
+                  .filter((v) => v !== undefined),
               });
             }
-            
+
             if (response.test_scores && Array.isArray(response.test_scores)) {
               // Debug: log a sample of the test scores structure
-              console.log(`Sample test score objects for model ${modelId}:`, response.test_scores.slice(0, 3));
-              
+              console.log(
+                `Sample test score objects for model ${modelId}:`,
+                response.test_scores.slice(0, 3)
+              );
+
               // Extract the specific metric values from the test scores objects
               const metricValues = response.test_scores
                 .map((scoreObj, index) => {
@@ -74,41 +95,49 @@ const BootstrapHistogram = ({
                     if (index < 3) {
                       console.log(`Score object ${index}:`, scoreObj);
                       console.log(`Available keys:`, Object.keys(scoreObj));
-                      console.log(`Looking for metric '${metric}':`, scoreObj[metric]);
+                      console.log(
+                        `Looking for metric '${metric}':`,
+                        scoreObj[metric]
+                      );
                       console.log(`Has auc:`, scoreObj.auc);
                       console.log(`Has accuracy:`, scoreObj.accuracy);
                     }
-                    
+
                     // Extract the metric value (auc, accuracy, precision, etc.)
                     const metricValue = scoreObj[metric];
                     if (metricValue !== undefined && metricValue !== null) {
                       return metricValue;
                     }
-                    
+
                     // If the requested metric is not found, return undefined instead of falling back
                     // This prevents mixing different metrics
                     if (index < 3) {
-                      console.warn(`Metric '${metric}' not found in score object. Available keys:`, Object.keys(scoreObj));
+                      console.warn(
+                        `Metric '${metric}' not found in score object. Available keys:`,
+                        Object.keys(scoreObj)
+                      );
                     }
                     return undefined;
                   }
                   return scoreObj; // In case it's already a number
                 })
-                .filter(score => 
-                  score !== undefined && 
-                  score !== null &&
-                  typeof score === 'number' && 
-                  !isNaN(score) && 
-                  isFinite(score)
+                .filter(
+                  (score) =>
+                    score !== undefined &&
+                    score !== null &&
+                    typeof score === 'number' &&
+                    !isNaN(score) &&
+                    isFinite(score)
                 )
-                .map(score => Number(score)); // Ensure numbers
-              
+                .map((score) => Number(score)); // Ensure numbers
+
               if (metricValues.length > 0) {
                 // Debug: show statistics of extracted values
                 const min = Math.min(...metricValues);
                 const max = Math.max(...metricValues);
-                const mean = metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
-                
+                const mean =
+                  metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
+
                 console.log(`Model ${modelId} - ${metric} values:`, {
                   count: metricValues.length,
                   min: min,
@@ -116,27 +145,42 @@ const BootstrapHistogram = ({
                   mean: mean,
                   first5: metricValues.slice(0, 5),
                   last5: metricValues.slice(-5),
-                  allValues: metricValues.slice(0, 20) // Show first 20 values for comparison
+                  allValues: metricValues.slice(0, 20), // Show first 20 values for comparison
                 });
-                
+
                 data.push({
                   name: modelName,
                   modelId: modelId,
                   algorithm: response.algorithm || 'Unknown',
                   normalization: response.normalization || 'Unknown',
-                  samples: metricValues
+                  samples: metricValues,
                 });
-                
-                console.log(`Model ${modelId}: ${metricValues.length} valid ${metric} scores out of ${response.test_scores.length} total`);
+
+                console.log(
+                  `Model ${modelId}: ${metricValues.length} valid ${metric} scores out of ${response.test_scores.length} total`
+                );
               } else {
-                console.warn(`Model ${modelId}: No valid ${metric} scores found in test_scores objects`);
-                console.warn(`Available metrics in first test score:`, response.test_scores[0] ? Object.keys(response.test_scores[0]) : 'No test scores');
+                console.warn(
+                  `Model ${modelId}: No valid ${metric} scores found in test_scores objects`
+                );
+                console.warn(
+                  `Available metrics in first test score:`,
+                  response.test_scores[0]
+                    ? Object.keys(response.test_scores[0])
+                    : 'No test scores'
+                );
               }
             } else {
-              console.warn(`Model ${modelId}: Invalid test_scores format:`, response.test_scores);
+              console.warn(
+                `Model ${modelId}: Invalid test_scores format:`,
+                response.test_scores
+              );
             }
           } catch (modelError) {
-            console.warn(`Failed to fetch test scores for model ${modelId}:`, modelError);
+            console.warn(
+              `Failed to fetch test scores for model ${modelId}:`,
+              modelError
+            );
             // Continue with other models even if one fails
           }
         }
@@ -157,12 +201,12 @@ const BootstrapHistogram = ({
                 const bin = Math.floor(val * 10) / 10; // Round to 1 decimal place
                 acc[bin] = (acc[bin] || 0) + 1;
                 return acc;
-              }, {})
+              }, {}),
             });
           }
         });
         console.log(`=== END SUMMARY ===`);
-        
+
         setBootstrapData(data);
       } catch (err) {
         console.error('Error fetching bootstrap data:', err);
@@ -183,8 +227,11 @@ const BootstrapHistogram = ({
     }
     const fetchPValues = async () => {
       try {
-        const modelIds = bootstrapData.map(m => m.modelId);
-        const result = await Backend.compareModelsData(keycloak.token, modelIds);
+        const modelIds = bootstrapData.map((m) => m.modelId);
+        const result = await Backend.compareModelsData(
+          keycloak.token,
+          modelIds
+        );
         // Convert backend p_values to the frontend format for annotations
         const pValueList = [];
         for (let i = 0; i < modelIds.length; i++) {
@@ -196,7 +243,7 @@ const BootstrapHistogram = ({
               model1Name: bootstrapData[i].name,
               model2Name: bootstrapData[j].name,
               pValue: p,
-              significant: p < 0.05
+              significant: p < 0.05,
             });
           }
         }
@@ -211,7 +258,13 @@ const BootstrapHistogram = ({
 
   // Create bootstrap histogram plot
   useEffect(() => {
-    if (!bootstrapData || bootstrapData.length === 0 || !plotDivRef.current || loading) return;
+    if (
+      !bootstrapData ||
+      bootstrapData.length === 0 ||
+      !plotDivRef.current ||
+      loading
+    )
+      return;
 
     const traces = [];
     const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6']; // Blue, Red, Green, Orange, Purple
@@ -223,19 +276,18 @@ const BootstrapHistogram = ({
         console.warn(`Skipping model ${model.name}: no samples`);
         return;
       }
-      
+
       // Ensure all samples are valid numbers
-      const validSamples = model.samples.filter(sample => 
-        typeof sample === 'number' && 
-        !isNaN(sample) && 
-        isFinite(sample)
+      const validSamples = model.samples.filter(
+        (sample) =>
+          typeof sample === 'number' && !isNaN(sample) && isFinite(sample)
       );
-      
+
       if (validSamples.length === 0) {
         console.warn(`Skipping model ${model.name}: no valid samples`);
         return;
       }
-      
+
       traces.push({
         x: validSamples,
         type: 'histogram',
@@ -245,17 +297,20 @@ const BootstrapHistogram = ({
           color: colors[index % colors.length],
           line: {
             color: colors[index % colors.length],
-            width: 1
-          }
+            width: 1,
+          },
         },
-        nbinsx: Math.min(50, Math.max(10, Math.floor(validSamples.length / 10))), // Dynamic bin count
-        hovertemplate: 
+        nbinsx: Math.min(
+          50,
+          Math.max(10, Math.floor(validSamples.length / 10))
+        ), // Dynamic bin count
+        hovertemplate:
           `<b>${model.name}</b><br>` +
           `Algorithm: ${model.algorithm}<br>` +
           `Normalization: ${model.normalization}<br>` +
           `${metric.charAt(0).toUpperCase() + metric.slice(1)}: %{x:.3f}<br>` +
           `Count: %{y}<br>` +
-          `<extra></extra>`
+          `<extra></extra>`,
       });
     });
 
@@ -266,34 +321,38 @@ const BootstrapHistogram = ({
       return;
     }
 
-
-
     // Calculate data range for better axis configuration
-    const allValues = traces.flatMap(trace => trace.x);
+    const allValues = traces.flatMap((trace) => trace.x);
     const minValue = Math.min(...allValues);
     const maxValue = Math.max(...allValues);
     const range = maxValue - minValue;
-    
+
     // Ensure valid range
     const safeRange = range > 0 ? range : 1;
     const padding = safeRange * 0.05; // 5% padding
 
     const layout = {
-
+      
       xaxis: {
-        title: `${metric.charAt(0).toUpperCase() + metric.slice(1)} Score`,
+        title: {
+          text: `AUC Score`,
+          font: { size: 14, family: 'Arial, sans-serif' }, // ← Add this
+        },
         gridcolor: '#e1e5e9',
         showgrid: true,
         range: [minValue - padding, maxValue + padding],
-        autorange: false
+        autorange: false,
       },
       yaxis: {
-        title: 'Frequency',
+        title: {
+          text: 'Frequency',
+          font: { size: 14, family: 'Arial, sans-serif' }, // ← Add this
+        },
         gridcolor: '#e1e5e9',
         showgrid: true,
-        autorange: true
+        autorange: true,
       },
-      barmode: 'overlay', // Overlay histograms for comparison
+      barmode: 'overlay',
       height: height,
       showlegend: true,
       legend: {
@@ -302,13 +361,13 @@ const BootstrapHistogram = ({
         y: -0.15,
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
-        borderwidth: 1
+        borderwidth: 1,
       },
       hovermode: 'closest',
       plot_bgcolor: '#fafafa',
       paper_bgcolor: '#ffffff',
       margin: { l: 60, r: 30, t: 80, b: 100 },
-      annotations: []
+      annotations: [],
     };
 
     // Add p-value annotations to the plot using backend p-values
@@ -328,37 +387,39 @@ const BootstrapHistogram = ({
         }
         layout.annotations.push({
           x: 0.02,
-          y: 0.98 - (index * 0.08),
+          y: 0.98 - index * 0.08,
           xref: 'paper',
           yref: 'paper',
-          text: `<b>${comparison.model1Name} vs ${comparison.model2Name}:</b> p=${displayP}${comparison.significant ? ' *' : ''}`,
+          text: `<b>${comparison.model1Name} vs ${
+            comparison.model2Name
+          }:</b> p=${displayP}${comparison.significant ? ' *' : ''}`,
           showarrow: false,
           font: {
             size: 12,
-            color: comparison.significant ? '#e74c3c' : '#666666'
+            color: comparison.significant ? '#e74c3c' : '#666666',
           },
           bgcolor: 'rgba(255,255,255,0.8)',
           bordercolor: comparison.significant ? '#e74c3c' : '#dddddd',
           borderwidth: 1,
           // Add hovertext for precision
           hovertext: `Exact p-value: ${hoverP}`,
-          captureevents: true
+          captureevents: true,
         });
       });
 
       // Add significance note
-      if (pValues.some(p => p.significant)) {
+      if (pValues.some((p) => p.significant)) {
         layout.annotations.push({
           x: 0.02,
-          y: 0.98 - (pValues.length * 0.08) - 0.05,
+          y: 0.98 - pValues.length * 0.08 - 0.05,
           xref: 'paper',
           yref: 'paper',
           text: '* p < 0.05 (statistically significant)',
           showarrow: false,
           font: {
             size: 10,
-            color: '#e74c3c'
-          }
+            color: '#e74c3c',
+          },
         });
       }
     }
@@ -366,8 +427,17 @@ const BootstrapHistogram = ({
     const config = {
       responsive: true,
       displaylogo: false,
-      displayModeBar: true, // Enable the Plotly toolbar
-      modeBarButtonsToRemove: ['lasso2d', 'select2d'] // Keep most tools but remove selection tools
+      displayModeBar: true, 
+      modeBarButtonsToRemove: ['lasso2d', 'select2d'], 
+      editable: true,  
+  edits: {         
+    legendText: true,
+    legendPosition: true,
+    titleText: true,
+    axisTitleText: true,
+    annotationText: true,
+    annotationPosition: true
+  }
     };
 
     try {
@@ -377,7 +447,6 @@ const BootstrapHistogram = ({
       console.error('Plotly error:', plotError);
       setError(`Failed to create plot: ${plotError.message}`);
     }
-
   }, [bootstrapData, metric, height, loading, pValues]);
 
   if (loading) {
@@ -389,13 +458,9 @@ const BootstrapHistogram = ({
         </div>
       );
     }
-    
+
     return (
       <div className="card mt-3">
-        <div className="card-header">
-          <FontAwesomeIcon icon="chart-bar" className="me-2" />
-          Bootstrap Distribution Analysis
-        </div>
         <div className="card-body text-center">
           <FontAwesomeIcon icon="spinner" spin className="me-2" />
           Loading bootstrap data...
@@ -413,13 +478,9 @@ const BootstrapHistogram = ({
         </div>
       );
     }
-    
+
     return (
       <div className="card mt-3">
-        <div className="card-header">
-          <FontAwesomeIcon icon="chart-bar" className="me-2" />
-          Bootstrap Distribution Analysis
-        </div>
         <div className="card-body">
           <div className="alert alert-danger">
             <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
@@ -438,15 +499,13 @@ const BootstrapHistogram = ({
         </div>
       );
     }
-    
+
     return (
       <div className="card mt-3">
-        <div className="card-header">
-          Bootstrap Distribution Analysis
-        </div>
         <div className="card-body">
           <div className="alert alert-info">
-            No bootstrap test scores data available for analysis. Make sure your models have test scores data.
+            No bootstrap test scores data available for analysis. Make sure your
+            models have test scores data.
           </div>
         </div>
       </div>
@@ -455,11 +514,11 @@ const BootstrapHistogram = ({
 
   if (hideContainer) {
     return (
-      <div 
+      <div
         ref={plotDivRef}
-        style={{ 
-          width: '100%', 
-          height: `${height}px`
+        style={{
+          width: '100%',
+          height: `${height}px`,
         }}
       />
     );
@@ -467,32 +526,12 @@ const BootstrapHistogram = ({
 
   return (
     <div className="card mt-3">
-      <div className="card-header d-flex justify-content-between align-items-center">
-        <div>
-          <FontAwesomeIcon icon="chart-bar" className="me-2" />
-          Bootstrap Test Scores Analysis ({bootstrapData.length} {bootstrapData.length === 1 ? 'Model' : 'Models'})
-        </div>
-        {onClose && (
-          <button className="btn btn-sm btn-secondary" onClick={onClose}>
-            <FontAwesomeIcon icon="times" className="me-1" />
-            Close
-          </button>
-        )}
-      </div>
       <div className="card-body p-0">
-        <div className="p-3 bg-light border-bottom">
-          <div className="small text-muted">
-            <FontAwesomeIcon icon="info-circle" className="me-2" />
-            <strong>Bootstrap Test Scores Analysis:</strong> This histogram shows the distribution of actual test scores 
-            from your trained models. Each distribution represents the bootstrap samples used during model evaluation, 
-            providing insights into model performance variability and statistical significance.
-          </div>
-        </div>
-        <div 
+        <div
           ref={plotDivRef}
-          style={{ 
-            width: '100%', 
-            height: `${height}px`
+          style={{
+            width: '100%',
+            height: `${height}px`,
           }}
         />
       </div>
