@@ -46,29 +46,27 @@ const TrainingQueue = ({
                 <FontAwesomeIcon icon="info-circle" className="me-2" />
                  This model is trained. View details in the "Model Evaluation" tab.
               </div>
-              {onNavigateToModels && (
-                <Button
-                  color="info"
-                  size="sm"
-                  outline
-                  onClick={onNavigateToModels}
-                  className="ms-3"
-                >
-                  Go to Model Evaluation
-                </Button>
-              )}
+              <div className="d-flex">
+  {onNavigateToModels && (
+    <Button
+      color="primary"
+      size="sm"
+      onClick={onNavigateToModels}
+      className="mr-3"
+    >
+      Go to Model Evaluation
+    </Button>
+  )}
+  <Button
+    color="primary"
+    size="sm"
+    onClick={() => onTrainModel(collections[0])}
+    disabled={isTraining}
+  >
+    {isTraining ? 'Retraining...' : 'Train Again'}
+  </Button>
+</div>
             </Alert>
-            <div className="d-flex justify-content-center mb-4">
-              <Button
-                color="primary"
-                size="md"
-                onClick={() => onTrainModel(collections[0])}
-                disabled={isTraining}
-              >
-                <FontAwesomeIcon icon="redo" className="me-2" />
-                {isTraining ? 'Retraining...' : ' Train Again'}
-              </Button>
-            </div>
           </div>
         </div>
       </div>
