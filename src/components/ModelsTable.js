@@ -1,7 +1,6 @@
 import { useSortBy, useTable } from 'react-table';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Button,
   Collapse,
   Table,
@@ -211,8 +210,6 @@ export default function ModelsTable({
   let [featureImportanceOpen, setFeatureImportanceOpen] = useState(false);
   let [featureImportanceModelId, setFeatureImportanceModelId] = useState(null);
 
-  let [isCompareModelCorrect, setIsCompareModelCorrect] = useState(true);
-  let [isCompareModelCorrectMessage, setIsCompareModelCorrectMessage] = useState('');
   let [showTrainValues, setShowTrainValues] = useState(false);
 
   // Delete confirmation modal state (move to end of component, after table)
@@ -337,51 +334,6 @@ export default function ModelsTable({
     saveAs(blob, 'models-export.csv');
   };
 
-  const [compareModelsValue, setCompareModelsValue] = useState('');
-
-  const handleCompareModelsChange = (event) => {
-    setCompareModelsValue(event.target.value);
-  };
-
-  const handleCompareModels = async () => {
-    let modelIds = data.map((item) => item.id);
-    let existingModelsSelected = true;
-    if (compareModelsValue != null) {
-      let compareModelsArray = null;
-      compareModelsArray = compareModelsValue
-        .split(',')
-        .filter(Number)
-        .map(Number);
-      if (compareModelsArray.length !== compareModelsValue.split(',').length) {
-        setIsCompareModelCorrect(false);
-        setIsCompareModelCorrectMessage(
-          'Was not able to concert comma separated string to a list of number - please provide a list such as 1, 2, 3'
-        );
-      } else if (compareModelsArray.length === 1) {
-        setIsCompareModelCorrect(false);
-        setIsCompareModelCorrectMessage('Please provide more than one model');
-      } else {
-        for (const selectedModelTocompare of compareModelsArray) {
-          if (!modelIds.includes(selectedModelTocompare)) {
-            setIsCompareModelCorrect(false);
-            setIsCompareModelCorrectMessage(
-              `Please select models that exist - got ${selectedModelTocompare}`
-            );
-            existingModelsSelected = false;
-          }
-        }
-        if (existingModelsSelected) {
-          setIsCompareModelCorrect(true);
-          let { filename, content } = await Backend.compareModels(
-            keycloak.token,
-            compareModelsArray
-          );
-          saveAs(content, filename);
-        }
-      }
-    }
-  };
-
   if (data.length === 0) return null;
 
   return (
@@ -389,32 +341,6 @@ export default function ModelsTable({
       <h4 className="mt-3">
         {title}{' '}
         <div className="button-container">
-          {showComparisonButtons && (
-            <>
-              <input
-                type="text"
-                value={compareModelsValue}
-                placeholder="Enter 2 Model IDs (e.g. 1,2)"
-                onChange={handleCompareModelsChange}
-                style={{
-                  marginRight: '10px',
-                  width: '300px',
-                  padding: '5px',
-                  fontSize: '14px',
-                }}
-              />
-              <span className="button-spacer">
-                {' '}
-              </span>
-              <Button
-                size="sm"
-                className="compare_button"
-                onClick={handleCompareModels}
-              >
-                <FontAwesomeIcon icon="file-export" /> Compare Models
-              </Button>
-            </>
-          )}
           <Button
             size="sm"
             color="link"
@@ -423,9 +349,6 @@ export default function ModelsTable({
           >
             <FontAwesomeIcon icon="file-export" /> Export as CSV
           </Button>
-          {!isCompareModelCorrect && (
-            <Alert color="danger">{isCompareModelCorrectMessage}</Alert>
-          )}
         </div>
       </h4>
       <Table {...getTableProps()} className="m-3 models-summary">
