@@ -17,7 +17,6 @@ const ROCCurveComponent = ({
   const rocPlotRef = useRef(null);
   const rocDivRef = useRef(null);
   const [rocData, setRocData] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Determine which models to process - priority: selectedModels > selectedModel
@@ -47,7 +46,6 @@ useEffect(() => {
   }
 
   const fetchROCData = async () => {
-    setLoading(true);
     setError(null);
 
     try {
@@ -71,8 +69,6 @@ useEffect(() => {
       console.error('Error object:', err);
       console.error('Error message:', err.message);
       setError(err.message || 'Failed to fetch ROC curve data');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -127,7 +123,7 @@ useEffect(() => {
 
   // Create/Update ROC Plot using Plotly (optimized)
   useEffect(() => {
-    if (!rocData || !rocDivRef.current || loading) return;
+    if (!rocData || !rocDivRef.current) return;
 
     const traces = [];
     const colors = [
@@ -258,7 +254,7 @@ useEffect(() => {
         rocPlotRef.current = plot;
       });
     }
-  }, [rocData, plotType, height, loading]); // Removed threshold dependency
+  }, [rocData, plotType, height]); // Removed threshold dependency
 
   // Separate effect for updating threshold points (optimized for performance)
   useEffect(() => {
@@ -318,39 +314,6 @@ useEffect(() => {
       'yaxis.autorange': false,
     });
   }, [currentROCPoints, debouncedThreshold, rocData]);
-
-  // Loading state
-  if (loading) {
-    if (hideContainer) {
-      return (
-        <div
-          className="d-flex justify-content-center align-items-center"
-          style={{ height: `${height}px` }}
-        >
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading ROC curve...</span>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="card">
-        <div className="card-header">
-          <FontAwesomeIcon icon="chart-line" className="me-2" />
-          ROC Curve - Loading...
-        </div>
-        <div
-          className="card-body d-flex justify-content-center align-items-center"
-          style={{ height: `${height}px` }}
-        >
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading ROC curve...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Error state
   if (error) {
