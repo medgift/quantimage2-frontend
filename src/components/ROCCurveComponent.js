@@ -3,15 +3,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Plotly from 'plotly.js-dist';
 import Backend from '../services/backend';
 
-const ROCCurveComponent = ({ 
-  selectedModel, 
-  selectedModels, 
-  plotType, 
-  threshold = 0.5, 
-  height = 500, 
-  onClose, 
-  hideContainer = false, 
-  token 
+const ROCCurveComponent = ({
+  selectedModel,
+  selectedModels,
+  plotType,
+  threshold = 0.5,
+  height = 500,
+  onClose,
+  hideContainer = false,
+  token,
 }) => {
   const rocPlotRef = useRef(null);
   const rocDivRef = useRef(null);
@@ -21,7 +21,11 @@ const ROCCurveComponent = ({
 
   // Determine which models to process - priority: selectedModels > selectedModel
   const modelsToProcess = useMemo(() => {
-    if (selectedModels && Array.isArray(selectedModels) && selectedModels.length > 0) {
+    if (
+      selectedModels &&
+      Array.isArray(selectedModels) &&
+      selectedModels.length > 0
+    ) {
       return selectedModels;
     } else if (selectedModel && selectedModel.id) {
       return [selectedModel.id];
@@ -29,63 +33,31 @@ const ROCCurveComponent = ({
     return [];
   }, [selectedModels, selectedModel]);
 
-  // DEBUG: Add console logs to see what props are being passed
-  useEffect(() => {
-    console.log('=== ROC Component Props Debug ===');
-    console.log('selectedModel:', selectedModel);
-    console.log('selectedModels:', selectedModels);
-    console.log('modelsToProcess:', modelsToProcess);
-    console.log('token exists:', !!token);
-    console.log('plotType:', plotType);
-    console.log('=== End Props Debug ===');
-  }, [selectedModel, selectedModels, modelsToProcess, token, plotType]);
-
   // Fetch ROC curve data from backend when models or plotType changes
   useEffect(() => {
-    console.log('=== useEffect triggered ===');
-    console.log('modelsToProcess:', modelsToProcess);
-    console.log('token check:', !!token);
-    
     if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
-      console.log('Conditions not met - clearing rocData');
       setRocData(null);
       return;
     }
 
-    console.log('All conditions met - fetching ROC data...');
-
     const fetchROCData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        console.log('=== Starting API Call ===');
-        console.log('Models to process:', modelsToProcess);
-        console.log('Plot Type:', plotType);
-        
         let response;
         if (plotType === 'test') {
-          console.log('Calling getROCCurveTestData...');
           response = await Backend.getROCCurveTestData(token, modelsToProcess);
         } else if (plotType === 'train') {
-          console.log('Calling getROCCurveTrainData...');
           response = await Backend.getROCCurveTrainData(token, modelsToProcess);
         } else {
-          console.log('Default to test data...');
           response = await Backend.getROCCurveTestData(token, modelsToProcess);
         }
 
-        console.log('=== API Response ===');
-        console.log('Response:', response);
-        console.log('Response is array:', Array.isArray(response));
-        console.log('Response length:', response?.length);
-
         if (response && Array.isArray(response) && response.length > 0) {
-  console.log('Setting ROC data with', response.length, 'models');
-  console.log('ROC Response Data:', response); // ADD THIS LINE
-  console.log('First model data:', response[0]); // ADD THIS LINE
-  setRocData(response);
-} else {
+ 
+          setRocData(response);
+        } else {
           console.log('No valid data in response');
           setError('No ROC data returned from server');
         }
@@ -102,61 +74,101 @@ const ROCCurveComponent = ({
     fetchROCData();
   }, [modelsToProcess, plotType, token]);
 
-  // Calculate current threshold point on ROC curve for single model
-  const currentROCPoint = useMemo(() => {
-    if (!rocData || !threshold || rocData.length !== 1 || !rocData[0].thresholds) return null;
-    
-    const modelData = rocData[0];
-    const { thresholds, fpr, tpr } = modelData;
-    
-    // Find the closest threshold index
-    let closestIdx = 0;
-    let minDiff = Math.abs(thresholds[0] - threshold);
-    
-    for (let i = 1; i < thresholds.length; i++) {
-      const diff = Math.abs(thresholds[i] - threshold);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = i;
-      }
-    }
-    
-    return { 
-      fpr: fpr[closestIdx], 
-      tpr: tpr[closestIdx] 
-    };
+  // Calculate current threshold points for all models (memoized for performance)
+  const currentROCPoints = useMemo(() => {
+    if (!rocData || !threshold) return [];
+
+    return rocData
+      .map((modelData, index) => {
+        if (!modelData.thresholds) return null;
+
+        const { thresholds, fpr, tpr } = modelData;
+
+        // Find the closest threshold index using binary search for better performance
+        let closestIdx = 0;
+        let minDiff = Math.abs(thresholds[0] - threshold);
+
+        // For small arrays, linear search is fine. For larger arrays, consider binary search
+        for (let i = 1; i < thresholds.length; i++) {
+          const diff = Math.abs(thresholds[i] - threshold);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+          }
+        }
+
+        return {
+          fpr: fpr[closestIdx],
+          tpr: tpr[closestIdx],
+          modelId: modelData.model_id,
+          modelName: modelData.model_name,
+          index,
+        };
+      })
+      .filter((point) => point !== null);
   }, [rocData, threshold]);
 
-  // Create/Update ROC Plot using Plotly
+  // Debounced threshold for smoother performance
+  const [debouncedThreshold, setDebouncedThreshold] = useState(threshold);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedThreshold(threshold);
+    }, 50); // 50ms delay for smooth interaction
+    
+    return () => clearTimeout(timer);
+  }, [threshold]);
+
+  // Create/Update ROC Plot using Plotly (optimized)
   useEffect(() => {
     if (!rocData || !rocDivRef.current || loading) return;
-    
-    const traces = [];
-    const colors = ['#2E86AB', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#9b59b6']; // Multiple colors
 
-    // Create traces for each model
+    const traces = [];
+    const colors = [
+      '#2E86AB',
+      '#e74c3c',
+      '#2ecc71',
+      '#f39c12',
+      '#9b59b6',
+      '#1abc9c',
+      '#e67e22',
+      '#9b59b6',
+    ];
+
+    // Create traces for each model (these don't change with threshold)
     rocData.forEach((modelData, index) => {
-      console.log(`Processing model ${modelData.model_id}:`, modelData);
       if (modelData.error) {
-        console.warn(`Skipping model ${modelData.model_id} due to error: ${modelData.error}`);
+        console.warn(
+          `Skipping model ${modelData.model_id} due to error: ${modelData.error}`
+        );
         return;
       }
-        // ADD THESE SAFETY CHECKS:
-  if (!modelData.fpr || !modelData.tpr || modelData.fpr.length === 0 || modelData.tpr.length === 0) {
-    console.warn(`Skipping model ${modelData.model_id} - missing or empty FPR/TPR data`);
-    console.log('FPR:', modelData.fpr);
-    console.log('TPR:', modelData.tpr);
-    return;
-  }
-      const color = colors[index % colors.length];
       
+      if (
+        !modelData.fpr ||
+        !modelData.tpr ||
+        modelData.fpr.length === 0 ||
+        modelData.tpr.length === 0
+      ) {
+        console.warn(
+          `Skipping model ${modelData.model_id} - missing or empty FPR/TPR data`
+        );
+        return;
+      }
+      
+      const color = colors[index % colors.length];
+
       traces.push({
         x: modelData.fpr,
         y: modelData.tpr,
         mode: 'lines',
         name: `${modelData.model_name} (AUC = ${modelData.auc.toFixed(3)})`,
         line: { color: color, width: 3 },
-        hovertemplate: `<b>${modelData.model_name}</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<br>AUC: ${modelData.auc.toFixed(3)}<extra></extra>`
+        hovertemplate: `<b>${
+          modelData.model_name
+        }</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<br>AUC: ${modelData.auc.toFixed(
+          3
+        )}<extra></extra>`,
       });
     });
 
@@ -167,52 +179,43 @@ const ROCCurveComponent = ({
       mode: 'lines',
       name: 'Random Classifier',
       line: { color: '#A23B72', width: 2, dash: 'dash' },
-      hovertemplate: '<b>Random Classifier</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>'
+      hovertemplate:
+        '<b>Random Classifier</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>',
     });
 
-    // Add current threshold point (only for single model)
-    if (rocData.length === 1 && currentROCPoint) {
-      traces.push({
-        x: [currentROCPoint.fpr],
-        y: [currentROCPoint.tpr],
-        mode: 'markers',
-        name: `Threshold ${threshold.toFixed(3)}`,
-        marker: {
-          color: '#F18F01',
-          size: 12,
-          line: { color: '#ffffff', width: 2 }
-        },
-        hovertemplate: `<b>Current Operating Point</b><br>Threshold: ${threshold.toFixed(3)}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>`
-      });
-    }
-
     const isMultiModel = rocData.length > 1;
-    const titleText = isMultiModel 
-      ? `ROC Curve Comparison - ${plotType === 'train' ? 'Training' : 'Test'} Set (${rocData.length} models)`
-      : `ROC Curve - ${plotType === 'train' ? 'Training' : 'Test'} Set (n=${rocData[0].n_samples})`;
+    const titleText = isMultiModel
+      ? `ROC Curve Comparison - ${
+          plotType === 'train' ? 'Training' : 'Test'
+        } Set (${rocData.length} models)`
+      : `ROC Curve - ${plotType === 'train' ? 'Training' : 'Test'} Set (n=${
+          rocData[0].n_samples
+        })`;
 
     const layout = {
       title: {
         text: titleText,
-        font: { size: 16, family: 'Arial, sans-serif' }
+        font: { size: 16, family: 'Arial, sans-serif' },
       },
       xaxis: {
         title: {
           text: 'False Positive Rate (1 - Specificity)',
-          font: { size: 15, family: 'Arial, sans-serif' }
+          font: { size: 15, family: 'Arial, sans-serif' },
         },
         range: [0, 1],
+        autorange: false, // Disable auto-ranging
         gridcolor: '#e1e5ea',
-        zeroline: false
+        zeroline: false,
       },
       yaxis: {
         title: {
           text: 'True Positive Rate (Sensitivity)',
-          font: { size: 15, family: 'Arial, sans-serif' }
+          font: { size: 15, family: 'Arial, sans-serif' },
         },
         range: [0, 1],
+        autorange: false, // Disable auto-ranging
         gridcolor: '#e1e5ea',
-        zeroline: false
+        zeroline: false,
       },
       showlegend: true,
       legend: {
@@ -221,67 +224,123 @@ const ROCCurveComponent = ({
         y: isMultiModel ? 1 : -0.25,
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
-        borderwidth: 1
+        borderwidth: 1,
       },
       plot_bgcolor: '#ffffff',
       paper_bgcolor: '#ffffff',
-      margin: { 
-        l: 60, 
-        r: isMultiModel ? 200 : 30, // More space for legend in multi-model
-        t: 80, 
-        b: isMultiModel ? 60 : 110 
+      margin: {
+        l: 60,
+        r: isMultiModel ? 200 : 30,
+        t: 80,
+        b: isMultiModel ? 60 : 110,
       },
-      height: height
+      height: height,
     };
 
     const config = {
       responsive: true,
       displayModeBar: true,
       displaylogo: false,
-      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
     };
 
+    // Create or update the base plot (without threshold points)
     if (rocPlotRef.current) {
-      // Update existing plot
       Plotly.react(rocDivRef.current, traces, layout, config);
     } else {
-      // Create new plot
       Plotly.newPlot(rocDivRef.current, traces, layout, config).then((plot) => {
         rocPlotRef.current = plot;
       });
     }
-  }, [rocData, threshold, currentROCPoint, plotType, height, loading]);
+  }, [rocData, plotType, height, loading]); // Removed threshold dependency
 
-  // DEBUG: Show current state
-  console.log('Current render state:', {
-    hasModelsToProcess: modelsToProcess.length > 0,
-    hasToken: !!token,
-    loading,
-    error,
-    hasRocData: !!rocData,
-    rocDataLength: rocData?.length || 0
-  });
+  // Separate effect for updating threshold points (optimized for performance)
+  useEffect(() => {
+    if (!rocPlotRef.current || !currentROCPoints.length || !rocData) return;
+
+    const pointColors = [
+      '#F18F01',
+      '#e74c3c',
+      '#2ecc71',
+      '#f39c12',
+      '#9b59b6',
+      '#1abc9c',
+      '#e67e22',
+      '#34495e',
+    ];
+
+    // Create updated traces with threshold points
+    const baseTraces = rocDivRef.current.data.slice(0, rocData.length + 1); // ROC curves + random classifier
+    
+    const pointTraces = currentROCPoints.map((point) => {
+      const pointColor = pointColors[point.index % pointColors.length];
+      
+      return {
+        x: [point.fpr],
+        y: [point.tpr],
+        mode: 'markers',
+        name:
+          rocData.length === 1
+            ? `Threshold ${debouncedThreshold.toFixed(3)}`
+            : `${point.modelName} @ ${debouncedThreshold.toFixed(3)}`,
+        marker: {
+          color: pointColor,
+          size: 12,
+          line: { color: '#ffffff', width: 2 },
+          symbol: 'circle',
+        },
+        hovertemplate: `<b>Operating Point - ${
+          point.modelName
+        }</b><br>Threshold: ${debouncedThreshold.toFixed(
+          3
+        )}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<extra></extra>`,
+        showlegend: rocData.length > 1,
+      };
+    });
+
+    // Efficiently update just the threshold points while preserving layout
+    const allTraces = [...baseTraces, ...pointTraces];
+    
+    // Update traces first
+    Plotly.react(rocDivRef.current, allTraces);
+    
+    // Then force the axis ranges to stay fixed (this ensures no auto-scaling occurs)
+    Plotly.relayout(rocDivRef.current, {
+      'xaxis.range': [0, 1],
+      'yaxis.range': [0, 1],
+      'xaxis.autorange': false,
+      'yaxis.autorange': false
+    });
+    
+  }, [currentROCPoints, debouncedThreshold, rocData]);
+
+
 
   // Loading state
   if (loading) {
-    console.log('Rendering loading state');
     if (hideContainer) {
       return (
-        <div className="d-flex justify-content-center align-items-center" style={{ height: `${height}px` }}>
+        <div
+          className="d-flex justify-content-center align-items-center"
+          style={{ height: `${height}px` }}
+        >
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading ROC curve...</span>
           </div>
         </div>
       );
     }
-    
+
     return (
       <div className="card">
         <div className="card-header">
           <FontAwesomeIcon icon="chart-line" className="me-2" />
           ROC Curve - Loading...
         </div>
-        <div className="card-body d-flex justify-content-center align-items-center" style={{ height: `${height}px` }}>
+        <div
+          className="card-body d-flex justify-content-center align-items-center"
+          style={{ height: `${height}px` }}
+        >
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading ROC curve...</span>
           </div>
@@ -299,11 +358,13 @@ const ROCCurveComponent = ({
           <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
           Error loading ROC curve: {error}
           <br />
-          <small>Debug: Check browser console for detailed error information</small>
+          <small>
+            Debug: Check browser console for detailed error information
+          </small>
         </div>
       );
     }
-    
+
     return (
       <div className="card">
         <div className="card-header d-flex justify-content-between align-items-center">
@@ -323,7 +384,9 @@ const ROCCurveComponent = ({
             <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
             Error loading ROC curve: {error}
             <br />
-            <small>Debug: Check browser console for detailed error information</small>
+            <small>
+              Debug: Check browser console for detailed error information
+            </small>
           </div>
         </div>
       </div>
@@ -332,28 +395,31 @@ const ROCCurveComponent = ({
 
   // No models selected
   if (!modelsToProcess || modelsToProcess.length === 0 || !token) {
-    console.log('Rendering "no models selected" state');
-    
+
     if (hideContainer) {
       return (
         <div className="alert alert-info">
           Please select model(s) to view the ROC curve.
           <br />
-          <small>Debug: models={modelsToProcess.length}, token={!!token ? 'exists' : 'missing'}</small>
+          <small>
+            Debug: models={modelsToProcess.length}, token=
+            {!!token ? 'exists' : 'missing'}
+          </small>
         </div>
       );
     }
-    
+
     return (
       <div className="card">
-        <div className="card-header">
-          ROC Curve
-        </div>
+        <div className="card-header">ROC Curve</div>
         <div className="card-body">
           <div className="alert alert-info">
             Please select model(s) to view the ROC curve.
             <br />
-            <small>Debug: models={modelsToProcess.length}, token={!!token ? 'exists' : 'missing'}</small>
+            <small>
+              Debug: models={modelsToProcess.length}, token=
+              {!!token ? 'exists' : 'missing'}
+            </small>
           </div>
         </div>
       </div>
@@ -370,13 +436,11 @@ const ROCCurveComponent = ({
         </div>
       );
     }
-    
+
     return (
       <div className="card">
         <div className="card-header d-flex justify-content-between align-items-center">
-          <div>
-            ROC Curve - {modelsToProcess.length} model(s)
-          </div>
+          <div>ROC Curve - {modelsToProcess.length} model(s)</div>
           {onClose && (
             <button className="btn btn-sm btn-secondary" onClick={onClose}>
               <FontAwesomeIcon icon="times" className="me-1" />
@@ -397,18 +461,18 @@ const ROCCurveComponent = ({
   // Render the plot
   if (hideContainer) {
     return (
-      <div 
+      <div
         ref={rocDivRef}
-        style={{ 
-          width: '100%', 
-          height: `${height}px`
+        style={{
+          width: '100%',
+          height: `${height}px`,
         }}
       />
     );
   }
 
   const isMultiModel = rocData.length > 1;
-  const headerTitle = isMultiModel 
+  const headerTitle = isMultiModel
     ? `ROC Curve Comparison (${rocData.length} models)`
     : `ROC Curve - ${rocData[0]?.model_name || 'Model'}`;
 
@@ -427,11 +491,11 @@ const ROCCurveComponent = ({
         )}
       </div>
       <div className="card-body p-0">
-        <div 
+        <div
           ref={rocDivRef}
-          style={{ 
-            width: '100%', 
-            height: `${height}px`
+          style={{
+            width: '100%',
+            height: `${height}px`,
           }}
         />
       </div>
