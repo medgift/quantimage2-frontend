@@ -505,12 +505,13 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         </div>
                         <div className="card-body p-0">
                           <ROCCurveComponent
-                            selectedModel={models.find(m => m.id === selectedModels[0])}
+                           selectedModels={selectedModels}
                             plotData={plotHtml}
                             plotType={plotType}
                             threshold={threshold}
                             height={500}
                             hideContainer={true}
+                            token={keycloak.token}
                           />
                         </div>
                       </div>
@@ -536,12 +537,75 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
               {/* Multi-model comparison plot */}
               {selectedModels.length > 1 && plotHtml && (
                 <>
-                  <InteractivePredictionsPlot
-                    modelsData={plotHtml}
-                    plotType={plotType}
-                    onClose={() => setPlotHtml(null)}
-                    hideThresholdControl={true}
-                  />
+                  {/* Shared Threshold Control for Multiple Models */}
+                  <div className="card mt-3">
+                    <div className="card-header">
+                      <h5>Multi-Model Analysis Controls</h5>
+                    </div>
+                    <div className="card-body">
+                      <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                        <label htmlFor="multi-threshold-slider" className="form-label mb-2">
+                          Decision Threshold (Applied to All Models): {threshold.toFixed(3)}
+                        </label>
+                        <input
+                          id="multi-threshold-slider"
+                          type="range"
+                          className="form-range"
+                          min="0"
+                          max="1"
+                          step="0.001"
+                          value={threshold}
+                          onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                          style={{ width: '100%' }}
+                        />
+                        <div className="d-flex justify-content-between mt-1">
+                          <small className="text-muted">0.000</small>
+                          <small className="text-muted">1.000</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="row mt-3">
+                    {/* Interactive Predictions Plot */}
+                    <div className="col-md-6">
+                      <div className="card">
+                        <div className="card-header">
+                          <h5 className="mb-0">Interactive Predictions Comparison ({selectedModels.length} models)</h5>
+                        </div>
+                        <div className="card-body p-0">
+                          <InteractivePredictionsPlot
+                            modelsData={plotHtml}
+                            plotType={plotType}
+                            externalThreshold={threshold}
+                            onClose={() => setPlotHtml(null)}
+                            hideThresholdControl={true}
+                            hideContainer={true}
+                            externalHeight={500}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* ROC Curve Component for Multiple Models */}
+                    <div className="col-md-6">
+                      <div className="card">
+                        <div className="card-header">
+                          <h5 className="mb-0">ROC Curves Comparison ({selectedModels.length} models)</h5>
+                        </div>
+                        <div className="card-body p-0">
+                          <ROCCurveComponent
+                            selectedModels={selectedModels}
+                            plotType={plotType}
+                            threshold={threshold}
+                            height={500}
+                            hideContainer={true}
+                            token={keycloak.token}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   
                   {/* Bootstrap Analysis for Multiple Models */}
                   <div className="card mt-3">
