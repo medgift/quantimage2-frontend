@@ -518,19 +518,21 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                     </div>
                   </div>
 
-                  {/* Bootstrap Analysis */}
-                  <div className="card mt-3">
-                    <div className="card-header">
-                      <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
+                  {/* Bootstrap Analysis - Only show for Test Predictions */}
+                  {plotType === 'test' && (
+                    <div className="card mt-3">
+                      <div className="card-header">
+                        <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
+                      </div>
+                      <div className="card-body">
+                        <BootstrapHistogram
+                          modelsData={plotHtml}
+                          height={400}
+                          metric="auc"
+                        />
+                      </div>
                     </div>
-                    <div className="card-body">
-                      <BootstrapHistogram
-                        modelsData={plotHtml}
-                        height={400}
-                        metric="auc"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </>
               )}
 
@@ -608,19 +610,21 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                     </div>
                   </div>
                   
-                  {/* Bootstrap Analysis for Multiple Models */}
-                  <div className="card mt-3">
-                    <div className="card-header">
-                      <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
+                  {/* Bootstrap Analysis for Multiple Models - Only show for Test Predictions */}
+                  {plotType === 'test' && (
+                    <div className="card mt-3">
+                      <div className="card-header">
+                        <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
+                      </div>
+                      <div className="card-body">
+                        <BootstrapHistogram
+                          modelsData={plotHtml}
+                          height={400}
+                          metric="auc"
+                        />
+                      </div>
                     </div>
-                    <div className="card-body">
-                      <BootstrapHistogram
-                        modelsData={plotHtml}
-                        height={400}
-                        metric="auc"
-                      />
-                    </div>
-                  </div>
+                  )}
                 </>
               )}
             </div>
