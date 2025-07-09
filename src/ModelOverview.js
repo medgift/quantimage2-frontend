@@ -596,6 +596,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         <div className="card-body p-0">
                           <ROCCurveComponent
                             selectedModels={selectedModels}
+                            plotData={plotHtml}
                             plotType={plotType}
                             threshold={threshold}
                             height={500}
