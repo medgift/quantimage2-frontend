@@ -9,7 +9,8 @@ const TrainingQueue = ({
   trainingProgress,
   models = [],
   featureExtractionID,
-  selectedLabelCategory
+  selectedLabelCategory,
+  onNavigateToModels
 }) => {
   if (!collections || collections.length === 0) {
     return (
@@ -40,9 +41,22 @@ const TrainingQueue = ({
       <div className="container-fluid px-0">
         <div className="row justify-content-center">
           <div className="col-12">
-            <Alert color="info" className="mt-4">
-              <FontAwesomeIcon icon="info-circle" className="me-2" />
-              This model has already been trained. View details in the "All Models" tab.
+            <Alert color="info" className="mt-4 d-flex justify-content-between align-items-center">
+              <div>
+                <FontAwesomeIcon icon="info-circle" className="me-2" />
+                 This model is trained. View details in the "Model Evaluation" tab.
+              </div>
+              {onNavigateToModels && (
+                <Button
+                  color="info"
+                  size="sm"
+                  outline
+                  onClick={onNavigateToModels}
+                  className="ms-3"
+                >
+                  Go to Model Evaluation
+                </Button>
+              )}
             </Alert>
             <div className="d-flex justify-content-center mb-4">
               <Button
