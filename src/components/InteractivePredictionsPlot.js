@@ -74,11 +74,15 @@ const InteractivePredictionsPlot = ({
       // Class 0 points (Negative cases) - Always RED circles
       const class0Data = model.patients.filter((p) => p.ground_truth === 0);
       if (class0Data.length > 0) {
+        const legendName = modelsData.length > 1 ? 
+          `${modelDisplayName} - Negative` : 
+          `${modelDisplayName} - Negative`;
+          
         traces.push({
           x: class0Data.map((p) => p.probability),
           y: Array(class0Data.length).fill(yPos),
           mode: 'markers',
-          name: `${modelDisplayName} - Negative`,
+          name: legendName,
           legendgroup: `model_${modelIndex}`,
           marker: {
             color: baseColors.negative,
@@ -98,11 +102,15 @@ const InteractivePredictionsPlot = ({
       // Class 1 points (Positive cases) - Always BLUE circles
       const class1Data = model.patients.filter((p) => p.ground_truth === 1);
       if (class1Data.length > 0) {
+        const legendName = modelsData.length > 1 ? 
+          `${modelDisplayName} - Positive` : 
+          `${modelDisplayName} - Positive`;
+          
         traces.push({
           x: class1Data.map((p) => p.probability),
           y: Array(class1Data.length).fill(yPos),
           mode: 'markers',
-          name: `${modelDisplayName} - Positive`,
+          name: legendName,
           legendgroup: `model_${modelIndex}`,
           marker: {
             color: baseColors.positive,
@@ -146,7 +154,10 @@ const InteractivePredictionsPlot = ({
         showgrid: true,
       },
       yaxis: {
-        title: modelsData.length > 1 ? 'Models' : '',
+        title: {
+          text: modelsData.length > 1 ? 'Models' : 'Patients',
+          font: { size: 14 }
+        },
         showticklabels: modelsData.length > 1,
         tickmode: modelsData.length > 1 ? 'array' : 'auto',
         tickvals:
@@ -155,8 +166,8 @@ const InteractivePredictionsPlot = ({
           modelsData.length > 1
             ? modelsData.map((model, i) => {
                 const modelName = model.model_name || `Model ${model.model_id}`;
-                const auc = model.auc ? ` (AUC: ${model.auc.toFixed(3)})` : '';
-                return `${modelName}`;
+                // Truncate long model names for better display
+                return modelName.length > 20 ? modelName.substring(0, 17) + '...' : modelName;
               })
             : undefined,
         range:
@@ -164,18 +175,26 @@ const InteractivePredictionsPlot = ({
             ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3]
             : [-0.5, 0.5],
         gridcolor: '#e1e5e9',
+        tickfont: { size: 11 }, // Smaller font for tick labels
+        automargin: true, // Allow more space for labels
       },
       height: externalHeight || Math.max(500, modelsData.length * 120 + 200),
       showlegend: true,
       legend: {
-        orientation: 'h',
+        orientation: 'h', // Always horizontal under the plot
         x: 0,
         y: -0.2,
-        bgcolor: 'rgba(255,255,255,0.8)',
+        bgcolor: 'rgba(255,255,255,0.9)',
         bordercolor: '#dee2e6',
         borderwidth: 1,
+        font: { size: 11 }, // Smaller font for better fit
       },
-      margin: { l: 80, r: 30, t: 60, b: 120 },
+      margin: { 
+        l: 80, 
+        r: 30, // Standard right margin since legend is below
+        t: 60, 
+        b: 140 // More bottom margin for horizontal legend with longer text
+      },
       hovermode: 'closest',
       plot_bgcolor: '#fafafa',
       shapes: [
@@ -287,16 +306,18 @@ const InteractivePredictionsPlot = ({
     >
       {' '}
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '15px',
-        }}
-      >
-        <h5 style={{ margin: 0, color: '#495057' }}></h5>
-      </div>
+      {!hideContainer && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '15px',
+          }}
+        >
+          <h5 style={{ margin: 0, color: '#495057' }}>Interactive Predictions</h5>
+        </div>
+      )}
       {/* Model Summary - only show for multiple models */}
       {/* Threshold Slider - conditionally rendered */}
       {!hideThresholdControl && (
