@@ -95,7 +95,7 @@ const UMAPAnalysis = ({
             className: p.className,
             patientData: p.patientData,
           })),
-        color: '#0b84a5',
+        color: '#2E86AB', // Standard blue for outcome 0
         marker: { symbol: 'circle' },
       },
       {
@@ -109,7 +109,7 @@ const UMAPAnalysis = ({
             className: p.className,
             patientData: p.patientData,
           })),
-        color: '#94e3d5',
+        color: '#E74C3C', // Standard red for outcome 1
         marker: { symbol: 'circle' },
       },
       {
@@ -135,9 +135,11 @@ const UMAPAnalysis = ({
         zoomType: 'xy',
       },
       title: {
-        text: 'UMAP Projection',
+        text: '',
       },
-
+      credits: {
+        enabled: false,
+      },
       xAxis: {
         title: { text: 'UMAP 1' },
       },
