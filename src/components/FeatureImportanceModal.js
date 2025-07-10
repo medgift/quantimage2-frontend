@@ -56,8 +56,8 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
     const featuresToShow = sortedFeatures;
 
     const trace = {
-      x: featuresToShow.map(item => item.importance_value),
-      y: featuresToShow.map(item => item.feature_name),
+      x: featuresToShow.map(item => item.importance_value).reverse(),
+      y: featuresToShow.map(item => item.feature_name).reverse(),
       type: 'bar',
       orientation: 'h',
       marker: {
@@ -71,21 +71,24 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
     };
 
     const layout = {
-      title: {
-        text: 'Feature Importances',
-        font: { size: 16 }
-      },
+
       xaxis: {
-        title: 'Importance Value',
+        title: {
+          text: 'Importance Value',
+          font: { size: 14 }
+        },
         gridcolor: 'rgba(128, 128, 128, 0.2)'
       },
       yaxis: {
-        title: 'Features',
+        title: {
+          text: 'Features',
+          font: { size: 14 }
+        },
         automargin: true,
         gridcolor: 'rgba(128, 128, 128, 0.2)',
         type: 'category',
         categoryorder: 'array',
-        categoryarray: featuresToShow.map(item => item.feature_name)
+        categoryarray: featuresToShow.map(item => item.feature_name).reverse()
       },
       margin: { l: 200, r: 50, t: 60, b: 50 },
       plot_bgcolor: 'rgba(0,0,0,0)',
@@ -98,7 +101,16 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
       responsive: true,
       displayModeBar: true,
       modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-      displaylogo: false
+      displaylogo: false,
+      editable: true,
+      showEditInChartStudio: true,
+      toImageButtonOptions: {
+        format: 'png',
+        filename: 'feature_importance',
+        height: 600,
+        width: 1000,
+        scale: 1
+      }
     };
 
     Plotly.newPlot(plotDiv, [trace], layout, config);
