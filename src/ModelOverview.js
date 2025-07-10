@@ -219,27 +219,39 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
           <ModalBody>
             <h5 className="mb-3">How to Use This Page</h5>
             <ul>
-              <li><strong>Model Tables:</strong> View all classification and survival models for the selected album. Use the checkboxes to select models for comparison and plotting.</li>
-              <li><strong>Plot Selected Models:</strong> After selecting up to 5 models, choose the plot type (Test or Training Predictions) and click <span className="badge badge-primary">Generate Performances Plots</span> to visualize predictions and performance.</li>
-              <li><strong>Single Model Analysis:</strong> When one model is selected, you can interactively adjust the decision threshold, view performance metrics, ROC curve, and bootstrap AUC analysis.</li>
-              <li><strong>Multi-Model Comparison:</strong> When multiple models are selected, compare their predictions and AUC distributions side by side.</li>
-              <li><strong>Delete Models:</strong> Use the trash icon in the table to remove unwanted models.</li>
+              <li><strong>Model Selection:</strong> Use the checkboxes to select models for comparison and plotting (up to 5 models).</li>
+              <li><strong>Plot Generation:</strong> Choose plot type (Test or Training Predictions) and click <span className="badge badge-primary">Show Performance Plots</span>.</li>
+              <li><strong>Interactive Analysis:</strong> Adjust the decision threshold slider to see real-time performance metrics updates.</li>
+              <li><strong>Visualizations:</strong> View predictions scatter plot, ROC curves, and bootstrap AUC analysis (test predictions only).</li>
             </ul>
+
+            <h5 className="mt-4 mb-2">Analysis Tools Explained</h5>
+            <ul>
+              <li>
+                <strong>Interactive Predictions Plot:</strong> Scatter plot showing patient predictions vs. actual outcomes. Points are color-coded by prediction correctness. Threshold changes update the plot and metrics in real-time.
+              </li>
+              <li>
+                <strong>ROC Curve:</strong> Shows model discrimination ability across all thresholds. The curve displays True Positive Rate vs. False Positive Rate with AUC value. A diagonal line represents random classifier performance.
+              </li>
+              <li>
+                <strong>Bootstrap Analysis:</strong> Statistical validation showing AUC distribution from multiple bootstrap samples. Provides confidence intervals for performance estimates (available only for test predictions).
+              </li>
+            </ul>
+
+            
+
+            <h5 className="mt-4 mb-2">External Resources</h5>
+            <p>
+              For comprehensive mathematical definitions and clinical interpretations of performance metrics, visit the <a href="https://metrics-reloaded.dkfz.de/metric-library" target="_blank" rel="noopener noreferrer">Metrics Reloaded Library</a>.
+            </p>
+
             <h5 className="mt-4 mb-2">Troubleshooting & Tips</h5>
             <ul>
-              <li>If no models appear, ensure you have run feature extraction and model training for this album.</li>
-              <li>If a plot fails to load, try reducing the number of selected models or check for error messages in the alert banners.</li>
-              <li>Hover over <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> icons for additional explanations and tooltips throughout the page.</li>
-              <li><strong>Exporting Charts:</strong> Each chart includes a built-in screenshot tool (camera icon) in the toolbar. Click it to quickly export the current chart as a PNG image, which you can easily paste into papers or presentations.</li>
-            </ul>
-            <h5 className="mt-4 mb-2">Performance Metrics Explained</h5>
-            <ul>
-              <li><strong>Accuracy:</strong> Proportion of correct predictions among all cases.</li>
-              <li><strong>Precision:</strong> Proportion of positive identifications that were actually correct.</li>
-              <li><strong>Recall:</strong> Proportion of actual positives that were identified correctly.</li>
-              <li><strong>Specificity:</strong> Proportion of actual negatives that were identified correctly.</li>
-              <li><strong>F1-Score:</strong> Harmonic mean of precision and recall.</li>
-              <li><strong>AUC:</strong> Area under the ROC curve, summarizing model discrimination ability.</li>
+              <li>If no models appear, ensure you have run feature extraction and model training for this album</li>
+              <li>If a plot fails to load, try reducing the number of selected models or check for error messages</li>
+              <li>Hover over <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> icons for additional explanations and tooltips throughout the page</li>
+              <li>Each chart includes a built-in screenshot tool (camera icon) for exporting visualizations</li>
+              <li>Choose thresholds based on your clinical use case and acceptable false positive/negative rates</li>
             </ul>
           </ModalBody>
         </Modal>
@@ -352,7 +364,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                           </>
                         ) : (
                           <>
-                            Generate Performances Plots
+                            Show Performance Plots
                           </>
                         )}
                       </Button>
