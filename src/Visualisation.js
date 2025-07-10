@@ -1380,6 +1380,17 @@ export default function Visualisation({
             <li className="mt-2">
               <span className="badge badge-primary mr-2">UMAP</span>
               <strong>UMAP Projection:</strong> Projects patients into a 2D space based on feature similarity using the UMAP algorithm. Each point represents a patient; patients with similar feature profiles cluster together. This mode is useful for visualizing patient groups, outliers, and overall data structure.
+              <div className="mt-2 ml-3">
+                <strong>Understanding UMAP Axes:</strong>
+                <ul className="mt-1">
+                  <li><strong>UMAP 1 & UMAP 2:</strong> These are the two principal dimensions that capture the most important variation in your radiomics features. They don't have direct physical meaning but represent mathematical combinations of your original features.</li>
+                  <li><strong>Interpretation:</strong> Patients that are close together have similar feature profiles, while patients far apart have different radiomics characteristics. The absolute position matters less than the relative distances between points.</li>
+                  <li><strong>Clustering:</strong> Look for natural groupings of patients - these may correspond to different disease subtypes, treatment responses, or other clinically relevant patterns.</li>
+                </ul>
+                <p className="mt-2 mb-0">
+                  <strong>Learn more:</strong> For detailed information about UMAP methodology, visit the <a href="https://umap-learn.readthedocs.io/en/latest/how_umap_works.html" target="_blank" rel="noopener noreferrer">official UMAP documentation</a> or read the original paper: <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">McInnes et al. (2018)</a>.
+                </p>
+              </div>
             </li>
           </ul>
 
