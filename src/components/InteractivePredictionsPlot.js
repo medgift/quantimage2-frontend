@@ -60,8 +60,8 @@ const InteractivePredictionsPlot = ({
     // Consistent colors: Red for negative, Blue for positive
     // Simple points/circles for all cases - distinction through Y-positioning and colors only
     const baseColors = {
-      negative: '#e74c3c', // Red for negative cases
-      positive: '#3498db', // Blue for positive cases
+ negative: '#3498db', // Blue for negative cases (outcome 0)
+  positive: '#e74c3c', // Red for positive cases (outcome 1)
     };
 
     // Create traces for each model and class
@@ -87,7 +87,7 @@ const InteractivePredictionsPlot = ({
             color: baseColors.negative,
             size: 8,
             symbol: 'circle',
-            line: { color: '#c0392b', width: 1 },
+line: { color: '#2980b9', width: 1 }, // Darker blue border
           },
           text: class0Data.map(
             (p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`
@@ -115,7 +115,7 @@ const InteractivePredictionsPlot = ({
             color: baseColors.positive,
             size: 8,
             symbol: 'circle',
-            line: { color: '#2980b9', width: 1 },
+            line: { color: '#c0392b', width: 1 }, // Darker red border
           },
           text: class1Data.map(
             (p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`
@@ -145,7 +145,7 @@ const InteractivePredictionsPlot = ({
     const layout = {
       xaxis: {
         title: {
-          text: 'Predicted Probability',
+          text: 'Probability of Class 1',
           font: { size: 15, family: 'Arial, sans-serif' },
         },
         range: [-0.05, 1.05],
