@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from 'reactstrap';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Card, CardBody, CardHeader, Badge, Form, FormGroup, Label, Input } from 'reactstrap';
 import Plotly from 'plotly.js-dist';
 
 const InteractivePredictionsPlot = ({
@@ -155,7 +154,7 @@ const InteractivePredictionsPlot = ({
       },
       yaxis: {
         title: {
-          text: modelsData.length > 1 ? 'Models' : 'Patients',
+          text: 'Models',
           font: { size: 14 }
         },
         showticklabels: modelsData.length > 1,
@@ -289,104 +288,99 @@ const InteractivePredictionsPlot = ({
 
   if (!modelsData || modelsData.length === 0) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+      <div className="p-4 text-center text-muted">
         No data available for plotting
       </div>
     );
   }
+  
   return (
-    <div
-      style={{
-        marginTop: hideContainer ? '0' : '30px',
-        padding: hideContainer ? '0' : '20px',
-        border: hideContainer ? 'none' : '1px solid #dee2e6',
-        borderRadius: hideContainer ? '0' : '8px',
-        backgroundColor: hideContainer ? 'transparent' : '#ffffff',
-      }}
-    >
-      {' '}
-      {/* Header */}
-      {!hideContainer && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '15px',
-          }}
-        >
-          <h5 style={{ margin: 0, color: '#495057' }}>Interactive Predictions</h5>
-        </div>
-      )}
-      {/* Model Summary - only show for multiple models */}
-      {/* Threshold Slider - conditionally rendered */}
-      {!hideThresholdControl && (
-        <div
-          style={{
-            marginBottom: '20px',
-            padding: '15px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <label
+    <div className={hideContainer ? '' : 'mt-4'}>
+      {!hideContainer ? (
+        <Card>
+          <CardHeader>
+            <h5 className="mb-0 text-secondary">Interactive Predictions</h5>
+          </CardHeader>
+          <CardBody>
+            {/* Threshold Slider - conditionally rendered */}
+            {!hideThresholdControl && (
+              <div className="mb-4 p-3 bg-light rounded">
+                <Form>
+                  <FormGroup>
+                    <div className="d-flex align-items-center">
+                      <Label className="fw-bold text-secondary me-3 mb-0" style={{ minWidth: 'fit-content' }}>
+                        Decision Threshold:
+                      </Label>
+                      <Input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={threshold}
+                        onChange={(e) => handleThresholdChange(parseFloat(e.target.value))}
+                        className="flex-fill mx-3"
+                        style={{ minWidth: '200px' }}
+                      />
+                      <Badge color="primary" className="ms-2">
+                        {threshold.toFixed(2)}
+                      </Badge>
+                    </div>
+                  </FormGroup>
+                </Form>
+              </div>
+            )}
+            
+            {/* Plot Container */}
+            <div
+              ref={plotDivRef}
+              className={hideContainer ? '' : 'border rounded mb-3'}
               style={{
-                fontWeight: 'bold',
-                color: '#495057',
-                minWidth: 'fit-content',
-              }}
-            >
-              Decision Threshold:
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={threshold}
-              onChange={(e) =>
-                handleThresholdChange(parseFloat(e.target.value))
-              }
-              style={{
-                flex: 1,
-                minWidth: '200px',
-                height: '8px',
-                background: '#dee2e6',
-                borderRadius: '4px',
-                outline: 'none',
-                cursor: 'pointer',
+                width: '100%',
+                height: `${externalHeight || Math.max(500, modelsData.length * 120 + 200)}px`,
               }}
             />
-            <span
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                padding: '5px 10px',
-                borderRadius: '15px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                minWidth: 'fit-content',
-              }}
-            >
-              {threshold.toFixed(2)}
-            </span>
-          </div>{' '}
+          </CardBody>
+        </Card>
+      ) : (
+        <div>
+          {/* Threshold Slider - conditionally rendered for hideContainer mode */}
+          {!hideThresholdControl && (
+            <div className="mb-4 p-3 bg-light rounded">
+              <Form>
+                <FormGroup>
+                  <div className="d-flex align-items-center">
+                    <Label className="fw-bold text-secondary me-3 mb-0" style={{ minWidth: 'fit-content' }}>
+                      Decision Threshold:
+                    </Label>
+                    <Input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={threshold}
+                      onChange={(e) => handleThresholdChange(parseFloat(e.target.value))}
+                      className="flex-fill mx-3"
+                      style={{ minWidth: '200px' }}
+                    />
+                    <Badge color="primary" className="ms-2">
+                      {threshold.toFixed(2)}
+                    </Badge>
+                  </div>
+                </FormGroup>
+              </Form>
+            </div>
+          )}
+          
+          {/* Plot Container for hideContainer mode */}
+          <div
+            ref={plotDivRef}
+            style={{
+              width: '100%',
+              height: `${externalHeight || Math.max(500, modelsData.length * 120 + 200)}px`,
+            }}
+          />
         </div>
       )}
-      {/* Plot Container */}
-      <div
-        ref={plotDivRef}
-        style={{
-          width: '100%',
-          height: `${
-            externalHeight || Math.max(500, modelsData.length * 120 + 200)
-          }px`,
-          border: hideContainer ? 'none' : '1px solid #dee2e6',
-          borderRadius: hideContainer ? '0' : '4px',
-          marginBottom: hideContainer ? '0' : '20px',
-        }}
-      />
     </div>
   );
 };
