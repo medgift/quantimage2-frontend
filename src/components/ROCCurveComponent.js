@@ -116,14 +116,11 @@ const ROCCurveComponent = ({
 
     const traces = [];
     const colors = [
-      '#2E86AB',
-      '#e74c3c',
-      '#2ecc71',
-      '#f39c12',
-      '#9b59b6',
-      '#1abc9c',
-      '#e67e22',
-      '#9b59b6',
+  '#2ecc71',  // Green
+  '#9b59b6',  // Purple
+  '#f39c12',  // Orange
+  '#8b4513',  // Brown
+  '#2c3e50',  // Dark blue-gray
     ];
 
     // Create traces for each model (these don't change with threshold)
@@ -177,14 +174,11 @@ const ROCCurveComponent = ({
     // Add initial threshold points to the base plot
     if (currentROCPoints.length > 0) {
       const pointColors = [
-        '#F18F01',
-        '#e74c3c',
-        '#2ecc71',
-        '#f39c12',
-        '#9b59b6',
-        '#1abc9c',
-        '#e67e22',
-        '#34495e',
+  '#2ecc71',  // Green (matches ROC line colors)
+  '#9b59b6',  // Purple
+  '#f39c12',  // Orange
+  '#8b4513',  // Brown
+  '#2c3e50',  // Dark blue-gray
       ];
 
       currentROCPoints.forEach((point) => {
