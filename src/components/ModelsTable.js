@@ -305,7 +305,7 @@ export default function ModelsTable({
                 className='compare_button'
                 onClick={handleCompareModels}
               >
-                <FontAwesomeIcon icon="file-export" /> Compare Models (Classification Only)
+                <FontAwesomeIcon icon="file-export" /> Compare Models
               </Button>
             </>
           }
