@@ -450,10 +450,7 @@ class Backend {
   }
 
   async plotTestPredictions(token, modelIds) {
-    // Debug logging
-    console.log('plotTestPredictions called with modelIds:', modelIds);
-    console.log('modelIds type:', typeof modelIds);
-    console.log('modelIds is array:', Array.isArray(modelIds));
+
 
     // Use the first model ID in the URL and send all IDs in the body
     const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
@@ -463,14 +460,11 @@ class Backend {
       model_ids: modelIds, // Send array of model IDs
     };
 
-    console.log('Sending request to URL:', url);
-    console.log('Sending data:', requestData);
 
-    // FIXED: Use 'data' parameter instead of 'body'
     return await request(url, {
       token: token,
       method: 'POST',
-      data: requestData, // ← Changed from 'body' to 'data'
+      data: requestData, //  Changed from 'body' to 'data'
     });
   }
   async plotTrainPredictions(token, modelIds) {
@@ -482,11 +476,10 @@ class Backend {
       model_ids: modelIds,
     };
 
-    // FIXED: Use 'data' parameter instead of 'body'
     return await request(url, {
       token: token,
       method: 'POST',
-      data: requestData, // ← Changed from 'body' to 'data'
+      data: requestData, // Changed from 'body' to 'data'
     });
   }
 

@@ -138,15 +138,7 @@ const BootstrapHistogram = ({
                 const mean =
                   metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
 
-                console.log(`Model ${modelId} - ${metric} values:`, {
-                  count: metricValues.length,
-                  min: min,
-                  max: max,
-                  mean: mean,
-                  first5: metricValues.slice(0, 5),
-                  last5: metricValues.slice(-5),
-                  allValues: metricValues.slice(0, 20), // Show first 20 values for comparison
-                });
+                
 
                 data.push({
                   name: modelName,
@@ -185,8 +177,7 @@ const BootstrapHistogram = ({
           }
         }
 
-        // Debug: Final summary of all extracted data
-        console.log(`=== BOOTSTRAP DATA SUMMARY for metric '${metric}' ===`);
+        
         data.forEach((model, index) => {
           const samples = model.samples;
           if (samples && samples.length > 0) {
@@ -205,7 +196,6 @@ const BootstrapHistogram = ({
             });
           }
         });
-        console.log(`=== END SUMMARY ===`);
 
         setBootstrapData(data);
       } catch (err) {

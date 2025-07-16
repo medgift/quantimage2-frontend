@@ -156,10 +156,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
     setIsPlotting(true);
     setPlotError(null);
 
-    // Debug: Log what models are selected
-    console.log('Selected models for plotting:', selectedModels);
-    console.log('Selected models type:', typeof selectedModels);
-    console.log('Selected models length:', selectedModels.length);
+    
 
     try {
       let result;
@@ -174,15 +171,9 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
           selectedModels
         );
       }
-      console.log('Backend result:', result);
-      console.log('Backend result length:', result?.length);
-      console.log('Backend result type:', typeof result);
+     
 
-      // Show debug info if available
-      if (result?.debug) {
-        console.log('Backend debug info:', result.debug);
-        alert('Backend debug info:\n' + JSON.stringify(result.debug, null, 2));
-      }
+      
 
       // Check if result is directly an array of models (new backend format)
       if (Array.isArray(result) && result.length > 0) {

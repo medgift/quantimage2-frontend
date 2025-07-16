@@ -21,11 +21,7 @@ const UMAPAnalysis = ({
       setIsComputingUmap(true);
       setUmapError(null);
       
-      console.log('UMAP - Starting computation with:', {
-        featuresCount: filteredFeatures.length,
-        patientsCount: sortedPatientIDs.length,
-        firstFeature: filteredFeatures[0] // Debug
-      });
+     
       
       // Build data matrix directly from raw data
       const dataMatrix = [];
@@ -163,7 +159,6 @@ const UMAPAnalysis = ({
       tooltip: {
         formatter: function () {
           const point = this.point;
-          console.log('UMAP Tooltip - Point data:', point); // Debug logging
           
           // Simplified tooltip - only patient, value, and info
           return (
