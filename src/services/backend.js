@@ -312,6 +312,32 @@ class Backend {
     return downloadFile(url, token);
   }
 
+  async getTestScoresValues(token, modelID) {
+    try {
+      let url = `${endpoints.models}/${modelID}/test-scores-values`;
+
+      return await request(url, {
+        token: token,
+        method: 'GET',
+      });
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  async getFeatureImportances(token, modelID) {
+    try {
+      let url = `${endpoints.models}/${modelID}/feature-importances`;
+
+      return await request(url, {
+        token: token,
+        method: 'GET',
+      });
+    } catch (err) {
+      throw err;
+    }
+  }
+
   async downloadConfiguration(token, extractionID) {
     let url = `${endpoints.extractions}/${extractionID}/download-configuration`;
 
@@ -405,29 +431,116 @@ class Backend {
     }
   }
 
-  async compareModels(token, modelIds){
+  async compareModels(token, modelIds) {
     let url = `${endpoints.models}/compare`;
     let data = {
-      "model_ids": modelIds,
-    }
+      model_ids: modelIds,
+    };
     return downloadFile(url, token, data);
   }
 
-  async plotTestPredictions(token, modelID){
-    let url = `${endpoints.models}/${modelID}/plot-test-predictions`;
-
-    return downloadFile(url, token);
+  async compareModelsData(token, modelIds) {
+    const url = `${endpoints.models}/compare-data`;
+    const data = { model_ids: modelIds };
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: data,
+    });
   }
 
-  async plotTrainPredictions(token, modelID){
-    let url = `${endpoints.models}/${modelID}/plot-train-predictions`;
+  async plotTestPredictions(token, modelIds) {
 
-    return downloadFile(url, token);
+
+    // Use the first model ID in the URL and send all IDs in the body
+    const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+    let url = `${endpoints.models}/${primaryModelId}/plot-test-predictions`;
+
+    let requestData = {
+      model_ids: modelIds, // Send array of model IDs
+    };
+
+
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: requestData, //  Changed from 'body' to 'data'
+    });
   }
+  async plotTrainPredictions(token, modelIds) {
+    // Use the first model ID in the URL and send all IDs in the body
+    const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+    let url = `${endpoints.models}/${primaryModelId}/plot-train-predictions`;
+
+    let requestData = {
+      model_ids: modelIds,
+    };
+
+    return await request(url, {
+      token: token,
+      method: 'POST',
+      data: requestData, // Changed from 'body' to 'data'
+    });
+  }
+
+
+    async getROCCurveTestData(token, modelIds) {
+  try {
+    if (Array.isArray(modelIds) && modelIds.length > 1) {
+      // Multiple models - use POST
+      const primaryModelId = modelIds[0];
+      let url = `${endpoints.models}/${primaryModelId}/roc-curve-test-data`;
+      
+      return await request(url, {
+        token: token,
+        method: 'POST',
+        data: { model_ids: modelIds }
+      });
+    } else {
+      // Single model - use GET
+      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+      let url = `${endpoints.models}/${modelId}/roc-curve-test-data`;
+      
+      return await request(url, { 
+        token: token,
+        method: 'GET'
+      });
+    }
+  } catch (err) {
+    throw err;
+  }
+}
+
+async getROCCurveTrainData(token, modelIds) {
+  try {
+    if (Array.isArray(modelIds) && modelIds.length > 1) {
+      // Multiple models - use POST
+      const primaryModelId = modelIds[0];
+      let url = `${endpoints.models}/${primaryModelId}/roc-curve-train-data`;
+      
+      return await request(url, {
+        token: token,
+        method: 'POST',
+        data: { model_ids: modelIds }
+      });
+    } else {
+      // Single model - use GET
+      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+      let url = `${endpoints.models}/${modelId}/roc-curve-train-data`;
+      
+      return await request(url, { 
+        token: token,
+        method: 'GET'
+      });
+    }
+  } catch (err) {
+    throw err;
+  }
+}
 
   async presets(token) {
     try {
-      const url = `${endpoints.presets}`;
+      const url = endpoints.presets;
       return await request(url, { token: token });
     } catch (err) {
       throw err; // Just throw it for now
@@ -610,6 +723,9 @@ class Backend {
       throw err;
     }
   }
+
+ 
 }
 
-export default new Backend();
+const backendInstance = new Backend();
+export default backendInstance;

@@ -41,6 +41,7 @@ import Kheops from './services/kheops';
 import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
+import ModelOverview from './ModelOverview';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -84,6 +85,7 @@ function Features() {
 
   // Models management
   const [models, setModels] = useState([]);
+  const [allModels, setAllModels] = useState([]); // For ModelOverview tab
 
   // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
@@ -458,30 +460,45 @@ function Features() {
   ]);
 
   // Get models
-  useEffect(() => {
-    async function getModels() {
-      let models = await Backend.models(keycloak.token, albumID);
+  // Define getModels outside so it can be called from multiple places
+  const getModels = React.useCallback(async () => {
+    let models = await Backend.models(keycloak.token, albumID);
 
-      // Keep only models of the latest feature extraction
-      let filteredModels = models.filter(
-        (m) => m.feature_extraction_id === featureExtractionID
-      );
+    // Keep only models of the latest feature extraction
+    let filteredModels = models.filter(
+      (m) => m.feature_extraction_id === featureExtractionID
+    );
 
-      // Filter out models that are not for this collection / original feature set
-      filteredModels = collectionID
-        ? filteredModels.filter(
-            (m) => m.feature_collection_id === +collectionID
-          )
-        : filteredModels.filter((m) => m.feature_collection_id === null);
+    // Store all models for ModelOverview
+    let allSortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setAllModels(allSortedModels);
 
-      let sortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-      setModels(sortedModels);
-    }
+    // Filter out models that are not for this collection / original feature set
+    filteredModels = collectionID
+      ? filteredModels.filter(
+          (m) => m.feature_collection_id === +collectionID
+        )
+      : filteredModels.filter((m) => m.feature_collection_id === null);
 
-    if (albumID && featureExtractionID) getModels();
+    let sortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setModels(sortedModels);
   }, [keycloak.token, albumID, collectionID, featureExtractionID]);
+
+  // Fetch models on mount and when dependencies change
+  useEffect(() => {
+    if (albumID && featureExtractionID) getModels();
+  }, [getModels, albumID, featureExtractionID]);
+
+  // Refresh models when switching to the "All Models" tab
+  useEffect(() => {
+    if (tab === 'models' && albumID && featureExtractionID) {
+      getModels();
+    }
+  }, [tab, albumID, featureExtractionID, getModels]);
 
   // Get classes of a tab
   const getTabClassName = (targetTab) => {
@@ -800,13 +817,6 @@ function Features() {
                 collections={collections}
                 collectionID={collectionID}
               />
-              <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
-              <Button
-                color="link"
-                onClick={() => navigate(`/models/${albumID}`)}
-                >
-                <FontAwesomeIcon icon="table" /> See All Models
-              </Button>
             </div>
             <div className="feature-tabs">
               <Nav tabs>
@@ -905,7 +915,19 @@ function Features() {
                   >
                     {getTabSymbol()}
                     Model Training{' '}
-                    {models.length > 0 && <Badge>{models.length}</Badge>}
+                    
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('models')}
+                    onClick={() => {
+                      toggle('models');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    Model Evaluation{' '}
+                    
                   </NavLink>
                 </NavItem>
                 {/* <NavItem>
@@ -1189,6 +1211,7 @@ function Features() {
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
                           patients={patients}
+                          onNavigateToModels={() => toggle('models')}
                         />
                       </>
                     ) : (
@@ -1228,6 +1251,17 @@ function Features() {
                         }
                       />
                     </>
+                  ) : (
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
+                <TabPane tabId="models">
+                  {tab === 'models' && album ? (
+                    <ModelOverview 
+                      albums={[album]} 
+                      showBackButton={false}
+                      initialModels={allModels}
+                    />
                   ) : (
                     <span>Loading...</span>
                   )}

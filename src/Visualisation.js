@@ -1,22 +1,14 @@
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-} from 'react';
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
 import Backend from './services/backend';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
+import { UncontrolledTooltip, Modal, ModalHeader, ModalBody } from 'reactstrap';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
 import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
-
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
 import {
@@ -26,7 +18,6 @@ import {
   FormGroup,
   Input,
   Label,
-  ButtonGroup,
 } from 'reactstrap';
 import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
@@ -48,7 +39,6 @@ import {
   ZRAD_GROUP_PREFIXES,
 } from './config/constants';
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
-
 import './Visualisation.css';
 import ListValues from './components/ListValues';
 import FeatureSelection, {
@@ -57,7 +47,15 @@ import FeatureSelection, {
 } from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
 import UndoButton from './components/UndoButton';
-import { UMAP } from 'umap-js';
+import UMAPAnalysis from './UMAPAnalysis';
+
+// ================= CONSTANTS =================
+export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+
+
+
+
+// ...existing code...
 
 HighchartsPatternFills(Highcharts);
 HighchartsHeatmap(Highcharts);
@@ -78,7 +76,7 @@ if (window.Worker) {
   filterFeaturesWorker = new Worker('/workers/filter-features.js');
 }
 
-export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+
 
 let featureIDPattern = `(?<modality>.*?)${FEATURE_ID_SEPARATOR}(?<roi>.*?)${FEATURE_ID_SEPARATOR}(?<featureName>(?:${[
   ...ZRAD_FEATURE_PREFIXES,
@@ -117,6 +115,11 @@ export default function Visualisation({
   setHasPendingChanges,
   clinicalFeaturesDefinitions,
 }) {
+  // Help modal state
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const toggleHelpModal = () => setHelpModalOpen((open) => !open);
+  // ...removed feature definition modal logic...
+
   // Route
   const { albumID } = useParams();
 
@@ -133,9 +136,7 @@ export default function Visualisation({
   const [visualizationMode, setVisualizationMode] = useState(
     VISUALIZATION_MODES.HEATMAP
   );
-
   // UMAP state
-  const [umapData, setUmapData] = useState(null);
   const [isComputingUmap, setIsComputingUmap] = useState(false);
 
   // Features
@@ -174,25 +175,8 @@ export default function Visualisation({
 
   // Filtered features (based on selections)
   const [filteredFeatures, setFilteredFeatures] = useState([]);
-
   // Chart
   const chartRef = useRef(null);
-  const umapChartRef = useRef(null);
-const [umapColorBy, setUmapColorBy] = useState('mean');
-
-  // New state for selected features for UMAP
-  const [selectedUmapFeatures, setSelectedUmapFeatures] = useState([]);
-
-  // UMAP parameters
-  const [umapParams, setUmapParams] = useState({
-    nNeighbors: 15,
-    minDist: 0.1,
-    spread: 1.0,
-    randomState: 42,
-  });
-
-  const [umapError, setUmapError] = useState(null);
-  const [useRandomSeed, setUseRandomSeed] = useState(true);
 
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
     if (!featureIDs && !clinicalFeaturesDefinitions) return [];
@@ -405,956 +389,17 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
   }, []);
 
   // Re-render chart on resize
-  useLayoutEffect(() => {
-    function handleResize() {
+  useLayoutEffect(() => {    function handleResize() {
       console.log('Updating chart');
       if (chartRef.current) chartRef.current.chart.update({});
-      if (umapChartRef.current) umapChartRef.current.chart.update({});
     }
 
     window.addEventListener('resize', handleResize);    return () => window.removeEventListener('resize', handleResize);
   }, []);
-  // Enhanced Radiomics UMAP Configuration Component
-  // This component provides a comprehensive interface for configuring UMAP analysis
-  // with radiomics-specific preprocessing, feature selection, and parameter tuning
-  const EnhancedRadiomicsUMAPConfiguration = ({ 
-    filteredFeatures, 
-    selectedUmapFeatures, 
-    setSelectedUmapFeatures,
-    sortedPatientIDs 
-  }) => {
-    // State for feature filtering and search
-    const [featureSearch, setFeatureSearch] = useState('');
-    const [selectedFeatureCategory, setSelectedFeatureCategory] = useState('all');
-    const [advancedMode, setAdvancedMode] = useState(false);
-    const [qualityMetrics, setQualityMetrics] = useState(null);
-    const [preprocessingMethod, setPreprocessingMethod] = useState('robust');
-    const [dimensionalityReduction, setDimensionalityReduction] = useState('none');
-    const [excludeCorrelated, setExcludeCorrelated] = useState(true);
-    const [correlationThreshold, setCorrelationThreshold] = useState(0.95);
-    
-    // Extract feature categories for radiomics
-    const featureCategories = useMemo(() => {
-      if (!filteredFeatures) return [];
-      const categories = new Set();
-      filteredFeatures.forEach(feature => {
-        const parts = feature.FeatureID.split('_');
-        if (parts.length > 1) {
-          categories.add(parts[0].toLowerCase());
-        }
-      });
-      return ['all', ...Array.from(categories).sort()];
-    }, [filteredFeatures]);
-
-    // Enhanced feature filtering with radiomics-specific logic
-    const filteredFeatureOptions = useMemo(() => {
-      if (!filteredFeatures) return [];
-      
-      let features = filteredFeatures.filter((feature) => {
-        const matchesSearch = feature.FeatureID.toLowerCase().includes(featureSearch.toLowerCase());
-        const matchesCategory = selectedFeatureCategory === 'all' || 
-          feature.FeatureID.toLowerCase().startsWith(selectedFeatureCategory);
-        return matchesSearch && matchesCategory;
-      });
-
-      // Add feature metadata for better selection
-      return features.map((feature) => {
-        const parts = feature.FeatureID.split('_');
-        const category = parts[0] || 'unknown';
-        const subcategory = parts[1] || '';
-        
-        return {
-          value: feature.FeatureID,
-          label: `${feature.FeatureID}`,
-          category,
-          subcategory,
-          ranking: feature.Ranking,
-          shortName: parts.slice(-1)[0],
-        };
-      }).sort((a, b) => {
-        // Sort by category, then by ranking
-        if (a.category !== b.category) return a.category.localeCompare(b.category);
-        return (a.ranking || 999) - (b.ranking || 999);
-      });
-    }, [filteredFeatures, featureSearch, selectedFeatureCategory]);
-
-    // Calculate preprocessing statistics
-    const preprocessingStats = useMemo(() => {
-      if (!filteredFeatures || filteredFeatures.length === 0) return null;
-      
-      const featuresToUse = selectedUmapFeatures.length > 0 
-        ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
-        : filteredFeatures;
-
-      // Calculate basic statistics
-      const stats = {
-        totalFeatures: featuresToUse.length,
-        patients: sortedPatientIDs.length,
-        missingValueRate: 0,
-        dimensionality: featuresToUse.length / sortedPatientIDs.length,
-        correlatedFeatures: 0,
-      };
-
-      // Count missing values
-      let totalValues = 0;
-      let missingValues = 0;
-      
-      featuresToUse.forEach(feature => {
-        sortedPatientIDs.forEach(patient => {
-          totalValues++;
-          const value = feature[patient];
-          if (value === undefined || value === null || isNaN(+value)) {
-            missingValues++;
-          }
-        });
-      });
-
-      stats.missingValueRate = (missingValues / totalValues) * 100;
-      
-      return stats;
-    }, [filteredFeatures, selectedUmapFeatures, sortedPatientIDs]);
-
-    return (
-      <div className="radiomics-umap-config mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h5 className="mb-0">
-            <FontAwesomeIcon icon="cogs" className="me-2" />
-            Radiomics UMAP Analysis Configuration
-          </h5>
-          <div>
-            <Button
-              size="sm"
-              color={advancedMode ? "primary" : "outline-secondary"}
-              onClick={() => setAdvancedMode(!advancedMode)}
-              className="me-2"
-            >
-              <FontAwesomeIcon icon="sliders-h" className="me-1" />
-              {advancedMode ? "Basic" : "Advanced"}
-            </Button>
-            {qualityMetrics && (
-              <Button
-                size="sm"
-                color="info"
-                onClick={() => setQualityMetrics(null)}
-              >
-                <FontAwesomeIcon icon="chart-line" className="me-1" />
-                Quality: {qualityMetrics.trustworthiness?.toFixed(2) || 'N/A'}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Data Preprocessing Section */}
-        <div className="card mb-3">
-          <div className="card-header">
-            <h6 className="mb-0">
-              <FontAwesomeIcon icon="database" className="me-2" />
-              Data Preprocessing & Quality
-            </h6>
-          </div>
-          <div className="card-body">
-            {preprocessingStats && (
-              <div className="row mb-3">
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className="metric-value h4 mb-0">{preprocessingStats.totalFeatures}</div>
-                    <div className="metric-label small text-muted">Features</div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className="metric-value h4 mb-0">{preprocessingStats.patients}</div>
-                    <div className="metric-label small text-muted">Patients</div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className={`metric-value h4 mb-0 ${preprocessingStats.missingValueRate > 5 ? 'text-warning' : 'text-success'}`}>
-                      {preprocessingStats.missingValueRate.toFixed(1)}%
-                    </div>
-                    <div className="metric-label small text-muted">Missing</div>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="metric-card text-center p-2 border rounded">
-                    <div className={`metric-value h4 mb-0 ${preprocessingStats.dimensionality > 0.5 ? 'text-danger' : preprocessingStats.dimensionality > 0.1 ? 'text-warning' : 'text-success'}`}>
-                      {preprocessingStats.dimensionality.toFixed(2)}
-                    </div>
-                    <div className="metric-label small text-muted">p/n ratio</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="row">
-              <div className="col-md-4">
-                <Label for="preprocessingMethod">Preprocessing Method</Label>
-                <Input
-                  type="select"
-                  id="preprocessingMethod"
-                  value={preprocessingMethod}
-                  onChange={(e) => setPreprocessingMethod(e.target.value)}
-                >
-                  <option value="standard">Standard Scaling (z-score)</option>
-                  <option value="robust">Robust Scaling (median/IQR)</option>
-                  <option value="minmax">Min-Max Scaling</option>
-                  <option value="quantile">Quantile Transformation</option>
-                </Input>
-                <small className="text-muted">Robust scaling recommended for radiomics</small>
-              </div>
-              <div className="col-md-4">
-                <FormGroup check className="mt-4">
-                  <Label check>
-                    <Input
-                      type="checkbox"
-                      checked={excludeCorrelated}
-                      onChange={(e) => setExcludeCorrelated(e.target.checked)}
-                    />
-                    Remove highly correlated features
-                  </Label>
-                </FormGroup>
-                {excludeCorrelated && (
-                  <Input
-                    type="range"
-                    min="0.8"
-                    max="0.99"
-                    step="0.01"
-                    value={correlationThreshold}
-                    onChange={(e) => setCorrelationThreshold(parseFloat(e.target.value))}
-                    className="mt-1"
-                  />
-                )}
-                {excludeCorrelated && (
-                  <small className="text-muted">Threshold: {correlationThreshold}</small>
-                )}
-              </div>
-              {advancedMode && (
-                <div className="col-md-4">
-                  <Label for="dimensionalityReduction">Pre-reduction</Label>
-                  <Input
-                    type="select"
-                    id="dimensionalityReduction"
-                    value={dimensionalityReduction}
-                    onChange={(e) => setDimensionalityReduction(e.target.value)}
-                  >
-                    <option value="none">No pre-reduction</option>
-                    <option value="pca">PCA (preserve 95% variance)</option>
-                    <option value="variance">Variance threshold</option>
-                    <option value="univariate">Univariate selection</option>
-                  </Input>
-                  <small className="text-muted">Optional dimensionality reduction</small>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Selection Section */}
-        <div className="card mb-3">
-          <div className="card-header">
-            <h6 className="mb-0">
-              <FontAwesomeIcon icon="filter" className="me-2" />
-              Radiomics Feature Selection
-            </h6>
-          </div>
-          <div className="card-body">
-            <div className="row mb-3">
-              <div className="col-md-4">
-                <Label for="featureCategory">Feature Category</Label>
-                <Input
-                  type="select"
-                  id="featureCategory"
-                  value={selectedFeatureCategory}
-                  onChange={(e) => setSelectedFeatureCategory(e.target.value)}
-                >
-                  {featureCategories.map(category => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : 
-                       category.charAt(0).toUpperCase() + category.slice(1)}
-                    </option>
-                  ))}
-                </Input>
-              </div>
-              <div className="col-md-8">
-                <Label for="featureSearch">Search Features</Label>
-                <Input
-                  type="text"
-                  id="featureSearch"
-                  placeholder="Search by feature name, category, or type..."
-                  value={featureSearch}
-                  onChange={(e) => setFeatureSearch(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Label for="umapFeatureSelect">
-              Select Radiomics Features ({filteredFeatureOptions.length} available)
-            </Label>
-            <Input
-              type="select"
-              id="umapFeatureSelect"
-              multiple
-              value={selectedUmapFeatures}
-              onChange={(e) => {
-                const selected = Array.from(
-                  e.target.selectedOptions,
-                  (option) => option.value
-                );
-                setSelectedUmapFeatures(selected);
-              }}
-              style={{ minHeight: '150px', fontFamily: 'monospace', fontSize: '0.9em' }}
-            >
-              {filteredFeatureOptions.map((option) => (
-                <option 
-                  key={option.value} 
-                  value={option.value}
-                  title={`Category: ${option.category}, Rank: ${option.ranking}`}
-                >
-                  [{option.category}] {option.shortName} (#{option.ranking})
-                </option>
-              ))}
-            </Input>
-            <small className="text-muted">
-              Hold Ctrl/Cmd to select multiple. Empty selection uses all filtered features.
-            </small>
-
-            {selectedUmapFeatures.length > 0 && (
-              <div className="mt-2">
-                <Button
-                  size="sm"
-                  color="outline-danger"
-                  onClick={() => setSelectedUmapFeatures([])}
-                >
-                  Clear Selection ({selectedUmapFeatures.length} selected)
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* UMAP Parameters Section */}
-        <div className="card mb-3">
-          <div className="card-header">
-            <h6 className="mb-0">
-              <FontAwesomeIcon icon="project-diagram" className="me-2" />
-              UMAP Hyperparameters
-            </h6>
-          </div>
-          <div className="card-body">
-            <div className="row">
-              <div className="col-md-3">
-                <Label for="nNeighbors">
-                  Neighbors
-                  <FontAwesomeIcon 
-                    icon="info-circle" 
-                    className="ms-1 text-muted" 
-                    title="Controls local vs global structure. Higher values preserve global structure."
-                  />
-                </Label>
-                <Input
-                  type="number"
-                  id="nNeighbors"
-                  min="2"
-                  max="100"
-                  value={umapParams.nNeighbors}
-                  onChange={(e) =>
-                    setUmapParams((prev) => ({
-                      ...prev,
-                      nNeighbors: parseInt(e.target.value),
-                    }))
-                  }
-                />
-                <small className="text-muted">2-100 (recommended: 5-50)</small>
-              </div>
-              <div className="col-md-3">
-                <Label for="minDist">
-                  Min Distance
-                  <FontAwesomeIcon 
-                    icon="info-circle" 
-                    className="ms-1 text-muted" 
-                    title="Minimum distance between points in embedding. Lower values = tighter clusters."
-                  />
-                </Label>
-                <Input
-                  type="number"
-                  id="minDist"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={umapParams.minDist}
-                  onChange={(e) =>
-                    setUmapParams((prev) => ({
-                      ...prev,
-                      minDist: parseFloat(e.target.value),
-                    }))
-                  }
-                />
-                <small className="text-muted">0.0-1.0 (recommended: 0.1-0.5)</small>
-              </div>
-              <div className="col-md-3">
-                <Label for="spread">
-                  Spread
-                  <FontAwesomeIcon 
-                    icon="info-circle" 
-                    className="ms-1 text-muted" 
-                    title="Effective scale of embedded points. Works with min_dist."
-                  />
-                </Label>
-                <Input
-                  type="number"
-                  id="spread"
-                  min="0.1"
-                  max="3"
-                  step="0.1"
-                  value={umapParams.spread}
-                  onChange={(e) =>
-                    setUmapParams((prev) => ({
-                      ...prev,
-                      spread: parseFloat(e.target.value),
-                    }))
-                  }
-                />
-                <small className="text-muted">0.1-3.0 (recommended: 1.0)</small>
-              </div>
-              <div className="col-md-3">
-                <Label for="umapColorBy">Color Scheme</Label>
-                <Input
-                  type="select"
-                  id="umapColorBy"
-                  value={umapColorBy}
-                  onChange={(e) => setUmapColorBy(e.target.value)}
-                >
-                  <option value="feature_density">Feature Density</option>
-                  <option value="feature_mean">Feature Mean</option>
-                  <option value="feature_variance">Feature Variance</option>
-                  <option value="outcome">Clinical Outcome</option>
-                  <option value="cluster">Automated Clustering</option>
-                </Input>
-              </div>
-            </div>
-
-            {advancedMode && (
-              <div className="row mt-3">
-                <div className="col-md-4">
-                  <FormGroup check>
-                    <Label check>
-                      <Input
-                        type="checkbox"
-                        checked={useRandomSeed}
-                        onChange={() => setUseRandomSeed(!useRandomSeed)}
-                      />
-                      Reproducible results (fixed seed)
-                    </Label>
-                  </FormGroup>
-                </div>
-                <div className="col-md-4">
-                  <Label for="umapMetric">Distance Metric</Label>
-                  <Input
-                    type="select"
-                    id="umapMetric"
-                    value={umapParams.metric || 'euclidean'}
-                    onChange={(e) =>
-                      setUmapParams((prev) => ({
-                        ...prev,
-                        metric: e.target.value,
-                      }))
-                    }
-                  >
-                    <option value="euclidean">Euclidean</option>
-                    <option value="manhattan">Manhattan</option>
-                    <option value="cosine">Cosine</option>
-                    <option value="correlation">Correlation</option>
-                  </Input>
-                </div>
-                <div className="col-md-4">
-                  <Label for="umapSeed">Random Seed</Label>
-                  <Input
-                    type="number"
-                    id="umapSeed"
-                    value={umapParams.randomState}
-                    onChange={(e) =>
-                      setUmapParams((prev) => ({
-                        ...prev,
-                        randomState: parseInt(e.target.value),
-                      }))
-                    }
-                    disabled={!useRandomSeed}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {umapError && (
-          <Alert color="danger" className="mb-3">
-            <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
-            <strong>UMAP Error:</strong> {umapError}
-          </Alert>
-        )}
-
-        {/* Analysis Controls */}
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <Button
-              color="primary"
-              size="lg"
-              onClick={computeUMAP}
-              disabled={isComputingUmap || filteredFeatures.length === 0}
-              className="me-2"
-            >
-              {isComputingUmap ? (
-                <span>
-                  <FontAwesomeIcon icon="sync" spin className="me-2" />
-                  Computing UMAP...
-                </span>
-              ) : (
-                <span>
-                  <FontAwesomeIcon icon="play" className="me-2" />
-                  Run UMAP Analysis
-                </span>
-              )}
-            </Button>
-            {umapData && (
-              <Button
-                color="outline-info"
-                size="lg"
-                onClick={() => {
-                  // Calculate and show quality metrics
-                  // This would be implemented with proper UMAP quality assessment
-                  setQualityMetrics({
-                    trustworthiness: 0.85,
-                    continuity: 0.82,
-                    stress: 0.15
-                  });
-                }}
-                className="me-2"
-              >
-                <FontAwesomeIcon icon="chart-line" className="me-2" />
-                Quality Metrics
-              </Button>
-            )}
-          </div>
-          <div className="text-muted">
-            {preprocessingStats && (
-              <small>
-                Ready: {preprocessingStats.totalFeatures} features × {preprocessingStats.patients} patients
-              </small>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };  // Enhanced Radiomics UMAP Computation with Scientific Best Practices
-  // This function performs UMAP dimensionality reduction on radiomics data
-  // with advanced preprocessing, feature correlation analysis, and patient analytics
-  const computeEnhancedRadiomicsUMAP = useCallback(async () => {
-    setIsComputingUmap(true);
-    setUmapError(null);
-    
-    try {
-      // Enhanced parameter validation for radiomics data
-      if (umapParams.nNeighbors < 2 || umapParams.nNeighbors > Math.min(100, Math.floor(sortedPatientIDs.length * 0.8))) {
-        throw new Error(`nNeighbors must be between 2 and ${Math.min(100, Math.floor(sortedPatientIDs.length * 0.8))} for this dataset`);
-      }
-
-      if (umapParams.minDist < 0 || umapParams.minDist > 1) {
-        throw new Error("minDist must be between 0 and 1");
-      }
-
-      // Determine which features to use for UMAP analysis
-      const featuresToUse = selectedUmapFeatures.length > 0 
-        ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
-        : filteredFeatures;
-
-      if (featuresToUse.length === 0) {
-        throw new Error("No features available for UMAP analysis");
-      }
-
-      if (sortedPatientIDs.length < 10) {
-        throw new Error("At least 10 patients required for reliable UMAP analysis");
-      }
-
-      // Calculate dimensionality ratio (features/patients) to warn about high-dimensional data
-      const dimensionalityRatio = featuresToUse.length / sortedPatientIDs.length;
-      if (dimensionalityRatio > 1.0) {
-        console.warn(`High dimensionality ratio (${dimensionalityRatio.toFixed(2)}). Consider feature selection.`);
-      }
-
-      console.log("Enhanced Radiomics UMAP Analysis:");
-      console.log(`- Dataset: ${sortedPatientIDs.length} patients × ${featuresToUse.length} features`);
-      console.log(`- Dimensionality ratio: ${dimensionalityRatio.toFixed(3)}`);
-      console.log("- Parameters:", umapParams);
-      console.time("Enhanced UMAP computation");
-
-      // Step 1: Advanced data matrix preparation with missing value handling
-      // Build a data matrix where each row is a patient and each column is a feature
-      const dataMatrix = [];
-      const featureStatistics = {};
-      
-      // Calculate feature-wise statistics for robust preprocessing
-      featuresToUse.forEach(feature => {
-        // Extract all valid values for this feature across all patients
-        const values = sortedPatientIDs.map(patient => {
-          const value = feature[patient];
-          return value !== undefined && value !== null && !isNaN(+value) ? +value : null;
-        }).filter(v => v !== null);
-        
-        if (values.length === 0) {
-          throw new Error(`Feature ${feature.FeatureID} has no valid values`);
-        }
-        
-        // Calculate robust statistics (quartiles, median, IQR) for each feature
-        const sorted = values.sort((a, b) => a - b);
-        const q25 = sorted[Math.floor(sorted.length * 0.25)];
-        const q75 = sorted[Math.floor(sorted.length * 0.75)];
-        const median = sorted[Math.floor(sorted.length * 0.5)];
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
-        const iqr = q75 - q25;
-        
-        featureStatistics[feature.FeatureID] = {
-          mean, std, median, q25, q75, iqr,
-          min: Math.min(...values),
-          max: Math.max(...values),
-          validCount: values.length,
-          missingRate: (sortedPatientIDs.length - values.length) / sortedPatientIDs.length
-        };
-      });
-
-      // Step 2: Build data matrix with missing value imputation
-      for (let patientIdx = 0; patientIdx < sortedPatientIDs.length; patientIdx++) {
-        const patient = sortedPatientIDs[patientIdx];
-        const patientFeatures = [];
-        
-        for (let feature of featuresToUse) {
-          let value = feature[patient];
-          
-          // Handle missing values with median imputation (robust for radiomics data)
-          if (value === undefined || value === null || isNaN(+value)) {
-            value = featureStatistics[feature.FeatureID].median;
-            console.warn(`Imputed missing value for ${feature.FeatureID} in ${patient}`);
-          } else {
-            value = +value;
-          }
-          
-          patientFeatures.push(value);
-        }
-        dataMatrix.push(patientFeatures);
-      }
-
-      // Step 3: Enhanced preprocessing based on radiomics best practices
-      let processedData;
-      const preprocessingMethod = 'robust'; // Could be made configurable
-      
-      if (preprocessingMethod === 'robust') {
-        // Robust scaling using median and IQR (recommended for radiomics data with outliers)
-        processedData = dataMatrix.map(patientFeatures => 
-          patientFeatures.map((value, featureIdx) => {
-            const stats = featureStatistics[featuresToUse[featureIdx].FeatureID];
-            const scaledValue = stats.iqr > 0 ? (value - stats.median) / stats.iqr : 0;
-            return scaledValue;
-          })
-        );
-      } else if (preprocessingMethod === 'quantile') {
-        // Quantile transformation for non-gaussian features
-        const featureQuantiles = featuresToUse.map((feature, featureIdx) => {
-          const allValues = dataMatrix.map(row => row[featureIdx]).sort((a, b) => a - b);
-          return allValues;
-        });
-        
-        processedData = dataMatrix.map(patientFeatures => 
-          patientFeatures.map((value, featureIdx) => {
-            const quantiles = featureQuantiles[featureIdx];
-            const rank = quantiles.findIndex(q => q >= value);
-            return rank / quantiles.length;
-          })
-        );
-      } else {
-        // Standard z-score normalization (fallback)
-        processedData = dataMatrix.map(patientFeatures => 
-          patientFeatures.map((value, featureIdx) => {
-            const stats = featureStatistics[featuresToUse[featureIdx].FeatureID];
-            return stats.std > 0 ? (value - stats.mean) / stats.std : 0;
-          })
-        );
-      }
-
-      // Step 4: Feature correlation analysis and removal (optional)
-      // Remove highly correlated features to reduce redundancy
-      const excludeCorrelated = true; // Could be made configurable
-      const correlationThreshold = 0.95;
-      let finalFeaturesToUse = [...featuresToUse];
-      let finalProcessedData = processedData;
-      
-      if (excludeCorrelated && featuresToUse.length > 1) {
-        console.log("Analyzing feature correlations...");
-        const correlations = [];
-        
-        // Calculate pairwise Pearson correlations between all features
-        for (let i = 0; i < featuresToUse.length; i++) {
-          for (let j = i + 1; j < featuresToUse.length; j++) {
-            const feature1Values = processedData.map(row => row[i]);
-            const feature2Values = processedData.map(row => row[j]);
-            
-            // Calculate Pearson correlation coefficient
-            const mean1 = feature1Values.reduce((a, b) => a + b, 0) / feature1Values.length;
-            const mean2 = feature2Values.reduce((a, b) => a + b, 0) / feature2Values.length;
-            
-            let numerator = 0;
-            let sum1 = 0;
-            let sum2 = 0;
-            
-            for (let k = 0; k < feature1Values.length; k++) {
-              const diff1 = feature1Values[k] - mean1;
-              const diff2 = feature2Values[k] - mean2;
-              numerator += diff1 * diff2;
-              sum1 += diff1 * diff1;
-              sum2 += diff2 * diff2;
-            }
-            
-            const correlation = numerator / Math.sqrt(sum1 * sum2);
-            
-            // Store correlations above threshold
-            if (Math.abs(correlation) > correlationThreshold) {
-              correlations.push({
-                feature1: i,
-                feature2: j,
-                correlation,
-                feature1Name: featuresToUse[i].FeatureID,
-                feature2Name: featuresToUse[j].FeatureID
-              });
-            }
-          }
-        }
-        
-        // Remove highly correlated features (keep the one with better ranking)
-        const featuresToRemove = new Set();
-        correlations.forEach(corr => {
-          const rank1 = featuresToUse[corr.feature1].Ranking || 999;
-          const rank2 = featuresToUse[corr.feature2].Ranking || 999;
-          // Keep the feature with better (lower) ranking
-          if (rank1 > rank2) {
-            featuresToRemove.add(corr.feature1);
-          } else {
-            featuresToRemove.add(corr.feature2);
-          }
-        });
-        
-        if (featuresToRemove.size > 0) {
-          console.log(`Removing ${featuresToRemove.size} highly correlated features`);
-          const keepIndices = featuresToUse.map((_, idx) => idx).filter(idx => !featuresToRemove.has(idx));
-          finalFeaturesToUse = keepIndices.map(idx => featuresToUse[idx]);
-          finalProcessedData = processedData.map(row => keepIndices.map(idx => row[idx]));
-        }
-      }
-
-      // Step 5: Configure UMAP with radiomics-optimized parameters
-      const optimizedParams = {
-        nComponents: 2,
-        nNeighbors: Math.min(umapParams.nNeighbors, Math.floor(sortedPatientIDs.length / 3)),
-        minDist: umapParams.minDist,
-        spread: umapParams.spread,
-        metric: umapParams.metric || 'euclidean',
-        random_state: useRandomSeed ? umapParams.randomState : Date.now(),
-        // Radiomics-specific optimizations
-        nEpochs: Math.max(200, Math.min(500, sortedPatientIDs.length * 2)), // Adaptive epochs based on dataset size
-        learningRate: 1.0,
-        localConnectivity: 1.0,
-        repulsionStrength: 1.0,
-        negativeSampleRate: 5,
-        transformSeed: useRandomSeed ? umapParams.randomState : Date.now()
-      };
-
-      console.log("Optimized UMAP parameters:", optimizedParams);
-
-      // Step 6: Run UMAP with proper error handling
-      setTimeout(async () => {
-        try {
-          const umap = new UMAP(optimizedParams);
-          const embedding = await umap.fitAsync(finalProcessedData);
-          
-          console.timeEnd("Enhanced UMAP computation");
-          
-          // Step 7: Post-process and enhance results with comprehensive patient analytics
-          // Calculate additional metrics for each patient in the UMAP embedding
-          const enhancedUmapPoints = embedding.map((coords, idx) => {
-            const patient = sortedPatientIDs[idx];
-            const outcome = sortedOutcomes[idx]?.[outcomeField] || 'UNKNOWN';
-            
-            // Calculate feature-based statistics for this patient
-            const patientOriginalFeatures = featuresToUse.map(feature => {
-              const value = feature[patient];
-              return value !== undefined && value !== null ? +value : 0;
-            });
-            
-            // Basic feature statistics
-            const featureMean = patientOriginalFeatures.reduce((a, b) => a + b, 0) / patientOriginalFeatures.length;
-            const featureStd = Math.sqrt(
-              patientOriginalFeatures.reduce((a, b) => a + Math.pow(b - featureMean, 2), 0) / patientOriginalFeatures.length
-            );
-            const featureMax = Math.max(...patientOriginalFeatures);
-            const featureMin = Math.min(...patientOriginalFeatures);
-            const featureRange = featureMax - featureMin;
-            
-            // Enhanced radiomics-specific analytics
-            const medianValues = finalFeaturesToUse.map(feature => featureStatistics[feature.FeatureID].median);
-            const aboveMedianCount = patientOriginalFeatures.filter((val, idx) => val > medianValues[idx]).length;
-            const featureDensity = aboveMedianCount / patientOriginalFeatures.length;
-            
-            // Categorize features by radiomics type for detailed analysis
-            const featureCategories = {};
-            let shapeFeatures = 0, intensityFeatures = 0, textureFeatures = 0, waveletFeatures = 0, logFeatures = 0;
-            
-            finalFeaturesToUse.forEach((feature, featureIdx) => {
-              const featureID = feature.FeatureID.toLowerCase();
-              const value = patientOriginalFeatures[featureIdx];
-              
-              // Categorize features based on common radiomics naming conventions
-              if (featureID.includes('shape') || featureID.includes('morphology')) {
-                shapeFeatures++;
-                featureCategories.shape = (featureCategories.shape || 0) + value;
-              } else if (featureID.includes('firstorder') || featureID.includes('intensity')) {
-                intensityFeatures++;
-                featureCategories.intensity = (featureCategories.intensity || 0) + value;
-              } else if (featureID.includes('glcm') || featureID.includes('glrlm') || featureID.includes('glszm') || 
-                        featureID.includes('gldm') || featureID.includes('ngtdm') || featureID.includes('texture')) {
-                textureFeatures++;
-                featureCategories.texture = (featureCategories.texture || 0) + value;
-              } else if (featureID.includes('wavelet')) {
-                waveletFeatures++;
-                featureCategories.wavelet = (featureCategories.wavelet || 0) + value;
-              } else if (featureID.includes('log') || featureID.includes('laplacian')) {
-                logFeatures++;
-                featureCategories.log = (featureCategories.log || 0) + value;
-              }
-            });
-            
-            // Calculate category averages for tooltip display
-            const avgShape = shapeFeatures > 0 ? featureCategories.shape / shapeFeatures : 0;
-            const avgIntensity = intensityFeatures > 0 ? featureCategories.intensity / intensityFeatures : 0;
-            const avgTexture = textureFeatures > 0 ? featureCategories.texture / textureFeatures : 0;
-            const avgWavelet = waveletFeatures > 0 ? featureCategories.wavelet / waveletFeatures : 0;
-            const avgLog = logFeatures > 0 ? featureCategories.log / logFeatures : 0;
-            
-            // Calculate heterogeneity score (coefficient of variation)
-            const heterogeneityScore = featureMean !== 0 ? (featureStd / Math.abs(featureMean)) : 0;
-            
-            // Find extreme features (outliers) for clinical interpretation
-            const extremeFeatures = [];
-            finalFeaturesToUse.forEach((feature, featureIdx) => {
-              const value = patientOriginalFeatures[featureIdx];
-              const stats = featureStatistics[feature.FeatureID];
-              const zScore = stats.std > 0 ? Math.abs((value - stats.mean) / stats.std) : 0;
-              if (zScore > 2.5) {  // More than 2.5 standard deviations from mean
-                extremeFeatures.push({
-                  name: feature.FeatureID.split('_').slice(-1)[0],
-                  zScore: zScore.toFixed(2),
-                  value: value.toFixed(3)
-                });
-              }
-            });
-            
-            // Sort extreme features by z-score for display
-            extremeFeatures.sort((a, b) => parseFloat(b.zScore) - parseFloat(a.zScore));
-            const topExtremeFeatures = extremeFeatures.slice(0, 3);
-            
-            // Calculate distance from embedding centroid for spatial analysis
-            const centroidX = embedding.reduce((sum, point) => sum + point[0], 0) / embedding.length;
-            const centroidY = embedding.reduce((sum, point) => sum + point[1], 0) / embedding.length;
-            const distanceFromCenter = Math.sqrt(Math.pow(coords[0] - centroidX, 2) + Math.pow(coords[1] - centroidY, 2));
-            
-            return {
-              x: coords[0],
-              y: coords[1],
-              name: patient,
-              className: outcome,
-              featureMean,
-              featureStd,
-              featureMax,
-              featureMin,
-              featureRange,
-              featureDensity,
-              numFeatures: finalFeaturesToUse.length,
-              preprocessing: preprocessingMethod,
-              correlationFiltered: featuresToUse.length !== finalFeaturesToUse.length,
-              
-              // Enhanced radiomics analytics for tooltip
-              heterogeneityScore,
-              distanceFromCenter,
-              
-              // Feature category statistics
-              shapeFeatures,
-              intensityFeatures,
-              textureFeatures,
-              waveletFeatures,
-              logFeatures,
-              avgShape,
-              avgIntensity,
-              avgTexture,
-              avgWavelet,
-              avgLog,
-              
-              // Extreme features for clinical interpretation
-              topExtremeFeatures,
-              extremeFeatureCount: extremeFeatures.length
-            };
-          });
-
-          // Step 8: Calculate quality metrics for the analysis
-          const qualityMetrics = {
-            finalFeatureCount: finalFeaturesToUse.length,
-            originalFeatureCount: featuresToUse.length,
-            correlationFiltered: featuresToUse.length - finalFeaturesToUse.length,
-            dimensionalityRatio: finalFeaturesToUse.length / sortedPatientIDs.length,
-            preprocessing: preprocessingMethod,
-            umapParams: optimizedParams
-          };
-
-          console.log("UMAP Analysis Complete:");
-          console.log("- Quality metrics:", qualityMetrics);
-          console.log(`- Final dataset: ${sortedPatientIDs.length} patients × ${finalFeaturesToUse.length} features`);
-
-          setUmapData(enhancedUmapPoints);
-          setIsComputingUmap(false);
-          
-        } catch (error) {
-          console.error('Enhanced UMAP computation failed:', error);
-          setUmapError(`UMAP computation failed: ${error.message}`);
-          setIsComputingUmap(false);
-        }
-      }, 100);
-
-    } catch (error) {
-      console.error('Enhanced UMAP setup failed:', error);
-      setUmapError(`UMAP setup failed: ${error.message}`);
-      setIsComputingUmap(false);
-    }
-  }, [
-    filteredFeatures, 
-    sortedPatientIDs, 
-    sortedOutcomes, 
-    outcomeField, 
-    selectedUmapFeatures, 
-    umapParams, 
-    useRandomSeed
-  ]);// Alias the enhanced functions for compatibility with existing code
-  const computeUMAP = computeEnhancedRadiomicsUMAP;
-  const UmapFeatureSelection = EnhancedRadiomicsUMAPConfiguration;
-
-  // Auto-trigger UMAP computation when switching to UMAP mode
-  useEffect(() => {
-    if (
-      visualizationMode === VISUALIZATION_MODES.UMAP &&
-      filteredFeatures.length > 0 &&
-      sortedPatientIDs.length > 0
-    ) {
-      computeUMAP();
-    }
-  }, [visualizationMode, filteredFeatures, sortedPatientIDs, computeUMAP]);
 
   // Toggle patients modals
+
+            // if your labels are strings “0”/“1”, convert; if numbers already, just return  // Toggle patients modals
   const toggleTrainingPatientsOpen = () => {
     setTrainingPatientsOpen((o) => !o);
   };
@@ -1364,10 +409,7 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
   };
 
   const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
-    console.log(
-      'Listing out clinincal feature definition in formatClinicalFeaturesTree'
-    );
-    console.log(clinicalFeaturesDefinitions);
+   
     return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
       acc[clinicalFeaturesDefinitions[curr]['name']] = {
         id: clinicalFeaturesDefinitions[curr]['name'],
@@ -1542,8 +584,7 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
 
-    console.log('selected in');
-    console.log(selected);
+   
 
     return new Set(
       Object.keys(leafItems)
@@ -1791,626 +832,7 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
       sortedPatientIDs,
       rankFeatures,
     ]
-  );  // Enhanced Scientific UMAP Visualization Options
-  // This creates a sophisticated Highcharts configuration for UMAP scatter plots
-  // with multiple color schemes, interactive tooltips, and scientific styling
-  const enhancedRadiomicsUMAPOptions = useMemo(() => {
-    if (!umapData || umapData.length === 0) return {};
-
-    // Determine which features are being used for the current analysis
-    const featuresToUse = selectedUmapFeatures.length > 0 
-      ? filteredFeatures.filter(f => selectedUmapFeatures.includes(f.FeatureID))
-      : filteredFeatures;
-
-    // Enhanced color schemes for scientific visualization
-    // Each scheme provides different insights into the radiomics data
-    const colorSchemes = {
-      feature_density: {
-        title: 'Feature Density Profile',
-        getValue: (point) => point.featureDensity,
-        colorAxis: {
-          minColor: '#2c3e50',  // Dark blue-gray for low density
-          maxColor: '#e74c3c',  // Bright red for high density
-          stops: [
-            [0, '#2c3e50'],     // Low density - dark
-            [0.25, '#3498db'],  // Low-medium - blue
-            [0.5, '#f39c12'],   // Medium - orange
-            [0.75, '#e67e22'],  // Medium-high - dark orange
-            [1, '#e74c3c']      // High density - red
-          ]
-        },
-        description: 'Shows the proportion of above-median radiomics features per patient'
-      },
-      feature_mean: {
-        title: 'Mean Feature Intensity',
-        getValue: (point) => point.featureMean,
-        colorAxis: {
-          minColor: '#16a085',  // Teal for low intensity
-          maxColor: '#8e44ad',  // Purple for high intensity
-          stops: [
-            [0, '#16a085'],
-            [0.5, '#f1c40f'],
-            [1, '#8e44ad']
-          ]
-        },
-        description: 'Average intensity across selected radiomics features'
-      },
-      feature_variance: {
-        title: 'Feature Heterogeneity',
-        getValue: (point) => point.featureStd,
-        colorAxis: {
-          minColor: '#27ae60',  // Green for homogeneous tissue
-          maxColor: '#c0392b',  // Dark red for heterogeneous tissue
-          stops: [
-            [0, '#27ae60'],     // Low variance - green (homogeneous)
-            [0.5, '#f39c12'],   // Medium variance - orange
-            [1, '#c0392b']      // High variance - red (heterogeneous)
-          ]
-        },
-        description: 'Standard deviation of radiomics features (tissue heterogeneity)'
-      },
-      outcome: {
-        title: 'Clinical Outcome',
-        getValue: (point) => point.className,
-        colorAxis: null,
-        // Discrete colors for clinical outcomes (fixed: positive=green, negative=red)
-        discreteColors: {
-          '0': { color: '#e74c3c', name: 'Negative Outcome' },  // Red for negative
-          '1': { color: '#28a745', name: 'Positive Outcome' },  // Green for positive
-          'UNKNOWN': { color: '#95a5a6', name: 'Unknown' }
-        },
-        description: 'Clinical outcome or class assignment'
-      },
-      cluster: {
-        title: 'Automated Clustering',
-        getValue: (point) => {
-          // Simple k-means-like clustering based on angular position
-          const angle = Math.atan2(point.y, point.x);
-          return Math.floor((angle + Math.PI) / (2 * Math.PI / 4)) % 4; // 4 clusters
-        },
-        colorAxis: null,
-        discreteColors: {
-          0: { color: '#e74c3c', name: 'Cluster 1' },
-          1: { color: '#3498db', name: 'Cluster 2' },
-          2: { color: '#2ecc71', name: 'Cluster 3' },
-          3: { color: '#f39c12', name: 'Cluster 4' }
-        },
-        description: 'Automatically identified patient clusters'
-      }
-    };
-
-    const currentScheme = colorSchemes[umapColorBy] || colorSchemes.feature_density;
-    
-    // Prepare series data based on color scheme type
-    let series = [];
-    
-    if (currentScheme.discreteColors) {
-      // Discrete coloring (outcome, cluster) - create separate series for each category
-      const groupedData = {};
-      
-      umapData.forEach(point => {
-        const colorValue = currentScheme.getValue(point);
-        const key = String(colorValue);
-        if (!groupedData[key]) {
-          groupedData[key] = [];
-        }
-        groupedData[key].push({
-          ...point,
-          colorValue: colorValue
-        });
-      });
-      
-      // Create a series for each discrete category
-      series = Object.entries(groupedData).map(([key, points]) => {
-        const colorInfo = currentScheme.discreteColors[key] || currentScheme.discreteColors.UNKNOWN || { color: '#95a5a6', name: 'Other' };
-        return {
-          name: colorInfo.name,
-          data: points.map(point => ({
-            // Basic UMAP coordinates
-            x: point.x || 0,
-            y: point.y || 0,
-            name: point.name || 'Unknown',
-            className: point.className || 'UNKNOWN',
-            
-            // Feature statistics for tooltip
-            featureMean: point.featureMean || 0,
-            featureStd: point.featureStd || 0,
-            featureMax: point.featureMax || 0,
-            featureMin: point.featureMin || 0,
-            featureRange: point.featureRange || 0,
-            featureDensity: point.featureDensity || 0,
-            numFeatures: point.numFeatures || 0,
-            heterogeneityScore: point.heterogeneityScore || 0,
-            distanceFromCenter: point.distanceFromCenter || 0,
-            
-            // Radiomics category breakdown
-            shapeFeatures: point.shapeFeatures || 0,
-            intensityFeatures: point.intensityFeatures || 0,
-            textureFeatures: point.textureFeatures || 0,
-            waveletFeatures: point.waveletFeatures || 0,
-            logFeatures: point.logFeatures || 0,
-            avgShape: point.avgShape || 0,
-            avgIntensity: point.avgIntensity || 0,
-            avgTexture: point.avgTexture || 0,
-            avgWavelet: point.avgWavelet || 0,
-            avgLog: point.avgLog || 0,
-            
-            // Outlier analysis
-            topExtremeFeatures: point.topExtremeFeatures || [],
-            extremeFeatureCount: point.extremeFeatureCount || 0,
-            
-            // Technical metadata
-            preprocessing: point.preprocessing || 'standard',
-            correlationFiltered: point.correlationFiltered || false,
-            colorValue: point.colorValue
-          })),
-          color: colorInfo.color,
-          marker: {
-            symbol: 'circle',
-            radius: 7,
-            lineWidth: 2,
-            lineColor: '#ffffff',
-            fillOpacity: 0.8,
-            states: {
-              hover: {
-                radius: 9,
-                lineWidth: 3,
-                lineColor: '#000000'
-              }
-            }
-          }
-        };
-      });
-    } else {
-      // Continuous coloring (feature_density, feature_mean, feature_variance) - single series with color axis
-      series = [{
-        name: 'Patients',
-        data: umapData.map(point => ({
-          // Basic UMAP coordinates
-          x: point.x || 0,
-          y: point.y || 0,
-          name: point.name || 'Unknown',
-          className: point.className || 'UNKNOWN',
-          
-          // Feature statistics for tooltip
-          featureMean: point.featureMean || 0,
-          featureStd: point.featureStd || 0,
-          featureMax: point.featureMax || 0,
-          featureMin: point.featureMin || 0,
-          featureRange: point.featureRange || 0,
-          featureDensity: point.featureDensity || 0,
-          numFeatures: point.numFeatures || 0,
-          heterogeneityScore: point.heterogeneityScore || 0,
-          distanceFromCenter: point.distanceFromCenter || 0,
-          
-          // Radiomics category breakdown
-          shapeFeatures: point.shapeFeatures || 0,
-          intensityFeatures: point.intensityFeatures || 0,
-          textureFeatures: point.textureFeatures || 0,
-          waveletFeatures: point.waveletFeatures || 0,
-          logFeatures: point.logFeatures || 0,
-          avgShape: point.avgShape || 0,
-          avgIntensity: point.avgIntensity || 0,
-          avgTexture: point.avgTexture || 0,
-          avgWavelet: point.avgWavelet || 0,
-          avgLog: point.avgLog || 0,
-          
-          // Outlier analysis
-          topExtremeFeatures: point.topExtremeFeatures || [],
-          extremeFeatureCount: point.extremeFeatureCount || 0,
-          
-          // Technical metadata
-          preprocessing: point.preprocessing || 'standard',
-          correlationFiltered: point.correlationFiltered || false,
-          colorValue: currentScheme.getValue(point)
-        })),
-        marker: {
-          symbol: 'circle',
-          radius: 7,
-          lineWidth: 2,
-          lineColor: '#ffffff',
-          fillOpacity: 0.8,
-          states: {
-            hover: {
-              radius: 9,
-              lineWidth: 3,
-              lineColor: '#000000'
-            }
-          }
-        }
-      }];
-    }
-
-    // Enhanced chart configuration with scientific styling
-    const chartOptions = _.merge({}, COMMON_CHART_OPTIONS, {
-      chart: {
-        type: 'scatter',
-        height: 700,
-        zoomType: 'xy',
-        backgroundColor: '#fdfdfd',
-        style: {
-          fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        },
-        events: {
-          load: function() {
-            // Add custom annotations or analysis results when chart loads
-            if (umapData.length > 0) {
-              const xExtent = [Math.min(...umapData.map(p => p.x)), Math.max(...umapData.map(p => p.x))];
-              const yExtent = [Math.min(...umapData.map(p => p.y)), Math.max(...umapData.map(p => p.y))];
-              
-              // Could add convex hulls, density contours, etc. in future
-              console.log('UMAP embedding extents:', { x: xExtent, y: yExtent });
-            }
-          }
-        }
-      },
-      
-      title: {
-        text: `Radiomics UMAP Analysis: ${currentScheme.title}`,
-        style: {
-          fontSize: '20px',
-          fontWeight: '600',
-          color: '#2c3e50'
-        }
-      },
-      
-      subtitle: {
-        text: `${featuresToUse.length} radiomics features • ${umapData.length} patients • ${currentScheme.description}`,
-        style: {
-          fontSize: '14px',
-          color: '#7f8c8d',
-          fontStyle: 'italic'
-        }
-      },
-        xAxis: {
-        title: {
-          text: 'UMAP Dimension 1',
-          style: { 
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#34495e'
-          }
-        },
-        labels: {
-          enabled: true,  // Explicitly enable axis labels
-          style: { 
-            color: '#7f8c8d',
-            fontSize: '11px'
-          },
-          formatter: function() {
-            return this.value.toFixed(1);  // Show decimal values
-          }
-        },
-        gridLineWidth: 1,
-        gridLineColor: '#ecf0f1',
-        lineWidth: 1,  // Show axis line
-        lineColor: '#bdc3c7',
-        tickWidth: 1,  // Show tick marks
-        tickLength: 6,
-        tickColor: '#bdc3c7',
-        minorTickInterval: 'auto',  // Add minor ticks
-        minorTickLength: 3,
-        minorTickWidth: 1,
-        minorTickColor: '#ecf0f1'
-      },
-      
-      yAxis: {
-        title: {
-          text: 'UMAP Dimension 2',
-          style: { 
-            fontSize: '14px',
-            fontWeight: '500',
-            color: '#34495e'
-          }
-        },
-        labels: {
-          enabled: true,  // Explicitly enable axis labels
-          style: { 
-            color: '#7f8c8d',
-            fontSize: '11px'
-          },
-          formatter: function() {
-            return this.value.toFixed(1);  // Show decimal values
-          }
-        },
-        gridLineWidth: 1,
-        gridLineColor: '#ecf0f1',
-        lineWidth: 1,  // Show axis line
-        lineColor: '#bdc3c7',
-        tickWidth: 1,  // Show tick marks
-        tickLength: 6,
-        tickColor: '#bdc3c7',
-        minorTickInterval: 'auto',  // Add minor ticks
-        minorTickLength: 3,
-        minorTickWidth: 1,
-        minorTickColor: '#ecf0f1',
-        reversed: false  // Override the reversed: true from COMMON_CHART_OPTIONS
-      },
-      
-      legend: {
-        layout: 'vertical',
-        align: 'right',
-        verticalAlign: 'top',
-        borderWidth: 0,
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        shadow: true,
-        borderRadius: 8,
-        padding: 15,
-        margin: 20,
-        itemStyle: {
-          fontSize: '13px',
-          fontWeight: '500',
-          color: '#2c3e50'
-        },
-        itemHoverStyle: {
-          color: '#e74c3c'
-        }
-      },
-      
-      plotOptions: {
-        scatter: {
-          marker: {
-            radius: 7,
-            lineWidth: 2,
-            lineColor: '#ffffff',
-            fillOpacity: 0.8,
-            states: {
-              hover: {
-                enabled: true,
-                lineColor: '#000000',
-                lineWidth: 3,
-                radius: 9,
-                brightness: 0.1
-              },
-              select: {
-                lineColor: '#000000',
-                lineWidth: 3,
-                radius: 9
-              }
-            }
-          },
-          states: {
-            hover: {
-              enabled: true,
-              brightness: 0.1
-            }
-          },
-          allowPointSelect: true,
-          cursor: 'pointer',
-          point: {
-            events: {
-              click: function() {
-                // Could implement point selection for detailed analysis
-                console.log('Selected patient:', this.options.name);
-              }
-            }
-          }
-        }
-      },
-      
-      // Enhanced tooltip with comprehensive radiomics information
-      tooltip: {
-        useHTML: true,
-        backgroundColor: 'rgba(255,255,255,0.98)',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 12,
-        shadow: {
-          color: 'rgba(0,0,0,0.1)',
-          offsetX: 2,
-          offsetY: 2,
-          opacity: 0.3,
-          width: 3
-        },
-        style: {
-          fontSize: '13px',
-          padding: '16px',
-          maxWidth: '420px'
-        },
-        formatter: function() {
-          const point = this.point;
-          
-          // Safe access helper functions to prevent errors with missing data
-          const safeGet = (value, defaultValue = 0) => {
-            return (value !== undefined && value !== null && !isNaN(value)) ? value : defaultValue;
-          };
-          
-          const safeToFixed = (value, decimals = 2, defaultValue = 0) => {
-            const val = safeGet(value, defaultValue);
-            return val.toFixed(decimals);
-          };
-          
-          // Build comprehensive HTML tooltip with patient radiomics analytics
-          let html = `
-            <div style="font-weight: 700; font-size: 16px; color: #2c3e50; margin-bottom: 12px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px;">
-              <span style="color: ${point.color || '#666'}; font-size: 18px;">●</span> Patient ${point.name || 'Unknown'}
-              <span style="float: right; font-size: 13px; color: #7f8c8d; font-weight: 500;">
-                ${point.className === "0" ? "Negative" : point.className === "1" ? "Positive" : "Unknown"}
-              </span>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-              <!-- Clinical & Position Info -->
-              <div style="background: #f8f9fa; padding: 8px; border-radius: 6px;">
-                <div style="font-weight: 600; color: #495057; margin-bottom: 6px; font-size: 12px;">📍 POSITION & OUTCOME</div>
-                <div style="font-size: 11px; line-height: 1.4;">
-                  <div><strong>UMAP:</strong> (${safeToFixed(point.x, 2)}, ${safeToFixed(point.y, 2)})</div>
-                  <div><strong>Distance:</strong> ${safeToFixed(point.distanceFromCenter, 2)}</div>
-                  <div><strong>Outcome:</strong> <span style="color: ${point.className === '0' ? '#dc3545' : point.className === '1' ? '#28a745' : '#6c757d'};">${point.className === "0" ? "Negative" : point.className === "1" ? "Positive" : "Unknown"}</span></div>
-                </div>
-              </div>
-              
-              <!-- Feature Summary -->
-              <div style="background: #e3f2fd; padding: 8px; border-radius: 6px;">
-                <div style="font-weight: 600; color: #1565c0; margin-bottom: 6px; font-size: 12px;">🔢 FEATURE SUMMARY</div>
-                <div style="font-size: 11px; line-height: 1.4;">
-                  <div><strong>Count:</strong> ${safeGet(point.numFeatures, 0)} features</div>
-                  <div><strong>Mean:</strong> ${safeToFixed(point.featureMean, 3)}</div>
-                  <div><strong>Heterogeneity:</strong> ${safeToFixed(point.heterogeneityScore, 3)}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Radiomics Categories Breakdown -->
-            <div style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
-              <div style="font-weight: 600; color: #388e3c; margin-bottom: 8px; font-size: 13px;">🏗️ RADIOMICS CATEGORIES</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 11px;">
-          `;
-          
-          // Add radiomics feature categories if they exist
-          if (safeGet(point.shapeFeatures, 0) > 0) {
-            html += `
-              <div style="text-align: center; padding: 4px; background: rgba(76, 175, 80, 0.1); border-radius: 4px;">
-                <div style="font-weight: 600; color: #388e3c;">Shape</div>
-                <div>${safeGet(point.shapeFeatures, 0)} feat</div>
-                <div>Avg: ${safeToFixed(point.avgShape, 2)}</div>
-              </div>
-            `;
-          }
-          
-          if (safeGet(point.intensityFeatures, 0) > 0) {
-            html += `
-              <div style="text-align: center; padding: 4px; background: rgba(33, 150, 243, 0.1); border-radius: 4px;">
-                <div style="font-weight: 600; color: #1976d2;">Intensity</div>
-                <div>${safeGet(point.intensityFeatures, 0)} feat</div>
-                <div>Avg: ${safeToFixed(point.avgIntensity, 2)}</div>
-              </div>
-            `;
-          }
-          
-          if (safeGet(point.textureFeatures, 0) > 0) {
-            html += `
-              <div style="text-align: center; padding: 4px; background: rgba(255, 152, 0, 0.1); border-radius: 4px;">
-                <div style="font-weight: 600; color: #f57c00;">Texture</div>
-                <div>${safeGet(point.textureFeatures, 0)} feat</div>
-                <div>Avg: ${safeToFixed(point.avgTexture, 2)}</div>
-              </div>
-            `;
-          }
-          
-          if (safeGet(point.waveletFeatures, 0) > 0) {
-            html += `
-              <div style="text-align: center; padding: 4px; background: rgba(156, 39, 176, 0.1); border-radius: 4px;">
-                <div style="font-weight: 600; color: #7b1fa2;">Wavelet</div>
-                <div>${safeGet(point.waveletFeatures, 0)} feat</div>
-                <div>Avg: ${safeToFixed(point.avgWavelet, 2)}</div>
-              </div>
-            `;
-          }
-          
-          if (safeGet(point.logFeatures, 0) > 0) {
-            html += `
-              <div style="text-align: center; padding: 4px; background: rgba(96, 125, 139, 0.1); border-radius: 4px;">
-                <div style="font-weight: 600; color: #455a64;">LoG</div>
-                <div>${safeGet(point.logFeatures, 0)} feat</div>
-                <div>Avg: ${safeToFixed(point.avgLog, 2)}</div>
-              </div>
-            `;
-          }
-          
-          html += `
-              </div>
-            </div>
-
-            <!-- Statistical Insights -->
-            <div style="background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 12px;">
-              <div style="font-weight: 600; color: #f57c00; margin-bottom: 8px; font-size: 13px;">📊 STATISTICAL INSIGHTS</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
-                <div>
-                  <div><strong>Range:</strong> ${safeToFixed(point.featureRange, 3)}</div>
-                  <div><strong>Std Dev:</strong> ${safeToFixed(point.featureStd, 3)}</div>
-                </div>
-                <div>
-                  <div><strong>Max Value:</strong> ${safeToFixed(point.featureMax, 3)}</div>
-                  <div><strong>Min Value:</strong> ${safeToFixed(point.featureMin, 3)}</div>
-                </div>
-              </div>
-              <div style="margin-top: 6px;">
-                <div><strong>Feature Density:</strong> ${safeToFixed(point.featureDensity * 100, 1)}% above median</div>
-                ${safeGet(point.extremeFeatureCount, 0) > 0 ? `<div><strong>Outlier Features:</strong> ${safeGet(point.extremeFeatureCount, 0)} (z-score > 2.5)</div>` : ''}
-              </div>
-            </div>
-          `;
-          
-          // Add extreme features section if outliers are found
-          if (point.topExtremeFeatures && Array.isArray(point.topExtremeFeatures) && point.topExtremeFeatures.length > 0) {
-            html += `
-              <div style="background: #ffebee; padding: 10px; border-radius: 8px; margin-bottom: 8px;">
-                <div style="font-weight: 600; color: #d32f2f; margin-bottom: 6px; font-size: 12px;">⚠️ TOP OUTLIER FEATURES</div>
-                <div style="font-size: 10px; line-height: 1.3;">
-            `;
-            
-            // Display top 3 extreme features with their z-scores
-            point.topExtremeFeatures.forEach(f => {
-              if (f && f.name && f.value && f.zScore) {
-                html += `
-                  <div style="margin: 2px 0; padding: 2px 4px; background: rgba(244, 67, 54, 0.1); border-radius: 3px;">
-                    <strong>${f.name}:</strong> ${f.value} (z=${f.zScore})
-                  </div>
-                `;
-              }
-            });
-            
-            html += `
-                </div>
-              </div>
-            `;
-          }
-          
-          // Add technical details about preprocessing
-          html += `
-            <div style="background: #f5f5f5; padding: 8px; border-radius: 6px; font-size: 10px; color: #666;">
-              <div style="font-weight: 600; margin-bottom: 4px;">Technical Details:</div>
-              <div>Preprocessing: ${point.preprocessing || 'standard'} scaling</div>
-              ${point.correlationFiltered ? '<div>Correlation filtering applied</div>' : ''}
-            </div>
-          `;
-          
-          return html;
-        }
-      },
-      
-      credits: {
-        enabled: true,
-        text: 'Radiomics UMAP Analysis',
-        style: {
-          color: '#95a5a6',
-          fontSize: '11px'
-        }
-      },
-      
-      series: series
-    });
-
-    // Add color axis for continuous coloring schemes
-    if (currentScheme.colorAxis) {
-      chartOptions.colorAxis = {
-        ...currentScheme.colorAxis,
-        startOnTick: false,
-        endOnTick: false,
-        labels: {
-          style: {
-            color: '#7f8c8d',
-            fontSize: '11px'
-          }
-        },
-        title: {
-          text: currentScheme.title,
-          style: {
-            color: '#34495e',
-            fontSize: '12px',
-            fontWeight: '500'
-          }
-        }
-      };
-    }
-
-    return chartOptions;
-  }, [umapData, selectedUmapFeatures, filteredFeatures, umapColorBy]);
-
-  // Alias for compatibility with existing code
-  const highchartsOptionsUMAP = enhancedRadiomicsUMAPOptions;
-
+  );
 
   // Define the Highcharts options dynamically (classification outcomes)
   const highchartsOptionsOutcome = useMemo(() => {
@@ -2711,14 +1133,24 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
   }
 
   return (
-    <div className="Visualisation">
+    <div className="Visualisation position-relative">
+      {/* Contextual Help Button */}
+      <button
+        type="button"
+        className="btn btn-link position-absolute"
+        style={{ top: 10, right: 18, zIndex: 10, fontSize: 22, color: '#007bff' }}
+        aria-label="Help"
+        onClick={toggleHelpModal}
+      >
+        <FontAwesomeIcon icon="question-circle" />
+      </button>
       {/* TODO - Would be better NOT to use a table here*/}
-      <table className="visualization-table">
+      <table className="visualization-table" style={{ marginTop: 16, marginBottom: 24 }}>
         <tbody>
           <tr>
-            <td className="filter-data">
-              <div>
-                <h6>Filter Features (Lines)</h6>
+            <td className="filter-data" style={{ borderRight: '1px solid #e0e0e0', paddingRight: 24, minWidth: 320 }}>
+              <div style={{ marginBottom: 24 }}>
+                <h6 style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12 }}>Filter Features (Lines)</h6>
                 {active && (
                   <>
                     <FilterTree
@@ -2730,13 +1162,14 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
                       selected={selected}
                       setSelected={setSelected}
                       disabled={isRecomputingChart}
+                      // ...removed info icon and feature definition modal trigger...
                     />
                     {selectedFeaturesHistory.length > 1 && (
                       <UndoButton handleClick={handleUndo} />
                     )}
                   </>
                 )}
-                <h6 className="mt-2">Show Patients</h6>
+                <h6 className="mt-2" style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12, marginTop: 24 }}>Show Patients</h6>
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
@@ -2781,7 +1214,7 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
                 )}
               </div>
             </td>
-            <td className="chart-cell">
+            <td className="chart-cell" style={{ paddingLeft: 32, verticalAlign: 'top' }}>
               {hasPendingChanges &&
                 selectedFeatureIDs &&
                 collectionInfos?.collection &&
@@ -2824,35 +1257,37 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
                 <>
                   {/* Visualization mode toggle */}
                   <div className="d-flex justify-content-center mb-3">
-                    <ButtonGroup>
-                      <Button
-                        color={
-                          visualizationMode === VISUALIZATION_MODES.HEATMAP
-                            ? 'primary'
-                            : 'secondary'
-                        }
-                        onClick={() =>
-                          setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
-                        }
+                    <div className="btn-group" role="group" aria-label="Visualization mode toggle" style={{ width: 320, margin: '0 auto' }}>
+                      <button
+                        type="button"
+                        className={`btn ${visualizationMode === VISUALIZATION_MODES.HEATMAP ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setVisualizationMode(VISUALIZATION_MODES.HEATMAP)}
+                        aria-pressed={visualizationMode === VISUALIZATION_MODES.HEATMAP}
+                        style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="Heatmap: Visualizes feature values for all patients as a color-coded matrix. Rows are features, columns are patients. Useful for spotting patterns, outliers, and feature distributions."
                       >
-                        <FontAwesomeIcon icon="th" /> Heatmap
-                      </Button>
-                      <Button
-                        color={
-                          visualizationMode === VISUALIZATION_MODES.UMAP
-                            ? 'primary'
-                            : 'secondary'
-                        }
-                        onClick={() =>
-                          setVisualizationMode(VISUALIZATION_MODES.UMAP)
-                        }
+                        <FontAwesomeIcon icon="th" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 1 : 0.7 }} />
+                        Heatmap
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn ${visualizationMode === VISUALIZATION_MODES.UMAP ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setVisualizationMode(VISUALIZATION_MODES.UMAP)}
+                        aria-pressed={visualizationMode === VISUALIZATION_MODES.UMAP}
+                        style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.UMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        data-toggle="tooltip"
+                        data-placement="top"
+                        title="UMAP: Projects patients into 2D space based on feature similarity. Each point is a patient; similar patients cluster together. Useful for visualizing patient groups and outliers."
                       >
-                        <FontAwesomeIcon icon="chart-scatter" /> UMAP
-                      </Button>
-                    </ButtonGroup>
+                        <FontAwesomeIcon icon="chart-scatter" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.UMAP ? 1 : 0.7 }} />
+                        UMAP
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', marginBottom: 24, marginTop: 8 }}>
                     {(isRecomputingChart || isComputingUmap) && (
                       <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
                         <FontAwesomeIcon
@@ -2895,28 +1330,21 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
                               </ErrorBoundary>
                             </div>
                           )}
-                      </>
-                    ) : (                      <div>
-                        <UmapFeatureSelection 
-                          filteredFeatures={filteredFeatures}
-                          selectedUmapFeatures={selectedUmapFeatures}
-                          setSelectedUmapFeatures={setSelectedUmapFeatures}
-                          sortedPatientIDs={sortedPatientIDs}
-                        />
-                        <ErrorBoundary>
-                          <HighchartsReact
-                            highcharts={Highcharts}
-                            options={highchartsOptionsUMAP}
-                            ref={umapChartRef}
-                          />
-                        </ErrorBoundary>
-                      </div>
+                      </>                    ) : (
+                      <UMAPAnalysis
+                        filteredFeatures={filteredFeatures}
+                        sortedPatientIDs={sortedPatientIDs}
+                        sortedOutcomes={sortedOutcomes}
+                        outcomeField={outcomeField}
+                        isComputingUmap={isComputingUmap}
+                        setIsComputingUmap={setIsComputingUmap}
+                      />
                     )}
                   </div>
 
                   {/* Show the feature values explanation only for heatmap */}
                   {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
-                    <div>
+                    <div style={{ marginTop: 12, marginBottom: 12 }}>
                       <small>
                         * Feature values are standardized and the scale is
                         clipped to [-2, 2]. Extreme values appear either in 100%
@@ -2926,7 +1354,56 @@ const [umapColorBy, setUmapColorBy] = useState('mean');
                   )}
 
                   {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
-                  <div className="d-flex justify-content-around">
+                  <div className="d-flex justify-content-around" style={{ marginTop: 24 }}>
+      {/* Help Modal */}
+      <Modal isOpen={helpModalOpen} toggle={toggleHelpModal} size="lg">
+        <ModalHeader toggle={toggleHelpModal}>Help & Documentation</ModalHeader>
+        <ModalBody>
+          <h5 className="mb-3">How to Use This Page</h5>
+          <ul>
+            <li><strong>Visualization Mode:</strong> Use the <span className="badge badge-primary">Heatmap</span> / <span className="badge badge-primary">UMAP</span> toggle above the chart to switch between feature heatmap and patient clustering views. The active mode is highlighted in blue.</li>
+            <li><strong>Feature Selection:</strong> Select features using the tree on the left. You can select/deselect entire groups or individual features. The number of selected features is shown when creating or updating a collection.</li>
+            <li><strong>Show Patients:</strong> View training and test patient IDs using the "Show Patient IDs" buttons.</li>
+            <li><strong>Undo:</strong> Use the Undo button to revert your last feature selection change.</li>
+          </ul>
+
+          <h5 className="mt-4 mb-2">Visualization Modes Explained</h5>
+          <ul>
+            <li>
+              <span className="badge badge-primary mr-2">Heatmap</span>
+              <strong>Feature Heatmap:</strong> Visualizes feature values for all patients as a color-coded matrix. Each row is a feature, each column is a patient. This mode helps you spot patterns, outliers, and feature distributions across the cohort. Hovering over a cell shows details for that patient-feature pair.
+            </li>
+            <li className="mt-2">
+              <span className="badge badge-primary mr-2">UMAP</span>
+              <strong>UMAP Projection:</strong> Projects patients into a 2D space based on feature similarity using the UMAP algorithm. Each point represents a patient; patients with similar feature profiles cluster together. This mode is useful for visualizing patient groups, outliers, and overall data structure.
+              <div className="mt-2 ml-3">
+                <strong>Understanding UMAP Axes:</strong>
+                <ul className="mt-1">
+                  <li><strong>UMAP 1 & UMAP 2:</strong> These are the two principal dimensions that capture the most important variation in your radiomics features. They don't have direct physical meaning but represent mathematical combinations of your original features.</li>
+                  <li><strong>Interpretation:</strong> Patients that are close together have similar feature profiles, while patients far apart have different radiomics characteristics. The absolute position matters less than the relative distances between points.</li>
+                  <li><strong>Clustering:</strong> Look for natural groupings of patients - these may correspond to different disease subtypes, treatment responses, or other clinically relevant patterns.</li>
+                </ul>
+                <p className="mt-2 mb-0">
+                  <strong>Learn more:</strong> For detailed information about UMAP methodology, visit the <a href="https://umap-learn.readthedocs.io/en/latest/how_umap_works.html" target="_blank" rel="noopener noreferrer">official UMAP documentation</a> or read the original paper: <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">McInnes et al. (2018)</a>.
+                </p>
+              </div>
+            </li>
+          </ul>
+
+          <h5 className="mt-4 mb-2">Radiomics Standards & Feature Definitions</h5>
+          <p>
+            This tool follows IBSI (Image Biomarker Standardisation Initiative) nomenclature for feature definitions when possible. Feature names are standardized, and clinical features are listed separately. For more, see the <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI documentation</a>.
+          </p>
+          <h5 className="mt-4 mb-2">Troubleshooting & Tips</h5>
+          <ul>
+            <li>If a chart fails to load, check your feature selection and try reducing the number of features. The maximum number of values for visualization is limited for performance.</li>
+            <li>Look for error messages below the chart or in alert banners. If a computation fails, try again or contact support with the error details.</li>
+            <li>Hover over icons <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> for additional explanations and tooltips throughout the page. The Heatmap/UMAP toggle buttons also have tooltips for quick explanations.</li>
+          </ul>
+        </ModalBody>
+      </Modal>
+
+      {/* ...removed feature definition modal... */}
                     <FeatureSelection
                       allFeatures={featuresChart}
                       modelType={selectedLabelCategory?.label_type}

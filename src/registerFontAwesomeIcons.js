@@ -18,6 +18,10 @@ import {
   faCheckDouble,
   faCheckCircle,
   faChartBar,
+  faBullseye,
+  faCrosshairs,
+  faShieldAlt,
+  faChartLine,
   faComment,
   faGraduationCap,
   faPlus,
@@ -55,6 +59,10 @@ import {
   faFileImport,
   faFileUpload,
   faFileExport,
+  faChartArea,
+  faFilter,
+  faTachometerAlt,
+  faUsers,
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function registerIcons() {
@@ -75,8 +83,11 @@ export default function registerIcons() {
   library.add(faInfoCircle);
   library.add(faCheck);
   library.add(faCheckDouble);
-  library.add(faCheckCircle);
-  library.add(faChartBar);
+  library.add(faCheckCircle);  library.add(faChartBar);
+  library.add(faBullseye);
+  library.add(faCrosshairs);
+  library.add(faShieldAlt);
+  library.add(faChartLine);
   library.add(faGraduationCap);
   library.add(faPlus);
   library.add(faPlusCircle);
@@ -114,4 +125,8 @@ export default function registerIcons() {
   library.add(faFileImport);
   library.add(faFileUpload);
   library.add(faFileExport);
+  library.add(faChartArea);
+  library.add(faFilter);
+  library.add(faTachometerAlt);
+  library.add(faUsers);
 }
