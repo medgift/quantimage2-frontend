@@ -20,21 +20,12 @@ const TrainingQueue = ({
     );
   }
 
-  // Check if there are already trained models for the current configuration
-  // Debug logging
-  console.log('TrainingQueue Debug:', {
-    models: models,
-    modelsLength: models?.length,
-    featureExtractionID,
-    selectedLabelCategoryId: selectedLabelCategory?.id,
-    modelStructure: models?.[0] ? Object.keys(models[0]) : 'No models'
-  });
+  
 
   // Since models passed to Train component are already filtered by Features.js 
   // for the current feature extraction and collection, we just need to check if any exist
   const hasTrainedModels = models && models.length > 0;
 
-  console.log('HasTrainedModels:', hasTrainedModels);
 
   if (hasTrainedModels) {
     return (

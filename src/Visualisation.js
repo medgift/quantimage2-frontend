@@ -409,10 +409,7 @@ export default function Visualisation({
   };
 
   const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
-    console.log(
-      'Listing out clinincal feature definition in formatClinicalFeaturesTree'
-    );
-    console.log(clinicalFeaturesDefinitions);
+   
     return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
       acc[clinicalFeaturesDefinitions[curr]['name']] = {
         id: clinicalFeaturesDefinitions[curr]['name'],
@@ -587,8 +584,7 @@ export default function Visualisation({
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
 
-    console.log('selected in');
-    console.log(selected);
+   
 
     return new Set(
       Object.keys(leafItems)

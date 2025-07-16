@@ -61,11 +61,9 @@ const ROCCurveComponent = ({
         if (response && Array.isArray(response) && response.length > 0) {
           setRocData(response);
         } else {
-          console.log('No valid data in response');
           setError('No ROC data returned from server');
         }
       } catch (err) {
-        console.error('=== Error fetching ROC data ===');
         console.error('Error object:', err);
         console.error('Error message:', err.message);
         setError(err.message || 'Failed to fetch ROC curve data');
@@ -286,7 +284,6 @@ const ROCCurveComponent = ({
 
   // Error state
   if (error) {
-    console.log('Rendering error state:', error);
     if (hideContainer) {
       return (
         <div className="alert alert-danger">
