@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Form,
   FormGroup,
@@ -20,6 +21,53 @@ import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 import MyModal from './components/MyModal';
 import { validateLabelFile } from './utils/feature-utils.js';
+
+const areAllDefaultValues = (outcomes) => {
+  if (!outcomes || outcomes.length === 0) return false;
+
+  return outcomes.every((outcome) => {
+    // Check if label_content exists
+    if (outcome.label_content) {
+      // Classification: check Outcome field
+      if (outcome.label_content.Outcome) {
+        return outcome.label_content.Outcome === 'Undefined';
+      }
+      // Survival: check both Event and Time fields
+      if (outcome.label_content.Event && outcome.label_content.Time) {
+        return (
+          outcome.label_content.Event === 'Undefined' &&
+          outcome.label_content.Time === 'Undefined'
+        );
+      }
+    }
+    return false;
+  });
+};
+
+// Add new function to check for partial updates
+const hasSomeDefaultValues = (outcomes) => {
+  if (!outcomes || outcomes.length === 0) return false;
+
+  const defaultCount = outcomes.filter((outcome) => {
+    if (outcome.label_content) {
+      // Classification: check Outcome field
+      if (outcome.label_content.Outcome) {
+        return outcome.label_content.Outcome === 'Undefined';
+      }
+      // Survival: check both Event and Time fields
+      if (outcome.label_content.Event && outcome.label_content.Time) {
+        return (
+          outcome.label_content.Event === 'Undefined' &&
+          outcome.label_content.Time === 'Undefined'
+        );
+      }
+    }
+    return false;
+  }).length;
+
+  // Return true if some (but not all) values are default
+  return defaultCount > 0 && defaultCount < outcomes.length;
+};
 
 export default function Outcomes({
   albumID,
@@ -162,6 +210,31 @@ export default function Outcomes({
   return (
     <>
       <h3>Patient Outcomes</h3>
+
+      {/* Alert for all default values */}
+      {selectedLabelCategory && outcomes && areAllDefaultValues(outcomes) && (
+        <Alert color="danger" className="mb-3">
+          <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />
+          <strong>Default values detected!</strong> All outcomes are set to the default value (Undefined). 
+          {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION 
+            ? 'Please upload real outcome values' 
+            : 'Please upload real event and time values'
+          } before proceeding to train the model.
+        </Alert>
+      )}
+
+      {/* Alert for partial default values */}
+      {selectedLabelCategory && outcomes && hasSomeDefaultValues(outcomes) && (
+        <Alert color="warning" className="mb-3">
+          <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />
+          <strong>Incomplete outcomes detected!</strong> Some patients still have the default value (Undefined). 
+          Please update all patient {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION 
+            ? 'outcomes' 
+            : 'event and time values'
+          } or remove incomplete entries before training the model.
+        </Alert>
+      )}
+
       {labelCategories.length === 0 && (
         <p>
           No outcomes have been created yet, click on the button below to get

@@ -96,6 +96,17 @@ export default function DataLabels({
   const updateEditableOutcomes = (labels) => {
     let outcomesToUpdate = { ...editableOutcomes };
 
+    // First, set all patients to "Undefined" for patients not in CSV
+    for (let patientID in outcomesToUpdate) {
+      if (!(patientID in labels)) {
+        // Patient not in CSV, set to "Undefined" for all outcome columns
+        for (let outcomeColumn of outcomeColumns) {
+          outcomesToUpdate[patientID][outcomeColumn] = '';
+        }
+      }
+    }
+
+    // Then, update patients that are in the CSV
     for (let patientID in labels) {
       if (patientID in editableOutcomes) {
         outcomesToUpdate[patientID] = labels[patientID];
