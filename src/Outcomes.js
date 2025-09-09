@@ -215,19 +215,19 @@ export default function Outcomes({
       {selectedLabelCategory && outcomes && areAllDefaultValues(outcomes) && (
         <Alert color="danger" className="mb-3">
           <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />
-          <strong>Default values detected!</strong> All outcomes are set to the default value (Undefined). 
-          {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION 
-            ? 'Please upload real outcome values' 
-            : 'Please upload real event and time values'
-          } before proceeding to train the model.
+          <strong>Outcomes set as Undefined. Please upload a .csv file using the "Import Labels"
+             button with {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION 
+            ? 'real outcome values' 
+            : 'real event and time values'
+          }.</strong>
         </Alert>
       )}
 
       {/* Alert for partial default values */}
       {selectedLabelCategory && outcomes && hasSomeDefaultValues(outcomes) && (
-        <Alert color="warning" className="mb-3">
+        <Alert color="danger" className="mb-3">
           <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />
-          <strong>Incomplete outcomes detected!</strong> Some patients still have the default value (Undefined). 
+          <strong>Some patients still have Undefined values. </strong>  
           Please update all patient {selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION 
             ? 'outcomes' 
             : 'event and time values'
