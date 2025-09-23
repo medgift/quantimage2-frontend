@@ -1,0 +1,414 @@
+/* QuantImage v2 Home Page - Clean Professional Design */
+
+/* Base Styles - Only for Home page */
+.home-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+/* Hero Section */
+.hero-section {
+  background: linear-gradient(135deg, #155799 0%, #159957 100%);
+  color: white;
+  padding: 4rem 0;
+  text-align: left;
+}
+
+.hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 3rem;
+  flex-wrap: wrap;
+}
+
+.hero-text {
+  flex: 1;
+  min-width: 300px;
+}
+
+.hero-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  font-weight: 400;
+  margin: 0 0 0.5rem 0;
+  opacity: 0.95;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  font-weight: 300;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Buttons - Home page only */
+.home-container .btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.home-container .btn-primary {
+  background: white;
+  color: #155799;
+  border-color: white;
+}
+
+.home-container .btn-primary:hover {
+  background: #f6f8fa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.home-container .btn-secondary {
+  background: transparent;
+  color: white;
+  border-color: rgba(255,255,255,0.8);
+}
+
+.home-container .btn-secondary:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: white;
+}
+
+/* Home Page Navigation Tabs */
+.home-container .main-nav {
+  background: white;
+  padding: 0;
+  border-bottom: 1px solid #e1e5e9;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.home-container .nav-list {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.home-container .nav-item {
+  flex: 1;
+  text-align: center;
+}
+
+.home-container .nav-link {
+  display: block;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: none;
+  border: none;
+  color: #6c757d;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+}
+
+.home-container .nav-link:hover {
+  color: #4a90e2;
+  background: #f8f9ff;
+}
+
+.home-container .nav-launch {
+  color: white;
+  background: linear-gradient(120deg, #155799, #159957);
+  border-radius: 25px;
+  margin: 0.5rem;
+  border-bottom: none !important;
+}
+
+.home-container .nav-launch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Container - Home page only */
+.home-container .container {
+  max-width: 1012px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Main Content - Home page only */
+.home-container .main-content {
+  background: #fff;
+}
+
+/* Content Sections */
+.home-container .content-section {
+  padding: 4rem 0;
+  border-bottom: 1px solid #e1e5e9;
+  text-align: left;
+  display: block !important;
+  clear: both;
+}
+
+.home-container .content-section:last-child {
+  border-bottom: none;
+}
+
+.content-section .container {
+  display: block !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+.content-section h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 2rem 0;
+  color: #24292e;
+  text-align: left;
+  display: block !important;
+  width: 100% !important;
+  clear: both;
+}
+
+.content-text {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #24292e;
+  margin: 0 0 2rem 0;
+  display: block !important;
+  width: 100% !important;
+  clear: both;
+}
+
+/* Citation Card - Full Width Below Text */
+.citation-card {
+  background: #f6f8fa;
+  border: 1px solid #e1e5e9;
+  border-left: 4px solid #0366d6;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  max-width: 800px;
+  display: block !important;
+  width: 100% !important;
+  clear: both;
+}
+
+.citation-card h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #24292e;
+}
+
+.citation-card p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 0.5rem 0;
+  color: #586069;
+}
+
+.citation-card .citation {
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+.citation-card a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.citation-card a:hover {
+  text-decoration: underline;
+}
+
+/* Features Section */
+.features-section {
+  background: #f6f8fa;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 3rem 0;
+}
+
+.workflow-item {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e1e5e9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.workflow-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.workflow-icon {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.workflow-item h3 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #24292e;
+}
+
+.workflow-item p {
+  font-size: 1rem;
+  color: #586069;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.clinical-features {
+  background: white;
+  padding: 3rem;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.clinical-features h3 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+  color: #24292e;
+}
+
+.clinical-features p {
+  font-size: 1.1rem;
+  color: #586069;
+  margin: 0 0 2rem 0;
+}
+
+.clinical-features ul {
+  text-align: left;
+  max-width: 600px;
+  margin: 0 auto;
+  color: #586069;
+  font-size: 1rem;
+}
+
+.clinical-features li {
+  margin-bottom: 0.75rem;
+}
+
+/* Team Section */
+.team-section {
+  text-align: center;
+}
+
+.partner-logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4rem;
+  margin-top: 3rem;
+  flex-wrap: wrap;
+}
+
+.partner-logo {
+  max-height: 80px;
+  max-width: 200px;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.partner-logo:hover {
+  opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 2rem;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .workflow-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .partner-logos {
+    gap: 2rem;
+  }
+  
+  .content-section {
+    padding: 3rem 0;
+  }
+  
+  .section-header h2 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .content-section {
+    padding: 2rem 0;
+  }
+  
+  .section-header h2 {
+    font-size: 1.8rem;
+  }
+  
+  .hero-section {
+    padding: 3rem 0;
+  }
+  
+  .workflow-item {
+    padding: 2rem 1.5rem;
+  }
+  
+  .clinical-features {
+    padding: 2rem;
+  }
+}
