@@ -83,7 +83,9 @@ function App({ setUser, setIsAdmin }) {
 
   // Handle logout
   const handleLogout = async () => {
-    keycloak.logout();
+    keycloak.logout({
+      redirectUri: window.location.origin + '/'
+    });
   };
 
   return (

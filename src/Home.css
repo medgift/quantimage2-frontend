@@ -101,39 +101,44 @@
 /* Home Page Navigation Tabs */
 .home-container .main-nav {
   background: white;
-  padding: 0;
+  padding: 2rem 0;
   border-bottom: 1px solid #e1e5e9;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
 }
 
 .home-container .nav-list {
   display: flex;
   justify-content: center;
+  align-items: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  max-width: 800px;
-  margin: 0 auto;
+  gap: 3rem;
 }
 
 .home-container .nav-item {
-  flex: 1;
   text-align: center;
+  display: flex;
+  align-items: center;
 }
 
 .home-container .nav-link {
-  display: block;
-  width: 100%;
-  padding: 1rem 1.5rem;
+  display: inline-block;
+  padding: 1.5rem 2rem;
   background: none;
   border: none;
   color: #6c757d;
   text-decoration: none;
-  font-weight: 500;
-  font-size: 0.95rem;
+  font-weight: 600;
+  font-size: 1.4rem;
   transition: all 0.3s ease;
   cursor: pointer;
   border-bottom: 3px solid transparent;
+  white-space: nowrap;
 }
 
 .home-container .nav-link:hover {
@@ -332,26 +337,6 @@
   text-align: center;
 }
 
-.partner-logos {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 4rem;
-  margin-top: 3rem;
-  flex-wrap: wrap;
-}
-
-.partner-logo {
-  max-height: 80px;
-  max-width: 200px;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
-
-.partner-logo:hover {
-  opacity: 1;
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .hero-content {
@@ -410,5 +395,109 @@
   
   .clinical-features {
     padding: 2rem;
+  }
+}
+
+/* Team Table Styles */
+.team-table {
+  width: 100%;
+  margin: 2rem 0;
+  border-collapse: collapse;
+}
+
+.team-table td {
+  text-align: center;
+  padding: 1rem;
+  vertical-align: top;
+}
+
+.team-photo {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #e1e5e9;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.team-photo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.team-table a {
+  color: #0366d6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.team-table a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .team-photo {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .team-table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-photo {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* Funding Logos Styles */
+.funding-logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.funding-logos a {
+  display: inline-block;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0.8;
+}
+
+.funding-logos a:hover {
+  transform: scale(1.05);
+  opacity: 1;
+}
+
+.funding-logos img {
+  max-height: 80px;
+  max-width: 150px;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .funding-logos {
+    gap: 2rem;
+  }
+  
+  .funding-logos img {
+    max-height: 60px;
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .funding-logos {
+    gap: 1rem;
+  }
+  
+  .funding-logos img {
+    max-height: 50px;
+    max-width: 100px;
   }
 }
