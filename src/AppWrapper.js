@@ -18,7 +18,10 @@ const keycloak = new Keycloak({
 });
 
 const keycloakProviderInitConfig = {
-  onLoad: 'login-required',
+  onLoad: 'check-sso',
+  silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+  checkLoginIframe: false, // Disable iframe checks which can cause security warnings
+  enableLogging: false // Disable debug logging in production
 };
 
 // Connect to Socket.IO
