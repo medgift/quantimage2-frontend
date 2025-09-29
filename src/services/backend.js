@@ -419,11 +419,12 @@ class Backend {
     return downloadFile(url, token);
   }
 
-  async plotTrainPredictions(token, modelID){
-    let url = `${endpoints.models}/${modelID}/plot-train-predictions`;
-
-    return downloadFile(url, token);
-  }
+  // TODO: Uncomment when plot training predictions feature is needed
+  // async plotTrainPredictions(token, modelID){
+  //   let url = `${endpoints.models}/${modelID}/plot-train-predictions`;
+  //
+  //   return downloadFile(url, token);
+  // }
 
   async presets(token) {
     try {

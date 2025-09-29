@@ -3,16 +3,24 @@ import './Home.css';
 import { useKeycloak } from '@react-keycloak/web';
 
 // Import all images from assets/img folder
-import adrienImage from './assets/img/adrien.jpg';
-import danielImage from './assets/img/daniel.jpg';
-import haslerImage from './assets/img/hasler.png';
-import lluisImage from './assets/img/lluis.jpg';
-import lundinImage from './assets/img/lundin.png';
 import qiOverviewImage from './assets/img/qi-overview.png';
-import rogerImage from './assets/img/roger.jpg';
+import adrienImage from './assets/img/adrien.jpg';
+import valentinImage from './assets/img/valentin.jpg';
+import lluisImage from './assets/img/lluis.jpg';
+import johnImage from './assets/img/john.jpg';
+import marioImage from './assets/img/mario.jpg';
+import vincentImage from './assets/img/vincent.jpg';
+import jakubImage from './assets/img/jakub.jpg';
+import haslerImage from './assets/img/hasler.png';
+import lundinImage from './assets/img/lundin.png';
+import kfsLogo from './assets/img/KFS_Logo.png';
 import snsfLogo from './assets/img/snsf.png';
 import sphnLogo from './assets/img/sphn-logo.png';
-import valentinImage from './assets/img/valentin.jpg';
+import chuvLogo from './assets/img/chuv.png';
+import hessoLogo from './assets/img/hesso.png';
+import hesavLogo from './assets/img/hesav.png';
+import medgiftLogo from './assets/img/medgift.png';
+
 
 function Home() {
   const { keycloak, initialized } = useKeycloak();
@@ -42,7 +50,7 @@ function Home() {
                 <h1 data-testid="welcome-page-header" className="hero-title">
                   QuantImage v2
                 </h1>
-                <p className="hero-subtitle">No-code clinical radiomics research platform</p>
+                <p className="hero-subtitle">A One-Stop Tool for Clinical Radiomics Research</p>
                 <p className="hero-description">
                   Empowering physicians to play a leading role in clinical radiomics research
                 </p>
@@ -72,6 +80,9 @@ function Home() {
               <li className="nav-item">
                 <a href="#team" className="nav-link">Team</a>
               </li>
+              <li className="nav-item">
+                <a href="#publications" className="nav-link">Publications</a>
+              </li>
             </ul>
           </div>
         </nav>
@@ -92,7 +103,9 @@ function Home() {
                   the clinical relevance of radiomics research and will lead to the development of better 
                   interpretable and more generalizable radiomics models.
                 </p>
-                <img src={qiOverviewImage} alt="QuantImage v2" title="QuantImage v2 - Overview" />
+                <p>
+                  <img src={qiOverviewImage} alt="QuantImage v2" title="QuantImage v2 - Overview" />
+                </p>
                 <h3>One-stop tool for clinical radiomics research</h3>
                 <p>
                   To implement this vision, and different to most other radiomics softwares, QI2 supports all steps of a typical radiomics study workflow:
@@ -131,8 +144,7 @@ function Home() {
                 <h3>Citing QuantImage v2</h3>
                 <p><strong>If you are using QuantImage v2 in your research, please cite the following publication:</strong></p>
                 <p className="citation">
-                  Abler, D., Schaer, R., Oreiller, V. <em>et al.</em> QuantImage v2: a comprehensive and integrated 
-                  physician-centered cloud platform for radiomics and machine learning research. <em>Eur Radiol Exp</em> <strong>7</strong>, 16 (2023). 
+                  Abler, D., Schaer, R., Oreiller, V., Verma, H., Reichenbach, J., Aidonopoulos, O., ... & Depeursinge, A. (2023). QuantImage v2: a comprehensive and integrated physician-centered cloud platform for radiomics and machine learning research. <em>European Radiology Experimental</em>, <strong>7</strong>(1), 16. 
                   <a href="https://doi.org/10.1186/s41747-023-00326-z" target="_blank" rel="noopener noreferrer">
                     https://doi.org/10.1186/s41747-023-00326-z
                   </a>
@@ -176,9 +188,8 @@ function Home() {
               <h2>Team</h2>
               <div className="content-text">
                 <p>
-                  QuantImage v2 is developed by the <strong>MedGIFT</strong> group at the University of Applied Sciences 
-                  and Arts Western Switzerland (HES-SO Valais-Wallis) in collaboration with partners from the 
-                  Swiss Personalized Health Network (SPHN).
+                  QuantImage v2 is developed by the <strong><a href="https://medgift.hevs.ch/wordpress/" target="_blank" rel="noopener noreferrer">MedGIFT</a></strong> group at the University of Applied Sciences 
+                  and Arts Western Switzerland (HES-SO Valais-Wallis) in collaboration with different partners in Switzerland.
                 </p>
               </div>
               
@@ -186,46 +197,89 @@ function Home() {
               <table className="team-table">
                 <tr>
                   <td valign="top"><img src={adrienImage} alt="Adrien Depeursinge" className="team-photo" /></td>
-                  <td valign="top"><img src={danielImage} alt="Daniel Abler" className="team-photo" /></td>
-                  <td valign="top"><img src={rogerImage} alt="Roger Schaer" className="team-photo" /></td>
-                  <td valign="top"><img src={valentinImage} alt="Valentin Oreiller" className="team-photo" /></td>
+                  <td valign="top"><img src={vincentImage} alt="Vincent Andrearczyk" className="team-photo" /></td>
+                  <td valign="top"><img src={jakubImage} alt="Jakub Mlynar" className="team-photo" /></td>
                   <td valign="top"><img src={lluisImage} alt="Lluis Borras Ferris" className="team-photo" /></td>
+                  <td valign="top"><img src={valentinImage} alt="Valentin Oreiller" className="team-photo" /></td>
                 </tr>
                 <tr>
-                  <td>
-                    <a href="https://medgift.hevs.ch/wordpress/team/adrien-depeursinge/" target="_blank" rel="noopener noreferrer">Adrien Depeursinge</a>
-                  </td>
-                  <td>
-                    <a href="https://medgift.hevs.ch/wordpress/team/daniel-abler/" target="_blank" rel="noopener noreferrer">Daniel Abler</a>
-                  </td>
-                  <td>
-                    <a href="https://medgift.hevs.ch/wordpress/team/roger-schaer/" target="_blank" rel="noopener noreferrer">Roger Schaer</a>
-                  </td>
-                  <td>
-                    <a href="https://medgift.hevs.ch/wordpress/team/valentin-oreiller/" target="_blank" rel="noopener noreferrer">Valentin Oreiller</a>
-                  </td>
-                  <td>
-                    <a href="https://www.hevs.ch/en/collaborateurs/borras-ferris-207747" target="_blank" rel="noopener noreferrer">Lluís Borràs Ferrís</a>
-                  </td>
+                  <td>Adrien Depeursinge</td>
+                  <td>Vincent Andrearczyk</td>
+                  <td>Jakub Mlynar</td>
+                  <td>Lluís Borràs Ferrís</td>
+                  <td>Valentin Oreiller</td>
+                </tr>
+                <tr>
+                  <td valign="top"><img src={johnImage} alt="John O. Prior" className="team-photo" /></td>
+                  <td valign="top"><img src={marioImage} alt="Mario Jreige" className="team-photo" /></td>
+                </tr>
+                <tr>
+                  <td>John O. Prior</td>
+                  <td>Mario Jreige</td>
                 </tr>
               </table>
               
-              <h3>Contributors</h3>
+              <h3>Collaborations</h3>
               <div className="content-text">
-                <h4>CHUV</h4>
                 <ul>
-                  <li><a href="https://centrescancer.chuv.ch/specialiste/john-prior" target="_blank" rel="noopener noreferrer">Pr John O. Prior</a></li>
-                  <li><a href="https://applicationspub.unil.ch/interpub/noauth/php/Un/UnPers.php?PerNum=1216661&LanCode=8" target="_blank" rel="noopener noreferrer">Dr Mario Jreige</a></li>
+                  <li>Florian Evéquoz</li>
+                  <li>Stephanie Tanadini-Lang</li>
+                  <li>Ricardo Ribeiro</li>
+                  <li>Mélanie Champendal</li>
                 </ul>
-                
-                <h4>HES-SO Valais</h4>
+              </div>
+              
+              <h3>Past Members</h3>
+              <div className="content-text">
                 <ul>
-                  <li><a href="https://www.hevs.ch/en/collaborateurs/evequoz-1589" target="_blank" rel="noopener noreferrer">Dr Florian Evéquoz</a></li>
+                  <li>Daniel Abler</li>
+                  <li>Roger Schaer</li>
+                  <li>Thomas Vetterli</li>
                 </ul>
-                
-                <h4>USZ</h4>
-                <ul>
-                  <li><a href="https://www.usz.ch/team/stephanie-tanadini-lang" target="_blank" rel="noopener noreferrer">Dr Stephanie Tanadini-Lang</a></li>
+              </div>
+              
+              <div className="logo-container">
+                <img src={chuvLogo} alt="CHUV" className="logo" />
+                <img src={hessoLogo} alt="HES-SO" className="logo" />
+                <img src={hesavLogo} alt="HESAV" className="logo" />
+                <img src={medgiftLogo} alt="MedGIFT" className="logo" />
+              </div>
+            </div>
+          </section>
+
+          {/* Publications Section */}
+          <section id="publications" className="content-section">
+            <div className="container">
+              <h2>Publications</h2>
+              <div className="content-text">
+                <p>
+                  Research publications related to QuantImage v2 and its applications in clinical radiomics:
+                </p>
+                <ul className="publications-list">
+                  <li>
+                    Tartari, C., Porões, F., Schmidt, S., Abler, D., Vetterli, T., Depeursinge, A., ... & Jreige, M. (2025). MRI and CT radiomics for the diagnosis of acute pancreatitis. <em>European Journal of Radiology Open</em>, <strong>14</strong>, 100636. 
+                    <a href="https://doi.org/10.1016/j.ejro.2025.100636" target="_blank" rel="noopener noreferrer">
+                      https://doi.org/10.1016/j.ejro.2025.100636
+                    </a>
+                  </li>
+                  <li>
+                    Perriraz, J., Abler, D., Salvioni Chiabotti, P., Hall, C., Lejay, N., Kurian, G. K., ... & Jreige, M. (2025). A radiomics-based analysis of functional dopaminergic scintigraphic imaging for the diagnosis of dementia with Lewy bodies. <em>Neurodegenerative Diseases</em>. 
+                    <a href="https://doi.org/10.1159/000547261" target="_blank" rel="noopener noreferrer">
+                      https://doi.org/10.1159/000547261
+                    </a>
+                  </li>
+                  <li>
+                    Mlynář, J., Depeursinge, A., Prior, J. O., Schaer, R., Martroye de Joly, A., & Evéquoz, F. (2024). Making sense of radiomics: insights on human–AI collaboration in medical interaction from an observational user study. <em>Frontiers in Communication</em>, <strong>8</strong>, 1234987. 
+                    <a href="https://doi.org/10.3389/fcomm.2023.1234987" target="_blank" rel="noopener noreferrer">
+                      https://doi.org/10.3389/fcomm.2023.1234987
+                    </a>
+                  </li>
+                  <li>
+                    Mlynář, J., Schaer, R., Depeursinge, A., Abler, D., Jreige, M., Prior, J. O., & Evéquoz, F. (2024). Design implications of repurposing a radiomics research platform for education: the case of QuantImage v2. <em>Proceedings of Computer Assisted Radiology and Surgery (CARS 2024)</em>. 
+                    <a href="https://publications.hevs.ch/index.php/publications/show/3092" target="_blank" rel="noopener noreferrer">
+                      https://publications.hevs.ch/index.php/publications/show/3092
+                    </a>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -236,21 +290,14 @@ function Home() {
             <div className="container">
               <h2>Support & Funding</h2>
               <div className="content-text">
-                <p>Research and development of QuantImage v2 was supported by</p>
+                <p>Research and development of QuantImage v2 was supported by:</p>
               </div>
-              <div className="funding-logos">
-                <a href="https://snf.ch" target="_blank" rel="noopener noreferrer nofollow">
-                  <img src={snsfLogo} alt="SNSF" />
-                </a>
-                <a href="https://sphn.ch" target="_blank" rel="noopener noreferrer nofollow">
-                  <img src={sphnLogo} alt="SPHN" />
-                </a>
-                <a href="https://haslerstiftung.ch" target="_blank" rel="noopener noreferrer nofollow">
-                  <img src={haslerImage} alt="Hasler" />
-                </a>
-                <a href="https://thelundingroup.com/brain-cancer-research/lundin-cancer-fund-overview/" target="_blank" rel="noopener noreferrer nofollow">
-                  <img src={lundinImage} alt="Lundin Family Brain Tumour Research Centre" />
-                </a>
+              <div className="logo-container">
+                <img src={snsfLogo} alt="SNSF" className="logo" />
+                <img src={sphnLogo} alt="SPHN" className="logo" />
+                <img src={kfsLogo} alt="Swiss Cancer Research" className="logo" />
+                <img src={lundinImage} alt="Lundin Family Brain Tumour Research Centre" className="logo" />
+                <img src={haslerImage} alt="Hasler" className="logo" />
               </div>
             </div>
           </section>

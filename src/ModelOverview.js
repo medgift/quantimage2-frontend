@@ -21,7 +21,8 @@ export default function ModelOverview({ albums }) {
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
   const [plotTestModelsValue, setPlotTestModelsValue] = useState('');
-  const [plotTrainModelsValue, setPlotTrainModelsValue] = useState('');
+  // TODO: Uncomment when plot training predictions feature is needed
+  // const [plotTrainModelsValue, setPlotTrainModelsValue] = useState('');
   const [isPlotModelCorrect, setIsPlotModelCorrect] = useState(true);
   const [isPlotModelCorrectMessage, setIsPlotModelCorrectMessage] = useState("");
 
@@ -172,39 +173,40 @@ export default function ModelOverview({ albums }) {
     }
   };
 
-  const handlePlotTrainModelsChange = (event) => {
-    setPlotTrainModelsValue(event.target.value);
-  };
+  // TODO: Uncomment when plot training predictions feature is needed
+  // const handlePlotTrainModelsChange = (event) => {
+  //   setPlotTrainModelsValue(event.target.value);
+  // };
 
-  const handlePlotTrainModels = async () => {
-    const modelIds = models.map((item) => item.id);
-    
-    if (plotTrainModelsValue != null) {
-      let plotModelsArray = plotTrainModelsValue.split(",").filter(Number).map(Number);
-      
-      if (plotModelsArray.length !== plotTrainModelsValue.split(",").length) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
-      } else if (plotModelsArray.length === 0) {
-        setIsPlotModelCorrect(false);
-        setIsPlotModelCorrectMessage("Please provide at least one model ID");
-      } else {
-        // Check if all provided model IDs exist
-        const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
-        if (invalidModels.length > 0) {
-          setIsPlotModelCorrect(false);
-          setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
-        } else {
-          setIsPlotModelCorrect(true);
-          let { filename, content } = await Backend.plotTrainPredictions(
-            keycloak.token,
-            plotModelsArray
-          );
-          saveAs(content, filename);
-        }
-      }
-    }
-  };
+  // const handlePlotTrainModels = async () => {
+  //   const modelIds = models.map((item) => item.id);
+  //   
+  //   if (plotTrainModelsValue != null) {
+  //     let plotModelsArray = plotTrainModelsValue.split(",").filter(Number).map(Number);
+  //     
+  //     if (plotModelsArray.length !== plotTrainModelsValue.split(",").length) {
+  //       setIsPlotModelCorrect(false);
+  //       setIsPlotModelCorrectMessage("Was not able to convert comma separated string to a list of numbers - please provide numbers such as 1,2,3");
+  //     } else if (plotModelsArray.length === 0) {
+  //       setIsPlotModelCorrect(false);
+  //       setIsPlotModelCorrectMessage("Please provide at least one model ID");
+  //     } else {
+  //       // Check if all provided model IDs exist
+  //       const invalidModels = plotModelsArray.filter(id => !modelIds.includes(id));
+  //       if (invalidModels.length > 0) {
+  //         setIsPlotModelCorrect(false);
+  //         setIsPlotModelCorrectMessage(`Please select models that exist - got invalid IDs: ${invalidModels.join(', ')}`);
+  //       } else {
+  //         setIsPlotModelCorrect(true);
+  //         let { filename, content } = await Backend.plotTrainPredictions(
+  //           keycloak.token,
+  //           plotModelsArray
+  //         );
+  //         saveAs(content, filename);
+  //       }
+  //     }
+  //   }
+  // };
 
   return (
     albums.length > 0 && (
@@ -265,7 +267,8 @@ export default function ModelOverview({ albums }) {
                   </Alert>
                 )}
               </div>
-              <div style={{ marginTop: '20px' }}>
+              {/* TODO: Uncomment when plot training predictions feature is needed */}
+              {/* <div style={{ marginTop: '20px' }}>
                 <input
                   type="text"
                   value={plotTrainModelsValue}
@@ -288,7 +291,7 @@ export default function ModelOverview({ albums }) {
                     {isPlotModelCorrectMessage}
                   </Alert>
                 )}
-              </div>
+              </div> */}
             </div>
           ) : (
             <h2 className="align-self-stretch">No Models Created Yet</h2>

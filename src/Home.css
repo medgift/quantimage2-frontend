@@ -453,50 +453,70 @@
   }
 }
 
-/* Funding Logos Styles */
-.funding-logos {
+/* Unified Logo Container Styles */
+.logo-container {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 3rem;
   margin: 2rem 0;
   flex-wrap: wrap;
+  padding: 1rem 0;
 }
 
-.funding-logos a {
+/* Logo link styles (for clickable logos like funding) */
+.logo-container a {
   display: inline-block;
   transition: transform 0.3s ease, opacity 0.3s ease;
   opacity: 0.8;
 }
 
-.funding-logos a:hover {
+.logo-container a:hover {
   transform: scale(1.05);
   opacity: 1;
 }
 
-.funding-logos img {
+/* Logo image styles (both in links and standalone) */
+.logo-container img,
+.logo-container .logo {
   max-height: 80px;
   max-width: 150px;
   object-fit: contain;
+  opacity: 0.8;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Hover effect for standalone logos (not in links) */
+.logo-container img:not(a img),
+.logo-container .logo:not(a .logo) {
+  cursor: default;
+}
+
+.logo-container img:hover,
+.logo-container .logo:hover {
+  transform: scale(1.05);
+  opacity: 1;
 }
 
 @media (max-width: 768px) {
-  .funding-logos {
+  .logo-container {
     gap: 2rem;
   }
   
-  .funding-logos img {
+  .logo-container img,
+  .logo-container .logo {
     max-height: 60px;
     max-width: 120px;
   }
 }
 
 @media (max-width: 480px) {
-  .funding-logos {
+  .logo-container {
     gap: 1rem;
   }
   
-  .funding-logos img {
+  .logo-container img,
+  .logo-container .logo {
     max-height: 50px;
     max-width: 100px;
   }
