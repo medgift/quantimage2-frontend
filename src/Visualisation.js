@@ -3,7 +3,7 @@ import Backend from './services/backend';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { UncontrolledTooltip, Modal, ModalHeader, ModalBody } from 'reactstrap';
+import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';

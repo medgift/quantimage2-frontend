@@ -133,12 +133,9 @@ const BootstrapHistogram = ({
 
               if (metricValues.length > 0) {
                 // Debug: show statistics of extracted values
-                const min = Math.min(...metricValues);
-                const max = Math.max(...metricValues);
-                const mean =
-                  metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
-
-                
+                // const _min = Math.min(...metricValues);
+                // const _max = Math.max(...metricValues);
+                // const _mean = metricValues.reduce((a, b) => a + b, 0) / metricValues.length;
 
                 data.push({
                   name: modelName,

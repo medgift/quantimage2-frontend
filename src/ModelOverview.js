@@ -33,7 +33,6 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
   const [isPlotting, setIsPlotting] = useState(false);  const [plotHtml, setPlotHtml] = useState(null);
   const [threshold, setThreshold] = useState(0.5);
   const [predictionMetrics, setPredictionMetrics] = useState(null);
-  const [multiModelMetrics, setMultiModelMetrics] = useState(null);
 
   const { albumID } = useParams();
   const collectionColumn = useMemo(
@@ -138,7 +137,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
     setPlotError(null); // Clear any previous errors when selection changes
     setPlotHtml(null); // Clear plot data when selection changes
     setPredictionMetrics(null); // Clear metrics when selection changes
-    setMultiModelMetrics(null); // Clear multi-model metrics when selection changes
+    // Multi-model metrics feature removed
   };
 
   const handlePlotModels = async () => {

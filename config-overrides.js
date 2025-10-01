@@ -2,7 +2,9 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = function override(config, env) {
-  config.plugins.push(new MonacoWebpackPlugin());  // Add Node.js polyfills for webpack 5
+  config.plugins.push(new MonacoWebpackPlugin());
+  
+  // Add Node.js polyfills for webpack 5
   config.resolve.fallback = {
     ...config.resolve.fallback,
     "stream": require.resolve("stream-browserify"),
@@ -27,5 +29,12 @@ module.exports = function override(config, env) {
     })
   );
   
+  // Ignore Monaco TypeScript worker warnings (harmless dynamic require warnings)
+  config.ignoreWarnings = [
+    ...(config.ignoreWarnings || []),
+    /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+    /node_modules\/monaco-editor\/esm\/vs\/language\/typescript\/ts\.worker\.js/,
+  ];
+
   return config;
 };

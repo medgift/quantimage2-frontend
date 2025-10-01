@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
-import { Routes, Route, useLocation } from 'react-router-dom'; // Changed imports
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Home from './Home';
 import NoMatch from './NoMatch';
-// Remove PropsRoute import - not needed anymore
 import registerFontAwesomeIcons from './registerFontAwesomeIcons';
 import Profile from './Profile';
 import Footer from './Footer';
@@ -18,7 +17,7 @@ import {
 } from './config/constants';
 import FeaturePresets from './FeaturePresets';
 import FeaturePresetCreate from './FeaturePresetCreate';
-import { ProtectedRoute } from './utils/ProtectedRoute'; // Renamed from PrivateRoute
+import { ProtectedRoute } from './utils/ProtectedRoute';
 import Dashboard from './Dashboard';
 import Backend from './services/backend';
 import ModelOverview from './ModelOverview';
@@ -47,7 +46,7 @@ function App({ setUser, setIsAdmin }) {
       keycloak.loadUserProfile().then((profile) => {
         setUser(profile);
       });
-      let isAdmin =
+      const isAdmin =
         Object.keys(keycloak.tokenParsed[KEYCLOAK_RESOURCE_ACCESS]).includes(
           process.env.REACT_APP_KEYCLOAK_FRONTEND_CLIENT_ID
         ) &&
@@ -73,17 +72,14 @@ function App({ setUser, setIsAdmin }) {
         setKheopsError(true);
       }
     }
-
     if (keycloak && initialized && keycloak.authenticated) {
       getAlbums();
     }
-  }, [keycloak, initialized, setUser]);
+  }, [keycloak, initialized]);
 
   // Handle logout
   const handleLogout = async () => {
-    keycloak.logout({
-      redirectUri: window.location.origin + '/'
-    });
+    keycloak.logout({ redirectUri: window.location.origin + '/' });
   };
 
   return (
@@ -94,65 +90,90 @@ function App({ setUser, setIsAdmin }) {
           <main className="App-content">
             <Routes>
               <Route path="/" element={<Home />} />
+              
+              {/* Protected routes - wrap ALL authenticated pages */}
               <Route 
                 path="/dashboard" 
                 element={
-                  <Dashboard 
-                    dataFetched={dataFetched}
-                    kheopsError={kheopsError}
-                    albums={albums}
-                  />
+                  <ProtectedRoute>
+                    <Dashboard 
+                      dataFetched={dataFetched}
+                      kheopsError={kheopsError}
+                      albums={albums}
+                    />
+                  </ProtectedRoute>
                 } 
               />
               <Route
                 path="/features/:albumID/:tab"
-                element={<Features kheopsError={kheopsError} />}
+                element={
+                  <ProtectedRoute>
+                    <Features kheopsError={kheopsError} />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/features/:albumID/collection/:collectionID/:tab"
-                element={<Features kheopsError={kheopsError} />}
+                element={
+                  <ProtectedRoute>
+                    <Features kheopsError={kheopsError} />
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/models/:albumID"
                 element={
-                  <ModelOverview 
-                    albums={albums}
-                    kheopsError={kheopsError}
-                  />
+                  <ProtectedRoute>
+                    <ModelOverview 
+                      albums={albums}
+                      kheopsError={kheopsError}
+                    />
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/study/:studyUID"
-                element={<Study kheopsError={kheopsError} />}
+                element={
+                  <ProtectedRoute>
+                    <Study kheopsError={kheopsError} />
+                  </ProtectedRoute>
+                }
               />
-              <Route path="/profile" element={<Profile />} />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Admin-only routes */}
               <Route
                 path="/feature-presets"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly={true}>
                     <FeaturePresets />
                   </ProtectedRoute>
                 }
-                adminOnly={true}
               />
               <Route
                 path="/feature-presets/create"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly={true}>
                     <FeaturePresetCreate />
                   </ProtectedRoute>
                 }
-                adminOnly={true}
               />
               <Route
                 path="/feature-presets/edit/:featurePresetID"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly={true}>
                     <FeaturePresetCreate />
                   </ProtectedRoute>
                 }
-                adminOnly={true}
               />
+              
               <Route path="*" element={<NoMatch />} />
             </Routes>
           </main>

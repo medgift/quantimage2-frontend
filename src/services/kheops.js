@@ -68,4 +68,5 @@ class Kheops {
   }
 }
 
-export default new Kheops();
+const kheopsInstance = new Kheops();
+export default kheopsInstance;

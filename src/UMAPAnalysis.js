@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Alert, UncontrolledTooltip } from 'reactstrap';
+import { Alert } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import HighchartsReact from 'highcharts-react-official';
 import Highcharts from 'highcharts';

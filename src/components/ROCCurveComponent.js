@@ -216,6 +216,12 @@ const ROCCurveComponent = ({
         })`;
 
     const layout = {
+      title: {
+        text: titleText,
+        font: { size: 16, family: 'Arial, sans-serif' },
+        x: 0.5,
+        xanchor: 'center',
+      },
       xaxis: {
         title: {
           text: 'False Positive Rate (1 - Specificity)',
