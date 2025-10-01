@@ -3,11 +3,11 @@ import { Navigate } from 'react-router-dom';
 import UserContext from '../context/UserContext';
 import { useKeycloak } from '@react-keycloak/web';
 
-export const ProtectedRoute = ({ children }) => {
+export const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { isAdmin } = useContext(UserContext);
   const { keycloak, initialized } = useKeycloak();
 
-    if (!initialized) {
+  if (!initialized) {
     return <div>Loading...</div>;
   }
 
@@ -19,9 +19,11 @@ export const ProtectedRoute = ({ children }) => {
     return <div>Redirecting to login...</div>;
   }
 
-  if (isAdmin) {
-    return children;
-  } else {
-    return <Navigate to="/" replace />;
+  // Check admin access only for admin-only routes
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
+
+  // User is authenticated (and admin if required), render children
+  return children;
 };
