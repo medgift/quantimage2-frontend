@@ -453,6 +453,19 @@
   }
 }
 
+.team-name {
+  text-align: center;
+}
+.team-institution {
+  display: block;
+  text-align: center;
+  font-style: italic; /* optional */
+}
+
+.affiliation {
+  font-style: italic;
+}
+
 /* Unified Logo Container Styles */
 .logo-container {
   display: flex;
