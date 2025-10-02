@@ -203,29 +203,68 @@ function Home() {
                   <td valign="top"><img src={valentinImage} alt="Valentin Oreiller" className="team-photo" /></td>
                 </tr>
                 <tr>
-                  <td>Adrien Depeursinge</td>
-                  <td>Vincent Andrearczyk</td>
-                  <td>Jakub Mlynar</td>
-                  <td>Lluís Borràs Ferrís</td>
-                  <td>Valentin Oreiller</td>
+                  <td>
+                    <div className="team-name">
+                      Adrien Depeursinge
+                      <span className="team-institution">(HEVS & CHUV)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="team-name">
+                      Vincent Andrearczyk
+                      <span className="team-institution">(HEVS)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="team-name">
+                      Jakub Mlynar
+                      <span className="team-institution">(HEVS)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="team-name">
+                      Lluís Borràs Ferrís
+                      <span className="team-institution">(HEVS)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="team-name">
+                      Valentin Oreiller
+                      <span className="team-institution">(HEVS)</span>
+                    </div>
+                  </td>
                 </tr>
                 <tr>
                   <td valign="top"><img src={johnImage} alt="John O. Prior" className="team-photo" /></td>
                   <td valign="top"><img src={marioImage} alt="Mario Jreige" className="team-photo" /></td>
                 </tr>
                 <tr>
-                  <td>John O. Prior</td>
-                  <td>Mario Jreige</td>
+                  <td>
+                    <div className="team-name">
+                      John O. Prior
+                      <span className="team-institution">(CHUV)</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="team-name">
+                      Mario Jreige
+                      <span className="team-institution">(CHUV)</span>
+                    </div>
+                  </td>
                 </tr>
               </table>
               
               <h3>Collaborations</h3>
               <div className="content-text">
                 <ul>
-                  <li>Florian Evéquoz</li>
-                  <li>Stephanie Tanadini-Lang</li>
-                  <li>Ricardo Ribeiro</li>
-                  <li>Mélanie Champendal</li>
+                  <li>Florian Evéquoz <span className="affiliation">(HEVS)</span></li>
+                  <li>Stephanie Tanadini-Lang <span className="affiliation">(USZ)</span></li>
+                  <li>Ricardo Ribeiro <span className="affiliation">(HESAV)</span></li>
+                  <li>Mélanie Champendal <span className="affiliation">(HESAV)</span></li>
+                  <li>Naïk Vietti-Violi <span className="affiliation">(CHUV)</span></li>
+                  <li>Clarisse Dromain <span className="affiliation">(CHUV)</span></li>
+                  <li>Jonas Richiardi <span className="affiliation">(CHUV)</span></li>
+                  <li>Vincent Dunet <span className="affiliation">(CHUV)</span></li>
                 </ul>
               </div>
               
