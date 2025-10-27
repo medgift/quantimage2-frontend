@@ -45,6 +45,14 @@ const ROCCurveComponent = ({
       return;
     }
 
+    // Check if this is a survival model - ROC curves don't apply
+    const isSurvivalModel = plotData.length > 0 && plotData[0].model_type === 'survival';
+    if (isSurvivalModel) {
+      setError('ROC curves are not applicable for survival models');
+      setRocData(null);
+      return;
+    }
+
     const fetchROCData = async () => {
       setError(null);
 

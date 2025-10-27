@@ -33,6 +33,8 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
   const [isPlotting, setIsPlotting] = useState(false);  const [plotHtml, setPlotHtml] = useState(null);
   const [threshold, setThreshold] = useState(0.5);
   const [predictionMetrics, setPredictionMetrics] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingModels, setIsDeletingModels] = useState(false);
 
   const { albumID } = useParams();
   const collectionColumn = useMemo(
@@ -132,6 +134,37 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
     setSelectedModels(selectedModels.filter((modelId) => modelId !== id));
   };
 
+  const handleBulkDeleteModels = async () => {
+    if (selectedModels.length === 0) return;
+    
+    setIsDeletingModels(true);
+    try {
+      // Delete all selected models
+      await Promise.all(
+        selectedModels.map((modelId) => 
+          Backend.deleteModel(keycloak.token, modelId)
+        )
+      );
+      
+      // Update the models list by filtering out deleted models
+      setModels(models.filter((model) => !selectedModels.includes(model.id)));
+      
+      // Clear selection and plot data
+      setSelectedModels([]);
+      setPlotHtml(null);
+      setPredictionMetrics(null);
+      setPlotError(null);
+      
+      // Close confirmation modal
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('Error deleting models:', error);
+      alert(`Failed to delete some models: ${error.message}`);
+    } finally {
+      setIsDeletingModels(false);
+    }
+  };
+
   const handleModelSelectionChange = (newSelectedModels) => {
     setSelectedModels(newSelectedModels);
     setPlotError(null); // Clear any previous errors when selection changes
@@ -171,9 +204,6 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
         );
       }
      
-
-      
-
       // Check if result is directly an array of models (new backend format)
       if (Array.isArray(result) && result.length > 0) {
         setPlotHtml(result); // Store the array of models directly
@@ -380,40 +410,49 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                     </div>
                   </div>              )}
 
+                {/* Detect if this is a survival model */}
+                {(() => {
+                  const isSurvivalModel = plotHtml && plotHtml.length > 0 && 
+                    plotHtml[0].model_type === 'survival';
+                  
+                  return (
+                    <>
                 {/* Single Model Analysis */}
                 {selectedModels.length === 1 && plotHtml && (
                   <>
-                    {/* Shared Threshold Control */}
-                    <div className="card mt-4">
-                      <div className="card-header">
-                        <h5 className="mb-0">Model Analysis Controls</h5>
-                      </div>
-                      <div className="card-body">
-                        <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
-                          <label htmlFor="threshold-slider" className="form-label mb-2">
-                            Decision Threshold: {threshold.toFixed(3)}
-                          </label>
-                          <input
-                            id="threshold-slider"
-                            type="range"
-                            className="form-range"
-                            min="0"
-                            max="1"
-                            step="0.001"
-                            value={threshold}
-                            onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                            style={{ width: '100%' }}
-                          />
-                          <div className="d-flex justify-content-between mt-1">
-                            <small className="text-muted">0.000</small>
-                            <small className="text-muted">1.000</small>
+                    {/* Shared Threshold Control - Only for Classification */}
+                    {!isSurvivalModel && (
+                      <div className="card mt-4">
+                        <div className="card-header">
+                          <h5 className="mb-0">Model Analysis Controls</h5>
+                        </div>
+                        <div className="card-body">
+                          <div className="mb-3 p-3" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', border: '2px solid #007bff' }}>
+                            <label htmlFor="threshold-slider" className="form-label mb-2">
+                              Decision Threshold: {threshold.toFixed(3)}
+                            </label>
+                            <input
+                              id="threshold-slider"
+                              type="range"
+                              className="form-range"
+                              min="0"
+                              max="1"
+                              step="0.001"
+                              value={threshold}
+                              onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                              style={{ width: '100%' }}
+                            />
+                            <div className="d-flex justify-content-between mt-1">
+                              <small className="text-muted">0.000</small>
+                              <small className="text-muted">1.000</small>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Performance Metrics */}
-                    {predictionMetrics && (
+                    {/* Performance Metrics - Only for Classification */}
+                    {!isSurvivalModel && predictionMetrics && (
                       <div className="performance-section">
                         <div className="section-header">
                           <h5>
@@ -520,29 +559,31 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         </div>
                       </div>
                        
-                      {/* ROC Curve Component */}
-                      <div className="col-md-6">
-                        <div className="card h-100">
-                          <div className="card-header">
-                            <h6 className="mb-0">ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}</h6>
-                          </div>
-                          <div className="card-body p-0">
-                            <ROCCurveComponent
-                             selectedModels={selectedModels}
-                              plotData={plotHtml}
-                              plotType={plotType}
-                              threshold={threshold}
-                              height={500}
-                              hideContainer={true}
-                              token={keycloak.token}
-                            />
+                      {/* ROC Curve Component - Only for Classification Models */}
+                      {!isSurvivalModel && (
+                        <div className="col-md-6">
+                          <div className="card h-100">
+                            <div className="card-header">
+                              <h6 className="mb-0">ROC Curve - {models.find(m => m.id === selectedModels[0])?.name || `Model ${selectedModels[0]}`}</h6>
+                            </div>
+                            <div className="card-body p-0">
+                              <ROCCurveComponent
+                               selectedModels={selectedModels}
+                                plotData={plotHtml}
+                                plotType={plotType}
+                                threshold={threshold}
+                                height={500}
+                                hideContainer={true}
+                                token={keycloak.token}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Bootstrap Analysis - Only show for Test Predictions */}
-                    {plotType === 'test' && (
+                    {/* Bootstrap Analysis - Only show for Test Predictions and Classification Models */}
+                    {!isSurvivalModel && plotType === 'test' && (
                       <div className="card mt-3">
                         <div className="card-header">
                           <h5 className="mb-0">Bootstrap Analysis - AUC Distribution</h5>
@@ -563,8 +604,9 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                 {/* Multi-model comparison */}
                 {selectedModels.length > 1 && plotHtml && (
                   <>
-                    {/* Shared Threshold Control for Multiple Models */}
-                    <div className="card mt-3">
+                    {/* Shared Threshold Control for Multiple Models - Only for Classification */}
+                    {!isSurvivalModel && (
+                      <div className="card mt-3">
                       <div className="card-header">
                         <h5>Multi-Model Analysis Controls</h5>
                       </div>
@@ -591,6 +633,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* Two-column layout for multi-model plots */}
                     <div className="row mt-3 g-3">
@@ -614,29 +657,31 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         </div>
                       </div>
                       
-                      {/* ROC Curve Component for Multiple Models */}
-                      <div className="col-md-6">
-                        <div className="card h-100">
-                          <div className="card-header">
-                            <h6 className="mb-0">ROC Curves Comparison ({selectedModels.length} models)</h6>
-                          </div>
-                          <div className="card-body p-0">
-                            <ROCCurveComponent
-                              selectedModels={selectedModels}
-                              plotData={plotHtml}
-                              plotType={plotType}
-                              threshold={threshold}
-                              height={500}
-                              hideContainer={true}
-                              token={keycloak.token}
-                            />
+                      {/* ROC Curve Component for Multiple Models - Only for Classification */}
+                      {!isSurvivalModel && (
+                        <div className="col-md-6">
+                          <div className="card h-100">
+                            <div className="card-header">
+                              <h6 className="mb-0">ROC Curves Comparison ({selectedModels.length} models)</h6>
+                            </div>
+                            <div className="card-body p-0">
+                              <ROCCurveComponent
+                                selectedModels={selectedModels}
+                                plotData={plotHtml}
+                                plotType={plotType}
+                                threshold={threshold}
+                                height={500}
+                                hideContainer={true}
+                                token={keycloak.token}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     
-                    {/* Bootstrap Analysis for Multiple Models - Only show for Test Predictions */}
-                    {plotType === 'test' && (
+                    {/* Bootstrap Analysis for Multiple Models - Only show for Test Predictions and Classification */}
+                    {!isSurvivalModel && plotType === 'test' && (
                       <div className="card mt-3">
                         <div className="card-header">
                           <h5 className="mb-0">Bootstrap Analysis - AUC Distribution (Multiple Models)</h5>
@@ -653,6 +698,9 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                     )}
                   </>
                 )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           ) : (
@@ -663,7 +711,88 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
               </div>
             </div>
           )}
+
+          {/* Bulk Delete Button - Below Plot Interface */}
+          {selectedModels.length > 0 && (
+            <div className="mb-4">
+              <Button
+                color="danger"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isPlotting || isDeletingModels}
+              >
+                <FontAwesomeIcon icon="trash-alt" />
+                {' '}Delete Selected Models ({selectedModels.length})
+                {isDeletingModels && (
+                  <span className="ml-2">
+                    <FontAwesomeIcon icon="spinner" spin />
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* Bulk Delete Confirmation Modal */}
+        <Modal isOpen={showDeleteConfirm} toggle={() => setShowDeleteConfirm(false)}>
+          <ModalHeader toggle={() => setShowDeleteConfirm(false)}>
+            Confirm Deletion
+          </ModalHeader>
+          <ModalBody>
+            <p>
+              Are you sure you want to delete <strong>{selectedModels.length}</strong> selected model{selectedModels.length > 1 ? 's' : ''}?
+            </p>
+            <p className="text-danger">
+              <FontAwesomeIcon icon="exclamation-triangle" className="me-2" />
+              This action cannot be undone.
+            </p>
+            {selectedModels.length > 0 && (
+              <div className="mt-3">
+                <strong>Models to be deleted:</strong>
+                <ul className="mt-2">
+                  {selectedModels.slice(0, 10).map((modelId) => {
+                    const model = models.find((m) => m.id === modelId);
+                    return (
+                      <li key={modelId}>
+                        Model {modelId}
+                        {model && model.algorithm ? ` - ${model.algorithm}` : ''}
+                        {model && model.normalization ? ` (${model.normalization})` : ''}
+                      </li>
+                    );
+                  })}
+                  {selectedModels.length > 10 && (
+                    <li className="text-muted">... and {selectedModels.length - 10} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </ModalBody>
+          <div className="modal-footer">
+            <Button
+              color="secondary"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeletingModels}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="danger"
+              onClick={handleBulkDeleteModels}
+              disabled={isDeletingModels}
+            >
+              {isDeletingModels ? (
+                <>
+                  <FontAwesomeIcon icon="spinner" spin className="me-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon="trash-alt" className="me-2" />
+                  Delete {selectedModels.length} Model{selectedModels.length > 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
+          </div>
+        </Modal>
       </div>
     )
   );

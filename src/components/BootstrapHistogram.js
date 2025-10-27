@@ -27,6 +27,14 @@ const BootstrapHistogram = ({
         return;
       }
 
+      // Check if this is a survival model - Bootstrap AUC analysis doesn't apply
+      const isSurvivalModel = modelsData.length > 0 && modelsData[0].model_type === 'survival';
+      if (isSurvivalModel) {
+        setError('Bootstrap AUC analysis is not applicable for survival models. Survival models use C-index as their primary metric.');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
