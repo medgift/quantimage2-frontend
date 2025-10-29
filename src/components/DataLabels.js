@@ -144,7 +144,7 @@ export default function DataLabels({
       ...new Set(
         Object.values(editableOutcomes)
           .map((o) => o[OUTCOME_CLASSIFICATION])
-          .filter((o) => o)
+          .filter((o) => o && o !== 'Undefined') // Exclude empty and 'Undefined' placeholder
       ),
     ];
   }, [outcomeColumns, editableOutcomes]);
@@ -195,12 +195,17 @@ export default function DataLabels({
 
   // Reset positive label on classes change
   useEffect(() => {
+    // Only reset if current posLabel is invalid (not in classes or empty)
+    // Don't auto-select, let user choose
     if (
       classes.length > 0 &&
       hasTextualLabels(classes) &&
+      posLabel !== '' &&
       !classes.includes(posLabel)
-    )
-      setPosLabel(classes[0]);
+    ) {
+      // Current posLabel is invalid, clear it
+      setPosLabel('');
+    }
   }, [posLabel, classes]);
 
   return (
