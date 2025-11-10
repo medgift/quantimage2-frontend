@@ -46,7 +46,7 @@ const InteractivePredictionsPlot = ({
     r = Math.max(Math.min(255, r), 0);
     g = Math.max(Math.min(255, g), 0);
     b = Math.max(Math.min(255, b), 0);
-    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   };
 
   const calculateMetrics = (currentThreshold, data) => {

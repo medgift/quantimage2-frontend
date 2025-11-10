@@ -1,5 +1,6 @@
 import './Home.css';
 import { useKeycloak } from '@react-keycloak/web';
+import { useNavigate } from 'react-router-dom';
 
 // Import all images from assets/img folder
 import qiOverviewImage from './assets/img/qi-overview.png';
@@ -23,6 +24,7 @@ import medgiftLogo from './assets/img/medgift.png';
 
 function Home() {
   const { keycloak, initialized } = useKeycloak();
+  const navigate = useNavigate();
 
   const handleLogIn = () => {
     if (keycloak && initialized) {
@@ -31,6 +33,9 @@ function Home() {
         keycloak.login({
           redirectUri: window.location.origin + '/dashboard'
         });
+      } else {
+        // Already authenticated, just navigate to dashboard
+        navigate('/dashboard');
       }
     }
   };

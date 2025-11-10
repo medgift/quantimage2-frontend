@@ -819,7 +819,8 @@ function Features() {
               />
             </div>
             <div className="feature-tabs">
-              <Nav tabs>
+              {/* First Row of Tabs */}
+              <Nav tabs className="tabs-row-first">
                 <NavItem>
                   <NavLink
                     className={classnames({ active: tab === 'overview' })}
@@ -889,6 +890,10 @@ function Features() {
                     Clinical Features
                   </NavLink>
                 </NavItem>
+              </Nav>
+              
+              {/* Second Row of Tabs - Highlighted */}
+              <Nav tabs className="tabs-row-second">
                 <NavItem>
                   <NavLink
                     className={getTabClassName('visualize')}
@@ -900,9 +905,9 @@ function Features() {
                     {isAlternativeUser ? (
                       'Collections'
                     ) : !hasPendingChanges ? (
-                      'Visualization'
+                      'Feature Selection / Visualization'
                     ) : (
-                      <strong>Visualization*</strong>
+                      <strong>Feature Selection / Visualization*</strong>
                     )}
                   </NavLink>
                 </NavItem>
@@ -926,22 +931,12 @@ function Features() {
                     }}
                   >
                     {getTabSymbol()}
-                    Model Evaluation{' '}
+                    Model Evaluation / Comparison{' '}
                     
                   </NavLink>
                 </NavItem>
-                {/* <NavItem>
-                  <NavLink
-                    className={getTabClassName('your_component')}
-                    onClick={() => {
-                      toggle('your_component');
-                    }}
-                  >
-                    {getTabSymbol()}
-                    Your Component
-                  </NavLink>
-                </NavItem> */}
               </Nav>
+              
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
                   <div className="collection-overview">

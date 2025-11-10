@@ -304,11 +304,22 @@ export default function ModelsTable({
     if (rows.length === 1) {
       let modelID = rows[0].original.id;
       setOpenModelID(modelID);
+      // Auto-select the single model when expanded
+      if (showSelection && onModelSelectionChange) {
+        onModelSelectionChange([modelID]);
+      }
     }
-  }, [rows]);
+  }, [rows, showSelection, onModelSelectionChange]);
 
   const toggleModel = (modelID) => {
+    const isOpening = openModelID !== modelID;
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
+    
+    // Auto-select model when opening (not when closing or using checkboxes)
+    if (showSelection && onModelSelectionChange && isOpening) {
+      // When opening a model by clicking the row, replace selection with just this model
+      onModelSelectionChange([modelID]);
+    }
   };
 
   const [configOpen, setConfigOpen] = useState(false);
@@ -362,13 +373,18 @@ export default function ModelsTable({
                     onChange={(e) => {
                       e.stopPropagation();
                       if (e.target.checked) {
-                        onModelSelectionChange(data.map(model => model.id));
+                        // Add all models from this table to the selection
+                        const newModels = data.map(model => model.id);
+                        const merged = [...new Set([...selectedModels, ...newModels])];
+                        onModelSelectionChange(merged);
                       } else {
-                        onModelSelectionChange([]);
+                        // Remove all models from this table from the selection
+                        const tableModelIds = data.map(model => model.id);
+                        onModelSelectionChange(selectedModels.filter(id => !tableModelIds.includes(id)));
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    checked={data.length > 0 && selectedModels.length === data.length}
+                    checked={data.length > 0 && data.every(model => selectedModels.includes(model.id))}
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
@@ -487,6 +503,7 @@ export default function ModelsTable({
                   <td colSpan={columnsWithSelection.length + (showSelection ? 2 : 1)} style={{ padding: 0 }}>
                     <Collapse isOpen={openModelID === row.original.id}>
                       <div key={row.original.id} className="model-entry">
+                        
                         {/* Performance Metrics Section */}
                         <div className="performance-section">
                           <div className="section-header">
@@ -513,6 +530,22 @@ export default function ModelsTable({
                             DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT &&
                             row.original.test_bootstrap_values && (
                               <div className="performance-actions">
+                                {/* Feature Importance - First button with blue background */}
+                                <Button
+                                  size="sm"
+                                  onClick={() => toggleFeatureImportance(row.original.id)}
+                                  className="me-2"
+                                  style={{ 
+                                    backgroundColor: '#cfe2ff',
+                                    borderColor: '#0d6efd',
+                                    color: '#0d6efd',
+                                    fontWeight: '500'
+                                  }}
+                                >
+                                  <FontAwesomeIcon icon="chart-bar" className="me-1" />
+                                  Feature Importance
+                                </Button>
+                                
                                 <Button
                                   size="sm"
                                   color="outline-secondary"
@@ -561,18 +594,6 @@ export default function ModelsTable({
                                 >
                                   <FontAwesomeIcon icon="download" size="sm" />{' '}
                                   Features
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  color="outline-primary"
-                                  onClick={() => toggleFeatureImportance(row.original.id)}
-                                  className="me-2"
-                                >
-                                  <FontAwesomeIcon 
-                                    icon="chart-bar" 
-                                    className="me-1" 
-                                  />
-                                  Feature Importance
                                 </Button>
                                 {/* Move Delete button here, at the end of the action buttons */}
                                 <Button

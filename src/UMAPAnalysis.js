@@ -41,8 +41,21 @@ const UMAPAnalysis = ({
         dataMatrix.push(patientFeatures);
       }
 
-      // Run UMAP
-      const umap = new UMAP();
+      // Run UMAP with a fixed seed for reproducibility
+      // This ensures the same feature set always produces the same UMAP embedding
+      // Simple seeded random number generator (mulberry32)
+      let seed = 42; // Fixed seed for reproducibility
+      const seededRandom = () => {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul((t ^ (t >>> 15)), (t | 1));
+        t ^= t + Math.imul((t ^ (t >>> 7)), (t | 61));
+        return (((t ^ (t >>> 14)) >>> 0) / 4294967296);
+      };
+      
+      const umap = new UMAP({
+        nComponents: 2,
+        random: seededRandom,
+      });
       const embedding = umap.fit(dataMatrix);
 
       // Process results
