@@ -737,6 +737,8 @@ export default function Train({
             featureExtractionID={featureExtractionID}
             selectedLabelCategory={selectedLabelCategory}
             onNavigateToModels={onNavigateToModels}
+            dataSplittingType={dataSplittingType}
+            patients={patients}
           />
         </>
       )}

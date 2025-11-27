@@ -49,6 +49,8 @@ const InteractivePredictionsPlot = ({
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
   };
 
+  const isSurvivalModel = modelsData && modelsData.length > 0 && modelsData[0].model_type === 'survival';
+
   const calculateMetrics = (currentThreshold, data) => {
     let tp = 0, fp = 0, tn = 0, fn = 0;
     data.forEach((model) => {
@@ -74,111 +76,270 @@ const InteractivePredictionsPlot = ({
     if (!modelsData || modelsData.length === 0 || !plotDivRef.current) return;
     const traces = [];
 
-    modelsData.forEach((model, modelIndex) => {
-      const yPos = modelsData.length > 1 ? modelIndex * 0.4 : 0;
-      const modelDisplayName = model.model_name || `Model ${model.model_id}`;
-      const neg = baseColors.negative;
-      const pos = baseColors.positive;
+    if (isSurvivalModel) {
+      // Survival model plotting logic
+      const modelColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+      
+      modelsData.forEach((model, modelIndex) => {
+        const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+        const baseColor = modelColors[modelIndex % modelColors.length];
+        
+        // Separate events and censored observations
+        const events = model.patients.filter((p) => p.event === 1);
+        const censored = model.patients.filter((p) => p.event === 0);
+        
+        // Plot events as filled circles
+        if (events.length > 0) {
+          traces.push({
+            x: events.map((p) => p.time),
+            y: events.map((p) => p.risk_score),
+            mode: 'markers',
+            name: `${modelDisplayName} - Events`,
+            legendgroup: `model_${modelIndex}`,
+            marker: { 
+              color: baseColor, 
+              size: 10, 
+              symbol: 'circle',
+              line: { color: 'black', width: 0.5 }
+            },
+            text: events.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
+            hovertemplate: '<b>%{text}</b><br>Time: %{x:.2f}<br>Risk Score: %{y:.3f}<br>Status: Event<extra></extra>',
+            type: 'scatter',
+          });
+        }
+        
+        // Plot censored as hollow circles
+        if (censored.length > 0) {
+          traces.push({
+            x: censored.map((p) => p.time),
+            y: censored.map((p) => p.risk_score),
+            mode: 'markers',
+            name: `${modelDisplayName} - Censored`,
+            legendgroup: `model_${modelIndex}`,
+            marker: { 
+              color: 'white', 
+              size: 10, 
+              symbol: 'circle',
+              line: { color: baseColor, width: 2 }
+            },
+            text: censored.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
+            hovertemplate: '<b>%{text}</b><br>Time: %{x:.2f}<br>Risk Score: %{y:.3f}<br>Status: Censored<extra></extra>',
+            type: 'scatter',
+          });
+        }
+        
+        // Add trend line if we have enough data points
+        const allPatients = model.patients;
+        if (allPatients.length > 1) {
+          const times = allPatients.map(p => p.time);
+          const riskScores = allPatients.map(p => p.risk_score);
+          
+          // Simple linear regression
+          const n = times.length;
+          const sumX = times.reduce((a, b) => a + b, 0);
+          const sumY = riskScores.reduce((a, b) => a + b, 0);
+          const sumXY = times.reduce((sum, x, i) => sum + x * riskScores[i], 0);
+          const sumX2 = times.reduce((sum, x) => sum + x * x, 0);
+          
+          const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+          const intercept = (sumY - slope * sumX) / n;
+          
+          const minTime = Math.min(...times);
+          const maxTime = Math.max(...times);
+          const trendX = [minTime, maxTime];
+          const trendY = trendX.map(x => slope * x + intercept);
+          
+          traces.push({
+            x: trendX,
+            y: trendY,
+            mode: 'lines',
+            name: `${modelDisplayName} - Trend`,
+            legendgroup: `model_${modelIndex}`,
+            line: { color: baseColor, width: 2, dash: 'dash' },
+            hoverinfo: 'skip',
+            showlegend: true,
+          });
+        }
+      });
+      
+      const layout = {
+        xaxis: { 
+          title: { text: 'Survival Time', font: { size: 15, family: 'Arial, sans-serif' } },
+          gridcolor: '#e1e5e9', 
+          showgrid: true 
+        },
+        yaxis: {
+          title: { text: 'Risk Score', font: { size: 15, family: 'Arial, sans-serif' } },
+          gridcolor: '#e1e5e9',
+          showgrid: true,
+          automargin: true,
+        },
+        height: externalHeight || Math.max(500, 600),
+        showlegend: true,
+        legend: { 
+          orientation: 'v', 
+          x: 1.02, 
+          y: 1, 
+          bgcolor: 'rgba(255,255,255,0.9)', 
+          bordercolor: '#dee2e6', 
+          borderwidth: 1, 
+          font: { size: 11 } 
+        },
+        margin: { l: 80, r: 150, t: 80, b: 100 },
+        hovermode: 'closest',
+        plot_bgcolor: '#fafafa',
+        annotations: modelsData.map((model, idx) => {
+          const cIndex = model.c_index || (model.metrics && model.metrics['c-index'] && model.metrics['c-index'].mean);
+          if (!cIndex) return null;
+          
+          const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+          let text = `${modelDisplayName} - C-index: `;
+          if (typeof cIndex === 'number') {
+            const cIndexInf = model.metrics?.['c-index']?.inf_value || cIndex;
+            const cIndexSup = model.metrics?.['c-index']?.sup_value || cIndex;
+            text += `${cIndex.toFixed(3)} (${cIndexInf.toFixed(3)} - ${cIndexSup.toFixed(3)})`;
+          } else {
+            text += cIndex;
+          }
+          
+          return {
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.98,
+            y: 0.95 - idx * 0.08,
+            xanchor: 'right',
+            yanchor: 'top',
+            text: text,
+            showarrow: false,
+            bgcolor: 'wheat',
+            bordercolor: '#999',
+            borderwidth: 1,
+            borderpad: 4,
+            font: { size: 10 }
+          };
+        }).filter(Boolean),
+      };
+      
+      const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        editable: true,
+        edits: { legendText: true, legendPosition: true, axisTitleText: true },
+      };
+      
+      Plotly.newPlot(plotDivRef.current, traces, layout, config);
+      plotRef.current = plotDivRef.current;
+      
+    } else {
+      // Classification model plotting logic (existing code)
+      modelsData.forEach((model, modelIndex) => {
+        const yPos = modelsData.length > 1 ? modelIndex * 0.4 : 0;
+        const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+        const neg = baseColors.negative;
+        const pos = baseColors.positive;
 
-      const class0Data = model.patients.filter((p) => p.ground_truth === 0);
-      if (class0Data.length > 0) {
-        traces.push({
-          x: class0Data.map((p) => p.probability),
-          y: Array(class0Data.length).fill(yPos),
-          mode: 'markers',
-          name: `${modelDisplayName} - Negative`,
-          legendgroup: `model_${modelIndex}`,
-          marker: { color: neg, size: 8, symbol: 'circle', line: { color: adjustColor(neg, -30), width: 1 } },
-          text: class0Data.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
-          hovertemplate: '<b>%{text}</b><br>Probability: %{x:.3f}<br>Ground Truth: Negative (0)<extra></extra>',
-          type: 'scatter',
-        });
-      }
+        const class0Data = model.patients.filter((p) => p.ground_truth === 0);
+        if (class0Data.length > 0) {
+          traces.push({
+            x: class0Data.map((p) => p.probability),
+            y: Array(class0Data.length).fill(yPos),
+            mode: 'markers',
+            name: `${modelDisplayName} - Negative`,
+            legendgroup: `model_${modelIndex}`,
+            marker: { color: neg, size: 8, symbol: 'circle', line: { color: adjustColor(neg, -30), width: 1 } },
+            text: class0Data.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
+            hovertemplate: '<b>%{text}</b><br>Probability: %{x:.3f}<br>Ground Truth: Negative (0)<extra></extra>',
+            type: 'scatter',
+          });
+        }
 
-      const class1Data = model.patients.filter((p) => p.ground_truth === 1);
-      if (class1Data.length > 0) {
-        traces.push({
-          x: class1Data.map((p) => p.probability),
-          y: Array(class1Data.length).fill(yPos),
-          mode: 'markers',
-          name: `${modelDisplayName} - Positive`,
-          legendgroup: `model_${modelIndex}`,
-          marker: { color: pos, size: 8, symbol: 'circle', line: { color: adjustColor(pos, -30), width: 1 } },
-          text: class1Data.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
-          hovertemplate: '<b>%{text}</b><br>Probability: %{x:.3f}<br>Ground Truth: Positive (1)<extra></extra>',
-          type: 'scatter',
-        });
-      }
-    });
+        const class1Data = model.patients.filter((p) => p.ground_truth === 1);
+        if (class1Data.length > 0) {
+          traces.push({
+            x: class1Data.map((p) => p.probability),
+            y: Array(class1Data.length).fill(yPos),
+            mode: 'markers',
+            name: `${modelDisplayName} - Positive`,
+            legendgroup: `model_${modelIndex}`,
+            marker: { color: pos, size: 8, symbol: 'circle', line: { color: adjustColor(pos, -30), width: 1 } },
+            text: class1Data.map((p) => `Patient: ${p.patient_id}<br>Model: ${modelDisplayName}`),
+            hovertemplate: '<b>%{text}</b><br>Probability: %{x:.3f}<br>Ground Truth: Positive (1)<extra></extra>',
+            type: 'scatter',
+          });
+        }
+      });
 
-    traces.push({
-      x: [threshold, threshold],
-      y: [modelsData.length > 1 ? -0.3 : -0.5, modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5],
-      mode: 'lines',
-      name: `Threshold ${threshold.toFixed(3)}`,
-      line: { color: '#F18F01', width: 3, dash: '10px,8px' },
-      showlegend: true,
-      hoverinfo: 'skip',
-      legendgroup: 'threshold',
-    });
-
-    const layout = {
-      xaxis: { title: { text: 'Probability of Class 1', font: { size: 15, family: 'Arial, sans-serif' } }, range: [-0.05, 1.05], gridcolor: '#e1e5e9', showgrid: true },
-      yaxis: {
-        title: { text: 'Models', font: { size: 14 } },
-        showticklabels: modelsData.length > 1,
-        tickmode: modelsData.length > 1 ? 'array' : 'auto',
-        tickvals: modelsData.length > 1 ? modelsData.map((_, i) => i * 0.4) : undefined,
-        ticktext: modelsData.length > 1 ? modelsData.map((model) => {
-          const modelName = model.model_name || `Model ${model.model_id}`;
-          return modelName.length > 20 ? modelName.substring(0, 17) + '...' : modelName;
-        }) : undefined,
-        range: modelsData.length > 1 ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3] : [-0.5, 0.5],
-        gridcolor: '#e1e5e9',
-        tickfont: { size: 11 },
-        automargin: true,
-      },
-      height: externalHeight || Math.max(500, modelsData.length * 120 + 200),
-      showlegend: true,
-      legend: { orientation: 'h', x: 0, y: -0.2, bgcolor: 'rgba(255,255,255,0.9)', bordercolor: '#dee2e6', borderwidth: 1, font: { size: 11 } },
-      margin: { l: 80, r: 30, t: 60, b: 140 },
-      hovermode: 'closest',
-      plot_bgcolor: '#fafafa',
-      shapes: [{
-        type: 'line',
-        x0: threshold,
-        x1: threshold,
-        y0: -0.5,
-        y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
+      traces.push({
+        x: [threshold, threshold],
+        y: [modelsData.length > 1 ? -0.3 : -0.5, modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5],
+        mode: 'lines',
+        name: `Threshold ${threshold.toFixed(3)}`,
         line: { color: '#F18F01', width: 3, dash: '10px,8px' },
-      }],
-      annotations: [{
-        x: threshold,
-        y: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.4 : 0.6,
-        text: `Threshold: ${threshold.toFixed(2)}`,
-        showarrow: true,
-        arrowhead: 2,
-        arrowcolor: '#F18F01',
-        bgcolor: '#F18F01',
-        bordercolor: '#F18F01',
-        font: { color: 'white', size: 12 },
-      }],
-    };
+        showlegend: true,
+        hoverinfo: 'skip',
+        legendgroup: 'threshold',
+      });
 
-    const config = {
-      responsive: true,
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
-      editable: true,
-      edits: { legendText: true, legendPosition: true, axisTitleText: true, annotationText: true, annotationPosition: true },
-    };
+      const layout = {
+        xaxis: { title: { text: 'Probability of Class 1', font: { size: 15, family: 'Arial, sans-serif' } }, range: [-0.05, 1.05], gridcolor: '#e1e5e9', showgrid: true },
+        yaxis: {
+          title: { text: 'Models', font: { size: 14 } },
+          showticklabels: modelsData.length > 1,
+          tickmode: modelsData.length > 1 ? 'array' : 'auto',
+          tickvals: modelsData.length > 1 ? modelsData.map((_, i) => i * 0.4) : undefined,
+          ticktext: modelsData.length > 1 ? modelsData.map((model) => {
+            const modelName = model.model_name || `Model ${model.model_id}`;
+            return modelName.length > 20 ? modelName.substring(0, 17) + '...' : modelName;
+          }) : undefined,
+          range: modelsData.length > 1 ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3] : [-0.5, 0.5],
+          gridcolor: '#e1e5e9',
+          tickfont: { size: 11 },
+          automargin: true,
+        },
+        height: externalHeight || Math.max(500, modelsData.length * 120 + 200),
+        showlegend: true,
+        legend: { orientation: 'h', x: 0, y: -0.2, bgcolor: 'rgba(255,255,255,0.9)', bordercolor: '#dee2e6', borderwidth: 1, font: { size: 11 } },
+        margin: { l: 80, r: 30, t: 60, b: 140 },
+        hovermode: 'closest',
+        plot_bgcolor: '#fafafa',
+        shapes: [{
+          type: 'line',
+          x0: threshold,
+          x1: threshold,
+          y0: -0.5,
+          y1: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.3 : 0.5,
+          line: { color: '#F18F01', width: 3, dash: '10px,8px' },
+        }],
+        annotations: [{
+          x: threshold,
+          y: modelsData.length > 1 ? (modelsData.length - 1) * 0.4 + 0.4 : 0.6,
+          text: `Threshold: ${threshold.toFixed(2)}`,
+          showarrow: true,
+          arrowhead: 2,
+          arrowcolor: '#F18F01',
+          bgcolor: '#F18F01',
+          bordercolor: '#F18F01',
+          font: { color: 'white', size: 12 },
+        }],
+      };
 
-    Plotly.newPlot(plotDivRef.current, traces, layout, config);
-    plotRef.current = plotDivRef.current;
-    const calculatedMetrics = calculateMetrics(threshold, modelsData);
-    if (onMetricsUpdate) onMetricsUpdate(calculatedMetrics);
-  }, [modelsData, plotType, threshold, onMetricsUpdate, externalHeight, baseColors]);
+      const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        editable: true,
+        edits: { legendText: true, legendPosition: true, axisTitleText: true, annotationText: true, annotationPosition: true },
+      };
+
+      Plotly.newPlot(plotDivRef.current, traces, layout, config);
+      plotRef.current = plotDivRef.current;
+      const calculatedMetrics = calculateMetrics(threshold, modelsData);
+      if (onMetricsUpdate) onMetricsUpdate(calculatedMetrics);
+    }
+  }, [modelsData, plotType, threshold, onMetricsUpdate, externalHeight, baseColors, isSurvivalModel]);
 
   const handleThresholdChange = (newThreshold) => {
     setThreshold(newThreshold);
@@ -234,7 +395,7 @@ const InteractivePredictionsPlot = ({
           </CardHeader>
 
           <CardBody>
-            {!hideThresholdControl && (
+            {!hideThresholdControl && !isSurvivalModel && (
               <div className="mb-4 p-3 bg-light rounded">
                 <Form>
                   <FormGroup>
@@ -262,7 +423,7 @@ const InteractivePredictionsPlot = ({
             <div
               ref={plotDivRef}
               className={hideContainer ? '' : 'border rounded mb-3'}
-              style={{ width: '100%', height: `${externalHeight || Math.max(500, modelsData.length * 120 + 200)}px` }}
+              style={{ width: '100%', height: `${externalHeight || Math.max(500, isSurvivalModel ? 600 : modelsData.length * 120 + 200)}px` }}
             />
           </CardBody>
         </Card>
@@ -279,7 +440,7 @@ const InteractivePredictionsPlot = ({
 
           <div
             ref={plotDivRef}
-            style={{ width: '100%', height: `${externalHeight || Math.max(500, modelsData.length * 120 + 200)}px` }}
+            style={{ width: '100%', height: `${externalHeight || Math.max(500, isSurvivalModel ? 600 : modelsData.length * 120 + 200)}px` }}
           />
         </div>
       )}

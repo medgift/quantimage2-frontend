@@ -29,7 +29,8 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
   const [models, setModels] = useState([]);
   const [collections, setCollections] = useState([]);
   const [selectedModels, setSelectedModels] = useState([]);
-  const [plotType, setPlotType] = useState('test');  const [plotError, setPlotError] = useState(null);
+  const [plotType /*, setPlotType */] = useState('test'); // setPlotType commented out - only using test predictions
+  const [plotError, setPlotError] = useState(null);
   const [isPlotting, setIsPlotting] = useState(false);  const [plotHtml, setPlotHtml] = useState(null);
   const [threshold, setThreshold] = useState(0.5);
   const [predictionMetrics, setPredictionMetrics] = useState(null);
@@ -240,7 +241,8 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
             <h5 className="mb-3">How to Use This Page</h5>
             <ul>
               <li><strong>Model Selection:</strong> Use the checkboxes to select models for comparison and plotting (up to 5 models).</li>
-              <li><strong>Plot Generation:</strong> Choose plot type (Test or Training Predictions) and click <span className="badge badge-primary">Show Performance Plots</span>.</li>
+              {/* <li><strong>Plot Generation:</strong> Choose plot type (Test or Training Predictions) and click <span className="badge badge-primary">Show Performance Plots</span>.</li> */}
+              <li><strong>Plot Generation:</strong> Plot test predictions on click <span className="badge badge-primary">Show Performance Plots</span>.</li>
               <li><strong>Interactive Analysis:</strong> Adjust the decision threshold slider to see real-time performance metrics updates.</li>
               <li><strong>Visualizations:</strong> View predictions scatter plot, ROC curves, and bootstrap AUC analysis (test predictions only).</li>
             </ul>
@@ -340,6 +342,8 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                       Plot Selected Models ({selectedModels.length} selected)
                     </h5>
 
+                    {/* Commented out - Training Predictions option hidden, keeping only Test Predictions */}
+                    {/* 
                     <div style={{ marginBottom: '15px' }}>
                       <label style={{ marginRight: '15px', fontWeight: 'bold' }}>
                         Plot Type:
@@ -365,6 +369,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                         Training Predictions
                       </label>
                     </div>
+                    */}
 
                     <div style={{ marginBottom: '15px' }}>
                       <Button

@@ -10,7 +10,9 @@ const TrainingQueue = ({
   models = [],
   featureExtractionID,
   selectedLabelCategory,
-  onNavigateToModels
+  onNavigateToModels,
+  dataSplittingType,
+  patients
 }) => {
   if (!collections || collections.length === 0) {
     return (
@@ -22,12 +24,41 @@ const TrainingQueue = ({
 
   
 
-  // Since models passed to Train component are already filtered by Features.js 
-  // for the current feature extraction and collection, we just need to check if any exist
-  const hasTrainedModels = models && models.length > 0;
+  // Check if there's a model with the current outcome AND same train/test patient split
+  const hasMatchingModel = models && models.length > 0 && models.some(model => {
+    // Must match outcome
+    const outcomeMatch = model.label_category === selectedLabelCategory?.name;
+    if (!outcomeMatch) return false;
+    
+    // Must match data splitting type
+    const splittingTypeMatch = model.data_splitting_type === dataSplittingType;
+    if (!splittingTypeMatch) return false;
+    
+    // If using train/test split, must match the exact same patient IDs in train and test sets
+    if (dataSplittingType === 'traintest' && patients) {
+      const currentTrainingIds = patients.training || [];
+      const currentTestIds = patients.test || [];
+      const modelTrainingIds = model.training_patient_ids || [];
+      const modelTestIds = model.test_patient_ids || [];
+      
+      // Check if the sets are identical (same patients in same groups)
+      const trainingMatch = 
+        currentTrainingIds.length === modelTrainingIds.length &&
+        currentTrainingIds.every(id => modelTrainingIds.includes(id));
+      
+      const testMatch = 
+        currentTestIds.length === modelTestIds.length &&
+        currentTestIds.every(id => modelTestIds.includes(id));
+      
+      return trainingMatch && testMatch;
+    }
+    
+    // For full dataset, only outcome and splitting type matter
+    return true;
+  });
 
 
-  if (hasTrainedModels) {
+  if (hasMatchingModel) {
     return (
       <div className="container-fluid px-0">
         <div className="row justify-content-center">
