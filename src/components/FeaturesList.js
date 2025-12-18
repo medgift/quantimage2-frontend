@@ -30,6 +30,7 @@ import './FeaturesList.css';
 import { ConfigEditor } from './ConfigEditor';
 import ConfigImport from './ConfigImport';
 import { FEATURE_ID_SEPARATOR } from '../Visualisation';
+import MyModal from './MyModal';
 
 const EXTRACTION_CONFIG_TREE_TITLE = 'Extraction Configuration';
 
@@ -60,6 +61,9 @@ export default function FeaturesList({
   let [showEditor, setShowEditor] = useState(false);
   let [showImport, setShowImport] = useState(false);
   let [customConfig, setCustomConfig] = useState(null);
+
+  // Confirmation modal for re-extraction
+  let [showReextractConfirm, setShowReextractConfirm] = useState(false);
 
   let socket = useContext(SocketContext);
 
@@ -152,6 +156,20 @@ export default function FeaturesList({
   };
 
   let handleExtractFeaturesClick = async () => {
+    // Check if this is a re-extraction (an extraction already exists)
+    if (extraction && extraction.status) {
+      if (extraction.status.successful || extraction.status.failed) {
+        // Show confirmation dialog for re-extraction
+        setShowReextractConfirm(true);
+        return;
+      }
+    }
+
+    // Proceed with extraction (first time or confirmed re-extraction)
+    await performExtraction();
+  };
+
+  let performExtraction = async () => {
     try {
       let featureExtraction = await Backend.extract(
         keycloak.token,
@@ -176,6 +194,11 @@ export default function FeaturesList({
       setBackendError(err.message);
       setBackendErrorVisible(true);
     }
+  };
+
+  let handleConfirmReextraction = async () => {
+    setShowReextractConfirm(false);
+    await performExtraction();
   };
 
   const handlePresetClick = (e) => {
@@ -396,6 +419,37 @@ export default function FeaturesList({
       >
         Error from the backend: {backendError}
       </Alert>
+
+      <MyModal
+        isOpen={showReextractConfirm}
+        toggle={() => setShowReextractConfirm(false)}
+        title="Confirm Re-Extraction"
+        size="md"
+      >
+        <div>
+          <p>
+            <strong>A feature extraction already exists for this album.</strong>
+          </p>
+          <p>
+            Do you really want to re-extract features? This will create a new feature extraction and replace the existing one.
+          </p>
+          <div className="d-flex justify-content-end mt-4">
+            <Button
+              color="secondary"
+              onClick={() => setShowReextractConfirm(false)}
+              className="mr-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              color="warning"
+              onClick={handleConfirmReextraction}
+            >
+              <FontAwesomeIcon icon="cog" /> Yes, Re-Extract Features
+            </Button>
+          </div>
+        </div>
+      </MyModal>
     </>
   );
 }
