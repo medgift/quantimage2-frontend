@@ -70,6 +70,7 @@ export const SOCKETIO_MESSAGES = {
 };
 
 export const TRAINING_PHASES = {
+  PENDING: 'pending',
   TRAINING: 'training',
   TESTING: 'testing',
 };

@@ -23,6 +23,9 @@ import { SOCKETIO_MESSAGES } from './config/constants';
 
 function Dashboard({ albums, dataFetched, kheopsError }) {
   let [modal, setModal] = useState(false);
+  let [cancelModal, setCancelModal] = useState(false);
+  let [extractionToCancel, setExtractionToCancel] = useState(null);
+  let [cancelling, setCancelling] = useState(false);
   let [studies, setStudies] = useState({});
   let [currentAlbum, setCurrentAlbum] = useState(null);
   let [extractions, setExtractions] = useState(null);
@@ -44,6 +47,53 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
 
   let toggleModal = () => {
     setModal(!modal);
+  };
+
+  let toggleCancelModal = () => {
+    setCancelModal(!cancelModal);
+  };
+
+  let handleCancelExtractionClick = (extraction) => {
+    setExtractionToCancel(extraction);
+    setCancelModal(true);
+  };
+
+  let handleConfirmCancel = async () => {
+    if (!extractionToCancel) return;
+
+    setCancelling(true);
+    try {
+      // Call the cancel endpoint which revokes Celery tasks and returns the previous extraction
+      // The cancelled extraction stays in DB but is replaced in the UI with the previous one
+      const response = await Backend.cancelExtraction(
+        keycloak.token,
+        extractionToCancel.id
+      );
+
+      if (response.cancelled) {
+        if (response.previous_extraction) {
+          // Use the previous extraction returned by the backend (no additional query needed)
+          replaceExtraction(
+            extractionToCancel.album_id,
+            response.previous_extraction
+          );
+        } else {
+          // No previous extraction exists - this was the first extraction
+          setExtractions((extractions) => {
+            return extractions.filter(
+              (extraction) => extraction.id !== extractionToCancel.id
+            );
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error cancelling extraction:', error);
+      alert('Failed to cancel extraction. Please try again.');
+    } finally {
+      setCancelling(false);
+      setCancelModal(false);
+      setExtractionToCancel(null);
+    }
   };
 
   let updateExtraction = (featureExtractionID, updatedContent) => {
@@ -121,15 +171,25 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
       } else if (!albumExtraction.status.ready) {
         // Extraction in progress
         return (
-          <div
-            className={
-              albumExtraction.status.failed_tasks > 0
-                ? 'text-danger'
-                : 'text-muted'
-            }
-          >
-            <FontAwesomeIcon icon="sync" spin />{' '}
-            {featureExtractionStatusText(albumExtraction)}
+          <div>
+            <div
+              className={
+                albumExtraction.status.failed_tasks > 0
+                  ? 'text-danger'
+                  : 'text-muted'
+              }
+            >
+              <FontAwesomeIcon icon="sync" spin />{' '}
+              {featureExtractionStatusText(albumExtraction)}
+            </div>
+            <Button
+              color="link"
+              size="sm"
+              className="text-danger"
+              onClick={() => handleCancelExtractionClick(albumExtraction)}
+            >
+              <FontAwesomeIcon icon="times-circle" /> Cancel Extraction
+            </Button>
           </div>
         );
       } else if (albumExtraction.status.completed_tasks > 0) {
@@ -562,6 +622,51 @@ function Dashboard({ albums, dataFetched, kheopsError }) {
             }}
             nbStudies={currentAlbum.number_of_studies}
           />
+        </MyModal>
+      )}
+      {extractionToCancel && (
+        <MyModal
+          isOpen={cancelModal}
+          toggle={toggleCancelModal}
+          title="Cancel Feature Extraction"
+          size="md"
+        >
+          <div>
+            <p>
+              Are you sure you want to cancel the feature extraction in
+              progress?
+            </p>
+            <p className="text-muted">
+              This will stop all running tasks and load the most recent
+              successful extraction if available.
+            </p>
+            <div className="d-flex justify-content-end mt-4">
+              <Button
+                color="secondary"
+                onClick={toggleCancelModal}
+                disabled={cancelling}
+                className="mr-2"
+              >
+                No, Keep Extracting
+              </Button>
+              <Button
+                color="danger"
+                onClick={handleConfirmCancel}
+                disabled={cancelling}
+              >
+                {cancelling ? (
+                  <>
+                    <FontAwesomeIcon icon="spinner" spin /> Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon="times-circle" /> Yes, Cancel
+                    Extraction
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </MyModal>
       )}
     </>

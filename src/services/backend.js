@@ -61,6 +61,19 @@ class Backend {
     }
   }
 
+  async cancelExtraction(token, extractionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/cancel`;
+
+      return await request(url, {
+        method: 'POST',
+        token: token,
+      });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async extractionFeatureDetails(token, extractionID) {
     try {
       const url = `${endpoints.extractions}/${extractionID}/feature-details`;

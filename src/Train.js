@@ -94,10 +94,15 @@ export default function Train({
           if (trainingStatus.failed) {
             reinitTraining();
             setTrainingError(trainingStatus.error);
+          } else if (trainingStatus.phase === TRAINING_PHASES.PENDING) {
+            setCurrentPhase(TRAINING_PHASES.PENDING);
           } else if (trainingStatus.phase === TRAINING_PHASES.TESTING) {
             setCurrentPhase(TRAINING_PHASES.TESTING);
             setNSteps(trainingStatus.total);
             setCurrentStep(trainingStatus.current);
+          } else if (trainingStatus.phase === TRAINING_PHASES.TRAINING) {
+            setCurrentPhase(TRAINING_PHASES.TRAINING);
+            setCurrentStep((s) => s + 1);
           } else {
             setCurrentStep((s) => s + 1);
           }
@@ -296,14 +301,16 @@ export default function Train({
 
   let trainingButton = () => {
     let buttonText = isTraining
-      ? currentPhase === TRAINING_PHASES.TRAINING
+      ? currentPhase === TRAINING_PHASES.PENDING
+        ? 'Training Pending'
+        : currentPhase === TRAINING_PHASES.TRAINING
         ? 'Training Model'
         : 'Testing Model'
       : dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
       ? 'Train Model'
       : 'Train & Test Model';
 
-    if (nSteps > 0 && currentStep > 0) {
+    if (nSteps > 0 && currentStep > 0 && currentPhase !== TRAINING_PHASES.PENDING) {
       buttonText += ` (${Math.min(
         Math.floor((currentStep / nSteps) * 100),
         100
