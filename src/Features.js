@@ -1251,7 +1251,7 @@ function Features() {
                   )}
                 </TabPane>
                 <TabPane tabId="models">
-                  {tab === 'models' && album ? (
+                  {tab === 'models' ? (
                     <ModelOverview 
                       albums={[album]} 
                       showBackButton={false}

@@ -317,8 +317,20 @@ export default function ModelsTable({
     
     // Auto-select model when opening (not when closing or using checkboxes)
     if (showSelection && onModelSelectionChange && isOpening) {
-      // When opening a model by clicking the row, replace selection with just this model
-      onModelSelectionChange([modelID]);
+      const isAlreadySelected = selectedModels.includes(modelID);
+      
+      // If clicking an already selected model, make it the only selection
+      if (isAlreadySelected) {
+        onModelSelectionChange([modelID]);
+      } 
+      // If 2 or more models already selected, add this model to selection
+      else if (selectedModels.length >= 2) {
+        onModelSelectionChange([...selectedModels, modelID]);
+      } 
+      // If 0 or 1 models selected, replace selection with just this model
+      else {
+        onModelSelectionChange([modelID]);
+      }
     }
   };
 

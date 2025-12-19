@@ -422,7 +422,7 @@ const InteractivePredictionsPlot = ({
 
             <div
               ref={plotDivRef}
-              className={hideContainer ? '' : 'border rounded mb-3'}
+              className="border rounded mb-3"
               style={{ width: '100%', height: `${externalHeight || Math.max(500, isSurvivalModel ? 600 : modelsData.length * 120 + 200)}px` }}
             />
           </CardBody>
