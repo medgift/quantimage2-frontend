@@ -1,8 +1,8 @@
 ### STAGE 1: Build ###
 
 # Build and compile app
-FROM node:16 as build
-MAINTAINER Roger Schaer <roger.schaer@hevs.ch>
+FROM node:18-alpine as build
+MAINTAINER Lluis Borras Ferris <lluis.borrasferris@hevs.ch>
 
 # Create app directory
 WORKDIR /usr/src/app

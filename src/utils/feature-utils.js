@@ -8,7 +8,7 @@ import _ from 'lodash';
 import React from 'react';
 import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
-import { parse } from 'csv-parse/lib/sync';
+import { parse } from 'csv-parse/sync';
 
 const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';

@@ -2,7 +2,6 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { Alert, Button, ListGroup, ListGroupItem } from 'reactstrap';
 
 import './Train.css';
-import Backend from './services/backend';
 import { useKeycloak } from '@react-keycloak/web';
 
 import Kheops from './services/kheops';
@@ -13,14 +12,12 @@ import {
   MODEL_TYPES,
   DATA_SPLITTING_TYPES,
   TRAINING_PHASES,
-  CLASSIFICATION_COLUMNS,
-  SURVIVAL_COLUMNS,
   SOCKETIO_MESSAGES,
   CV_SPLITS,
   CLASSIFICATION_OUTCOMES,
   SURVIVAL_OUTCOMES,
 } from './config/constants';
-import ModelsTable from './components/ModelsTable';
+import TrainingQueue from './components/TrainingQueue';
 import SocketContext from './context/SocketContext';
 
 export const PATIENT_ID_FIELD = 'PatientID';
@@ -56,6 +53,7 @@ export default function Train({
   dataSplittingType,
   trainTestSplitType,
   patients,
+  onNavigateToModels,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -73,10 +71,6 @@ export default function Train({
   let [showNewModel, setShowNewModel] = useState(false);
 
   let socket = useContext(SocketContext);
-
-  // Model table header
-  const columnsClassification = React.useMemo(() => CLASSIFICATION_COLUMNS, []);
-  const columnsSurvival = React.useMemo(() => SURVIVAL_COLUMNS, []);
 
   const reinitTraining = () => {
     setIsTraining(false);
@@ -100,10 +94,15 @@ export default function Train({
           if (trainingStatus.failed) {
             reinitTraining();
             setTrainingError(trainingStatus.error);
+          } else if (trainingStatus.phase === TRAINING_PHASES.PENDING) {
+            setCurrentPhase(TRAINING_PHASES.PENDING);
           } else if (trainingStatus.phase === TRAINING_PHASES.TESTING) {
             setCurrentPhase(TRAINING_PHASES.TESTING);
             setNSteps(trainingStatus.total);
             setCurrentStep(trainingStatus.current);
+          } else if (trainingStatus.phase === TRAINING_PHASES.TRAINING) {
+            setCurrentPhase(TRAINING_PHASES.TRAINING);
+            setCurrentStep((s) => s + 1);
           } else {
             setCurrentStep((s) => s + 1);
           }
@@ -184,11 +183,6 @@ export default function Train({
       reinitTraining();
       setTrainingError(e.message);
     }
-  };
-
-  const handleDeleteModelClick = async (id) => {
-    await Backend.deleteModel(keycloak.token, id);
-    setModels(models.filter((model) => model.id !== id));
   };
 
   const handleShowNewModelClick = () => {
@@ -307,14 +301,16 @@ export default function Train({
 
   let trainingButton = () => {
     let buttonText = isTraining
-      ? currentPhase === TRAINING_PHASES.TRAINING
+      ? currentPhase === TRAINING_PHASES.PENDING
+        ? 'Training Pending'
+        : currentPhase === TRAINING_PHASES.TRAINING
         ? 'Training Model'
         : 'Testing Model'
       : dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
       ? 'Train Model'
       : 'Train & Test Model';
 
-    if (nSteps > 0 && currentStep > 0) {
+    if (nSteps > 0 && currentStep > 0 && currentPhase !== TRAINING_PHASES.PENDING) {
       buttonText += ` (${Math.min(
         Math.floor((currentStep / nSteps) * 100),
         100
@@ -738,17 +734,18 @@ export default function Train({
     <>
       {albumExtraction && (
         <>
-          <ModelsTable
-            title="Classification Models"
-            columns={columnsClassification}
-            data={models.filter((m) => m.type === MODEL_TYPES.CLASSIFICATION)}
-            handleDeleteModelClick={handleDeleteModelClick}
-          />
-          <ModelsTable
-            title="Survival Models"
-            columns={columnsSurvival}
-            data={models.filter((m) => m.type === MODEL_TYPES.SURVIVAL)}
-            handleDeleteModelClick={handleDeleteModelClick}
+          <h3>Model Training Queue</h3>
+          <TrainingQueue
+            collections={[{ id: featureExtractionID, name: collectionInfos?.collection?.name || 'Current Collection' }]}
+            onTrainModel={handleShowNewModelClick}
+            isTraining={isTraining}
+            trainingProgress={currentStep / nSteps}
+            models={models}
+            featureExtractionID={featureExtractionID}
+            selectedLabelCategory={selectedLabelCategory}
+            onNavigateToModels={onNavigateToModels}
+            dataSplittingType={dataSplittingType}
+            patients={patients}
           />
         </>
       )}

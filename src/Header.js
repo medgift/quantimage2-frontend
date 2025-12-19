@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import './Header.css';
-import { withRouter, NavLink as RouterNavLink } from 'react-router-dom';
+import { NavLink as RouterNavLink } from 'react-router-dom';
 import {
   Collapse,
   Nav,
@@ -80,4 +80,4 @@ function Header({ onLogout }) {
   );
 }
 
-export default withRouter(Header);
+export default Header;

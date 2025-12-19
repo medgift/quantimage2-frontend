@@ -51,6 +51,40 @@
   cursor: pointer;
 }
 
+/* Two-row tabs layout */
+.tabs-row-first {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.tabs-row-second {
+  margin-top: 0;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Make second row tabs larger and more prominent */
+.tabs-row-second .nav-link {
+  font-size: 1.10rem;
+  font-weight: 500;
+  padding: 0.75rem 1.25rem;
+  background-color: #8dabda;
+  border-color: #0d6efd;
+}
+
+.tabs-row-second .nav-link:hover {
+  background-color: #9ec5fe;
+}
+
+.tabs-row-second .nav-link.active {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.tabs-row-second .nav-item {
+  margin-bottom: -1px;
+}
+
 .info-container {
   display: flex;
 }

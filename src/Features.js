@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, Prompt } from 'react-router-dom';
 import fileDownload from 'js-file-download';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import Backend from './services/backend';
 import {
   Badge,
@@ -40,6 +41,7 @@ import Kheops from './services/kheops';
 import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
+import ModelOverview from './ModelOverview';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -53,8 +55,9 @@ import DataSplitting from './DataSplitting';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
 import useExitPrompt from './utils/useExitPrompt';
 
-function Features({ history }) {
+function Features() {
   const { keycloak } = useKeycloak();
+  const navigate = useNavigate();
 
   // Check if the user is an "alternative" user, i.e. with no visualization features
   const isAlternativeUser = useMemo(
@@ -82,6 +85,7 @@ function Features({ history }) {
 
   // Models management
   const [models, setModels] = useState([]);
+  const [allModels, setAllModels] = useState([]); // For ModelOverview tab
 
   // Training/Test split
   const [nbTrainingPatients, setNbTrainingPatients] = useState(null);
@@ -456,30 +460,45 @@ function Features({ history }) {
   ]);
 
   // Get models
-  useEffect(() => {
-    async function getModels() {
-      let models = await Backend.models(keycloak.token, albumID);
+  // Define getModels outside so it can be called from multiple places
+  const getModels = React.useCallback(async () => {
+    let models = await Backend.models(keycloak.token, albumID);
 
-      // Keep only models of the latest feature extraction
-      let filteredModels = models.filter(
-        (m) => m.feature_extraction_id === featureExtractionID
-      );
+    // Keep only models of the latest feature extraction
+    let filteredModels = models.filter(
+      (m) => m.feature_extraction_id === featureExtractionID
+    );
 
-      // Filter out models that are not for this collection / original feature set
-      filteredModels = collectionID
-        ? filteredModels.filter(
-            (m) => m.feature_collection_id === +collectionID
-          )
-        : filteredModels.filter((m) => m.feature_collection_id === null);
+    // Store all models for ModelOverview
+    let allSortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setAllModels(allSortedModels);
 
-      let sortedModels = filteredModels.sort(
-        (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
-      );
-      setModels(sortedModels);
-    }
+    // Filter out models that are not for this collection / original feature set
+    filteredModels = collectionID
+      ? filteredModels.filter(
+          (m) => m.feature_collection_id === +collectionID
+        )
+      : filteredModels.filter((m) => m.feature_collection_id === null);
 
-    if (albumID && featureExtractionID) getModels();
+    let sortedModels = filteredModels.sort(
+      (m1, m2) => new Date(m2.created_at) - new Date(m1.created_at)
+    );
+    setModels(sortedModels);
   }, [keycloak.token, albumID, collectionID, featureExtractionID]);
+
+  // Fetch models on mount and when dependencies change
+  useEffect(() => {
+    if (albumID && featureExtractionID) getModels();
+  }, [getModels, albumID, featureExtractionID]);
+
+  // Refresh models when switching to the "All Models" tab
+  useEffect(() => {
+    if (tab === 'models' && albumID && featureExtractionID) {
+      getModels();
+    }
+  }, [tab, albumID, featureExtractionID, getModels]);
 
   // Get classes of a tab
   const getTabClassName = (targetTab) => {
@@ -508,9 +527,9 @@ function Features({ history }) {
   // Toggle active
   const toggle = (newTab) => {
     if (newTab !== tab) {
-      if (!collectionID) history.push(`/features/${albumID}/${newTab}`);
+      if (!collectionID) navigate(`/features/${albumID}/${newTab}`);
       else
-        history.push(
+        navigate(
           `/features/${albumID}/collection/${collectionID}/${newTab}`
         );
     }
@@ -633,7 +652,7 @@ function Features({ history }) {
       return collections;
     });
 
-    history.push(`/features/${albumID}/overview`);
+    navigate(`/features/${albumID}/overview`);
   };
 
   // Print modalities
@@ -798,16 +817,10 @@ function Features({ history }) {
                 collections={collections}
                 collectionID={collectionID}
               />
-              <h5 style={{ marginTop: '16px' }}>Model Overview</h5>
-              <Button
-                color="link"
-                onClick={() => history.push(`/models/${albumID}`)}
-              >
-                <FontAwesomeIcon icon="table" /> See All Models
-              </Button>
             </div>
             <div className="feature-tabs">
-              <Nav tabs>
+              {/* First Row of Tabs */}
+              <Nav tabs className="tabs-row-first">
                 <NavItem>
                   <NavLink
                     className={classnames({ active: tab === 'overview' })}
@@ -877,6 +890,10 @@ function Features({ history }) {
                     Clinical Features
                   </NavLink>
                 </NavItem>
+              </Nav>
+              
+              {/* Second Row of Tabs - Highlighted */}
+              <Nav tabs className="tabs-row-second">
                 <NavItem>
                   <NavLink
                     className={getTabClassName('visualize')}
@@ -888,9 +905,9 @@ function Features({ history }) {
                     {isAlternativeUser ? (
                       'Collections'
                     ) : !hasPendingChanges ? (
-                      'Visualization'
+                      'Feature Selection / Visualization'
                     ) : (
-                      <strong>Visualization*</strong>
+                      <strong>Feature Selection / Visualization*</strong>
                     )}
                   </NavLink>
                 </NavItem>
@@ -903,21 +920,23 @@ function Features({ history }) {
                   >
                     {getTabSymbol()}
                     Model Training{' '}
-                    {models.length > 0 && <Badge>{models.length}</Badge>}
+                    
                   </NavLink>
                 </NavItem>
-                {/* <NavItem>
+                <NavItem>
                   <NavLink
-                    className={getTabClassName('your_component')}
+                    className={getTabClassName('models')}
                     onClick={() => {
-                      toggle('your_component');
+                      toggle('models');
                     }}
                   >
                     {getTabSymbol()}
-                    Your Component
+                    Model Evaluation / Comparison{' '}
+                    
                   </NavLink>
-                </NavItem> */}
+                </NavItem>
               </Nav>
+              
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
                   <div className="collection-overview">
@@ -1187,6 +1206,7 @@ function Features({ history }) {
                           dataSplittingType={dataSplittingType}
                           trainTestSplitType={trainTestSplitType}
                           patients={patients}
+                          onNavigateToModels={() => toggle('models')}
                         />
                       </>
                     ) : (
@@ -1230,6 +1250,17 @@ function Features({ history }) {
                     <span>Loading...</span>
                   )}
                 </TabPane>
+                <TabPane tabId="models">
+                  {tab === 'models' ? (
+                    <ModelOverview 
+                      albums={[album]} 
+                      showBackButton={false}
+                      initialModels={allModels}
+                    />
+                  ) : (
+                    <span>Loading...</span>
+                  )}
+                </TabPane>
               </TabContent>
             </div>
           </div>
@@ -1240,32 +1271,7 @@ function Features({ history }) {
           <Spinner />
         </div>
       )}
-      <Prompt
-        message={(location, action) => {
-          let movingAway = false;
-
-          console.log('location', location);
-          console.log('action', action);
-
-          if (
-            collectionID &&
-            !location.pathname.match(
-              `/features/${albumID}/collection/${collectionID}/.*`
-            )
-          )
-            movingAway = true;
-
-          if (
-            !collectionID &&
-            !location.pathname.match(`/features/${albumID}/(?!collection).*`)
-          )
-            movingAway = true;
-
-          return movingAway && hasPendingChanges
-            ? 'You have unsaved changes to the selected features, are you sure you want to leave and lose these changes?'
-            : true;
-        }}
-      />
+      
     </>
   );
 }
