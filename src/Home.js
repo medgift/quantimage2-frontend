@@ -136,7 +136,7 @@ function Home() {
                   The video below is an introduction to the QuantImage v2 radiomics research platform and its features:
                 </p>
                 <video style={{maxWidth: '832px', maxHeight: '832px'}} controls>
-                  <source src='https://drive.switch.ch/index.php/s/3Tom8ZnIF8wl2r3/download' type='video/mp4' />
+                  <source src='https://drive.switch.ch/index.php/s/Xv5zXBU9BOvpDaZ/download' type='video/mp4' />
                   Video Not Supported
                 </video>
               </div>
