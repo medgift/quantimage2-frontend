@@ -299,39 +299,20 @@ export default function ModelsTable({
 
   const [openModelID, setOpenModelID] = useState(-1);
 
-  // If only a single model, expand it by default
+  // If only a single model, expand it by default so the user can see its details.
+  // We intentionally only depend on `rows.length` (a stable primitive) so this
+  // effect does NOT re-run on every parent re-render.
+  // NOTE: we deliberately do NOT auto-select — the user must choose explicitly.
   useEffect(() => {
     if (rows.length === 1) {
-      let modelID = rows[0].original.id;
-      setOpenModelID(modelID);
-      // Auto-select the single model when expanded
-      if (showSelection && onModelSelectionChange) {
-        onModelSelectionChange([modelID]);
-      }
+      setOpenModelID(rows[0].original.id);
     }
-  }, [rows, showSelection, onModelSelectionChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length]);
 
   const toggleModel = (modelID) => {
-    const isOpening = openModelID !== modelID;
+    // Only expand/collapse the row. Selection is handled exclusively via checkboxes.
     setOpenModelID((m) => (m !== modelID ? modelID : -1));
-    
-    // Auto-select model when opening (not when closing or using checkboxes)
-    if (showSelection && onModelSelectionChange && isOpening) {
-      const isAlreadySelected = selectedModels.includes(modelID);
-      
-      // If clicking an already selected model, make it the only selection
-      if (isAlreadySelected) {
-        onModelSelectionChange([modelID]);
-      } 
-      // If 2 or more models already selected, add this model to selection
-      else if (selectedModels.length >= 2) {
-        onModelSelectionChange([...selectedModels, modelID]);
-      } 
-      // If 0 or 1 models selected, replace selection with just this model
-      else {
-        onModelSelectionChange([modelID]);
-      }
-    }
   };
 
   const [configOpen, setConfigOpen] = useState(false);
@@ -385,12 +366,13 @@ export default function ModelsTable({
                     onChange={(e) => {
                       e.stopPropagation();
                       if (e.target.checked) {
-                        // Add all models from this table to the selection
-                        const newModels = data.map(model => model.id);
-                        const merged = [...new Set([...selectedModels, ...newModels])];
-                        onModelSelectionChange(merged);
+                        // Select all models from this table only.
+                        // Drop any selections from the other type — mixed-type
+                        // selection is not allowed.
+                        const tableModelIds = data.map(model => model.id);
+                        onModelSelectionChange(tableModelIds);
                       } else {
-                        // Remove all models from this table from the selection
+                        // Deselect all models from this table.
                         const tableModelIds = data.map(model => model.id);
                         onModelSelectionChange(selectedModels.filter(id => !tableModelIds.includes(id)));
                       }
@@ -471,7 +453,16 @@ export default function ModelsTable({
                           e.stopPropagation();
                           const modelId = row.original.id;
                           if (e.target.checked) {
-                            onModelSelectionChange([...selectedModels, modelId]);
+                            // Detect if any currently selected models belong to a
+                            // different type (i.e., their IDs are not in this table).
+                            // If so, clear them — mixed-type selection is not allowed.
+                            const tableModelIds = new Set(data.map(m => m.id));
+                            const hasForeignSelection = selectedModels.some(id => !tableModelIds.has(id));
+                            if (hasForeignSelection) {
+                              onModelSelectionChange([modelId]);
+                            } else {
+                              onModelSelectionChange([...selectedModels, modelId]);
+                            }
                           } else {
                             onModelSelectionChange(selectedModels.filter(id => id !== modelId));
                           }
