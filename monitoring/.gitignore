@@ -1,0 +1,3 @@
+# Monitoring logs and PID files
+logs/
+!.gitkeep
