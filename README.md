@@ -2,13 +2,15 @@
 
 ## Changelog
 
+These version numbers refer to frontend releases for this repository.
+
 ### 3.2
 
-- **Upgraded to Python 3.12** — Compatibility with backend updated to Python 3.12.
+- **Backend compatibility update** — Compatible with the backend after its upgrade to Python 3.12.
 
 ### 3.1
 
-- Previous stable release.
+- Previous stable frontend release.
 
 ## Context
 
