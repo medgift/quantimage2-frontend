@@ -1,5 +1,17 @@
 # QuantImage v2 - Frontend
 
+## Changelog
+
+These version numbers refer to frontend releases for this repository.
+
+### 3.2
+
+- **Backend compatibility update** — Compatible with the backend after its upgrade to Python 3.12.
+
+### 3.1
+
+- Previous stable frontend release.
+
 ## Context
 
 This repository is part of the QuantImage v2 platform, which includes the following repositories:

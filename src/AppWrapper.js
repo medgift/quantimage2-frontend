@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SocketContext from './context/SocketContext';
 import App from './App';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { pythonBackendBaseURL } from './services/config';
 import Keycloak from 'keycloak-js';
 import { ReactKeycloakProvider } from '@react-keycloak/web';
