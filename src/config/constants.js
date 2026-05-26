@@ -73,6 +73,7 @@ export const TRAINING_PHASES = {
   PENDING: 'pending',
   TRAINING: 'training',
   TESTING: 'testing',
+  SAVING: 'saving',
 };
 
 export const CLINICAL_FEATURE_FIELDS = {

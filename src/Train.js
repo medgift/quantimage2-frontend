@@ -100,6 +100,10 @@ export default function Train({
             setCurrentPhase(TRAINING_PHASES.TESTING);
             setNSteps(trainingStatus.total);
             setCurrentStep(trainingStatus.current);
+          } else if (trainingStatus.phase === TRAINING_PHASES.SAVING) {
+            setCurrentPhase(TRAINING_PHASES.SAVING);
+            setNSteps(0);
+            setCurrentStep(0);
           } else if (trainingStatus.phase === TRAINING_PHASES.TRAINING) {
             setCurrentPhase(TRAINING_PHASES.TRAINING);
             setCurrentStep((s) => s + 1);
@@ -304,13 +308,15 @@ export default function Train({
       ? currentPhase === TRAINING_PHASES.PENDING
         ? 'Training Pending'
         : currentPhase === TRAINING_PHASES.TRAINING
-        ? 'Training Model'
-        : 'Testing Model'
+          ? 'Training Model'
+          : currentPhase === TRAINING_PHASES.SAVING
+            ? 'Saving Model'
+            : 'Testing Model'
       : dataSplittingType === DATA_SPLITTING_TYPES.FULL_DATASET
-      ? 'Train Model'
-      : 'Train & Test Model';
+        ? 'Train Model'
+        : 'Train & Test Model';
 
-    if (nSteps > 0 && currentStep > 0 && currentPhase !== TRAINING_PHASES.PENDING) {
+    if (nSteps > 0 && currentStep > 0 && currentPhase !== TRAINING_PHASES.PENDING && currentPhase !== TRAINING_PHASES.SAVING) {
       buttonText += ` (${Math.min(
         Math.floor((currentStep / nSteps) * 100),
         100
