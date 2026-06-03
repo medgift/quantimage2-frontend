@@ -21,6 +21,10 @@ import {
 } from 'reactstrap';
 import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
+  makeClinicalFeatureId,
+  CLINICAL_FEATURE_ID_SEPARATOR,
+} from './utils/clinical-feature-id';
+import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
   FEATURE_CATEGORY_ALIASES,
@@ -114,6 +118,7 @@ export default function Visualisation({
   hasPendingChanges,
   setHasPendingChanges,
   clinicalFeaturesDefinitions,
+  clinicalFeatureFiles,
 }) {
   // Help modal state
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -178,12 +183,13 @@ export default function Visualisation({
   // Chart
   const chartRef = useRef(null);
 
+  // Canonical clinical feature IDs are `<file_id>::<name>`.
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
-    if (!featureIDs && !clinicalFeaturesDefinitions) return [];
-    if (!featureIDs) return Object.keys(clinicalFeaturesDefinitions);
-    if (!clinicalFeaturesDefinitions) return featureIDs;
-
-    return [...featureIDs, ...Object.keys(clinicalFeaturesDefinitions)];
+    const clinicalFeatureIDs = (clinicalFeaturesDefinitions || []).map((d) =>
+      makeClinicalFeatureId(d.clinical_feature_file_id, d.name)
+    );
+    if (!featureIDs) return clinicalFeatureIDs;
+    return [...featureIDs, ...clinicalFeatureIDs];
   }, [featureIDs, clinicalFeaturesDefinitions]);
 
   const finalTrainingPatients = useMemo(() => {
@@ -408,17 +414,30 @@ export default function Visualisation({
     setTestPatientsOpen((o) => !o);
   };
 
-  const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
-   
-    return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
-      acc[clinicalFeaturesDefinitions[curr]['name']] = {
-        id: clinicalFeaturesDefinitions[curr]['name'],
-        description: clinicalFeaturesDefinitions[curr]['name'],
-        shortName: clinicalFeaturesDefinitions[curr]['name'],
-      };
-
+  // Build a 2-level tree node for clinical features: file -> features.
+  // Leaf id is the canonical `<file_id>::<name>` so collections stay
+  // unambiguous when two files share a column name.
+  const formatClinicalFeaturesTreeItems = (
+    definitionsList,
+    files
+  ) => {
+    const filesById = (files || []).reduce((acc, f) => {
+      acc[f.id] = f;
       return acc;
     }, {});
+
+    const grouped = {};
+    for (const d of definitionsList || []) {
+      const fid = d.clinical_feature_file_id;
+      const fileName = filesById[fid]?.name || `File #${fid}`;
+      if (!grouped[fileName]) grouped[fileName] = {};
+      grouped[fileName][d.name] = {
+        id: makeClinicalFeatureId(fid, d.name),
+        description: d.name,
+        shortName: d.name,
+      };
+    }
+    return grouped;
   };
 
   const filteringItems = useMemo(() => {
@@ -454,21 +473,48 @@ export default function Visualisation({
       }
     }
 
-    // Add clinical features
+    // Add clinical features as a `Clinical Features` parent grouped by file.
     if (
       clinicalFeaturesDefinitions &&
-      Object.keys(clinicalFeaturesDefinitions).length > 0
+      clinicalFeaturesDefinitions.length > 0
     ) {
       groupedTree['Clinical Features [No visualization]'] =
-        formatClinicalFeaturesTreeItems(clinicalFeaturesDefinitions);
+        formatClinicalFeaturesTreeItems(
+          clinicalFeaturesDefinitions,
+          clinicalFeatureFiles
+        );
     }
 
-    console.log('groupedTree', groupedTree);
     return groupedTree;
-  }, [featureIDs, clinicalFeaturesDefinitions]);
+  }, [featureIDs, clinicalFeaturesDefinitions, clinicalFeatureFiles]);
 
   const getNodeIDsFromFeatureIDs = useCallback(
     (featureIDs, leafItems, nodeIDToNodeMap) => {
+      // Legacy collections stored clinical features by bare column name, but
+      // the tree leaves are now `<file_id>::<name>`. Resolve any bare clinical
+      // name to its namespaced id (lowest file_id wins — the migration's
+      // backfilled "Legacy" file) so pre-multi-CSV collections still restore
+      // their clinical selections. Mirrors the backend's
+      // resolve_collection_clinical_definitions.
+      const resolvedFeatureIDs = featureIDs.map((fID) => {
+        if (
+          fID.includes(FEATURE_ID_SEPARATOR) ||
+          fID.includes(CLINICAL_FEATURE_ID_SEPARATOR)
+        )
+          return fID;
+        const candidates = (clinicalFeaturesDefinitions || []).filter(
+          (d) => d.name === fID
+        );
+        if (candidates.length === 0) return fID;
+        const chosen = candidates.reduce((a, b) =>
+          a.clinical_feature_file_id <= b.clinical_feature_file_id ? a : b
+        );
+        return makeClinicalFeatureId(
+          chosen.clinical_feature_file_id,
+          chosen.name
+        );
+      });
+
       // Make a map of feature ID -> node ID
       let featureIDToNodeID = Object.entries(leafItems).reduce(
         (acc, [key, value]) => {
@@ -479,7 +525,7 @@ export default function Visualisation({
       );
 
       let filteredFeatureIDs = Object.keys(featureIDToNodeID).filter((fID) =>
-        featureIDs.includes(fID)
+        resolvedFeatureIDs.includes(fID)
       );
 
       let nodeIDs = filteredFeatureIDs.map((fID) => featureIDToNodeID[fID]);
@@ -515,7 +561,7 @@ export default function Visualisation({
 
       return nodeIDs;
     },
-    []
+    [clinicalFeaturesDefinitions]
   );
 
   const treeData = useMemo(() => {

@@ -296,7 +296,7 @@ const UnifiedModelAnalysis = ({ selectedModel, plotData, plotType, onClose }) =>
                     <span style={{ fontWeight: 'bold', color: '#007bff' }}>{predictionMetrics.precision.toFixed(3)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Recall:</span>
+                    <span>Sensitivity:</span>
                     <span style={{ fontWeight: 'bold', color: '#6610f2' }}>{predictionMetrics.recall.toFixed(3)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>

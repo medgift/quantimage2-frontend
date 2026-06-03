@@ -2,6 +2,7 @@ import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Plotly from 'plotly.js-dist';
 import Backend from '../services/backend';
+import { getModelLabel } from '../utils/feature-utils.js';
 
 const ROCCurveComponent = ({
   selectedModel,
@@ -13,6 +14,7 @@ const ROCCurveComponent = ({
   onClose,
   hideContainer = false,
   token,
+  modelLabels = null,
 }) => {
   const rocPlotRef = useRef(null);
   const rocDivRef = useRef(null);
@@ -109,12 +111,12 @@ const ROCCurveComponent = ({
           fpr: fpr[closestIdx],
           tpr: tpr[closestIdx],
           modelId: modelData.model_id,
-          modelName: modelData.model_name,
+          modelName: getModelLabel(modelData, modelLabels),
           index,
         };
       })
       .filter((point) => point !== null);
-  }, [rocData, threshold]);
+  }, [rocData, threshold, modelLabels]);
 
   // Create/Update ROC Plot using Plotly (optimized)
   useEffect(() => {
@@ -151,16 +153,15 @@ const ROCCurveComponent = ({
       }
 
       const color = colors[index % colors.length];
+      const modelLabel = getModelLabel(modelData, modelLabels);
 
       traces.push({
         x: modelData.fpr,
         y: modelData.tpr,
         mode: 'lines',
-        name: `${modelData.model_name} (AUC = ${modelData.auc.toFixed(3)})`,
+        name: `${modelLabel} (AUC = ${modelData.auc.toFixed(3)})`,
         line: { color: color, width: 3 },
-        hovertemplate: `<b>${
-          modelData.model_name
-        }</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<br>AUC: ${modelData.auc.toFixed(
+        hovertemplate: `<b>${modelLabel}</b><br>FPR: %{x:.3f}<br>TPR: %{y:.3f}<br>AUC: ${modelData.auc.toFixed(
           3
         )}<extra></extra>`,
       });
@@ -234,7 +235,9 @@ const ROCCurveComponent = ({
         title: {
           text: 'False Positive Rate (1 - Specificity)',
           font: { size: 15, family: 'Arial, sans-serif' },
+          standoff: 15,
         },
+        automargin: true,
         range: [0, 1],
         autorange: false, // Disable auto-ranging
         gridcolor: '#e1e5ea',
@@ -245,6 +248,7 @@ const ROCCurveComponent = ({
           text: 'True Positive Rate (Sensitivity)',
           font: { size: 15, family: 'Arial, sans-serif' },
         },
+        automargin: true,
         range: [0, 1],
         autorange: false, // Disable auto-ranging
         gridcolor: '#e1e5ea',
@@ -253,8 +257,10 @@ const ROCCurveComponent = ({
       showlegend: true,
       legend: {
         orientation: 'h',
-        x: 0,
-        y: -0.2,
+        x: 0.5,
+        y: -0.3,
+        xanchor: 'center',
+        yanchor: 'top',
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
         borderwidth: 1,
@@ -265,7 +271,7 @@ const ROCCurveComponent = ({
         l: 60,
         r: 30,
         t: 80,
-        b: 120,
+        b: 160,
       },
       height: height,
     };
@@ -294,7 +300,7 @@ const ROCCurveComponent = ({
         rocPlotRef.current = plot;
       });
     }
-  }, [rocData, plotType, height, currentROCPoints, threshold]); // Added currentROCPoints and threshold
+  }, [rocData, plotType, height, currentROCPoints, threshold, modelLabels]); // Added currentROCPoints and threshold
 
   // Error state
   if (error) {

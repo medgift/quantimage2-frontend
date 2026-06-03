@@ -39,6 +39,7 @@ import './Features.css';
 import CollectionSelection from './components/CollectionSelection';
 import Kheops from './services/kheops';
 import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
+import { makeClinicalFeatureId } from './utils/clinical-feature-id';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
 import ModelOverview from './ModelOverview';
@@ -102,12 +103,15 @@ function Features() {
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   // Clinical Features
+  let [clinicalFeatureFiles, setClinicalFeatureFiles] = useState(null);
   let [clinicalFeaturesDefinitions, setClinicalFeaturesDefinitions] =
     useState(null);
   let [clinicalFeaturesValues, setClinicalFeaturesValues] = useState(null);
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
 
+  // Keyed by canonical clinical feature id `<file_id>::<name>` so two CSVs
+  // with the same column name don't collide.
   const formattedClinicalFeaturesDefinitions = useMemo(() => {
     if (
       !clinicalFeaturesDefinitions ||
@@ -116,8 +120,8 @@ function Features() {
       return {};
 
     return clinicalFeaturesDefinitions.reduce((acc, curr) => {
-      acc[curr.name] = curr;
-
+      const key = makeClinicalFeatureId(curr.clinical_feature_file_id, curr.name);
+      acc[key] = curr;
       return acc;
     }, {});
   }, [clinicalFeaturesDefinitions]);
@@ -416,14 +420,14 @@ function Features() {
   // Get clinical features
   useEffect(() => {
     async function fetchClinicalFeatures() {
-      let clinicalFeatures = await Backend.loadClinicalFeatures(
-        keycloak.token,
-        dataPoints,
-        albumID
-      );
-      let clinicalFeaturesDefinitions =
-        await Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID);
+      let [files, clinicalFeatures, clinicalFeaturesDefinitions] =
+        await Promise.all([
+          Backend.listClinicalFeatureFiles(keycloak.token, albumID),
+          Backend.loadClinicalFeatures(keycloak.token, dataPoints, albumID),
+          Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID),
+        ]);
 
+      setClinicalFeatureFiles(files);
       setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
       setClinicalFeaturesValues(clinicalFeatures);
 
@@ -1166,6 +1170,7 @@ function Features() {
                           clinicalFeaturesDefinitions={
                             clinicalFeaturesDefinitions
                           }
+                          clinicalFeatureFiles={clinicalFeatureFiles}
                         />
                       </>
                     ) : (
@@ -1230,6 +1235,8 @@ function Features() {
                       <ClinicalFeatures
                         dataPoints={allPatients}
                         albumID={albumID}
+                        clinicalFeatureFiles={clinicalFeatureFiles}
+                        setClinicalFeatureFiles={setClinicalFeatureFiles}
                         clinicalFeaturesDefinitions={
                           clinicalFeaturesDefinitions
                         }

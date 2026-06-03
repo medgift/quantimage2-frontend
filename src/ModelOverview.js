@@ -59,6 +59,19 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
     }),
     []
   );
+
+  const modelLabels = useMemo(() => {
+    const labels = {};
+    for (const model of models) {
+      const collection = model.feature_collection_id
+        ? collections.find((c) => c.id === model.feature_collection_id)
+        : null;
+      labels[model.id] = collection
+        ? `Model ${model.id} (${collection.name})`
+        : `Model ${model.id} (<original>)`;
+    }
+    return labels;
+  }, [models, collections]);
   // Model table header
   const columnsClassification = React.useMemo(
     () => [modelIDColumn, collectionColumn, ...CLASSIFICATION_COLUMNS],
@@ -498,7 +511,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                               <div className="card h-100 metric-card-bootstrap position-relative">
                                 <div className="card-body p-2 p-md-3">
                                   <div className="d-flex align-items-center justify-content-between mb-2">
-                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Recall</span>
+                                    <span className="metric-name-bootstrap text-uppercase fw-bold text-muted small">Sensitivity</span>
                                   </div>
                                   <div className="text-center">
                                     <div className="fw-semibold text-primary metric-value-bold" style={{ fontSize: '1rem', lineHeight: '1.2' }}>
@@ -559,6 +572,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                               externalHeight={500}
                               onClose={() => setPlotHtml(null)}
                               onMetricsUpdate={setPredictionMetrics}
+                              modelLabels={modelLabels}
                             />
                           </div>
                         </div>
@@ -580,6 +594,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                 height={500}
                                 hideContainer={true}
                                 token={keycloak.token}
+                                modelLabels={modelLabels}
                               />
                             </div>
                           </div>
@@ -599,6 +614,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                             height={400}
                             metric="auc"
                             hideContainer={true}
+                            modelLabels={modelLabels}
                           />
                         </div>
                       </div>
@@ -657,6 +673,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                               hideThresholdControl={true}
                               hideContainer={true}
                               externalHeight={500}
+                              modelLabels={modelLabels}
                             />
                           </div>
                         </div>
@@ -678,6 +695,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                                 height={500}
                                 hideContainer={true}
                                 token={keycloak.token}
+                                modelLabels={modelLabels}
                               />
                             </div>
                           </div>
@@ -697,6 +715,7 @@ export default function ModelOverview({ albums, showBackButton = true, initialMo
                             height={400}
                             metric="auc"
                             hideContainer={true}
+                            modelLabels={modelLabels}
                           />
                         </div>
                       </div>
