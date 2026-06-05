@@ -1,6 +1,16 @@
 .Header {
 }
 
+.header-logo {
+  height: 90px;
+  width: auto;
+}
+
+.Header .navbar-brand {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .admin-lock {
   margin: 0 0.5em;
   margin-top: 0.4rem;

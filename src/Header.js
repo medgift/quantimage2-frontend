@@ -27,7 +27,13 @@ function Header({ onLogout }) {
   return (
     <div className="Header">
       <Navbar light expand="md">
-        <NavbarBrand href="/">QuantImage v2</NavbarBrand>
+        <NavbarBrand href="/">
+          <img
+            src={`${process.env.PUBLIC_URL}/logo/quantimage2_logo_name.svg`}
+            alt="QuantImage v2"
+            className="header-logo"
+          />
+        </NavbarBrand>
         {user && (
           <>
             <NavbarToggler onClick={toggle} />
