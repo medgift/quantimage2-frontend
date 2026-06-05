@@ -3,7 +3,7 @@ services:
   web:
     build:
       dockerfile: Dockerfile.prod
-    image: quantimage2-frontend_web:3.2
+    image: quantimage2-frontend_web:3.3
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=prod"
