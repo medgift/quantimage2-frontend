@@ -42,6 +42,7 @@ import Visualisation, { FEATURE_ID_SEPARATOR } from './Visualisation';
 import Outcomes from './Outcomes';
 import ClinicalFeatures from './ClinicalFeatures';
 import ModelOverview from './ModelOverview';
+import Fdr from './FDR';
 import {
   CLASSIFICATION_OUTCOMES,
   DATA_SPLITTING_DEFAULT_TRAINING_SPLIT,
@@ -477,9 +478,7 @@ function Features() {
 
     // Filter out models that are not for this collection / original feature set
     filteredModels = collectionID
-      ? filteredModels.filter(
-          (m) => m.feature_collection_id === +collectionID
-        )
+      ? filteredModels.filter((m) => m.feature_collection_id === +collectionID)
       : filteredModels.filter((m) => m.feature_collection_id === null);
 
     let sortedModels = filteredModels.sort(
@@ -529,9 +528,7 @@ function Features() {
     if (newTab !== tab) {
       if (!collectionID) navigate(`/features/${albumID}/${newTab}`);
       else
-        navigate(
-          `/features/${albumID}/collection/${collectionID}/${newTab}`
-        );
+        navigate(`/features/${albumID}/collection/${collectionID}/${newTab}`);
     }
   };
 
@@ -891,7 +888,7 @@ function Features() {
                   </NavLink>
                 </NavItem>
               </Nav>
-              
+
               {/* Second Row of Tabs - Highlighted */}
               <Nav tabs className="tabs-row-second">
                 <NavItem>
@@ -920,7 +917,6 @@ function Features() {
                   >
                     {getTabSymbol()}
                     Model Training{' '}
-                    
                   </NavLink>
                 </NavItem>
                 <NavItem>
@@ -932,11 +928,21 @@ function Features() {
                   >
                     {getTabSymbol()}
                     Model Evaluation / Comparison{' '}
-                    
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    className={getTabClassName('fdr')}
+                    onClick={() => {
+                      toggle('fdr');
+                    }}
+                  >
+                    {getTabSymbol()}
+                    FDR Correction{' '}
                   </NavLink>
                 </NavItem>
               </Nav>
-              
+
               <TabContent activeTab={tab} className="p-3">
                 <TabPane tabId="overview">
                   <div className="collection-overview">
@@ -1252,14 +1258,17 @@ function Features() {
                 </TabPane>
                 <TabPane tabId="models">
                   {tab === 'models' ? (
-                    <ModelOverview 
-                      albums={[album]} 
+                    <ModelOverview
+                      albums={[album]}
                       showBackButton={false}
                       initialModels={allModels}
                     />
                   ) : (
                     <span>Loading...</span>
                   )}
+                </TabPane>
+                <TabPane tabId="fdr">
+                  {tab === 'fdr' ? <Fdr /> : <span>Loading...</span>}
                 </TabPane>
               </TabContent>
             </div>
@@ -1271,7 +1280,6 @@ function Features() {
           <Spinner />
         </div>
       )}
-      
     </>
   );
 }

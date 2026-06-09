@@ -100,6 +100,11 @@ export const CLINICAL_FEATURE_MISSING_VALUES = {
   NONE: 'None',
 };
 
+export const FDR_PHASES = {
+  PENDING: 'pending',
+  CORRECTING: 'correcting',
+};
+
 export const CV_SPLITS = 5;
 
 export const MODEL_COLUMNS = [
