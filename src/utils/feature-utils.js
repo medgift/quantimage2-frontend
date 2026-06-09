@@ -441,3 +441,8 @@ export function SelectColumnFilter({
     </select>
   );
 }
+
+export async function fdrCorrection(token) {
+  let response = await Backend.fdr(token);
+  return response;
+}

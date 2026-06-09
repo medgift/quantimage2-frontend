@@ -5,8 +5,9 @@ import { useKeycloak } from '@react-keycloak/web';
 
 import { FDR_PHASES } from './config/constants';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { fdrCorrection } from './utils/feature-utils';
 
-export default function Fdr() {
+export default function Fdr(album, albumExtraction) {
   let { keycloak } = useKeycloak();
 
   let [isCorrectingFDR, setIsCorrectingFDR] = useState(false);
@@ -14,6 +15,12 @@ export default function Fdr() {
 
   let handleFdrCorrectionClick = async () => {
     setIsCorrectingFDR(true);
+    try {
+      let response = await fdrCorrection(keycloak.token);
+      setIsCorrectingFDR(false);
+    } catch (e) {
+      throw e;
+    }
   };
 
   let fdrCorrectionButton = () => {

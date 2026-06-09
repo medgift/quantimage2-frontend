@@ -6,6 +6,7 @@ import {
   DATA_SPLITTING_TYPES,
   TRAIN_TEST_SPLIT_TYPES,
 } from '../config/constants';
+import { method } from 'lodash';
 
 const baseEndpoint = `${pythonBackendBaseURL}`;
 
@@ -24,6 +25,7 @@ const endpoints = {
   albums: `${baseEndpoint}/albums`,
   clinicalFeatures: `${baseEndpoint}/clinical-features`,
   clinicalFeaturesDefinitions: `${baseEndpoint}/clinical-features-definitions`,
+  fdr: `${baseEndpoint}/fdr`,
 };
 
 class Backend {
@@ -463,8 +465,6 @@ class Backend {
   }
 
   async plotTestPredictions(token, modelIds) {
-
-
     // Use the first model ID in the URL and send all IDs in the body
     const primaryModelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
     let url = `${endpoints.models}/${primaryModelId}/plot-test-predictions`;
@@ -472,7 +472,6 @@ class Backend {
     let requestData = {
       model_ids: modelIds, // Send array of model IDs
     };
-
 
     return await request(url, {
       token: token,
@@ -496,60 +495,59 @@ class Backend {
     });
   }
 
+  async getROCCurveTestData(token, modelIds) {
+    try {
+      if (Array.isArray(modelIds) && modelIds.length > 1) {
+        // Multiple models - use POST
+        const primaryModelId = modelIds[0];
+        let url = `${endpoints.models}/${primaryModelId}/roc-curve-test-data`;
 
-    async getROCCurveTestData(token, modelIds) {
-  try {
-    if (Array.isArray(modelIds) && modelIds.length > 1) {
-      // Multiple models - use POST
-      const primaryModelId = modelIds[0];
-      let url = `${endpoints.models}/${primaryModelId}/roc-curve-test-data`;
-      
-      return await request(url, {
-        token: token,
-        method: 'POST',
-        data: { model_ids: modelIds }
-      });
-    } else {
-      // Single model - use GET
-      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
-      let url = `${endpoints.models}/${modelId}/roc-curve-test-data`;
-      
-      return await request(url, { 
-        token: token,
-        method: 'GET'
-      });
-    }
-  } catch (err) {
-    throw err;
-  }
-}
+        return await request(url, {
+          token: token,
+          method: 'POST',
+          data: { model_ids: modelIds },
+        });
+      } else {
+        // Single model - use GET
+        const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+        let url = `${endpoints.models}/${modelId}/roc-curve-test-data`;
 
-async getROCCurveTrainData(token, modelIds) {
-  try {
-    if (Array.isArray(modelIds) && modelIds.length > 1) {
-      // Multiple models - use POST
-      const primaryModelId = modelIds[0];
-      let url = `${endpoints.models}/${primaryModelId}/roc-curve-train-data`;
-      
-      return await request(url, {
-        token: token,
-        method: 'POST',
-        data: { model_ids: modelIds }
-      });
-    } else {
-      // Single model - use GET
-      const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
-      let url = `${endpoints.models}/${modelId}/roc-curve-train-data`;
-      
-      return await request(url, { 
-        token: token,
-        method: 'GET'
-      });
+        return await request(url, {
+          token: token,
+          method: 'GET',
+        });
+      }
+    } catch (err) {
+      throw err;
     }
-  } catch (err) {
-    throw err;
   }
-}
+
+  async getROCCurveTrainData(token, modelIds) {
+    try {
+      if (Array.isArray(modelIds) && modelIds.length > 1) {
+        // Multiple models - use POST
+        const primaryModelId = modelIds[0];
+        let url = `${endpoints.models}/${primaryModelId}/roc-curve-train-data`;
+
+        return await request(url, {
+          token: token,
+          method: 'POST',
+          data: { model_ids: modelIds },
+        });
+      } else {
+        // Single model - use GET
+        const modelId = Array.isArray(modelIds) ? modelIds[0] : modelIds;
+        let url = `${endpoints.models}/${modelId}/roc-curve-train-data`;
+
+        return await request(url, {
+          token: token,
+          method: 'GET',
+        });
+      }
+    } catch (err) {
+      throw err;
+    }
+  }
 
   async presets(token) {
     try {
@@ -737,7 +735,16 @@ async getROCCurveTrainData(token, modelIds) {
     }
   }
 
- 
+  async fdr(token) {
+    try {
+      const url = `${endpoints.fdr}/test`;
+      return await request(url, {
+        token: token,
+      });
+    } catch (err) {
+      throw err;
+    }
+  }
 }
 
 const backendInstance = new Backend();
