@@ -13,6 +13,9 @@ export default function FilterTree({
   selected,
   setSelected,
   disabled,
+  // Node IDs that can never be selected (e.g. superseded duplicate clinical
+  // features — training only uses the newest file's copy of a repeated name).
+  disabledNodeIds,
 }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set(['CT', 'PT', 'MR']));
 
@@ -38,7 +41,9 @@ export default function FilterTree({
 
         if (event.target.checked) {
           newSelections.push(
-            ...nodeAndChildren.filter((n) => !newSelections.includes(n))
+            ...nodeAndChildren.filter(
+              (n) => !newSelections.includes(n) && !disabledNodeIds?.has(n)
+            )
           );
         } else {
           newSelections = newSelections.filter(
@@ -49,7 +54,7 @@ export default function FilterTree({
         return newSelections;
       });
     },
-    [getNodeAndAllChildrenIDs, setSelected]
+    [getNodeAndAllChildrenIDs, setSelected, disabledNodeIds]
   );
 
   const selectNodeAll = useCallback(
@@ -90,7 +95,9 @@ export default function FilterTree({
                   currentNodeComponents[nodeComponentIndexToCheck]
               );
             })
-            .filter((n) => !newSelections.includes(n));
+            .filter(
+              (n) => !newSelections.includes(n) && !disabledNodeIds?.has(n)
+            );
           newSelections.push(...nodesToSelect);
         } else {
           newSelections = newSelections.filter((n) => {
@@ -115,13 +122,20 @@ export default function FilterTree({
         return newSelections;
       });
     },
-    [filteringItems, formatTreeData, getNodeAndAllChildrenIDs, setSelected]
+    [
+      filteringItems,
+      formatTreeData,
+      getNodeAndAllChildrenIDs,
+      setSelected,
+      disabledNodeIds,
+    ]
   );
 
   const renderTreeNode = (node, level = 0) => {
     const hasChildren = node.children && node.children.length > 0;
     const isExpanded = expandedNodes.has(node.id);
     const indent = level * 20;
+    const isSuperseded = Boolean(disabledNodeIds?.has(node.id));
 
     // Calculate checkbox state
     const isChecked = (() => {
@@ -176,25 +190,34 @@ export default function FilterTree({
               selectNode(event, node);
             }}
             onClick={(e) => e.stopPropagation()}
-            disabled={disabled}
+            disabled={disabled || isSuperseded}
             style={{ marginRight: '8px' }}
           />
-          
+
           {/* Node label */}
           <span
             title={(node.value && node.value.description) || node.description}
-            style={{ 
+            style={{
               fontSize: hasChildren ? '14px' : '13px',
               fontWeight: hasChildren ? 'bold' : 'normal',
               flex: 1,
-              cursor: 'default'
+              cursor: 'default',
+              ...(isSuperseded && {
+                color: '#999',
+                textDecoration: 'line-through',
+              })
             }}
           >
             {node.name}
+            {isSuperseded && (
+              <em style={{ marginLeft: 6, textDecoration: 'none', fontSize: '11px' }}>
+                (repeated — the newer file's copy is used)
+              </em>
+            )}
           </span>
-          
+
           {/* Select all button */}
-          {!disabled && node.id.split(FEATURE_ID_SEPARATOR).length > 1 && (
+          {!disabled && !isSuperseded && node.id.split(FEATURE_ID_SEPARATOR).length > 1 && (
             <Button
               color="link"
               size="sm"

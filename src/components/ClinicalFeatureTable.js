@@ -27,6 +27,10 @@ import {
   makeClinicalFeatureId,
   clinicalFeatureIdPrefix,
 } from '../utils/clinical-feature-id';
+import {
+  formatDuplicateAdvisory,
+  isHarmlessDuplicate,
+} from '../utils/clinical-feature-duplicates';
 
 import _ from 'lodash';
 
@@ -68,6 +72,7 @@ export default function ClinicalFeatureTable({
   const [uploadValid, setUploadValid] = useState(null);
   const [uploadMessage, setUploadMessage] = useState(null);
   const [filterMessages, setFilterMessages] = useState({});
+  const [duplicateAdvisories, setDuplicateAdvisories] = useState([]);
   const fileInput = useRef(null);
 
   // Group definitions by file_id so each file gets its own config card.
@@ -93,6 +98,38 @@ export default function ClinicalFeatureTable({
       {}
     );
   }, [clinicalFeaturesUniqueValues]);
+
+  // Signature of (file, name) pairs: refetch the duplicate advisory only when
+  // the set of columns changes (upload/delete), not on every encoding edit.
+  const definitionsSignature = useMemo(
+    () =>
+      (clinicalFeaturesDefinitions || [])
+        .map((d) => makeClinicalFeatureId(d.clinical_feature_file_id, d.name))
+        .sort()
+        .join('|'),
+    [clinicalFeaturesDefinitions]
+  );
+
+  // Training only uses a feature name once when it appears in several files
+  // (newest file wins) — surface what that means for this album's data.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const advisories = await Backend.getClinicalFeatureDuplicates(
+          keycloak.token,
+          albumID
+        );
+        if (!cancelled) setDuplicateAdvisories(advisories || []);
+      } catch (err) {
+        console.error('Could not load clinical duplicate advisories', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albumID, definitionsSignature, keycloak.token]);
 
   // Auto-toggle to import when the user has no files yet.
   useEffect(() => {
@@ -377,6 +414,30 @@ export default function ClinicalFeatureTable({
           Import Clinical Features
         </Button>
       </p>
+
+      {duplicateAdvisories.filter((a) => !isHarmlessDuplicate(a)).length >
+        0 && (
+        <Alert color="warning">
+          <strong>Repeated clinical features across files</strong>
+          <ul style={{ marginBottom: 0 }}>
+            {duplicateAdvisories
+              .filter((a) => !isHarmlessDuplicate(a))
+              .map((a) => (
+                <li key={a.name}>{formatDuplicateAdvisory(a)}</li>
+              ))}
+          </ul>
+        </Alert>
+      )}
+
+      {duplicateAdvisories.filter(isHarmlessDuplicate).length > 0 && (
+        <Alert color="info">
+          <ul style={{ marginBottom: 0 }}>
+            {duplicateAdvisories.filter(isHarmlessDuplicate).map((a) => (
+              <li key={a.name}>{formatDuplicateAdvisory(a)}</li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
       <Collapse isOpen={isClinicalFeaturesConfigurationOpen}>
         {(!clinicalFeatureFiles || clinicalFeatureFiles.length === 0) && (

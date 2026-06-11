@@ -24,6 +24,7 @@ import {
   makeClinicalFeatureId,
   CLINICAL_FEATURE_ID_SEPARATOR,
 } from './utils/clinical-feature-id';
+import { isHarmlessDuplicate } from './utils/clinical-feature-duplicates';
 import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
@@ -126,7 +127,7 @@ export default function Visualisation({
   // ...removed feature definition modal logic...
 
   // Route
-  const { albumID } = useParams();
+  const { albumID, collectionID } = useParams();
 
   // Keycloak
   const { keycloak } = useKeycloak();
@@ -182,6 +183,66 @@ export default function Visualisation({
   const [filteredFeatures, setFilteredFeatures] = useState([]);
   // Chart
   const chartRef = useRef(null);
+
+  // A feature name uploaded in several clinical files is only used once for
+  // training: the newest file (highest file_id) wins. Older copies are shown
+  // as superseded in the tree and cannot be selected.
+  // Maps superseded id -> { keptId, keptFileName }.
+  const supersededClinicalIds = useMemo(() => {
+    const byName = {};
+    for (const d of clinicalFeaturesDefinitions || []) {
+      (byName[d.name] = byName[d.name] || []).push(d);
+    }
+    const filesById = (clinicalFeatureFiles || []).reduce((acc, f) => {
+      acc[f.id] = f;
+      return acc;
+    }, {});
+    const superseded = new Map();
+    for (const defs of Object.values(byName)) {
+      if (defs.length < 2) continue;
+      const kept = defs.reduce((a, b) =>
+        a.clinical_feature_file_id >= b.clinical_feature_file_id ? a : b
+      );
+      for (const d of defs) {
+        if (d.id === kept.id) continue;
+        superseded.set(
+          makeClinicalFeatureId(d.clinical_feature_file_id, d.name),
+          {
+            keptId: makeClinicalFeatureId(
+              kept.clinical_feature_file_id,
+              kept.name
+            ),
+            keptFileName:
+              filesById[kept.clinical_feature_file_id]?.name ||
+              `File #${kept.clinical_feature_file_id}`,
+          }
+        );
+      }
+    }
+    return superseded;
+  }, [clinicalFeaturesDefinitions, clinicalFeatureFiles]);
+
+  // Per-duplicate impact (identical / coverage loss / conflicts) for the
+  // warning shown next to the feature tree.
+  const [duplicateAdvisories, setDuplicateAdvisories] = useState([]);
+  useEffect(() => {
+    if (!albumID) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const advisories = await Backend.getClinicalFeatureDuplicates(
+          keycloak.token,
+          albumID
+        );
+        if (!cancelled) setDuplicateAdvisories(advisories || []);
+      } catch (err) {
+        console.error('Could not load clinical duplicate advisories', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [albumID, keycloak.token, clinicalFeaturesDefinitions]);
 
   // Canonical clinical feature IDs are `<file_id>::<name>`.
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
@@ -417,28 +478,35 @@ export default function Visualisation({
   // Build a 2-level tree node for clinical features: file -> features.
   // Leaf id is the canonical `<file_id>::<name>` so collections stay
   // unambiguous when two files share a column name.
-  const formatClinicalFeaturesTreeItems = (
-    definitionsList,
-    files
-  ) => {
-    const filesById = (files || []).reduce((acc, f) => {
-      acc[f.id] = f;
-      return acc;
-    }, {});
+  const formatClinicalFeaturesTreeItems = useCallback(
+    (definitionsList, files) => {
+      const filesById = (files || []).reduce((acc, f) => {
+        acc[f.id] = f;
+        return acc;
+      }, {});
 
-    const grouped = {};
-    for (const d of definitionsList || []) {
-      const fid = d.clinical_feature_file_id;
-      const fileName = filesById[fid]?.name || `File #${fid}`;
-      if (!grouped[fileName]) grouped[fileName] = {};
-      grouped[fileName][d.name] = {
-        id: makeClinicalFeatureId(fid, d.name),
-        description: d.name,
-        shortName: d.name,
-      };
-    }
-    return grouped;
-  };
+      const grouped = {};
+      for (const d of definitionsList || []) {
+        const fid = d.clinical_feature_file_id;
+        const fileName = filesById[fid]?.name || `File #${fid}`;
+        if (!grouped[fileName]) grouped[fileName] = {};
+        const id = makeClinicalFeatureId(fid, d.name);
+        const supersededBy = supersededClinicalIds.get(id);
+        grouped[fileName][d.name] = {
+          id,
+          description: supersededBy
+            ? `Duplicate of "${d.name}" in "${supersededBy.keptFileName}" (newer file). ` +
+              `Training always uses the newest copy of a repeated feature, so this one cannot be selected.`
+            : d.name,
+          shortName: d.name,
+          // Older copy of a name that exists in a newer file: not selectable.
+          disabled: Boolean(supersededBy),
+        };
+      }
+      return grouped;
+    },
+    [supersededClinicalIds]
+  );
 
   const filteringItems = useMemo(() => {
     if (!featureIDs) return {};
@@ -486,7 +554,12 @@ export default function Visualisation({
     }
 
     return groupedTree;
-  }, [featureIDs, clinicalFeaturesDefinitions, clinicalFeatureFiles]);
+  }, [
+    featureIDs,
+    clinicalFeaturesDefinitions,
+    clinicalFeatureFiles,
+    formatClinicalFeaturesTreeItems,
+  ]);
 
   const getNodeIDsFromFeatureIDs = useCallback(
     (featureIDs, leafItems, nodeIDToNodeMap) => {
@@ -497,11 +570,11 @@ export default function Visualisation({
       // their clinical selections. Mirrors the backend's
       // resolve_collection_clinical_definitions.
       const resolvedFeatureIDs = featureIDs.map((fID) => {
-        if (
-          fID.includes(FEATURE_ID_SEPARATOR) ||
-          fID.includes(CLINICAL_FEATURE_ID_SEPARATOR)
-        )
-          return fID;
+        if (fID.includes(FEATURE_ID_SEPARATOR)) return fID;
+        // A namespaced clinical id pointing at a superseded (older-file) copy
+        // is remapped to the newest file's copy — the one training will use.
+        if (fID.includes(CLINICAL_FEATURE_ID_SEPARATOR))
+          return supersededClinicalIds.get(fID)?.keptId || fID;
         const candidates = (clinicalFeaturesDefinitions || []).filter(
           (d) => d.name === fID
         );
@@ -561,7 +634,7 @@ export default function Visualisation({
 
       return nodeIDs;
     },
-    [clinicalFeaturesDefinitions]
+    [clinicalFeaturesDefinitions, supersededClinicalIds]
   );
 
   const treeData = useMemo(() => {
@@ -577,16 +650,21 @@ export default function Visualisation({
         allNodeIDs.push(...nodeAndChildrenIds);
       }
 
+      // Superseded duplicate clinical features are never selectable.
+      const disabledIDs = Object.entries(nodeIDToNodeMap)
+        .filter(([, node]) => node.value?.disabled)
+        .map(([id]) => id);
+
       if (collectionInfos?.collection?.feature_ids) {
         setSelected(
           getNodeIDsFromFeatureIDs(
             collectionInfos?.collection?.feature_ids,
             getAllLeafItems(formattedTreeData),
             nodeIDToNodeMap
-          )
+          ).filter((n) => !disabledIDs.includes(n))
         );
       } else {
-        setSelected(allNodeIDs);
+        setSelected(allNodeIDs.filter((n) => !disabledIDs.includes(n)));
       }
 
       return formattedTreeData;
@@ -625,6 +703,17 @@ export default function Visualisation({
   const nodeIDToNodeMap = useMemo(() => {
     return getAllNodeIDToNodeMap(treeData, {});
   }, [treeData]);
+
+  // Node IDs of superseded duplicate clinical features (not selectable).
+  const disabledNodeIDs = useMemo(
+    () =>
+      new Set(
+        Object.entries(nodeIDToNodeMap)
+          .filter(([, node]) => node.value?.disabled)
+          .map(([id]) => id)
+      ),
+    [nodeIDToNodeMap]
+  );
 
   // Compute selected feature IDs based on the selected leaf items
   const selectedFeatureIDs = useMemo(() => {
@@ -1199,6 +1288,60 @@ export default function Visualisation({
                 <h6 style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12 }}>Filter Features (Lines)</h6>
                 {active && (
                   <>
+                    {duplicateAdvisories.length > 0 && (
+                      <Alert
+                        color={
+                          duplicateAdvisories.some(
+                            (a) => !isHarmlessDuplicate(a)
+                          )
+                            ? 'warning'
+                            : 'info'
+                        }
+                        // The parent table cell sets white-space: nowrap;
+                        // re-enable wrapping so the text stays inside the
+                        // fixed-width filter column.
+                        style={{ fontSize: '12px', whiteSpace: 'normal' }}
+                      >
+                        <strong>
+                          {duplicateAdvisories.length} clinical feature
+                          {duplicateAdvisories.length === 1 ? '' : 's'} appear
+                          {duplicateAdvisories.length === 1 ? 's' : ''} in more
+                          than one file
+                        </strong>{' '}
+                        — each is used once for training (the copy from its
+                        newest file). All other features from every file remain
+                        available.
+                        {duplicateAdvisories.some(
+                          (a) => !isHarmlessDuplicate(a)
+                        ) && (
+                          <>
+                            {' '}
+                            {
+                              duplicateAdvisories.filter(
+                                (a) => !isHarmlessDuplicate(a)
+                              ).length
+                            }{' '}
+                            of them ignore or override some patient values.
+                          </>
+                        )}
+                        <div className="mt-1">
+                          <Button
+                            color="link"
+                            size="sm"
+                            style={{ padding: 0, fontSize: '12px' }}
+                            onClick={() =>
+                              navigate(
+                                collectionID
+                                  ? `/features/${albumID}/collection/${collectionID}/clinical-features`
+                                  : `/features/${albumID}/clinical-features`
+                              )
+                            }
+                          >
+                            See details in Clinical Features
+                          </Button>
+                        </div>
+                      </Alert>
+                    )}
                     <FilterTree
                       filteringItems={filteringItems}
                       formatTreeData={formatTreeData}
@@ -1208,6 +1351,7 @@ export default function Visualisation({
                       selected={selected}
                       setSelected={setSelected}
                       disabled={isRecomputingChart}
+                      disabledNodeIds={disabledNodeIDs}
                       // ...removed info icon and feature definition modal trigger...
                     />
                     {selectedFeaturesHistory.length > 1 && (

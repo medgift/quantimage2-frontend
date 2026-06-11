@@ -238,6 +238,13 @@ class Backend {
     return await request(url, { method: 'GET', token: token });
   }
 
+  // Advisory on feature names duplicated across the album's clinical files:
+  // training uses each name once (newest file wins), this describes the impact.
+  async getClinicalFeatureDuplicates(token, albumID) {
+    const url = `${endpoints.clinicalFeatures}/duplicates?album_id=${albumID}`;
+    return await request(url, { method: 'GET', token: token });
+  }
+
   async createClinicalFeatureFile(token, albumID, name) {
     const url = `${endpoints.clinicalFeaturesFiles}?album_id=${albumID}`;
     return await request(url, {
