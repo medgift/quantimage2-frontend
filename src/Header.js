@@ -29,7 +29,7 @@ function Header({ onLogout }) {
       <Navbar light expand="md">
         <NavbarBrand href="/">
           <img
-            src={`${process.env.PUBLIC_URL}/logo/quantimage2_logo_name.svg`}
+            src={`${process.env.PUBLIC_URL}/logo/quantimage2_logo.svg`}
             alt="QuantImage v2"
             className="header-logo"
           />
