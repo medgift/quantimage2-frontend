@@ -11,6 +11,7 @@ import {
 } from 'reactstrap';
 import Plotly from 'plotly.js-dist';
 import ColorPickerPopover from './ColorPickerPopover';
+import { getModelLabel } from '../utils/feature-utils.js';
 
 const DEFAULT_COLORS = {
   negative: '#3498db',
@@ -26,6 +27,7 @@ const InteractivePredictionsPlot = ({
   hideContainer = false,
   onMetricsUpdate = null,
   externalHeight = null,
+  modelLabels = null,
 }) => {
   const [internalThreshold, setInternalThreshold] = useState(0.5);
   const [baseColors, setBaseColors] = useState({ ...DEFAULT_COLORS });
@@ -74,6 +76,7 @@ const InteractivePredictionsPlot = ({
 
   useEffect(() => {
     if (!modelsData || modelsData.length === 0 || !plotDivRef.current) return;
+    const labelFor = (model) => getModelLabel(model, modelLabels);
     const traces = [];
 
     if (isSurvivalModel) {
@@ -81,7 +84,7 @@ const InteractivePredictionsPlot = ({
       const modelColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
       
       modelsData.forEach((model, modelIndex) => {
-        const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+        const modelDisplayName = labelFor(model);
         const baseColor = modelColors[modelIndex % modelColors.length];
         
         // Separate events and censored observations
@@ -192,7 +195,7 @@ const InteractivePredictionsPlot = ({
           const cIndex = model.c_index || (model.metrics && model.metrics['c-index'] && model.metrics['c-index'].mean);
           if (!cIndex) return null;
           
-          const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+          const modelDisplayName = labelFor(model);
           let text = `${modelDisplayName} - C-index: `;
           if (typeof cIndex === 'number') {
             const cIndexInf = model.metrics?.['c-index']?.inf_value || cIndex;
@@ -236,7 +239,7 @@ const InteractivePredictionsPlot = ({
       // Classification model plotting logic (existing code)
       modelsData.forEach((model, modelIndex) => {
         const yPos = modelsData.length > 1 ? modelIndex * 0.4 : 0;
-        const modelDisplayName = model.model_name || `Model ${model.model_id}`;
+        const modelDisplayName = labelFor(model);
         const neg = baseColors.negative;
         const pos = baseColors.positive;
 
@@ -283,15 +286,21 @@ const InteractivePredictionsPlot = ({
       });
 
       const layout = {
-        xaxis: { title: { text: 'Probability of Class 1', font: { size: 15, family: 'Arial, sans-serif' } }, range: [-0.05, 1.05], gridcolor: '#e1e5e9', showgrid: true },
+        xaxis: {
+          title: { text: 'Probability of Class 1', font: { size: 15, family: 'Arial, sans-serif' }, standoff: 15 },
+          automargin: true,
+          range: [-0.05, 1.05],
+          gridcolor: '#e1e5e9',
+          showgrid: true,
+        },
         yaxis: {
           title: { text: 'Models', font: { size: 14 } },
           showticklabels: modelsData.length > 1,
           tickmode: modelsData.length > 1 ? 'array' : 'auto',
           tickvals: modelsData.length > 1 ? modelsData.map((_, i) => i * 0.4) : undefined,
           ticktext: modelsData.length > 1 ? modelsData.map((model) => {
-            const modelName = model.model_name || `Model ${model.model_id}`;
-            return modelName.length > 20 ? modelName.substring(0, 17) + '...' : modelName;
+            const modelName = labelFor(model);
+            return modelName.replace(/^(Model \S+) \((.+)\)$/, '$1<br>$2');
           }) : undefined,
           range: modelsData.length > 1 ? [-0.3, (modelsData.length - 1) * 0.4 + 0.3] : [-0.5, 0.5],
           gridcolor: '#e1e5e9',
@@ -300,8 +309,8 @@ const InteractivePredictionsPlot = ({
         },
         height: externalHeight || Math.max(500, modelsData.length * 120 + 200),
         showlegend: true,
-        legend: { orientation: 'h', x: 0, y: -0.2, bgcolor: 'rgba(255,255,255,0.9)', bordercolor: '#dee2e6', borderwidth: 1, font: { size: 11 } },
-        margin: { l: 80, r: 30, t: 60, b: 140 },
+        legend: { orientation: 'h', x: 0.5, y: -0.3, xanchor: 'center', yanchor: 'top', bgcolor: 'rgba(255,255,255,0.9)', bordercolor: '#dee2e6', borderwidth: 1, font: { size: 11 } },
+        margin: { l: 80, r: 30, t: 60, b: 180 },
         hovermode: 'closest',
         plot_bgcolor: '#fafafa',
         shapes: [{
@@ -339,7 +348,7 @@ const InteractivePredictionsPlot = ({
       const calculatedMetrics = calculateMetrics(threshold, modelsData);
       if (onMetricsUpdate) onMetricsUpdate(calculatedMetrics);
     }
-  }, [modelsData, plotType, threshold, onMetricsUpdate, externalHeight, baseColors, isSurvivalModel]);
+  }, [modelsData, plotType, threshold, onMetricsUpdate, externalHeight, baseColors, isSurvivalModel, modelLabels]);
 
   const handleThresholdChange = (newThreshold) => {
     setThreshold(newThreshold);

@@ -14,6 +14,19 @@ const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';
 const LABEL_FIELD = 'label';
 
+// Resolve a model's display label, preferring an explicit `modelLabels` map
+// (keyed by model id, built once in ModelOverview), then the model's own name,
+// then a `Model <id>` fallback. Centralized so every plot renders models
+// identically.
+export function getModelLabel(model, modelLabels = null) {
+  const modelId = model.model_id ?? model.id;
+  return (
+    (modelLabels && modelLabels[modelId]) ||
+    model.model_name ||
+    `Model ${modelId}`
+  );
+}
+
 export async function downloadFeatureSet(token, tasks) {
   let allFeatures = [];
 

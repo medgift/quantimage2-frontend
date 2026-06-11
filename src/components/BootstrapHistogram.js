@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Plotly from 'plotly.js-dist';
 import Backend from '../services/backend';
 import { useKeycloak } from '@react-keycloak/web';
+import { getModelLabel } from '../utils/feature-utils.js';
 
 const BootstrapHistogram = ({
   modelsData,
@@ -10,6 +11,7 @@ const BootstrapHistogram = ({
   onClose,
   hideContainer = false,
   metric = 'auc', // Fixed to AUC for bootstrap analysis
+  modelLabels = null,
 }) => {
   const plotRef = useRef(null);
   const plotDivRef = useRef(null);
@@ -43,7 +45,7 @@ const BootstrapHistogram = ({
 
         for (const model of modelsData) {
           const modelId = model.model_id || model.id;
-          const modelName = model.model_name || `Model ${modelId}`;
+          const modelName = getModelLabel(model, modelLabels);
 
           try {
             const response = await Backend.getTestScoresValues(
@@ -212,7 +214,7 @@ const BootstrapHistogram = ({
     };
 
     fetchBootstrapData();
-  }, [modelsData, keycloak.token, metric]);
+  }, [modelsData, keycloak.token, metric, modelLabels]);
 
   // Fetch p-values from backend when bootstrapData is ready
   useEffect(() => {
@@ -327,12 +329,14 @@ const BootstrapHistogram = ({
     const padding = safeRange * 0.05; // 5% padding
 
     const layout = {
-      
+
       xaxis: {
         title: {
           text: `AUC Score`,
-          font: { size: 14, family: 'Arial, sans-serif' }, // ← Add this
+          font: { size: 14, family: 'Arial, sans-serif' },
+          standoff: 15,
         },
+        automargin: true,
         gridcolor: '#e1e5e9',
         showgrid: true,
         range: [minValue - padding, maxValue + padding],
@@ -341,8 +345,9 @@ const BootstrapHistogram = ({
       yaxis: {
         title: {
           text: 'Frequency',
-          font: { size: 14, family: 'Arial, sans-serif' }, // ← Add this
+          font: { size: 14, family: 'Arial, sans-serif' },
         },
+        automargin: true,
         gridcolor: '#e1e5e9',
         showgrid: true,
         autorange: true,
@@ -352,8 +357,10 @@ const BootstrapHistogram = ({
       showlegend: true,
       legend: {
         orientation: 'h',
-        x: 0,
-        y: -0.15,
+        x: 0.5,
+        y: -0.3,
+        xanchor: 'center',
+        yanchor: 'top',
         bgcolor: 'rgba(255,255,255,0.8)',
         bordercolor: '#dee2e6',
         borderwidth: 1,
@@ -361,7 +368,7 @@ const BootstrapHistogram = ({
       hovermode: 'closest',
       plot_bgcolor: '#fafafa',
       paper_bgcolor: '#ffffff',
-      margin: { l: 60, r: 30, t: 80, b: 100 },
+      margin: { l: 60, r: 30, t: 80, b: 160 },
       annotations: [],
     };
 

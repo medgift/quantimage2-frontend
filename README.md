@@ -4,6 +4,11 @@
 
 These version numbers refer to frontend releases for this repository.
 
+### 3.3
+
+- **Multi-file clinical features** — New clinical features structure allowing multiple CSV files per album. Clinical feature IDs are now namespaced as `<file_id>::<name>`, so columns with the same name from different files no longer collide.
+- **New logo** — QuantImage v2 logo added to the home page hero and the in-app header (`public/logo/`), along with an updated favicon.
+
 ### 3.2
 
 - **Backend compatibility update** — Compatible with the backend after its upgrade to Python 3.12.

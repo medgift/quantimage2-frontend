@@ -24,6 +24,7 @@ const endpoints = {
   albums: `${baseEndpoint}/albums`,
   clinicalFeatures: `${baseEndpoint}/clinical-features`,
   clinicalFeaturesDefinitions: `${baseEndpoint}/clinical-features-definitions`,
+  clinicalFeaturesFiles: `${baseEndpoint}/clinical-features-files`,
 };
 
 class Backend {
@@ -163,11 +164,17 @@ class Backend {
     }
   }
 
-  async saveClinicalFeaturesValues(token, clinicalFeatureMap, album_id) {
+  async saveClinicalFeaturesValues(
+    token,
+    clinicalFeatureMap,
+    album_id,
+    clinicalFeatureFileId
+  ) {
     try {
       let data = {
         clinical_feature_map: clinicalFeatureMap,
         album_id: album_id,
+        clinical_feature_file_id: clinicalFeatureFileId,
       };
       let url = `${endpoints.clinicalFeatures}?album_id=${album_id}`;
       return await request(url, { method: 'POST', data: data, token: token });
@@ -214,14 +221,51 @@ class Backend {
   async saveClinicalFeaturesDefinitions(
     token,
     clinicalFeaturesDefinitions,
-    albumID
+    albumID,
+    clinicalFeatureFileId
   ) {
     let data = {
       clinical_feature_definitions: clinicalFeaturesDefinitions,
       album_id: albumID,
+      clinical_feature_file_id: clinicalFeatureFileId,
     };
     let url = `${endpoints.clinicalFeaturesDefinitions}?album_id=${albumID}`;
     return await request(url, { method: 'POST', data: data, token: token });
+  }
+
+  async listClinicalFeatureFiles(token, albumID) {
+    const url = `${endpoints.clinicalFeaturesFiles}?album_id=${albumID}`;
+    return await request(url, { method: 'GET', token: token });
+  }
+
+  // Advisory on feature names duplicated across the album's clinical files:
+  // training uses each name once (newest file wins), this describes the impact.
+  async getClinicalFeatureDuplicates(token, albumID) {
+    const url = `${endpoints.clinicalFeatures}/duplicates?album_id=${albumID}`;
+    return await request(url, { method: 'GET', token: token });
+  }
+
+  async createClinicalFeatureFile(token, albumID, name) {
+    const url = `${endpoints.clinicalFeaturesFiles}?album_id=${albumID}`;
+    return await request(url, {
+      method: 'POST',
+      token: token,
+      data: { name: name },
+    });
+  }
+
+  async renameClinicalFeatureFile(token, fileID, newName) {
+    const url = `${endpoints.clinicalFeaturesFiles}/${fileID}`;
+    return await request(url, {
+      method: 'PATCH',
+      token: token,
+      data: { name: newName },
+    });
+  }
+
+  async deleteClinicalFeatureFile(token, fileID) {
+    const url = `${endpoints.clinicalFeaturesFiles}/${fileID}`;
+    return await request(url, { method: 'DELETE', token: token });
   }
 
   async updateClinicalFeaturesDefinitions(
