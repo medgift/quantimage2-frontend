@@ -420,18 +420,22 @@ function Features() {
   // Get clinical features
   useEffect(() => {
     async function fetchClinicalFeatures() {
-      let [files, clinicalFeatures, clinicalFeaturesDefinitions] =
-        await Promise.all([
-          Backend.listClinicalFeatureFiles(keycloak.token, albumID),
-          Backend.loadClinicalFeatures(keycloak.token, dataPoints, albumID),
-          Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID),
-        ]);
+      try {
+        let [files, clinicalFeatures, clinicalFeaturesDefinitions] =
+          await Promise.all([
+            Backend.listClinicalFeatureFiles(keycloak.token, albumID),
+            Backend.loadClinicalFeatures(keycloak.token, dataPoints, albumID),
+            Backend.loadClinicalFeatureDefinitions(keycloak.token, albumID),
+          ]);
 
-      setClinicalFeatureFiles(files);
-      setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
-      setClinicalFeaturesValues(clinicalFeatures);
-
-      setIsLoading(false);
+        setClinicalFeatureFiles(files);
+        setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
+        setClinicalFeaturesValues(clinicalFeatures);
+      } catch (err) {
+        console.error('Could not load clinical features', err);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     if (dataPoints) fetchClinicalFeatures();
@@ -1242,9 +1246,6 @@ function Features() {
                         }
                         setClinicalFeaturesDefinitions={
                           setClinicalFeaturesDefinitions
-                        }
-                        formattedClinicalFeaturesDefinitions={
-                          formattedClinicalFeaturesDefinitions
                         }
                         clinicalFeaturesValues={clinicalFeaturesValues}
                         setClinicalFeaturesValues={setClinicalFeaturesValues}

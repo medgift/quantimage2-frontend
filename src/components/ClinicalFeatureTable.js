@@ -28,6 +28,7 @@ import {
   clinicalFeatureIdPrefix,
 } from '../utils/clinical-feature-id';
 import {
+  clinicalDefinitionsSignature,
   formatDuplicateAdvisory,
   isHarmlessDuplicate,
 } from '../utils/clinical-feature-duplicates';
@@ -54,7 +55,6 @@ export default function ClinicalFeatureTable({
   setClinicalFeatureFiles,
   clinicalFeaturesDefinitions,
   setClinicalFeaturesDefinitions,
-  formattedClinicalFeaturesDefinitions,
   clinicalFeaturesValues,
   setClinicalFeaturesValues,
   clinicalFeaturesUniqueValues,
@@ -99,14 +99,8 @@ export default function ClinicalFeatureTable({
     );
   }, [clinicalFeaturesUniqueValues]);
 
-  // Signature of (file, name) pairs: refetch the duplicate advisory only when
-  // the set of columns changes (upload/delete), not on every encoding edit.
   const definitionsSignature = useMemo(
-    () =>
-      (clinicalFeaturesDefinitions || [])
-        .map((d) => makeClinicalFeatureId(d.clinical_feature_file_id, d.name))
-        .sort()
-        .join('|'),
+    () => clinicalDefinitionsSignature(clinicalFeaturesDefinitions),
     [clinicalFeaturesDefinitions]
   );
 
@@ -128,7 +122,6 @@ export default function ClinicalFeatureTable({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumID, definitionsSignature, keycloak.token]);
 
   // Auto-toggle to import when the user has no files yet.

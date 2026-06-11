@@ -24,7 +24,10 @@ import {
   makeClinicalFeatureId,
   CLINICAL_FEATURE_ID_SEPARATOR,
 } from './utils/clinical-feature-id';
-import { isHarmlessDuplicate } from './utils/clinical-feature-duplicates';
+import {
+  clinicalDefinitionsSignature,
+  isHarmlessDuplicate,
+} from './utils/clinical-feature-duplicates';
 import {
   FEATURE_DEFINITIONS,
   CATEGORY_DEFINITIONS,
@@ -223,7 +226,12 @@ export default function Visualisation({
   }, [clinicalFeaturesDefinitions, clinicalFeatureFiles]);
 
   // Per-duplicate impact (identical / coverage loss / conflicts) for the
-  // warning shown next to the feature tree.
+  // warning shown next to the feature tree. Refetched only when the set of
+  // columns changes (upload/delete), not on every encoding edit.
+  const definitionsSignature = useMemo(
+    () => clinicalDefinitionsSignature(clinicalFeaturesDefinitions),
+    [clinicalFeaturesDefinitions]
+  );
   const [duplicateAdvisories, setDuplicateAdvisories] = useState([]);
   useEffect(() => {
     if (!albumID) return undefined;
@@ -242,7 +250,7 @@ export default function Visualisation({
     return () => {
       cancelled = true;
     };
-  }, [albumID, keycloak.token, clinicalFeaturesDefinitions]);
+  }, [albumID, keycloak.token, definitionsSignature]);
 
   // Canonical clinical feature IDs are `<file_id>::<name>`.
   const featuresIDsAndClinicalFeatureNames = useMemo(() => {
