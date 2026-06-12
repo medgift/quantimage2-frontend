@@ -340,18 +340,35 @@ export default function ClinicalFeatureTable({
         albumID,
         pendingFileName.trim() || defaultFileName(file)
       );
-      const savedDefinitions = await Backend.saveClinicalFeaturesDefinitions(
-        keycloak.token,
-        definitionsToSave,
-        albumID,
-        fileRecord.id
-      );
-      await Backend.saveClinicalFeaturesValues(
-        keycloak.token,
-        filteredValues,
-        albumID,
-        fileRecord.id
-      );
+
+      let savedDefinitions;
+      try {
+        savedDefinitions = await Backend.saveClinicalFeaturesDefinitions(
+          keycloak.token,
+          definitionsToSave,
+          albumID,
+          fileRecord.id
+        );
+        await Backend.saveClinicalFeaturesValues(
+          keycloak.token,
+          filteredValues,
+          albumID,
+          fileRecord.id
+        );
+      } catch (saveErr) {
+        // Roll back the just-created file so a failed definitions/values save
+        // doesn't leave an orphan file (definitions but no values) behind —
+        // those crash training and clutter the inspection table.
+        try {
+          await Backend.deleteClinicalFeatureFile(keycloak.token, fileRecord.id);
+        } catch (cleanupErr) {
+          console.error(
+            'Failed to roll back orphan clinical feature file',
+            cleanupErr
+          );
+        }
+        throw saveErr;
+      }
 
       // Merge into local state.
       setClinicalFeatureFiles([...(clinicalFeatureFiles || []), fileRecord]);

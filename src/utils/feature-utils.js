@@ -407,13 +407,19 @@ export async function validateClinicalFeaturesFile(file, dataPoints) {
     return [valid, error, {}];
   }
 
-  valid = true;
+  // A file with zero matching patients doesn't belong to this album: reject it
+  // instead of creating an empty clinical-features file (which later breaks
+  // training). A partial match (e.g. 1/102) is allowed; the message warns about
+  // the low coverage.
+  valid = nbMatches > 0;
 
-  return [
-    valid,
-    `The CSV matched ${nbMatches}/${dataPoints.length} patients.`,
-    labels,
-  ];
+  const message =
+    nbMatches === 0
+      ? `None of the album's ${dataPoints.length} patients are present in this CSV. ` +
+        `Check that the PatientID column matches the album's patients.`
+      : `The CSV matched ${nbMatches}/${dataPoints.length} patients.`;
+
+  return [valid, message, labels];
 }
 
 export async function parseClinicalFeatureNames(file) {

@@ -6,9 +6,19 @@ export async function request(
     let response = await rawRequest(url, { method, data, token, multipart });
 
     if (!response.ok) {
-      let body = await response.json();
-      const error = body.error || body.message;
-      throw new Error(error);
+      // The body may not be JSON (e.g. a server HTML error page); don't let
+      // JSON.parse('<!doctype...') mask the real status with a cryptic
+      // "Unexpected token '<'" error.
+      let message = null;
+      try {
+        const body = await response.json();
+        message = body.error || body.message;
+      } catch (e) {
+        message = null;
+      }
+      throw new Error(
+        message || `Request failed (${response.status} ${response.statusText})`
+      );
     } else {
       try {
         let body = await response.json();
