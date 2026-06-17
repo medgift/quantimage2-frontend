@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+} from 'react';
 import Backend from './services/backend';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
@@ -11,14 +18,7 @@ import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
-import {
-  Alert,
-  Button,
-  Form,
-  FormGroup,
-  Input,
-  Label,
-} from 'reactstrap';
+import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
 import { convertFeatureName, groupFeatures } from './utils/feature-naming';
 import {
   FEATURE_DEFINITIONS,
@@ -52,9 +52,6 @@ import UMAPAnalysis from './UMAPAnalysis';
 // ================= CONSTANTS =================
 export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
 
-
-
-
 // ...existing code...
 
 HighchartsPatternFills(Highcharts);
@@ -75,8 +72,6 @@ let filterFeaturesWorker;
 if (window.Worker) {
   filterFeaturesWorker = new Worker('/workers/filter-features.js');
 }
-
-
 
 let featureIDPattern = `(?<modality>.*?)${FEATURE_ID_SEPARATOR}(?<roi>.*?)${FEATURE_ID_SEPARATOR}(?<featureName>(?:${[
   ...ZRAD_FEATURE_PREFIXES,
@@ -389,17 +384,19 @@ export default function Visualisation({
   }, []);
 
   // Re-render chart on resize
-  useLayoutEffect(() => {    function handleResize() {
+  useLayoutEffect(() => {
+    function handleResize() {
       console.log('Updating chart');
       if (chartRef.current) chartRef.current.chart.update({});
     }
 
-    window.addEventListener('resize', handleResize);    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Toggle patients modals
 
-            // if your labels are strings “0”/“1”, convert; if numbers already, just return  // Toggle patients modals
+  // if your labels are strings “0”/“1”, convert; if numbers already, just return  // Toggle patients modals
   const toggleTrainingPatientsOpen = () => {
     setTrainingPatientsOpen((o) => !o);
   };
@@ -409,7 +406,6 @@ export default function Visualisation({
   };
 
   const formatClinicalFeaturesTreeItems = (clinicalFeaturesDefinitions) => {
-   
     return Object.keys(clinicalFeaturesDefinitions).reduce((acc, curr) => {
       acc[clinicalFeaturesDefinitions[curr]['name']] = {
         id: clinicalFeaturesDefinitions[curr]['name'],
@@ -583,8 +579,6 @@ export default function Visualisation({
   // Compute selected feature IDs based on the selected leaf items
   const selectedFeatureIDs = useMemo(() => {
     if (!leafItems) return [];
-
-   
 
     return new Set(
       Object.keys(leafItems)
@@ -1039,6 +1033,15 @@ export default function Visualisation({
     });
   }, [filteredFeatures, leafItems, selected, corrThreshold]);
 
+  const selectFeaturesWithFDR = useCallback(() => {
+    setIsRecomputingChart(true);
+    filterFeaturesWorker.postMessage({
+      features: filteredFeatures,
+      leafItems: leafItems,
+      selected: selected,
+    });
+  }, [filteredFeatures, leafItems, selected]);
+
   function getPointCategoryName(point, dimension) {
     const series = point.series;
     const isY = dimension === 'y';
@@ -1138,19 +1141,43 @@ export default function Visualisation({
       <button
         type="button"
         className="btn btn-link position-absolute"
-        style={{ top: 10, right: 18, zIndex: 10, fontSize: 22, color: '#007bff' }}
+        style={{
+          top: 10,
+          right: 18,
+          zIndex: 10,
+          fontSize: 22,
+          color: '#007bff',
+        }}
         aria-label="Help"
         onClick={toggleHelpModal}
       >
         <FontAwesomeIcon icon="question-circle" />
       </button>
       {/* TODO - Would be better NOT to use a table here*/}
-      <table className="visualization-table" style={{ marginTop: 16, marginBottom: 24 }}>
+      <table
+        className="visualization-table"
+        style={{ marginTop: 16, marginBottom: 24 }}
+      >
         <tbody>
           <tr>
-            <td className="filter-data" style={{ borderRight: '1px solid #e0e0e0', paddingRight: 24, minWidth: 320 }}>
+            <td
+              className="filter-data"
+              style={{
+                borderRight: '1px solid #e0e0e0',
+                paddingRight: 24,
+                minWidth: 320,
+              }}
+            >
               <div style={{ marginBottom: 24 }}>
-                <h6 style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12 }}>Filter Features (Lines)</h6>
+                <h6
+                  style={{
+                    borderBottom: '1px solid #e0e0e0',
+                    paddingBottom: 4,
+                    marginBottom: 12,
+                  }}
+                >
+                  Filter Features (Lines)
+                </h6>
                 {active && (
                   <>
                     <FilterTree
@@ -1169,7 +1196,17 @@ export default function Visualisation({
                     )}
                   </>
                 )}
-                <h6 className="mt-2" style={{ borderBottom: '1px solid #e0e0e0', paddingBottom: 4, marginBottom: 12, marginTop: 24 }}>Show Patients</h6>
+                <h6
+                  className="mt-2"
+                  style={{
+                    borderBottom: '1px solid #e0e0e0',
+                    paddingBottom: 4,
+                    marginBottom: 12,
+                    marginTop: 24,
+                  }}
+                >
+                  Show Patients
+                </h6>
                 <h6>
                   <Button color="link" onClick={toggleTrainingPatientsOpen}>
                     <FontAwesomeIcon icon="eye" /> Show{' '}
@@ -1214,7 +1251,10 @@ export default function Visualisation({
                 )}
               </div>
             </td>
-            <td className="chart-cell" style={{ paddingLeft: 32, verticalAlign: 'top' }}>
+            <td
+              className="chart-cell"
+              style={{ paddingLeft: 32, verticalAlign: 'top' }}
+            >
               {hasPendingChanges &&
                 selectedFeatureIDs &&
                 collectionInfos?.collection &&
@@ -1257,37 +1297,102 @@ export default function Visualisation({
                 <>
                   {/* Visualization mode toggle */}
                   <div className="d-flex justify-content-center mb-3">
-                    <div className="btn-group" role="group" aria-label="Visualization mode toggle" style={{ width: 320, margin: '0 auto' }}>
+                    <div
+                      className="btn-group"
+                      role="group"
+                      aria-label="Visualization mode toggle"
+                      style={{ width: 320, margin: '0 auto' }}
+                    >
                       <button
                         type="button"
-                        className={`btn ${visualizationMode === VISUALIZATION_MODES.HEATMAP ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setVisualizationMode(VISUALIZATION_MODES.HEATMAP)}
-                        aria-pressed={visualizationMode === VISUALIZATION_MODES.HEATMAP}
-                        style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className={`btn ${
+                          visualizationMode === VISUALIZATION_MODES.HEATMAP
+                            ? 'btn-primary'
+                            : 'btn-outline-primary'
+                        }`}
+                        onClick={() =>
+                          setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
+                        }
+                        aria-pressed={
+                          visualizationMode === VISUALIZATION_MODES.HEATMAP
+                        }
+                        style={{
+                          fontWeight:
+                            visualizationMode === VISUALIZATION_MODES.HEATMAP
+                              ? 700
+                              : 500,
+                          fontSize: 17,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
                         data-toggle="tooltip"
                         data-placement="top"
                         title="Heatmap: Visualizes feature values for all patients as a color-coded matrix. Rows are features, columns are patients. Useful for spotting patterns, outliers, and feature distributions."
                       >
-                        <FontAwesomeIcon icon="th" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.HEATMAP ? 1 : 0.7 }} />
+                        <FontAwesomeIcon
+                          icon="th"
+                          style={{
+                            fontSize: 17,
+                            marginRight: 8,
+                            opacity:
+                              visualizationMode === VISUALIZATION_MODES.HEATMAP
+                                ? 1
+                                : 0.7,
+                          }}
+                        />
                         Heatmap
                       </button>
                       <button
                         type="button"
-                        className={`btn ${visualizationMode === VISUALIZATION_MODES.UMAP ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setVisualizationMode(VISUALIZATION_MODES.UMAP)}
-                        aria-pressed={visualizationMode === VISUALIZATION_MODES.UMAP}
-                        style={{ fontWeight: visualizationMode === VISUALIZATION_MODES.UMAP ? 700 : 500, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className={`btn ${
+                          visualizationMode === VISUALIZATION_MODES.UMAP
+                            ? 'btn-primary'
+                            : 'btn-outline-primary'
+                        }`}
+                        onClick={() =>
+                          setVisualizationMode(VISUALIZATION_MODES.UMAP)
+                        }
+                        aria-pressed={
+                          visualizationMode === VISUALIZATION_MODES.UMAP
+                        }
+                        style={{
+                          fontWeight:
+                            visualizationMode === VISUALIZATION_MODES.UMAP
+                              ? 700
+                              : 500,
+                          fontSize: 17,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
                         data-toggle="tooltip"
                         data-placement="top"
                         title="UMAP: Projects patients into 2D space based on feature similarity. Each point is a patient; similar patients cluster together. Useful for visualizing patient groups and outliers."
                       >
-                        <FontAwesomeIcon icon="chart-scatter" style={{ fontSize: 17, marginRight: 8, opacity: visualizationMode === VISUALIZATION_MODES.UMAP ? 1 : 0.7 }} />
+                        <FontAwesomeIcon
+                          icon="chart-scatter"
+                          style={{
+                            fontSize: 17,
+                            marginRight: 8,
+                            opacity:
+                              visualizationMode === VISUALIZATION_MODES.UMAP
+                                ? 1
+                                : 0.7,
+                          }}
+                        />
                         UMAP
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ position: 'relative', marginBottom: 24, marginTop: 8 }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      marginBottom: 24,
+                      marginTop: 8,
+                    }}
+                  >
                     {(isRecomputingChart || isComputingUmap) && (
                       <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
                         <FontAwesomeIcon
@@ -1330,7 +1435,8 @@ export default function Visualisation({
                               </ErrorBoundary>
                             </div>
                           )}
-                      </>                    ) : (
+                      </>
+                    ) : (
                       <UMAPAnalysis
                         filteredFeatures={filteredFeatures}
                         sortedPatientIDs={sortedPatientIDs}
@@ -1354,56 +1460,172 @@ export default function Visualisation({
                   )}
 
                   {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
-                  <div className="d-flex justify-content-around" style={{ marginTop: 24 }}>
-      {/* Help Modal */}
-      <Modal isOpen={helpModalOpen} toggle={toggleHelpModal} size="lg">
-        <ModalHeader toggle={toggleHelpModal}>Help & Documentation</ModalHeader>
-        <ModalBody>
-          <h5 className="mb-3">How to Use This Page</h5>
-          <ul>
-            <li><strong>Visualization Mode:</strong> Use the <span className="badge badge-primary">Heatmap</span> / <span className="badge badge-primary">UMAP</span> toggle above the chart to switch between feature heatmap and patient clustering views. The active mode is highlighted in blue.</li>
-            <li><strong>Feature Selection:</strong> Select features using the tree on the left. You can select/deselect entire groups or individual features. The number of selected features is shown when creating or updating a collection.</li>
-            <li><strong>Show Patients:</strong> View training and test patient IDs using the "Show Patient IDs" buttons.</li>
-            <li><strong>Undo:</strong> Use the Undo button to revert your last feature selection change.</li>
-          </ul>
+                  <div
+                    className="d-flex justify-content-around"
+                    style={{ marginTop: 24 }}
+                  >
+                    {/* Help Modal */}
+                    <Modal
+                      isOpen={helpModalOpen}
+                      toggle={toggleHelpModal}
+                      size="lg"
+                    >
+                      <ModalHeader toggle={toggleHelpModal}>
+                        Help & Documentation
+                      </ModalHeader>
+                      <ModalBody>
+                        <h5 className="mb-3">How to Use This Page</h5>
+                        <ul>
+                          <li>
+                            <strong>Visualization Mode:</strong> Use the{' '}
+                            <span className="badge badge-primary">Heatmap</span>{' '}
+                            / <span className="badge badge-primary">UMAP</span>{' '}
+                            toggle above the chart to switch between feature
+                            heatmap and patient clustering views. The active
+                            mode is highlighted in blue.
+                          </li>
+                          <li>
+                            <strong>Feature Selection:</strong> Select features
+                            using the tree on the left. You can select/deselect
+                            entire groups or individual features. The number of
+                            selected features is shown when creating or updating
+                            a collection.
+                          </li>
+                          <li>
+                            <strong>Show Patients:</strong> View training and
+                            test patient IDs using the "Show Patient IDs"
+                            buttons.
+                          </li>
+                          <li>
+                            <strong>Undo:</strong> Use the Undo button to revert
+                            your last feature selection change.
+                          </li>
+                        </ul>
 
-          <h5 className="mt-4 mb-2">Visualization Modes Explained</h5>
-          <ul>
-            <li>
-              <span className="badge badge-primary mr-2">Heatmap</span>
-              <strong>Feature Heatmap:</strong> Visualizes feature values for all patients as a color-coded matrix. Each row is a feature, each column is a patient. This mode helps you spot patterns, outliers, and feature distributions across the cohort. Hovering over a cell shows details for that patient-feature pair.
-            </li>
-            <li className="mt-2">
-              <span className="badge badge-primary mr-2">UMAP</span>
-              <strong>UMAP Projection:</strong> Projects patients into a 2D space based on feature similarity using the UMAP algorithm. Each point represents a patient; patients with similar feature profiles cluster together. This mode is useful for visualizing patient groups, outliers, and overall data structure.
-              <div className="mt-2 ml-3">
-                <strong>Understanding UMAP Axes:</strong>
-                <ul className="mt-1">
-                  <li><strong>UMAP 1 & UMAP 2:</strong> These are the two principal dimensions that capture the most important variation in your radiomics features. They don't have direct physical meaning but represent mathematical combinations of your original features.</li>
-                  <li><strong>Interpretation:</strong> Patients that are close together have similar feature profiles, while patients far apart have different radiomics characteristics. The absolute position matters less than the relative distances between points.</li>
-                  <li><strong>Clustering:</strong> Look for natural groupings of patients - these may correspond to different disease subtypes, treatment responses, or other clinically relevant patterns.</li>
-                </ul>
-                <p className="mt-2 mb-0">
-                  <strong>Learn more:</strong> For detailed information about UMAP methodology, visit the <a href="https://umap-learn.readthedocs.io/en/latest/how_umap_works.html" target="_blank" rel="noopener noreferrer">official UMAP documentation</a> or read the original paper: <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener noreferrer">McInnes et al. (2018)</a>.
-                </p>
-              </div>
-            </li>
-          </ul>
+                        <h5 className="mt-4 mb-2">
+                          Visualization Modes Explained
+                        </h5>
+                        <ul>
+                          <li>
+                            <span className="badge badge-primary mr-2">
+                              Heatmap
+                            </span>
+                            <strong>Feature Heatmap:</strong> Visualizes feature
+                            values for all patients as a color-coded matrix.
+                            Each row is a feature, each column is a patient.
+                            This mode helps you spot patterns, outliers, and
+                            feature distributions across the cohort. Hovering
+                            over a cell shows details for that patient-feature
+                            pair.
+                          </li>
+                          <li className="mt-2">
+                            <span className="badge badge-primary mr-2">
+                              UMAP
+                            </span>
+                            <strong>UMAP Projection:</strong> Projects patients
+                            into a 2D space based on feature similarity using
+                            the UMAP algorithm. Each point represents a patient;
+                            patients with similar feature profiles cluster
+                            together. This mode is useful for visualizing
+                            patient groups, outliers, and overall data
+                            structure.
+                            <div className="mt-2 ml-3">
+                              <strong>Understanding UMAP Axes:</strong>
+                              <ul className="mt-1">
+                                <li>
+                                  <strong>UMAP 1 & UMAP 2:</strong> These are
+                                  the two principal dimensions that capture the
+                                  most important variation in your radiomics
+                                  features. They don't have direct physical
+                                  meaning but represent mathematical
+                                  combinations of your original features.
+                                </li>
+                                <li>
+                                  <strong>Interpretation:</strong> Patients that
+                                  are close together have similar feature
+                                  profiles, while patients far apart have
+                                  different radiomics characteristics. The
+                                  absolute position matters less than the
+                                  relative distances between points.
+                                </li>
+                                <li>
+                                  <strong>Clustering:</strong> Look for natural
+                                  groupings of patients - these may correspond
+                                  to different disease subtypes, treatment
+                                  responses, or other clinically relevant
+                                  patterns.
+                                </li>
+                              </ul>
+                              <p className="mt-2 mb-0">
+                                <strong>Learn more:</strong> For detailed
+                                information about UMAP methodology, visit the{' '}
+                                <a
+                                  href="https://umap-learn.readthedocs.io/en/latest/how_umap_works.html"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  official UMAP documentation
+                                </a>{' '}
+                                or read the original paper:{' '}
+                                <a
+                                  href="https://arxiv.org/abs/1802.03426"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  McInnes et al. (2018)
+                                </a>
+                                .
+                              </p>
+                            </div>
+                          </li>
+                        </ul>
 
-          <h5 className="mt-4 mb-2">Radiomics Standards & Feature Definitions</h5>
-          <p>
-            This tool follows IBSI (Image Biomarker Standardisation Initiative) nomenclature for feature definitions when possible. Feature names are standardized, and clinical features are listed separately. For more, see the <a href="https://ibsi.readthedocs.io/en/latest/" target="_blank" rel="noopener noreferrer">IBSI documentation</a>.
-          </p>
-          <h5 className="mt-4 mb-2">Troubleshooting & Tips</h5>
-          <ul>
-            <li>If a chart fails to load, check your feature selection and try reducing the number of features. The maximum number of values for visualization is limited for performance.</li>
-            <li>Look for error messages below the chart or in alert banners. If a computation fails, try again or contact support with the error details.</li>
-            <li>Hover over icons <FontAwesomeIcon icon="info-circle" style={{ color: '#007bff' }} /> for additional explanations and tooltips throughout the page. The Heatmap/UMAP toggle buttons also have tooltips for quick explanations.</li>
-          </ul>
-        </ModalBody>
-      </Modal>
+                        <h5 className="mt-4 mb-2">
+                          Radiomics Standards & Feature Definitions
+                        </h5>
+                        <p>
+                          This tool follows IBSI (Image Biomarker
+                          Standardisation Initiative) nomenclature for feature
+                          definitions when possible. Feature names are
+                          standardized, and clinical features are listed
+                          separately. For more, see the{' '}
+                          <a
+                            href="https://ibsi.readthedocs.io/en/latest/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            IBSI documentation
+                          </a>
+                          .
+                        </p>
+                        <h5 className="mt-4 mb-2">Troubleshooting & Tips</h5>
+                        <ul>
+                          <li>
+                            If a chart fails to load, check your feature
+                            selection and try reducing the number of features.
+                            The maximum number of values for visualization is
+                            limited for performance.
+                          </li>
+                          <li>
+                            Look for error messages below the chart or in alert
+                            banners. If a computation fails, try again or
+                            contact support with the error details.
+                          </li>
+                          <li>
+                            Hover over icons{' '}
+                            <FontAwesomeIcon
+                              icon="info-circle"
+                              style={{ color: '#007bff' }}
+                            />{' '}
+                            for additional explanations and tooltips throughout
+                            the page. The Heatmap/UMAP toggle buttons also have
+                            tooltips for quick explanations.
+                          </li>
+                        </ul>
+                      </ModalBody>
+                    </Modal>
 
-      {/* ...removed feature definition modal... */}
+                    {/* ...removed feature definition modal... */}
                     <FeatureSelection
                       allFeatures={featuresChart}
                       modelType={selectedLabelCategory?.label_type}
@@ -1416,6 +1638,7 @@ export default function Visualisation({
                       setSelected={setSelected}
                       keepNFeatures={keepNFeatures}
                       dropCorrelatedFeatures={dropCorrelatedFeatures}
+                      selectFeaturesWithFDR={selectFeaturesWithFDR}
                       nFeatures={nFeatures}
                       setNFeatures={setNFeatures}
                       corrThreshold={corrThreshold}
