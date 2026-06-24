@@ -18,6 +18,7 @@ export default function FeatureSelection({
   setNFeatures,
   keepNFeatures,
   dropCorrelatedFeatures,
+  selectFeaturesWithFDR,
   corrThreshold,
   setCorrThreshold,
   isRecomputingChart,
@@ -177,6 +178,39 @@ export default function FeatureSelection({
             </div>
           </div>
         )}
+      </div>
+      <div style={{ display: 'flex' }}>
+        <div style={{ flex: 1 }}>
+          <div className="tools">
+            <p className="mt-4">
+              <strong>
+                FDR correction{' '}
+                <FontAwesomeIcon icon="info-circle" id="fdr-explanation" />
+                <UncontrolledTooltip placement="right" target="fdr-explanation">
+                  Allows to select fewer and significnat features while limiting
+                  false discoveries to 5% by default
+                </UncontrolledTooltip>
+              </strong>
+            </p>
+            <div>
+              <Button
+                color="primary"
+                onClick={() => {
+                  console.log('launching FDR');
+                  selectFeaturesWithFDR();
+                }}
+                disabled={isRecomputingChart}
+              >
+                {isRecomputingChart && (
+                  <>
+                    <FontAwesomeIcon icon="sync" spin />{' '}
+                  </>
+                )}
+                Select features with FDR{' '}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

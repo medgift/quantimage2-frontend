@@ -9,6 +9,11 @@ import React from 'react';
 import * as detectNewline from 'detect-newline';
 import * as csvString from 'csv-string';
 import { parse } from 'csv-parse/sync';
+import {
+  MODEL_TYPES,
+  CLASSIFICATION_OUTCOMES,
+  SURVIVAL_OUTCOMES,
+} from '../config/constants';
 
 const PATIENT_ID_FIELD = 'patientID';
 const MODALITY_FIELD = 'modality';
@@ -459,4 +464,24 @@ export function SelectColumnFilter({
       ))}
     </select>
   );
+}
+
+export async function transformLabelsToTabular(outcomes, labelCategoryType) {
+  let tabularLabels = [];
+
+  let outcomeColumns =
+    labelCategoryType === MODEL_TYPES.CLASSIFICATION
+      ? CLASSIFICATION_OUTCOMES
+      : SURVIVAL_OUTCOMES;
+
+  for (let outcome of outcomes) {
+    let tabularLabel = [
+      outcome.patient_id,
+      ...outcomeColumns.map((column) => outcome.label_content[column] || ''),
+    ];
+
+    tabularLabels.push(tabularLabel);
+  }
+
+  return tabularLabels;
 }
