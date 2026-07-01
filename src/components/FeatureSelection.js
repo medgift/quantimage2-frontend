@@ -118,78 +118,6 @@ export default function FeatureSelection({
             </div>
           </div>
         </div>
-        {modelType && (
-          <div style={{ flex: 1 }}>
-            <div className="tools">
-              <p className="mt-4">
-                <strong>Feature ranking</strong>
-              </p>
-              <div>
-                <input
-                  id="rank-feats"
-                  type="checkbox"
-                  checked={rankFeatures}
-                  onChange={(e) => {
-                    setRankFeatures(e.target.checked);
-                  }}
-                />{' '}
-                <label htmlFor="rank-feats">
-                  Rank by F-value{' '}
-                  <FontAwesomeIcon
-                    icon="info-circle"
-                    id="ranking-explanation"
-                  />
-                  <UncontrolledTooltip
-                    placement="right"
-                    target="ranking-explanation"
-                  >
-                    Sort the features (lines of the chart) so that more
-                    predictive features (when taken individually) will appear at
-                    the top and less predictive features will appear at the
-                    bottom.
-                    {modelType === MODEL_TYPES.SURVIVAL &&
-                      'With Survival models, the features are ranked by the Event column.'}
-                  </UncontrolledTooltip>
-                </label>
-                {rankFeatures && (
-                  <div>
-                    <label htmlFor="keep-n-feats">
-                      Number of features to keep
-                    </label>
-                    <br />
-                    <input
-                      id="n-feats-to-keep"
-                      type="range"
-                      min={1}
-                      max={Math.min(
-                        selected
-                          .filter((s) => leafItems[s])
-                          .map((f) => leafItems[f]).length,
-                        maxNFeatures
-                      )}
-                      onChange={(e) => setNFeatures(+e.target.value)}
-                      step={1}
-                      value={nFeatures}
-                      className="slider"
-                    />
-                    <span>{nFeatures}</span>
-                    <div>
-                      <Button
-                        color="primary"
-                        onClick={keepNFeatures}
-                        disabled={isRecomputingChart}
-                      >
-                        Keep {nFeatures} Best-Ranked Features
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      <div style={{ display: 'flex' }}>
         <div style={{ flex: 1 }}>
           <div className="tools">
             <p className="mt-4">
@@ -266,23 +194,83 @@ export default function FeatureSelection({
                       fdrIndex={fdrIndex}
                       FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
                     />
-                    {selectedFdrData && (
-                      <div>
-                        <p>test</p>
-                        <p>Features: {selectedFdrData.featureCount}</p>
-                        <ul>
-                          {selectedFdrData.features.map((feature) => (
-                            <li key={feature}>{feature}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             )}
           </div>
         </div>
+        {/* 
+        {modelType && (
+          <div style={{ flex: 1 }}>
+            <div className="tools">
+              <p className="mt-4">
+                <strong>Feature ranking</strong>
+              </p>
+              <div>
+                <input
+                  id="rank-feats"
+                  type="checkbox"
+                  checked={rankFeatures}
+                  onChange={(e) => {
+                    setRankFeatures(e.target.checked);
+                  }}
+                />{' '}
+                <label htmlFor="rank-feats">
+                  Rank by F-value{' '}
+                  <FontAwesomeIcon
+                    icon="info-circle"
+                    id="ranking-explanation"
+                  />
+                  <UncontrolledTooltip
+                    placement="right"
+                    target="ranking-explanation"
+                  >
+                    Sort the features (lines of the chart) so that more
+                    predictive features (when taken individually) will appear at
+                    the top and less predictive features will appear at the
+                    bottom.
+                    {modelType === MODEL_TYPES.SURVIVAL &&
+                      'With Survival models, the features are ranked by the Event column.'}
+                  </UncontrolledTooltip>
+                </label>
+                {rankFeatures && (
+                  <div>
+                    <label htmlFor="keep-n-feats">
+                      Number of features to keep
+                    </label>
+                    <br />
+                    <input
+                      id="n-feats-to-keep"
+                      type="range"
+                      min={1}
+                      max={Math.min(
+                        selected
+                          .filter((s) => leafItems[s])
+                          .map((f) => leafItems[f]).length,
+                        maxNFeatures
+                      )}
+                      onChange={(e) => setNFeatures(+e.target.value)}
+                      step={1}
+                      value={nFeatures}
+                      className="slider"
+                    />
+                    <span>{nFeatures}</span>
+                    <div>
+                      <Button
+                        color="primary"
+                        onClick={keepNFeatures}
+                        disabled={isRecomputingChart}
+                      >
+                        Keep {nFeatures} Best-Ranked Features
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )} */}
       </div>
     </div>
   );
