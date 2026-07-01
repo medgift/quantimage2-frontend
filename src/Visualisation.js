@@ -193,6 +193,11 @@ export default function Visualisation({
     }
   };
 
+  const handleFdrIndexChange = (index) => {
+    setFdrIndex(index);
+    setIsRecomputingChart(true);
+  };
+
   const [fdrResults, setFdrResults] = useState([]);
 
   const selectedFdrData = useMemo(() => {
@@ -1275,6 +1280,7 @@ export default function Visualisation({
 
     pendingSelectionSourceRef.current = { type: 'fdr', index: fdrIndex };
     setSelected(nodeIds);
+    setIsRecomputingChart(false);
   }, [
     selectedFdrData,
     isFdrFinished,
@@ -1965,7 +1971,8 @@ export default function Visualisation({
                       selectedFdrThreshold={selectedFdrThreshold}
                       FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
                       fdrIndex={fdrIndex}
-                      setFdrIndex={setFdrIndex}
+                      fdrResults={fdrResults}
+                      handleFdrIndexChange={handleFdrIndexChange}
                       selectedFdrData={selectedFdrData}
                       nFeatures={nFeatures}
                       setNFeatures={setNFeatures}

@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
 import UndoButton from './UndoButton';
+import FDRChart from './FDRChart';
 
 export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
 export const DEFAULT_FEATURES_TO_KEEP = 10;
@@ -25,7 +26,8 @@ export default function FeatureSelection({
   selectedFdrThreshold,
   FDR_THRESHOLDS_LIST,
   fdrIndex,
-  setFdrIndex,
+  fdrResults,
+  handleFdrIndexChange,
   selectedFdrData,
   corrThreshold,
   setCorrThreshold,
@@ -243,7 +245,7 @@ export default function FeatureSelection({
                     q-value, the higher will be the number of false positives.
                   </UncontrolledTooltip>
                 </label>
-                {showAdvancedFdr && (
+                {showAdvancedFdr && fdrResults && (
                   <div>
                     <label htmlFor="qvalues">
                       Qvalue selected: {selectedFdrThreshold}
@@ -255,7 +257,14 @@ export default function FeatureSelection({
                       max={FDR_THRESHOLDS_LIST.length - 1}
                       step={1}
                       value={fdrIndex}
-                      onChange={(e) => setFdrIndex(Number(e.target.value))}
+                      onChange={(e) =>
+                        handleFdrIndexChange(Number(e.target.value))
+                      }
+                    />
+                    <FDRChart
+                      fdrResults={fdrResults}
+                      fdrIndex={fdrIndex}
+                      FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
                     />
                     {selectedFdrData && (
                       <div>
