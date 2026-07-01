@@ -789,7 +789,8 @@ class Backend {
     labels,
     trainingPatients,
     testPatients,
-    fdrThreshold
+    fdrThreshold,
+    FDR_THRESHOLDS_LIST
   ) {
     try {
       const url = `${endpoints.fdr}/simpleFDR`;
@@ -812,6 +813,7 @@ class Backend {
           training_patients: trainingPatients,
           test_patients: testPatients,
           fdr_threshold: fdrThreshold,
+          fdr_threshold_list: FDR_THRESHOLDS_LIST,
         },
       });
     } catch (err) {

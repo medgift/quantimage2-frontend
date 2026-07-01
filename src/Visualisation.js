@@ -70,7 +70,10 @@ HighchartsBoost(Highcharts);
 
 const MAX_DISPLAYED_FEATURES = 200000;
 const DEFAULT_CORRELATION_THRESHOLD = 0.5;
-const DEFAULT_FDR_THRESHOLD = 0.05;
+const FDR_THRESHOLDS_LIST = [
+  0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+];
+const DEFAULT_FDR_INDEX = 2;
 
 // Visualization modes
 const VISUALIZATION_MODES = {
@@ -164,14 +167,42 @@ export default function Visualisation({
 
   // Manage filtering history
   const [selectedFeaturesHistory, setSelectedFeaturesHistory] = useState([]);
+  const [selectedUiHistory, setSelectedUiHistory] = useState([]);
 
   // Drop correlated features
   const [corrThreshold, setCorrThreshold] = useState(
     DEFAULT_CORRELATION_THRESHOLD
   );
 
-  // Drop features below FDR threshold
-  const [fdrThreshold, setFdrThreshold] = useState(DEFAULT_FDR_THRESHOLD);
+  // FDR parameters
+  const [fdrIndex, setFdrIndex] = useState(DEFAULT_FDR_INDEX);
+  const selectedFdrThreshold = FDR_THRESHOLDS_LIST[fdrIndex];
+  const [isFdrFinished, setIsFdrFinished] = useState(false);
+  const [showAdvancedFdr, setShowAdvancedFdr] = useState(false);
+
+  const fdrIndexRef = useRef(fdrIndex);
+
+  useEffect(() => {
+    fdrIndexRef.current = fdrIndex;
+  }, [fdrIndex]);
+
+  const handleShowAdvancedFdr = (show) => {
+    setShowAdvancedFdr(show);
+
+    if (!show) {
+      setFdrIndex(DEFAULT_FDR_INDEX);
+    }
+  };
+
+  const [fdrResults, setFdrResults] = useState([]);
+
+  const selectedFdrData = useMemo(() => {
+    if (!fdrResults.length) return null;
+    return fdrResults[fdrIndex];
+  }, [fdrResults, fdrIndex]);
+
+  // Ref to get source of selection method used
+  const pendingSelectionSourceRef = useRef('manual');
 
   // Collection creation/edition
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -686,11 +717,17 @@ export default function Visualisation({
     if (treeData.length > 0) {
       console.log('selected is now', selected);
       setSelectedFeaturesHistory((h) => {
-        let prevSelected = h[h.length - 1];
+        let prevSelected = h[h.length - 1]?.selected;
 
         // Only append to history if selections are different
         if (!_.isEqual(prevSelected, selected)) {
-          return [...h, selected];
+          const entry = {
+            selected,
+            source: pendingSelectionSourceRef.current,
+            fdrIndex: fdrIndexRef.current,
+          };
+          pendingSelectionSourceRef.current = 'manual';
+          return [...h, entry];
         } else {
           return h;
         }
@@ -854,6 +891,7 @@ export default function Visualisation({
         (fID) => featureIDToNodeID[fID]
       );
 
+      pendingSelectionSourceRef.current = 'correlation';
       deselectFeatures(nodeIDsToDeselect);
     };
   }, [leafItems, selected, setSelected, setIsRecomputingChart]);
@@ -1157,6 +1195,7 @@ export default function Visualisation({
     // Drop all features after the N best ones
     let featuresToDrop = selectedFeatures.slice(nFeatures);
 
+    pendingSelectionSourceRef.current = 'rank';
     deselectFeatures(
       getNodeIDsFromFeatureIDs(featuresToDrop, leafItems, nodeIDToNodeMap)
     );
@@ -1182,6 +1221,8 @@ export default function Visualisation({
 
   const selectFeaturesWithFDR = useCallback(() => {
     setIsRecomputingChart(true);
+    setIsFdrFinished(false);
+    setFdrIndex(DEFAULT_FDR_INDEX);
 
     (async () => {
       try {
@@ -1194,7 +1235,7 @@ export default function Visualisation({
         console.log('outcomes');
         console.log(outcomes);
         console.log(labels);
-        const featuresToDrop = await Backend.applySimpleFDR(
+        const results = await Backend.applySimpleFDR(
           keycloak.token,
           featureExtractionID,
           selectedFeatureIDs,
@@ -1205,14 +1246,18 @@ export default function Visualisation({
           labels,
           patients?.training ? patients.training : dataPoints,
           patients?.test,
-          fdrThreshold
+          selectedFdrThreshold,
+          FDR_THRESHOLDS_LIST
         );
 
         console.log('featuresToDrop');
-        console.log(featuresToDrop);
+        console.log(results);
         console.log(selectedLabelCategory);
+
+        setFdrResults(results);
       } finally {
         setIsRecomputingChart(false);
+        setIsFdrFinished(true);
       }
     })();
   }, [
@@ -1221,11 +1266,32 @@ export default function Visualisation({
     selectedFeatureIDs,
     collectionID,
     selectedLabelCategory,
-    fdrThreshold,
+    selectedFdrThreshold,
     albumID,
     outcomes,
     patients,
     dataPoints,
+  ]);
+
+  // synchronize selection via the fdr slider
+  useEffect(() => {
+    if (!isFdrFinished || !selectedFdrData) return;
+
+    const nodeIds = getNodeIDsFromFeatureIDs(
+      selectedFdrData.features,
+      leafItems,
+      nodeIDToNodeMap
+    );
+
+    pendingSelectionSourceRef.current = { type: 'fdr', index: fdrIndex };
+    setSelected(nodeIds);
+  }, [
+    selectedFdrData,
+    isFdrFinished,
+    leafItems,
+    nodeIDToNodeMap,
+    getNodeIDsFromFeatureIDs,
+    fdrIndex,
   ]);
 
   function getPointCategoryName(point, dimension) {
@@ -1297,6 +1363,8 @@ export default function Visualisation({
     keepNFeatures();
   };
 
+  const isFdrEntry = (entry) => entry?.source?.type === 'fdr';
+
   const handleUndo = () => {
     let historyCopy = [...selectedFeaturesHistory];
 
@@ -1307,8 +1375,29 @@ export default function Visualisation({
     let previous = historyCopy.pop();
     console.log('Previously selected was', previous);
 
-    setSelected(previous);
+    setSelected(previous ? previous.selected : []);
     setSelectedFeaturesHistory(historyCopy);
+
+    if (previous?.fdrIndex !== undefined) {
+      setFdrIndex(previous.fdrIndex);
+    }
+
+    const stillInFdrSession =
+      isFdrEntry(previous) || historyCopy.some(isFdrEntry);
+
+    if (!stillInFdrSession) {
+      setIsFdrFinished(false);
+      setShowAdvancedFdr(false);
+      setFdrResults([]);
+    }
+
+    /*if (isFdrEntry(previous)) {
+      setFdrIndex(previous.source.index);
+    } else {
+      setIsFdrFinished(false);
+      setShowAdvancedFdr(false);
+      setFdrResults([]);
+    }*/
   };
 
   if (loading) {
@@ -1880,6 +1969,14 @@ export default function Visualisation({
                       keepNFeatures={keepNFeatures}
                       dropCorrelatedFeatures={dropCorrelatedFeatures}
                       selectFeaturesWithFDR={selectFeaturesWithFDR}
+                      isFdrFinished={isFdrFinished}
+                      showAdvancedFdr={showAdvancedFdr}
+                      handleShowAdvancedFdr={handleShowAdvancedFdr}
+                      selectedFdrThreshold={selectedFdrThreshold}
+                      FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
+                      fdrIndex={fdrIndex}
+                      setFdrIndex={setFdrIndex}
+                      selectedFdrData={selectedFdrData}
                       nFeatures={nFeatures}
                       setNFeatures={setNFeatures}
                       corrThreshold={corrThreshold}

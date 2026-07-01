@@ -19,6 +19,14 @@ export default function FeatureSelection({
   keepNFeatures,
   dropCorrelatedFeatures,
   selectFeaturesWithFDR,
+  isFdrFinished,
+  showAdvancedFdr,
+  handleShowAdvancedFdr,
+  selectedFdrThreshold,
+  FDR_THRESHOLDS_LIST,
+  fdrIndex,
+  setFdrIndex,
+  selectedFdrData,
   corrThreshold,
   setCorrThreshold,
   isRecomputingChart,
@@ -209,6 +217,61 @@ export default function FeatureSelection({
                 Select features with FDR{' '}
               </Button>
             </div>
+            {isFdrFinished && (
+              <div>
+                <input
+                  id="show-advanced-fdr"
+                  type="checkbox"
+                  checked={showAdvancedFdr}
+                  onChange={(e) => {
+                    handleShowAdvancedFdr(e.target.checked);
+                  }}
+                />{' '}
+                <label htmlFor="show-advanced-fdr">
+                  Show advanced results{' '}
+                  <FontAwesomeIcon
+                    icon="info-circle"
+                    id="advanced-fdr-explanation"
+                  />
+                  <UncontrolledTooltip
+                    placement="right"
+                    target="advanced-fdr-explanation"
+                  >
+                    Allows you to explore the number of features retrieved
+                    depending on the q-value selected with the slider and the
+                    vertical line on the graph. Reminder that the higher the
+                    q-value, the higher will be the number of false positives.
+                  </UncontrolledTooltip>
+                </label>
+                {showAdvancedFdr && (
+                  <div>
+                    <label htmlFor="qvalues">
+                      Qvalue selected: {selectedFdrThreshold}
+                    </label>
+                    <input
+                      id="qvalues"
+                      type="range"
+                      min={0}
+                      max={FDR_THRESHOLDS_LIST.length - 1}
+                      step={1}
+                      value={fdrIndex}
+                      onChange={(e) => setFdrIndex(Number(e.target.value))}
+                    />
+                    {selectedFdrData && (
+                      <div>
+                        <p>test</p>
+                        <p>Features: {selectedFdrData.featureCount}</p>
+                        <ul>
+                          {selectedFdrData.features.map((feature) => (
+                            <li key={feature}>{feature}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
