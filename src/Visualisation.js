@@ -1232,9 +1232,6 @@ export default function Visualisation({
           outcomes,
           selectedLabelCategory.label_type
         );
-        console.log('outcomes');
-        console.log(outcomes);
-        console.log(labels);
         const results = await Backend.applySimpleFDR(
           keycloak.token,
           featureExtractionID,
@@ -1246,13 +1243,8 @@ export default function Visualisation({
           labels,
           patients?.training ? patients.training : dataPoints,
           patients?.test,
-          selectedFdrThreshold,
           FDR_THRESHOLDS_LIST
         );
-
-        console.log('featuresToDrop');
-        console.log(results);
-        console.log(selectedLabelCategory);
 
         setFdrResults(results);
       } finally {
@@ -1266,7 +1258,6 @@ export default function Visualisation({
     selectedFeatureIDs,
     collectionID,
     selectedLabelCategory,
-    selectedFdrThreshold,
     albumID,
     outcomes,
     patients,

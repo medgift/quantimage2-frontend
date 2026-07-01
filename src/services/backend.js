@@ -789,15 +789,10 @@ class Backend {
     labels,
     trainingPatients,
     testPatients,
-    fdrThreshold,
     FDR_THRESHOLDS_LIST
   ) {
     try {
       const url = `${endpoints.fdr}/simpleFDR`;
-
-      console.log('SelectedFeatureIDs');
-      console.log(selectedFeatureIDs);
-      console.log(collectionID);
 
       return await request(url, {
         token: token,
@@ -812,7 +807,6 @@ class Backend {
           labels: [...labels],
           training_patients: trainingPatients,
           test_patients: testPatients,
-          fdr_threshold: fdrThreshold,
           fdr_threshold_list: FDR_THRESHOLDS_LIST,
         },
       });
