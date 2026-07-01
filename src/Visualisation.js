@@ -167,7 +167,6 @@ export default function Visualisation({
 
   // Manage filtering history
   const [selectedFeaturesHistory, setSelectedFeaturesHistory] = useState([]);
-  const [selectedUiHistory, setSelectedUiHistory] = useState([]);
 
   // Drop correlated features
   const [corrThreshold, setCorrThreshold] = useState(
