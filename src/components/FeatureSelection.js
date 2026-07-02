@@ -1,9 +1,10 @@
 import { Button, UncontrolledTooltip } from 'reactstrap';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
 import UndoButton from './UndoButton';
 import FDRChart from './FDRChart';
+import FDRFeaturesListModal from './FDRFeaturesListModal';
 
 export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
 export const DEFAULT_FEATURES_TO_KEEP = 10;
@@ -48,6 +49,9 @@ export default function FeatureSelection({
       else return Math.min(nbSelectedFeatures, DEFAULT_FEATURES_TO_KEEP);
     });
   }, [setNFeatures, leafItems, selected]);
+
+  const [showFeaturesModal, setShowFeaturesModeal] = useState(false);
+  const toggleFeaturesModal = () => setShowFeaturesModeal((open) => !open);
 
   return (
     <div style={{ flex: 1 }}>
@@ -193,6 +197,14 @@ export default function FeatureSelection({
                       fdrResults={fdrResults}
                       fdrIndex={fdrIndex}
                       FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
+                    />
+                    <Button color="primary" onClick={toggleFeaturesModal}>
+                      Show Features and Qvalues
+                    </Button>
+                    <FDRFeaturesListModal
+                      isOpen={showFeaturesModal}
+                      toggle={toggleFeaturesModal}
+                      selectedFdrData={selectedFdrData}
                     />
                   </div>
                 )}

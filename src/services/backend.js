@@ -788,7 +788,6 @@ class Backend {
     labelCategoryID,
     labels,
     trainingPatients,
-    testPatients,
     FDR_THRESHOLDS_LIST
   ) {
     try {
@@ -806,7 +805,6 @@ class Backend {
           label_category_id: labelCategoryID,
           labels: [...labels],
           training_patients: trainingPatients,
-          test_patients: testPatients,
           fdr_threshold_list: FDR_THRESHOLDS_LIST,
         },
       });

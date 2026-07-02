@@ -1246,7 +1246,6 @@ export default function Visualisation({
           selectedLabelCategory.id,
           labels,
           patients?.training ? patients.training : dataPoints,
-          patients?.test,
           FDR_THRESHOLDS_LIST
         );
 
@@ -1273,10 +1272,13 @@ export default function Visualisation({
     if (!isFdrFinished || !selectedFdrData) return;
 
     const nodeIds = getNodeIDsFromFeatureIDs(
-      selectedFdrData.features,
+      selectedFdrData.features.map((f) => f.feature),
       leafItems,
       nodeIDToNodeMap
     );
+
+    console.log('SelectedFdrData');
+    console.log(selectedFdrData.features);
 
     pendingSelectionSourceRef.current = { type: 'fdr', index: fdrIndex };
     setSelected(nodeIds);
