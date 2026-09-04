@@ -189,7 +189,7 @@ function Home() {
                   controls
                 >
                   <source
-                    src="https://drive.switch.ch/index.php/s/Xv5zXBU9BOvpDaZ/download"
+                    src="https://drive.switch.ch/public.php/dav/files/Xv5zXBU9BOvpDaZ"
                     type="video/mp4"
                   />
                   Video Not Supported
