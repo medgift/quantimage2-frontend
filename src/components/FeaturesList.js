@@ -174,9 +174,7 @@ export default function FeaturesList({
       let featureExtraction = await Backend.extract(
         keycloak.token,
         albumID,
-        showEditor && !parsedCustomConfig.error
-          ? parsedCustomConfig
-          : selectedPreset.config,
+        effectiveConfig,
         selectedROIs
       );
 
@@ -239,6 +237,21 @@ export default function FeaturesList({
     }
   }, [customConfig]);
 
+  // Use the custom config only when the editor holds something that parsed to
+  // an actual object. Empty, whitespace-only or comment-only text (and the
+  // untouched editor, where customConfig is still null) fall back to the preset.
+  const effectiveConfig = useMemo(() => {
+    if (
+      customConfig &&
+      parsedCustomConfig &&
+      typeof parsedCustomConfig === 'object' &&
+      !parsedCustomConfig.error
+    ) {
+      return parsedCustomConfig;
+    }
+    return selectedPreset?.config;
+  }, [customConfig, parsedCustomConfig, selectedPreset]);
+
   const selectAllROIs = () => {
     setSelectedROIs(Object.keys(albumROIs));
   };
@@ -299,16 +312,14 @@ export default function FeaturesList({
               </FormGroup>
             ))}
 
-            {customConfig && parsedCustomConfig.error ? (
+            {customConfig && parsedCustomConfig?.error ? (
               <Alert color="danger">
                 Invalid YAML configuration : {parsedCustomConfig.error}
               </Alert>
             ) : (
               <RecursiveTreeView
                 data={{
-                  [EXTRACTION_CONFIG_TREE_TITLE]: !customConfig
-                    ? selectedPreset.config
-                    : parsedCustomConfig,
+                  [EXTRACTION_CONFIG_TREE_TITLE]: effectiveConfig,
                 }}
               />
             )}
@@ -431,7 +442,8 @@ export default function FeaturesList({
             <strong>A feature extraction already exists for this album.</strong>
           </p>
           <p>
-            Do you really want to re-extract features? This will create a new feature extraction and replace the existing one.
+            Do you really want to re-extract features? This will create a new
+            feature extraction and replace the existing one.
           </p>
           <div className="d-flex justify-content-end mt-4">
             <Button
@@ -441,10 +453,7 @@ export default function FeaturesList({
             >
               Cancel
             </Button>
-            <Button
-              color="warning"
-              onClick={handleConfirmReextraction}
-            >
+            <Button color="warning" onClick={handleConfirmReextraction}>
               <FontAwesomeIcon icon="cog" /> Yes, Re-Extract Features
             </Button>
           </div>
