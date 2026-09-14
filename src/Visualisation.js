@@ -1325,9 +1325,6 @@ export default function Visualisation({
       nodeIDToNodeMap
     );
 
-    console.log('SelectedFdrData');
-    console.log(selectedFdrData.features);
-
     pendingSelectionSourceRef.current = { type: 'fdr', index: fdrIndex };
     setSelected(nodeIds);
     setIsRecomputingChart(false);
@@ -2006,13 +2003,9 @@ export default function Visualisation({
                       allFeatures={featuresChart}
                       modelType={selectedLabelCategory?.label_type}
                       leafItems={leafItems}
-                      rankFeatures={rankFeatures}
-                      setRankFeatures={setRankFeatures}
-                      maxNFeatures={maxNFeatures}
                       featureIDs={featureIDs}
                       selected={selected}
                       setSelected={setSelected}
-                      keepNFeatures={keepNFeatures}
                       dropCorrelatedFeatures={dropCorrelatedFeatures}
                       selectFeaturesWithFDR={selectFeaturesWithFDR}
                       isFdrFinished={isFdrFinished}
@@ -2025,7 +2018,6 @@ export default function Visualisation({
                       fdrResults={fdrResults}
                       handleFdrIndexChange={handleFdrIndexChange}
                       selectedFdrData={selectedFdrData}
-                      nFeatures={nFeatures}
                       setNFeatures={setNFeatures}
                       corrThreshold={corrThreshold}
                       setCorrThreshold={setCorrThreshold}

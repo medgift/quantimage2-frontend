@@ -10,7 +10,7 @@ export default function FDRChart({
   const options = useMemo(() => {
     if (!fdrResults || !fdrResults.length) return null;
 
-    const currentTrheshold = FDR_THRESHOLDS_LIST[fdrIndex];
+    const currentThreshold = FDR_THRESHOLDS_LIST[fdrIndex];
 
     const seriesData = FDR_THRESHOLDS_LIST.map((threshold, i) => ({
       x: threshold,
@@ -33,9 +33,9 @@ export default function FDRChart({
             color: '#cc0000',
             dashStyle: 'Dash',
             width: 2,
-            value: currentTrheshold,
+            value: currentThreshold,
             label: {
-              text: `qvalue = ${currentTrheshold}`,
+              text: `qvalue = ${currentThreshold}`,
               rotation: -90,
               textAlign: 'right',
               x: -4,

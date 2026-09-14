@@ -1,7 +1,6 @@
 import { Alert, Button, UncontrolledTooltip } from 'reactstrap';
 import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { MODEL_TYPES } from '../config/constants';
 import UndoButton from './UndoButton';
 import FDRChart from './FDRChart';
 import FDRFeaturesListModal from './FDRFeaturesListModal';
@@ -12,14 +11,9 @@ export const DEFAULT_FEATURES_TO_KEEP = 10;
 
 export default function FeatureSelection({
   modelType,
-  rankFeatures,
-  setRankFeatures,
-  maxNFeatures,
   selected,
   leafItems,
-  nFeatures,
   setNFeatures,
-  keepNFeatures,
   dropCorrelatedFeatures,
   selectFeaturesWithFDR,
   isFdrFinished,
@@ -52,8 +46,8 @@ export default function FeatureSelection({
     });
   }, [setNFeatures, leafItems, selected]);
 
-  const [showFeaturesModal, setShowFeaturesModeal] = useState(false);
-  const toggleFeaturesModal = () => setShowFeaturesModeal((open) => !open);
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
+  const toggleFeaturesModal = () => setShowFeaturesModal((open) => !open);
 
   return (
     <div style={{ flex: 1 }}>
@@ -131,7 +125,7 @@ export default function FeatureSelection({
                 FDR correction{' '}
                 <FontAwesomeIcon icon="info-circle" id="fdr-explanation" />
                 <UncontrolledTooltip placement="right" target="fdr-explanation">
-                  Allows to select fewer and significnat features while limiting
+                  Allows to select fewer and significant features while limiting
                   false discoveries to 5% by default
                 </UncontrolledTooltip>
               </strong>
@@ -144,10 +138,7 @@ export default function FeatureSelection({
             <div>
               <Button
                 color="primary"
-                onClick={() => {
-                  console.log('launching FDR');
-                  selectFeaturesWithFDR();
-                }}
+                onClick={selectFeaturesWithFDR}
                 disabled={isRecomputingChart || !modelType}
               >
                 {isRecomputingChart && (
@@ -233,77 +224,6 @@ export default function FeatureSelection({
             )}
           </div>
         </div>
-        {/* 
-        {modelType && (
-          <div style={{ flex: 1 }}>
-            <div className="tools">
-              <p className="mt-4">
-                <strong>Feature ranking</strong>
-              </p>
-              <div>
-                <input
-                  id="rank-feats"
-                  type="checkbox"
-                  checked={rankFeatures}
-                  onChange={(e) => {
-                    setRankFeatures(e.target.checked);
-                  }}
-                />{' '}
-                <label htmlFor="rank-feats">
-                  Rank by F-value{' '}
-                  <FontAwesomeIcon
-                    icon="info-circle"
-                    id="ranking-explanation"
-                  />
-                  <UncontrolledTooltip
-                    placement="right"
-                    target="ranking-explanation"
-                  >
-                    Sort the features (lines of the chart) so that more
-                    predictive features (when taken individually) will appear at
-                    the top and less predictive features will appear at the
-                    bottom.
-                    {modelType === MODEL_TYPES.SURVIVAL &&
-                      'With Survival models, the features are ranked by the Event column.'}
-                  </UncontrolledTooltip>
-                </label>
-                {rankFeatures && (
-                  <div>
-                    <label htmlFor="keep-n-feats">
-                      Number of features to keep
-                    </label>
-                    <br />
-                    <input
-                      id="n-feats-to-keep"
-                      type="range"
-                      min={1}
-                      max={Math.min(
-                        selected
-                          .filter((s) => leafItems[s])
-                          .map((f) => leafItems[f]).length,
-                        maxNFeatures
-                      )}
-                      onChange={(e) => setNFeatures(+e.target.value)}
-                      step={1}
-                      value={nFeatures}
-                      className="slider"
-                    />
-                    <span>{nFeatures}</span>
-                    <div>
-                      <Button
-                        color="primary"
-                        onClick={keepNFeatures}
-                        disabled={isRecomputingChart}
-                      >
-                        Keep {nFeatures} Best-Ranked Features
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )} */}
       </div>
     </div>
   );
