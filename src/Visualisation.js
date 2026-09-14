@@ -1245,7 +1245,7 @@ export default function Visualisation({
       try {
         let album = await Kheops.album(keycloak.token, albumID);
         let albumStudies = await Kheops.studies(keycloak.token, albumID);
-        let labels = await transformLabelsToTabular(
+        let labels = transformLabelsToTabular(
           outcomes,
           selectedLabelCategory.label_type
         );

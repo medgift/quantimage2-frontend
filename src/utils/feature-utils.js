@@ -466,7 +466,7 @@ export function SelectColumnFilter({
   );
 }
 
-export async function transformLabelsToTabular(outcomes, labelCategoryType) {
+export function transformLabelsToTabular(outcomes, labelCategoryType) {
   let tabularLabels = [];
 
   let outcomeColumns =
