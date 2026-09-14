@@ -199,9 +199,10 @@ export default function Visualisation({
   };
 
   const [fdrResults, setFdrResults] = useState([]);
+  const [fdrError, setFdrError] = useState(null);
 
   const selectedFdrData = useMemo(() => {
-    if (!fdrResults.length) return null;
+    if (!fdrResults?.length) return null;
     return fdrResults[fdrIndex];
   }, [fdrResults, fdrIndex]);
 
@@ -1223,9 +1224,21 @@ export default function Visualisation({
     });
   }, [filteredFeatures, leafItems, selected, corrThreshold]);
 
+  // Each FDR run, and each reset below, takes a new number. Results are only
+  // applied while they belong to the latest one, so a response that arrives
+  // after the outcome changed never overwrites the selection.
+  const fdrRequestRef = useRef(0);
+  const fdrResultsRequestRef = useRef(null);
+
   const selectFeaturesWithFDR = useCallback(() => {
+    // The button is disabled without an outcome, and the request needs one.
+    if (!selectedLabelCategory) return;
+
+    const requestID = ++fdrRequestRef.current;
+
     setIsRecomputingChart(true);
     setIsFdrFinished(false);
+    setFdrError(null);
     setFdrIndex(DEFAULT_FDR_INDEX);
 
     (async () => {
@@ -1249,10 +1262,23 @@ export default function Visualisation({
           FDR_THRESHOLDS_LIST
         );
 
+        if (requestID !== fdrRequestRef.current) return;
+
+        // request() resolves to null when the body is not valid JSON. Storing
+        // that would crash the results lookup and blank the whole page.
+        if (!Array.isArray(results)) {
+          throw new Error('the server response could not be read');
+        }
+
+        fdrResultsRequestRef.current = requestID;
         setFdrResults(results);
+        setIsFdrFinished(true);
+      } catch (err) {
+        if (requestID !== fdrRequestRef.current) return;
+        console.error(err);
+        setFdrError(err.message || 'unknown error');
       } finally {
         setIsRecomputingChart(false);
-        setIsFdrFinished(true);
       }
     })();
   }, [
@@ -1267,9 +1293,31 @@ export default function Visualisation({
     dataPoints,
   ]);
 
+  // This component stays mounted when the outcome, extraction or collection
+  // changes, and FDR results only hold for the ones they were computed on.
+  const labelCategoryID = selectedLabelCategory?.id;
+  useEffect(() => {
+    fdrRequestRef.current++;
+    setFdrResults([]);
+    setIsFdrFinished(false);
+    setShowAdvancedFdr(false);
+    setFdrError(null);
+    setFdrIndex(DEFAULT_FDR_INDEX);
+  }, [labelCategoryID, featureExtractionID, collectionID]);
+
   // synchronize selection via the fdr slider
   useEffect(() => {
-    if (!isFdrFinished || !selectedFdrData) return;
+    if (!isFdrFinished) return;
+
+    // Results computed before the last reset belong to another outcome.
+    if (fdrResultsRequestRef.current !== fdrRequestRef.current) return;
+
+    if (!selectedFdrData) {
+      // Nothing to apply. Moving the slider turned the spinner on, and leaving
+      // it on would keep every feature-selection control disabled.
+      setIsRecomputingChart(false);
+      return;
+    }
 
     const nodeIds = getNodeIDsFromFeatureIDs(
       selectedFdrData.features.map((f) => f.feature),
@@ -1968,6 +2016,7 @@ export default function Visualisation({
                       dropCorrelatedFeatures={dropCorrelatedFeatures}
                       selectFeaturesWithFDR={selectFeaturesWithFDR}
                       isFdrFinished={isFdrFinished}
+                      fdrError={fdrError}
                       showAdvancedFdr={showAdvancedFdr}
                       handleShowAdvancedFdr={handleShowAdvancedFdr}
                       selectedFdrThreshold={selectedFdrThreshold}

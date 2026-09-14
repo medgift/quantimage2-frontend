@@ -1,10 +1,11 @@
-import { Button, UncontrolledTooltip } from 'reactstrap';
+import { Alert, Button, UncontrolledTooltip } from 'reactstrap';
 import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { MODEL_TYPES } from '../config/constants';
 import UndoButton from './UndoButton';
 import FDRChart from './FDRChart';
 import FDRFeaturesListModal from './FDRFeaturesListModal';
+import FDRSurvivalWarning from './FDRSurvivalWarning';
 
 export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
 export const DEFAULT_FEATURES_TO_KEEP = 10;
@@ -22,6 +23,7 @@ export default function FeatureSelection({
   dropCorrelatedFeatures,
   selectFeaturesWithFDR,
   isFdrFinished,
+  fdrError,
   showAdvancedFdr,
   handleShowAdvancedFdr,
   selectedFdrThreshold,
@@ -134,6 +136,11 @@ export default function FeatureSelection({
                 </UncontrolledTooltip>
               </strong>
             </p>
+            <FDRSurvivalWarning
+              modelType={modelType}
+              selected={selected}
+              leafItems={leafItems}
+            />
             <div>
               <Button
                 color="primary"
@@ -141,7 +148,7 @@ export default function FeatureSelection({
                   console.log('launching FDR');
                   selectFeaturesWithFDR();
                 }}
-                disabled={isRecomputingChart}
+                disabled={isRecomputingChart || !modelType}
               >
                 {isRecomputingChart && (
                   <>
@@ -150,7 +157,21 @@ export default function FeatureSelection({
                 )}
                 Select features with FDR{' '}
               </Button>
+              {!modelType && (
+                <small className="text-muted d-block mt-1">
+                  Select an outcome first
+                </small>
+              )}
             </div>
+            {fdrError && (
+              <Alert
+                color="danger"
+                className="mt-2 mb-0"
+                style={{ whiteSpace: 'normal' }}
+              >
+                FDR selection failed: {fdrError}
+              </Alert>
+            )}
             {isFdrFinished && (
               <div>
                 <input
