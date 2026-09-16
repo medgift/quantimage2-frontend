@@ -334,6 +334,21 @@ export default function ClinicalFeatureTable({
         };
       }
 
+      // Every column was dropped: discard the file instead of adding one that
+      // has no usable features.
+      if (Object.keys(definitionsToSave).length === 0) {
+        const reasons = Object.entries(newFilterMessages)
+          .map(([col, why]) => `"${col}" was dropped ${why}`)
+          .join('; ');
+        setUploadValid(false);
+        setUploadMessage(
+          `This CSV has no column with usable values, so the file was not added${
+            reasons ? ` (${reasons})` : ''
+          }.`
+        );
+        return;
+      }
+
       // Create the file row, then save its definitions and values.
       const fileRecord = await Backend.createClinicalFeatureFile(
         keycloak.token,
