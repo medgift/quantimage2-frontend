@@ -600,7 +600,7 @@ export default function Visualisation({
         } else if (supersededBy) {
           description =
             `Duplicate of "${d.name}" in "${supersededBy.keptFileName}" (newer file). ` +
-            `Training always uses the newest copy of a repeated feature, so this one cannot be selected.`;
+            `Training uses the newest copy of a repeated feature that has values, so this one cannot be selected.`;
         }
         grouped[fileName][d.name] = {
           id,
@@ -1531,8 +1531,8 @@ export default function Visualisation({
                         </strong>{' '}
                         — each is used once for training (
                         {collectionID
-                          ? "the copy saved in this collection, otherwise the newest file's copy"
-                          : 'the copy from its newest file'}
+                          ? "the copy saved in this collection, otherwise the newest file's copy that has values"
+                          : 'the copy from its newest file that has values'}
                         ). All other features from every file remain available.
                         {duplicateAdvisories.some(
                           (a) => !isHarmlessDuplicate(a)
