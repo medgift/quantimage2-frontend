@@ -1,23 +1,22 @@
 import { Alert, Button, UncontrolledTooltip } from 'reactstrap';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import UndoButton from './UndoButton';
 import FDRChart from './FDRChart';
 import FDRFeaturesListModal from './FDRFeaturesListModal';
 import FDRSurvivalWarning from './FDRSurvivalWarning';
 
-export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
-export const DEFAULT_FEATURES_TO_KEEP = 10;
-
 export default function FeatureSelection({
   modelType,
   selected,
   leafItems,
-  setNFeatures,
   dropCorrelatedFeatures,
   selectFeaturesWithFDR,
+  isFdrRunning,
+  hasRunFdr,
   isFdrFinished,
   fdrError,
+  fdrNotice,
   showAdvancedFdr,
   handleShowAdvancedFdr,
   selectedFdrThreshold,
@@ -32,20 +31,6 @@ export default function FeatureSelection({
   handleUndo,
   selectedFeaturesHistory,
 }) {
-  // Adjust N features when dropped features change
-  useEffect(() => {
-    if (!selected) return;
-
-    const nbSelectedFeatures = selected
-      .filter((s) => leafItems[s])
-      .map((f) => leafItems[f]).length;
-
-    setNFeatures((n) => {
-      if (n > nbSelectedFeatures) return nbSelectedFeatures;
-      else return Math.min(nbSelectedFeatures, DEFAULT_FEATURES_TO_KEEP);
-    });
-  }, [setNFeatures, leafItems, selected]);
-
   const [showFeaturesModal, setShowFeaturesModal] = useState(false);
   const toggleFeaturesModal = () => setShowFeaturesModal((open) => !open);
 
@@ -54,7 +39,8 @@ export default function FeatureSelection({
       <div>
         <strong>Feature Selection</strong>
       </div>
-      {selectedFeaturesHistory.length > 1 && (
+      {/* Hidden during an FDR run: its results would overwrite the undo */}
+      {selectedFeaturesHistory.length > 1 && !isFdrRunning && (
         <UndoButton handleClick={handleUndo} />
       )}
       <div style={{ display: 'flex' }}>
@@ -105,7 +91,7 @@ export default function FeatureSelection({
                     console.log('Drop now', corrThreshold);
                     dropCorrelatedFeatures();
                   }}
-                  disabled={isRecomputingChart}
+                  disabled={isRecomputingChart || isFdrRunning}
                 >
                   {isRecomputingChart && (
                     <>
@@ -139,9 +125,11 @@ export default function FeatureSelection({
               <Button
                 color="primary"
                 onClick={selectFeaturesWithFDR}
-                disabled={isRecomputingChart || !modelType}
+                disabled={
+                  isRecomputingChart || isFdrRunning || hasRunFdr || !modelType
+                }
               >
-                {isRecomputingChart && (
+                {isFdrRunning && (
                   <>
                     <FontAwesomeIcon icon="sync" spin />{' '}
                   </>
@@ -153,6 +141,16 @@ export default function FeatureSelection({
                   Select an outcome first
                 </small>
               )}
+              {modelType && hasRunFdr && (
+                <small
+                  className="text-muted d-block mt-1"
+                  style={{ whiteSpace: 'normal' }}
+                >
+                  FDR has already run for this outcome and training set. Running
+                  it again on the features it kept would weaken the correction;
+                  use Undo to go back before it.
+                </small>
+              )}
             </div>
             {fdrError && (
               <Alert
@@ -161,6 +159,15 @@ export default function FeatureSelection({
                 style={{ whiteSpace: 'normal' }}
               >
                 FDR selection failed: {fdrError}
+              </Alert>
+            )}
+            {fdrNotice && (
+              <Alert
+                color="warning"
+                className="mt-2 mb-0"
+                style={{ whiteSpace: 'normal' }}
+              >
+                {fdrNotice}
               </Alert>
             )}
             {isFdrFinished && (

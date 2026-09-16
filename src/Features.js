@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import fileDownload from 'js-file-download';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAlert } from 'react-alert';
 
 import Backend from './services/backend';
 import {
@@ -60,6 +67,14 @@ function Features() {
   const { keycloak } = useKeycloak();
   const navigate = useNavigate();
 
+  // useAlert returns a new object whenever the alert provider re-renders, so
+  // effects read it through a ref instead of re-running because of it.
+  const alert = useAlert();
+  const alertRef = useRef(alert);
+  useEffect(() => {
+    alertRef.current = alert;
+  });
+
   // Check if the user is an "alternative" user, i.e. with no visualization features
   const isAlternativeUser = useMemo(
     () => checkIsAlternativeUser(keycloak.idTokenParsed),
@@ -109,6 +124,7 @@ function Features() {
   let [clinicalFeaturesValues, setClinicalFeaturesValues] = useState(null);
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
+  const [clinicalFeaturesError, setClinicalFeaturesError] = useState(null);
 
   // Keyed by canonical clinical feature id `<file_id>::<name>` so two CSVs
   // with the same column name don't collide.
@@ -431,8 +447,14 @@ function Features() {
         setClinicalFeatureFiles(files);
         setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
         setClinicalFeaturesValues(clinicalFeatures);
+        setClinicalFeaturesError(null);
       } catch (err) {
+        // Without definitions the Visualisation and Clinical Features tabs
+        // would wait forever, so they show this error instead.
         console.error('Could not load clinical features', err);
+        const message = err?.message || String(err);
+        setClinicalFeaturesError(message);
+        alertRef.current.error(`Could not load clinical features: ${message}`);
       } finally {
         setIsLoading(false);
       }
@@ -1148,6 +1170,7 @@ function Features() {
                         />
                         <Visualisation
                           isAlternativeUser={isAlternativeUser}
+                          clinicalFeaturesError={clinicalFeaturesError}
                           active={tab === 'visualize'}
                           selectedLabelCategory={selectedLabelCategory}
                           collectionInfos={
@@ -1238,6 +1261,7 @@ function Features() {
                       />
                       <ClinicalFeatures
                         dataPoints={allPatients}
+                        clinicalFeaturesError={clinicalFeaturesError}
                         albumID={albumID}
                         clinicalFeatureFiles={clinicalFeatureFiles}
                         setClinicalFeatureFiles={setClinicalFeatureFiles}

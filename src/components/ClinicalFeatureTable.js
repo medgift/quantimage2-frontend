@@ -58,6 +58,7 @@ export default function ClinicalFeatureTable({
   clinicalFeaturesValues,
   setClinicalFeaturesValues,
   clinicalFeaturesUniqueValues,
+  clinicalFeaturesError,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -423,6 +424,14 @@ export default function ClinicalFeatureTable({
   };
 
   if (clinicalFeaturesDefinitions === null || clinicalFeaturesValues === null) {
+    if (clinicalFeaturesError) {
+      return (
+        <Alert color="danger" style={{ whiteSpace: 'normal' }}>
+          Could not load clinical features: {clinicalFeaturesError}. Reload the
+          page to try again.
+        </Alert>
+      );
+    }
     return (
       <>
         <FontAwesomeIcon icon="sync" spin={true} /> Loading...

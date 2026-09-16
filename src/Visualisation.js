@@ -50,10 +50,7 @@ import {
 import { COMMON_CHART_OPTIONS } from './assets/charts/common';
 import './Visualisation.css';
 import ListValues from './components/ListValues';
-import FeatureSelection, {
-  DEFAULT_FEATURES_TO_KEEP,
-  DEFAULT_MAX_FEATURES_TO_KEEP,
-} from './components/FeatureSelection';
+import FeatureSelection from './components/FeatureSelection';
 import ErrorBoundary from './utils/ErrorBoundary';
 import UndoButton from './components/UndoButton';
 import UMAPAnalysis from './UMAPAnalysis';
@@ -124,6 +121,7 @@ export default function Visualisation({
   setHasPendingChanges,
   clinicalFeaturesDefinitions,
   clinicalFeatureFiles,
+  clinicalFeaturesError,
 }) {
   // Help modal state
   const [helpModalOpen, setHelpModalOpen] = useState(false);
@@ -153,12 +151,6 @@ export default function Visualisation({
   const [featureIDs, setFeatureIDs] = useState(null);
   const hoveredFeatureRef = useRef(null);
 
-  // Feature ranking
-  const [rankFeatures, setRankFeatures] = useState(false);
-
-  // Manage feature selection values
-  const [nFeatures, setNFeatures] = useState(DEFAULT_FEATURES_TO_KEEP);
-
   // Is chart being recomputed
   const [isRecomputingChart, setIsRecomputingChart] = useState(false);
 
@@ -176,8 +168,23 @@ export default function Visualisation({
   // FDR parameters
   const [fdrIndex, setFdrIndex] = useState(DEFAULT_FDR_INDEX);
   const selectedFdrThreshold = FDR_THRESHOLDS_LIST[fdrIndex];
+  const [isFdrRunning, setIsFdrRunning] = useState(false);
   const [isFdrFinished, setIsFdrFinished] = useState(false);
   const [showAdvancedFdr, setShowAdvancedFdr] = useState(false);
+  const [fdrResults, setFdrResults] = useState([]);
+  const [fdrError, setFdrError] = useState(null);
+  const [fdrNotice, setFdrNotice] = useState(null);
+
+  // FDR runs once per outcome and training set: running it again on the
+  // features it kept tests fewer features, which weakens the correction.
+  const [hasRunFdr, setHasRunFdr] = useState(false);
+
+  // Each FDR run, and each reset, takes a new number. Results are only applied
+  // while they belong to the latest one, so a response that arrives after the
+  // outcome changed never overwrites the selection. fdrRunRef holds the number
+  // of the run that counts as done; the history entries it produced carry it.
+  const fdrRequestRef = useRef(0);
+  const fdrRunRef = useRef(null);
 
   const fdrIndexRef = useRef(fdrIndex);
 
@@ -185,21 +192,33 @@ export default function Visualisation({
     fdrIndexRef.current = fdrIndex;
   }, [fdrIndex]);
 
-  const handleShowAdvancedFdr = (show) => {
-    setShowAdvancedFdr(show);
-
-    if (!show) {
-      setFdrIndex(DEFAULT_FDR_INDEX);
-    }
-  };
+  // An FDR list to apply (results arriving, the slider moving) is a new object
+  // that the effect further down applies once. Rebuilding the tree or Undo
+  // moving the slider therefore never re-applies a list over the selection.
+  const [fdrSelectionRequest, setFdrSelectionRequest] = useState(null);
+  const appliedFdrSelectionRef = useRef(null);
 
   const handleFdrIndexChange = (index) => {
     setFdrIndex(index);
-    setIsRecomputingChart(true);
+    setFdrSelectionRequest({ index });
   };
 
-  const [fdrResults, setFdrResults] = useState([]);
-  const [fdrError, setFdrError] = useState(null);
+  // Drop the FDR results. With allowRerun, FDR may also run again: callers
+  // pass it once the selection no longer comes from the finished run.
+  const clearFdr = useCallback(({ allowRerun }) => {
+    fdrRequestRef.current++;
+    setIsFdrRunning(false);
+    setFdrResults([]);
+    setIsFdrFinished(false);
+    setShowAdvancedFdr(false);
+    setFdrError(null);
+    setFdrNotice(null);
+    setFdrSelectionRequest(null);
+    if (allowRerun) {
+      fdrRunRef.current = null;
+      setHasRunFdr(false);
+    }
+  }, []);
 
   const selectedFdrData = useMemo(() => {
     if (!fdrResults?.length) return null;
@@ -224,11 +243,48 @@ export default function Visualisation({
   // Chart
   const chartRef = useRef(null);
 
-  // A feature name uploaded in several clinical files is only used once for
-  // training: the newest file (highest file_id) wins. Older copies are shown
-  // as superseded in the tree and cannot be selected.
-  // Maps superseded id -> { keptId, keptFileName }.
+  // Resolve a saved feature ID the way the backend does: radiomics and
+  // `<file_id>::<name>` IDs as they are, a legacy bare clinical name to its
+  // copy in the lowest file_id (the migration's backfilled "Legacy" file).
+  const resolveClinicalFeatureID = useCallback(
+    (featureID) => {
+      if (
+        featureID.includes(FEATURE_ID_SEPARATOR) ||
+        featureID.includes(CLINICAL_FEATURE_ID_SEPARATOR)
+      )
+        return featureID;
+      const candidates = (clinicalFeaturesDefinitions || []).filter(
+        (d) => d.name === featureID
+      );
+      if (candidates.length === 0) return featureID;
+      const chosen = candidates.reduce((a, b) =>
+        a.clinical_feature_file_id <= b.clinical_feature_file_id ? a : b
+      );
+      return makeClinicalFeatureId(
+        chosen.clinical_feature_file_id,
+        chosen.name
+      );
+    },
+    [clinicalFeaturesDefinitions]
+  );
+
+  // Feature IDs the open collection was saved with (null outside a collection).
+  const savedFeatureIDs = useMemo(
+    () =>
+      collectionInfos?.collection?.feature_ids?.map(resolveClinicalFeatureID) ||
+      null,
+    [collectionInfos, resolveClinicalFeatureID]
+  );
+
+  // A feature name uploaded in several clinical files is only used once. A
+  // saved collection keeps the copy it was saved with (the newest of them if
+  // it holds several); otherwise the newest file (highest file_id) wins. The
+  // backend also passes over copies that have no values, which only old or
+  // partial uploads leave behind, so this does not check for values. The other
+  // copies are shown as repeated in the tree and cannot be selected.
+  // Maps repeated id -> { keptFileName, keptBySavedCollection }.
   const supersededClinicalIds = useMemo(() => {
+    const savedIDs = new Set(savedFeatureIDs || []);
     const byName = {};
     for (const d of clinicalFeaturesDefinitions || []) {
       (byName[d.name] = byName[d.name] || []).push(d);
@@ -237,30 +293,30 @@ export default function Visualisation({
       acc[f.id] = f;
       return acc;
     }, {});
+    const newest = (a, b) =>
+      a.clinical_feature_file_id >= b.clinical_feature_file_id ? a : b;
     const superseded = new Map();
     for (const defs of Object.values(byName)) {
       if (defs.length < 2) continue;
-      const kept = defs.reduce((a, b) =>
-        a.clinical_feature_file_id >= b.clinical_feature_file_id ? a : b
+      const saved = defs.filter((d) =>
+        savedIDs.has(makeClinicalFeatureId(d.clinical_feature_file_id, d.name))
       );
+      const kept = (saved.length > 0 ? saved : defs).reduce(newest);
       for (const d of defs) {
         if (d.id === kept.id) continue;
         superseded.set(
           makeClinicalFeatureId(d.clinical_feature_file_id, d.name),
           {
-            keptId: makeClinicalFeatureId(
-              kept.clinical_feature_file_id,
-              kept.name
-            ),
             keptFileName:
               filesById[kept.clinical_feature_file_id]?.name ||
               `File #${kept.clinical_feature_file_id}`,
+            keptBySavedCollection: saved.length > 0,
           }
         );
       }
     }
     return superseded;
-  }, [clinicalFeaturesDefinitions, clinicalFeatureFiles]);
+  }, [clinicalFeaturesDefinitions, clinicalFeatureFiles, savedFeatureIDs]);
 
   // Per-duplicate impact (identical / coverage loss / conflicts) for the
   // warning shown next to the feature tree. Refetched only when the set of
@@ -289,14 +345,15 @@ export default function Visualisation({
     };
   }, [albumID, keycloak.token, definitionsSignature]);
 
-  // Canonical clinical feature IDs are `<file_id>::<name>`.
-  const featuresIDsAndClinicalFeatureNames = useMemo(() => {
-    const clinicalFeatureIDs = (clinicalFeaturesDefinitions || []).map((d) =>
-      makeClinicalFeatureId(d.clinical_feature_file_id, d.name)
-    );
+  // Every feature that can be selected: radiomics IDs plus clinical
+  // `<file_id>::<name>` IDs, minus the repeated copies that cannot be.
+  const selectableFeatureIDs = useMemo(() => {
+    const clinicalFeatureIDs = (clinicalFeaturesDefinitions || [])
+      .map((d) => makeClinicalFeatureId(d.clinical_feature_file_id, d.name))
+      .filter((id) => !supersededClinicalIds.has(id));
     if (!featureIDs) return clinicalFeatureIDs;
     return [...featureIDs, ...clinicalFeatureIDs];
-  }, [featureIDs, clinicalFeaturesDefinitions]);
+  }, [featureIDs, clinicalFeaturesDefinitions, supersededClinicalIds]);
 
   const finalTrainingPatients = useMemo(() => {
     if (selectedLabelCategory && patients?.training) return patients.training;
@@ -454,11 +511,7 @@ export default function Visualisation({
 
     if (!sortedPatientIDs) return [];
 
-    // Rank feature by F-value
-    let featuresToFormat = filteredFeatures;
-    if (rankFeatures) featuresToFormat = _.sortBy(filteredFeatures, 'Ranking');
-
-    for (let [featureIndex, featureForPatients] of featuresToFormat.entries()) {
+    for (let [featureIndex, featureForPatients] of filteredFeatures.entries()) {
       let { FeatureID, Ranking, ...patientValues } = featureForPatients;
 
       let patientIndex = 0;
@@ -477,7 +530,7 @@ export default function Visualisation({
     console.log(`Formatting features for HighCharts took ${end - start}ms`);
 
     return formattedFeatures;
-  }, [filteredFeatures, sortedPatientIDs, rankFeatures]);
+  }, [filteredFeatures, sortedPatientIDs]);
 
   // Calculate number of values to display (based on filtered features)
   const nbFeatures = useMemo(() => {
@@ -539,14 +592,21 @@ export default function Visualisation({
         if (!grouped[fileName]) grouped[fileName] = {};
         const id = makeClinicalFeatureId(fid, d.name);
         const supersededBy = supersededClinicalIds.get(id);
+        let description = d.name;
+        if (supersededBy?.keptBySavedCollection) {
+          description =
+            `Duplicate of "${d.name}" in "${supersededBy.keptFileName}", the copy this collection was saved with. ` +
+            `A feature is only used once, so this one cannot be selected.`;
+        } else if (supersededBy) {
+          description =
+            `Duplicate of "${d.name}" in "${supersededBy.keptFileName}" (newer file). ` +
+            `Training always uses the newest copy of a repeated feature, so this one cannot be selected.`;
+        }
         grouped[fileName][d.name] = {
           id,
-          description: supersededBy
-            ? `Duplicate of "${d.name}" in "${supersededBy.keptFileName}" (newer file). ` +
-              `Training always uses the newest copy of a repeated feature, so this one cannot be selected.`
-            : d.name,
+          description,
           shortName: d.name,
-          // Older copy of a name that exists in a newer file: not selectable.
+          // Another file's copy of this name is the one used: not selectable.
           disabled: Boolean(supersededBy),
         };
       }
@@ -608,29 +668,10 @@ export default function Visualisation({
   const getNodeIDsFromFeatureIDs = useCallback(
     (featureIDs, leafItems, nodeIDToNodeMap) => {
       // Legacy collections stored clinical features by bare column name, but
-      // the tree leaves are now `<file_id>::<name>`. Resolve any bare clinical
-      // name to its namespaced id (lowest file_id wins — the migration's
-      // backfilled "Legacy" file) so pre-multi-CSV collections still restore
-      // their clinical selections. Mirrors the backend's
-      // resolve_collection_clinical_definitions.
-      const resolvedFeatureIDs = featureIDs.map((fID) => {
-        if (fID.includes(FEATURE_ID_SEPARATOR)) return fID;
-        // A namespaced clinical id pointing at a superseded (older-file) copy
-        // is remapped to the newest file's copy — the one training will use.
-        if (fID.includes(CLINICAL_FEATURE_ID_SEPARATOR))
-          return supersededClinicalIds.get(fID)?.keptId || fID;
-        const candidates = (clinicalFeaturesDefinitions || []).filter(
-          (d) => d.name === fID
-        );
-        if (candidates.length === 0) return fID;
-        const chosen = candidates.reduce((a, b) =>
-          a.clinical_feature_file_id <= b.clinical_feature_file_id ? a : b
-        );
-        return makeClinicalFeatureId(
-          chosen.clinical_feature_file_id,
-          chosen.name
-        );
-      });
+      // the tree leaves are `<file_id>::<name>`. IDs resolve to exactly the
+      // copy that was saved, never to another file's copy: a saved collection
+      // keeps training on what it was saved with.
+      const resolvedFeatureIDs = featureIDs.map(resolveClinicalFeatureID);
 
       // Make a map of feature ID -> node ID
       let featureIDToNodeID = Object.entries(leafItems).reduce(
@@ -678,7 +719,7 @@ export default function Visualisation({
 
       return nodeIDs;
     },
-    [clinicalFeaturesDefinitions, supersededClinicalIds]
+    [resolveClinicalFeatureID]
   );
 
   const treeData = useMemo(() => {
@@ -776,46 +817,23 @@ export default function Visualisation({
     );
   }, [leafItems, selected]);
 
-  // Manage maximum n° of features to keep
-  const maxNFeatures = useMemo(() => {
-    if (!patients?.training) return DEFAULT_MAX_FEATURES_TO_KEEP;
-
-    if (!selected) return DEFAULT_MAX_FEATURES_TO_KEEP;
-
-    return Math.min(
-      DEFAULT_MAX_FEATURES_TO_KEEP,
-      selected.length - 1,
-      Math.floor(MAX_DISPLAYED_FEATURES / patients.training.length)
-    );
-  }, [patients, selected]);
-
-  // Selected feature IDs !== feature IDs
+  // Pending changes: in a collection, the selection differs from what was
+  // saved; otherwise, not every selectable feature is selected.
   useEffect(() => {
-    if (collectionInfos?.collection?.feature_ids) {
-      if (
-        !_.isEqual(
-          collectionInfos.collection.feature_ids.sort(),
-          [...selectedFeatureIDs].sort()
-        )
-      )
-        setHasPendingChanges(true);
-      else setHasPendingChanges(false);
+    if (savedFeatureIDs) {
+      setHasPendingChanges(
+        !_.isEqual([...savedFeatureIDs].sort(), [...selectedFeatureIDs].sort())
+      );
     } else {
-      if (
-        featuresIDsAndClinicalFeatureNames &&
-        selectedFeatureIDs &&
-        featuresIDsAndClinicalFeatureNames.length !== selectedFeatureIDs.size
-      ) {
-        setHasPendingChanges(true);
-      } else {
-        setHasPendingChanges(false);
-      }
+      setHasPendingChanges(
+        selectableFeatureIDs.length !== selectedFeatureIDs.size
+      );
     }
   }, [
-    featuresIDsAndClinicalFeatureNames,
+    savedFeatureIDs,
+    selectableFeatureIDs,
     selectedFeatureIDs,
     setHasPendingChanges,
-    collectionInfos,
   ]);
 
   // Calculate features to keep based on selections
@@ -930,9 +948,7 @@ export default function Visualisation({
           categories: sortedPatientIDs,
         },
         yAxis: {
-          categories: rankFeatures
-            ? _.sortBy(filteredFeatures, 'Ranking').map((f) => f.FeatureID)
-            : filteredFeatures.map((f) => f.FeatureID),
+          categories: filteredFeatures.map((f) => f.FeatureID),
           title: { text: 'Features' },
         },
         legend: {
@@ -1014,7 +1030,6 @@ export default function Visualisation({
       formattedHighchartsDataFeatures,
       filteredFeatures,
       sortedPatientIDs,
-      rankFeatures,
     ]
   );
 
@@ -1174,46 +1189,6 @@ export default function Visualisation({
     });
   }, [formattedHighchartsDataSurvivalTime]);
 
-  const deselectFeatures = useCallback(
-    (nodeIDsToDeselect) =>
-      setSelected((selected) =>
-        selected.filter((s) => !nodeIDsToDeselect.includes(s))
-      ),
-    []
-  );
-
-  const keepNFeatures = useCallback(() => {
-    let selectedFeatures = selected
-      .filter((s) => leafItems[s])
-      .map((f) => leafItems[f]);
-
-    // Make a map of feature ID -> rank
-    let featureIDToRank = featuresChart.reduce((acc, curr) => {
-      acc[curr.FeatureID] = +curr.Ranking;
-      return acc;
-    }, {});
-
-    selectedFeatures.sort(
-      (f1, f2) => featureIDToRank[f1] - featureIDToRank[f2]
-    );
-
-    // Drop all features after the N best ones
-    let featuresToDrop = selectedFeatures.slice(nFeatures);
-
-    pendingSelectionSourceRef.current = 'rank';
-    deselectFeatures(
-      getNodeIDsFromFeatureIDs(featuresToDrop, leafItems, nodeIDToNodeMap)
-    );
-  }, [
-    nFeatures,
-    selected,
-    featuresChart,
-    leafItems,
-    nodeIDToNodeMap,
-    getNodeIDsFromFeatureIDs,
-    deselectFeatures,
-  ]);
-
   const dropCorrelatedFeatures = useCallback(() => {
     setIsRecomputingChart(true);
     filterFeaturesWorker.postMessage({
@@ -1224,21 +1199,16 @@ export default function Visualisation({
     });
   }, [filteredFeatures, leafItems, selected, corrThreshold]);
 
-  // Each FDR run, and each reset below, takes a new number. Results are only
-  // applied while they belong to the latest one, so a response that arrives
-  // after the outcome changed never overwrites the selection.
-  const fdrRequestRef = useRef(0);
-  const fdrResultsRequestRef = useRef(null);
-
   const selectFeaturesWithFDR = useCallback(() => {
     // The button is disabled without an outcome, and the request needs one.
     if (!selectedLabelCategory) return;
 
     const requestID = ++fdrRequestRef.current;
 
-    setIsRecomputingChart(true);
+    setIsFdrRunning(true);
     setIsFdrFinished(false);
     setFdrError(null);
+    setFdrNotice(null);
     setFdrIndex(DEFAULT_FDR_INDEX);
 
     (async () => {
@@ -1258,7 +1228,7 @@ export default function Visualisation({
           albumStudies,
           selectedLabelCategory.id,
           labels,
-          patients?.training ? patients.training : dataPoints,
+          finalTrainingPatients,
           FDR_THRESHOLDS_LIST
         );
 
@@ -1270,15 +1240,18 @@ export default function Visualisation({
           throw new Error('the server response could not be read');
         }
 
-        fdrResultsRequestRef.current = requestID;
+        fdrRunRef.current = requestID;
         setFdrResults(results);
         setIsFdrFinished(true);
+        setHasRunFdr(true);
+        setFdrSelectionRequest({ index: DEFAULT_FDR_INDEX });
       } catch (err) {
         if (requestID !== fdrRequestRef.current) return;
         console.error(err);
         setFdrError(err.message || 'unknown error');
       } finally {
-        setIsRecomputingChart(false);
+        // After a reset or a newer run, the spinner is no longer this run's.
+        if (requestID === fdrRequestRef.current) setIsFdrRunning(false);
       }
     })();
   }, [
@@ -1289,52 +1262,90 @@ export default function Visualisation({
     selectedLabelCategory,
     albumID,
     outcomes,
-    patients,
-    dataPoints,
+    finalTrainingPatients,
   ]);
 
-  // This component stays mounted when the outcome, extraction or collection
-  // changes, and FDR results only hold for the ones they were computed on.
+  // This component stays mounted when the outcome, its labels, the training
+  // patients, the extraction or the collection change, and FDR results only
+  // hold for the ones they were computed on. The keys compare content, since
+  // saving a collection hands over new but identical patient and label lists.
   const labelCategoryID = selectedLabelCategory?.id;
+  const trainingPatientsKey = useMemo(
+    () => [...(finalTrainingPatients || [])].sort().join('|'),
+    [finalTrainingPatients]
+  );
+  const labelsKey = useMemo(
+    () =>
+      JSON.stringify(
+        (outcomes || []).map((o) => [o.patient_id, o.label_content])
+      ),
+    [outcomes]
+  );
   useEffect(() => {
-    fdrRequestRef.current++;
-    setFdrResults([]);
-    setIsFdrFinished(false);
-    setShowAdvancedFdr(false);
-    setFdrError(null);
+    clearFdr({ allowRerun: true });
     setFdrIndex(DEFAULT_FDR_INDEX);
-  }, [labelCategoryID, featureExtractionID, collectionID]);
+  }, [
+    labelCategoryID,
+    featureExtractionID,
+    collectionID,
+    trainingPatientsKey,
+    labelsKey,
+    clearFdr,
+  ]);
 
-  // synchronize selection via the fdr slider
+  // Apply the FDR list asked for by fdrSelectionRequest, once.
   useEffect(() => {
-    if (!isFdrFinished) return;
+    if (
+      !fdrSelectionRequest ||
+      appliedFdrSelectionRef.current === fdrSelectionRequest
+    )
+      return;
+    appliedFdrSelectionRef.current = fdrSelectionRequest;
 
-    // Results computed before the last reset belong to another outcome.
-    if (fdrResultsRequestRef.current !== fdrRequestRef.current) return;
+    const { index } = fdrSelectionRequest;
+    const fdrData = fdrResults[index];
+    if (!fdrData) return;
 
-    if (!selectedFdrData) {
-      // Nothing to apply. Moving the slider turned the spinner on, and leaving
-      // it on would keep every feature-selection control disabled.
-      setIsRecomputingChart(false);
+    // An empty list would deselect every feature: keep the selection instead.
+    if (fdrData.features.length === 0) {
+      // The response only lists features that passed, so an empty list at
+      // every q-value can also mean that no feature could be tested.
+      if (fdrResults.every((result) => result.features.length === 0)) {
+        setFdrNotice(
+          `No feature passes FDR at any q-value up to ${
+            FDR_THRESHOLDS_LIST[FDR_THRESHOLDS_LIST.length - 1]
+          }, so the selection is unchanged. Either no feature is linked to the outcome, ` +
+            `or none could be tested with it: for example fewer than 3 events, ` +
+            `a class with fewer than 3 patients, or outcome values that are not numbers.`
+        );
+        return;
+      }
+      setFdrNotice(
+        `No feature passes q = ${FDR_THRESHOLDS_LIST[index]}. Try a higher q-value in the advanced results.`
+      );
+      setShowAdvancedFdr(true);
       return;
     }
 
-    const nodeIds = getNodeIDsFromFeatureIDs(
-      selectedFdrData.features.map((f) => f.feature),
-      leafItems,
-      nodeIDToNodeMap
+    setFdrNotice(null);
+    pendingSelectionSourceRef.current = {
+      type: 'fdr',
+      index,
+      run: fdrRunRef.current,
+    };
+    setSelected(
+      getNodeIDsFromFeatureIDs(
+        fdrData.features.map((f) => f.feature),
+        leafItems,
+        nodeIDToNodeMap
+      )
     );
-
-    pendingSelectionSourceRef.current = { type: 'fdr', index: fdrIndex };
-    setSelected(nodeIds);
-    setIsRecomputingChart(false);
   }, [
-    selectedFdrData,
-    isFdrFinished,
+    fdrSelectionRequest,
+    fdrResults,
     leafItems,
     nodeIDToNodeMap,
     getNodeIDsFromFeatureIDs,
-    fdrIndex,
   ]);
 
   function getPointCategoryName(point, dimension) {
@@ -1365,6 +1376,10 @@ export default function Visualisation({
       feature_ids: [...selectedFeatureIDs],
     });
     setIsCollectionUpdating(false);
+
+    // The collection now holds this selection: drop the FDR results so the
+    // slider can't change it. FDR still counts as run for this collection.
+    clearFdr({ allowRerun: false });
   };
 
   const handleSaveCollectionClick = async () => {
@@ -1397,16 +1412,9 @@ export default function Visualisation({
     setNewCollectionName('');
   };
 
-  const handleAutoDeselect = () => {
-    setRankFeatures(true);
-
-    let nFeaturesToKeep = Math.min(nFeatures, maxNFeatures);
-
-    setNFeatures(nFeaturesToKeep);
-    keepNFeatures();
-  };
-
-  const isFdrEntry = (entry) => entry?.source?.type === 'fdr';
+  // A history entry whose selection came from the FDR run that counts as done.
+  const isFdrRunEntry = (entry) =>
+    entry?.source?.type === 'fdr' && entry.source.run === fdrRunRef.current;
 
   const handleUndo = () => {
     let historyCopy = [...selectedFeaturesHistory];
@@ -1418,6 +1426,9 @@ export default function Visualisation({
     let previous = historyCopy.pop();
     console.log('Previously selected was', previous);
 
+    // Restore the selection exactly, with its origin and slider position.
+    // Only the slider moves: its FDR list is not applied again.
+    pendingSelectionSourceRef.current = previous?.source ?? 'manual';
     setSelected(previous ? previous.selected : []);
     setSelectedFeaturesHistory(historyCopy);
 
@@ -1425,23 +1436,23 @@ export default function Visualisation({
       setFdrIndex(previous.fdrIndex);
     }
 
-    const stillInFdrSession =
-      isFdrEntry(previous) || historyCopy.some(isFdrEntry);
+    // Undoing past the FDR run undoes the run too, so FDR can run again.
+    const stillFromFdrRun =
+      isFdrRunEntry(previous) || historyCopy.some(isFdrRunEntry);
 
-    if (!stillInFdrSession) {
-      setIsFdrFinished(false);
-      setShowAdvancedFdr(false);
-      setFdrResults([]);
+    if (hasRunFdr && !stillFromFdrRun) {
+      clearFdr({ allowRerun: true });
     }
-
-    /*if (isFdrEntry(previous)) {
-      setFdrIndex(previous.source.index);
-    } else {
-      setIsFdrFinished(false);
-      setShowAdvancedFdr(false);
-      setFdrResults([]);
-    }*/
   };
+
+  if (loading && clinicalFeaturesError && !clinicalFeaturesDefinitions) {
+    return (
+      <Alert color="danger" className="m-3" style={{ whiteSpace: 'normal' }}>
+        Could not load clinical features: {clinicalFeaturesError}. Reload the
+        page to try again.
+      </Alert>
+    );
+  }
 
   if (loading) {
     return (
@@ -1518,9 +1529,11 @@ export default function Visualisation({
                           {duplicateAdvisories.length === 1 ? 's' : ''} in more
                           than one file
                         </strong>{' '}
-                        — each is used once for training (the copy from its
-                        newest file). All other features from every file remain
-                        available.
+                        — each is used once for training (
+                        {collectionID
+                          ? "the copy saved in this collection, otherwise the newest file's copy"
+                          : 'the copy from its newest file'}
+                        ). All other features from every file remain available.
                         {duplicateAdvisories.some(
                           (a) => !isHarmlessDuplicate(a)
                         ) && (
@@ -1560,11 +1573,11 @@ export default function Visualisation({
                       getNodeAndAllChildrenIDs={getNodeAndAllChildrenIDs}
                       selected={selected}
                       setSelected={setSelected}
-                      disabled={isRecomputingChart}
+                      disabled={isRecomputingChart || isFdrRunning}
                       disabledNodeIds={disabledNodeIDs}
                       // ...removed info icon and feature definition modal trigger...
                     />
-                    {selectedFeaturesHistory.length > 1 && (
+                    {selectedFeaturesHistory.length > 1 && !isFdrRunning && (
                       <UndoButton handleClick={handleUndo} />
                     )}
                   </>
@@ -1636,7 +1649,9 @@ export default function Visualisation({
                     color="primary"
                     onClick={handleUpdateCollectionClick}
                     disabled={
-                      selectedFeatureIDs.size === 0 || isCollectionUpdating
+                      selectedFeatureIDs.size === 0 ||
+                      isCollectionUpdating ||
+                      isFdrRunning
                     }
                     className="mr-2"
                   >
@@ -1658,7 +1673,9 @@ export default function Visualisation({
                   color="success"
                   onClick={handleCreateCollectionClick}
                   disabled={
-                    selectedFeatureIDs.size === 0 || isCollectionUpdating
+                    selectedFeatureIDs.size === 0 ||
+                    isCollectionUpdating ||
+                    isFdrRunning
                   }
                 >
                   <FontAwesomeIcon icon="plus" /> Create new collection with
@@ -1666,173 +1683,197 @@ export default function Visualisation({
                 </Button>
               )}
 
-              {active && nbFeatures < MAX_DISPLAYED_FEATURES ? (
+              {active && (
                 <>
-                  {/* Visualization mode toggle */}
-                  <div className="d-flex justify-content-center mb-3">
-                    <div
-                      className="btn-group"
-                      role="group"
-                      aria-label="Visualization mode toggle"
-                      style={{ width: 320, margin: '0 auto' }}
-                    >
-                      <button
-                        type="button"
-                        className={`btn ${
-                          visualizationMode === VISUALIZATION_MODES.HEATMAP
-                            ? 'btn-primary'
-                            : 'btn-outline-primary'
-                        }`}
-                        onClick={() =>
-                          setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
-                        }
-                        aria-pressed={
-                          visualizationMode === VISUALIZATION_MODES.HEATMAP
-                        }
-                        style={{
-                          fontWeight:
-                            visualizationMode === VISUALIZATION_MODES.HEATMAP
-                              ? 700
-                              : 500,
-                          fontSize: 17,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        data-toggle="tooltip"
-                        data-placement="top"
-                        title="Heatmap: Visualizes feature values for all patients as a color-coded matrix. Rows are features, columns are patients. Useful for spotting patterns, outliers, and feature distributions."
-                      >
-                        <FontAwesomeIcon
-                          icon="th"
-                          style={{
-                            fontSize: 17,
-                            marginRight: 8,
-                            opacity:
+                  {nbFeatures < MAX_DISPLAYED_FEATURES ? (
+                    <>
+                      {/* Visualization mode toggle */}
+                      <div className="d-flex justify-content-center mb-3">
+                        <div
+                          className="btn-group"
+                          role="group"
+                          aria-label="Visualization mode toggle"
+                          style={{ width: 320, margin: '0 auto' }}
+                        >
+                          <button
+                            type="button"
+                            className={`btn ${
                               visualizationMode === VISUALIZATION_MODES.HEATMAP
-                                ? 1
-                                : 0.7,
-                          }}
-                        />
-                        Heatmap
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn ${
-                          visualizationMode === VISUALIZATION_MODES.UMAP
-                            ? 'btn-primary'
-                            : 'btn-outline-primary'
-                        }`}
-                        onClick={() =>
-                          setVisualizationMode(VISUALIZATION_MODES.UMAP)
-                        }
-                        aria-pressed={
-                          visualizationMode === VISUALIZATION_MODES.UMAP
-                        }
-                        style={{
-                          fontWeight:
-                            visualizationMode === VISUALIZATION_MODES.UMAP
-                              ? 700
-                              : 500,
-                          fontSize: 17,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        data-toggle="tooltip"
-                        data-placement="top"
-                        title="UMAP: Projects patients into 2D space based on feature similarity. Each point is a patient; similar patients cluster together. Useful for visualizing patient groups and outliers."
-                      >
-                        <FontAwesomeIcon
-                          icon="chart-scatter"
-                          style={{
-                            fontSize: 17,
-                            marginRight: 8,
-                            opacity:
+                                ? 'btn-primary'
+                                : 'btn-outline-primary'
+                            }`}
+                            onClick={() =>
+                              setVisualizationMode(VISUALIZATION_MODES.HEATMAP)
+                            }
+                            aria-pressed={
+                              visualizationMode === VISUALIZATION_MODES.HEATMAP
+                            }
+                            style={{
+                              fontWeight:
+                                visualizationMode ===
+                                VISUALIZATION_MODES.HEATMAP
+                                  ? 700
+                                  : 500,
+                              fontSize: 17,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Heatmap: Visualizes feature values for all patients as a color-coded matrix. Rows are features, columns are patients. Useful for spotting patterns, outliers, and feature distributions."
+                          >
+                            <FontAwesomeIcon
+                              icon="th"
+                              style={{
+                                fontSize: 17,
+                                marginRight: 8,
+                                opacity:
+                                  visualizationMode ===
+                                  VISUALIZATION_MODES.HEATMAP
+                                    ? 1
+                                    : 0.7,
+                              }}
+                            />
+                            Heatmap
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn ${
                               visualizationMode === VISUALIZATION_MODES.UMAP
-                                ? 1
-                                : 0.7,
-                          }}
-                        />
-                        UMAP
-                      </button>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      position: 'relative',
-                      marginBottom: 24,
-                      marginTop: 8,
-                    }}
-                  >
-                    {(isRecomputingChart || isComputingUmap) && (
-                      <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
-                        <FontAwesomeIcon
-                          icon="sync"
-                          spin
-                          color="white"
-                          size="4x"
-                        />
-                      </div>
-                    )}
-
-                    {visualizationMode === VISUALIZATION_MODES.HEATMAP ? (
-                      <>
-                        <div>
-                          <ErrorBoundary>
-                            <HighchartsReact
-                              highcharts={Highcharts}
-                              options={highchartsOptionsFeatures}
-                              ref={chartRef}
+                                ? 'btn-primary'
+                                : 'btn-outline-primary'
+                            }`}
+                            onClick={() =>
+                              setVisualizationMode(VISUALIZATION_MODES.UMAP)
+                            }
+                            aria-pressed={
+                              visualizationMode === VISUALIZATION_MODES.UMAP
+                            }
+                            style={{
+                              fontWeight:
+                                visualizationMode === VISUALIZATION_MODES.UMAP
+                                  ? 700
+                                  : 500,
+                              fontSize: 17,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="UMAP: Projects patients into 2D space based on feature similarity. Each point is a patient; similar patients cluster together. Useful for visualizing patient groups and outliers."
+                          >
+                            <FontAwesomeIcon
+                              icon="chart-scatter"
+                              style={{
+                                fontSize: 17,
+                                marginRight: 8,
+                                opacity:
+                                  visualizationMode === VISUALIZATION_MODES.UMAP
+                                    ? 1
+                                    : 0.7,
+                              }}
                             />
-                          </ErrorBoundary>
+                            UMAP
+                          </button>
                         </div>
-                        {selectedLabelCategory && (
-                          <ErrorBoundary>
-                            <HighchartsReact
-                              highcharts={Highcharts}
-                              options={highchartsOptionsOutcome}
+                      </div>
+
+                      <div
+                        style={{
+                          position: 'relative',
+                          marginBottom: 24,
+                          marginTop: 8,
+                        }}
+                      >
+                        {(isRecomputingChart ||
+                          isComputingUmap ||
+                          isFdrRunning) && (
+                          <div className="chart-loading-overlay d-flex flex-grow-1 justify-content-center align-items-center">
+                            <FontAwesomeIcon
+                              icon="sync"
+                              spin
+                              color="white"
+                              size="4x"
                             />
-                          </ErrorBoundary>
+                          </div>
                         )}
-                        {selectedLabelCategory &&
-                          selectedLabelCategory.label_type ===
-                            MODEL_TYPES.SURVIVAL && (
-                            <div className="mt-3">
+
+                        {visualizationMode === VISUALIZATION_MODES.HEATMAP ? (
+                          <>
+                            <div>
                               <ErrorBoundary>
                                 <HighchartsReact
                                   highcharts={Highcharts}
-                                  options={highchartsOptionsSurvival}
+                                  options={highchartsOptionsFeatures}
+                                  ref={chartRef}
                                 />
                               </ErrorBoundary>
                             </div>
-                          )}
-                      </>
-                    ) : (
-                      <UMAPAnalysis
-                        filteredFeatures={filteredFeatures}
-                        sortedPatientIDs={sortedPatientIDs}
-                        sortedOutcomes={sortedOutcomes}
-                        outcomeField={outcomeField}
-                        isComputingUmap={isComputingUmap}
-                        setIsComputingUmap={setIsComputingUmap}
-                      />
-                    )}
-                  </div>
+                            {selectedLabelCategory && (
+                              <ErrorBoundary>
+                                <HighchartsReact
+                                  highcharts={Highcharts}
+                                  options={highchartsOptionsOutcome}
+                                />
+                              </ErrorBoundary>
+                            )}
+                            {selectedLabelCategory &&
+                              selectedLabelCategory.label_type ===
+                                MODEL_TYPES.SURVIVAL && (
+                                <div className="mt-3">
+                                  <ErrorBoundary>
+                                    <HighchartsReact
+                                      highcharts={Highcharts}
+                                      options={highchartsOptionsSurvival}
+                                    />
+                                  </ErrorBoundary>
+                                </div>
+                              )}
+                          </>
+                        ) : (
+                          <UMAPAnalysis
+                            filteredFeatures={filteredFeatures}
+                            sortedPatientIDs={sortedPatientIDs}
+                            sortedOutcomes={sortedOutcomes}
+                            outcomeField={outcomeField}
+                            isComputingUmap={isComputingUmap}
+                            setIsComputingUmap={setIsComputingUmap}
+                          />
+                        )}
+                      </div>
 
-                  {/* Show the feature values explanation only for heatmap */}
-                  {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
-                    <div style={{ marginTop: 12, marginBottom: 12 }}>
-                      <small>
-                        * Feature values are standardized and the scale is
-                        clipped to [-2, 2]. Extreme values appear either in 100%
-                        blue ({'<-2'}) or 100% red ({'>2'}).
-                      </small>
-                    </div>
+                      {/* Show the feature values explanation only for heatmap */}
+                      {visualizationMode === VISUALIZATION_MODES.HEATMAP && (
+                        <div style={{ marginTop: 12, marginBottom: 12 }}>
+                          <small>
+                            * Feature values are standardized and the scale is
+                            clipped to [-2, 2]. Extreme values appear either in
+                            100% blue ({'<-2'}) or 100% red ({'>2'}).
+                          </small>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <Alert
+                      color="warning"
+                      className="m-3"
+                      style={{ whiteSpace: 'normal' }}
+                    >
+                      <p>
+                        Number of values ({nbFeatures}) is too high to display
+                        the chart.
+                      </p>
+                      <span>
+                        Deselect some features on the left, or use the feature
+                        selection tools below, to reduce the number of values to
+                        display.
+                      </span>
+                    </Alert>
                   )}
 
-                  {/* Move FeatureSelection outside the visualization mode conditional so it appears for both modes */}
+                  {/* Feature selection stays available in both modes, and when the chart is too large to display */}
                   <div
                     className="d-flex justify-content-around"
                     style={{ marginTop: 24 }}
@@ -2008,17 +2049,20 @@ export default function Visualisation({
                       setSelected={setSelected}
                       dropCorrelatedFeatures={dropCorrelatedFeatures}
                       selectFeaturesWithFDR={selectFeaturesWithFDR}
+                      isFdrRunning={isFdrRunning}
+                      hasRunFdr={hasRunFdr}
                       isFdrFinished={isFdrFinished}
                       fdrError={fdrError}
+                      fdrNotice={fdrNotice}
                       showAdvancedFdr={showAdvancedFdr}
-                      handleShowAdvancedFdr={handleShowAdvancedFdr}
+                      // Hiding the advanced results leaves the selection as is
+                      handleShowAdvancedFdr={setShowAdvancedFdr}
                       selectedFdrThreshold={selectedFdrThreshold}
                       FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
                       fdrIndex={fdrIndex}
                       fdrResults={fdrResults}
                       handleFdrIndexChange={handleFdrIndexChange}
                       selectedFdrData={selectedFdrData}
-                      setNFeatures={setNFeatures}
                       corrThreshold={corrThreshold}
                       setCorrThreshold={setCorrThreshold}
                       setIsRecomputingChart={setIsRecomputingChart}
@@ -2028,38 +2072,6 @@ export default function Visualisation({
                     />
                   </div>
                 </>
-              ) : (
-                <Alert
-                  color="warning"
-                  className="m-3"
-                  style={{ whiteSpace: 'normal' }}
-                >
-                  <p>
-                    Number of values ({nbFeatures}) is too high to display
-                    chart.
-                  </p>
-                  <span>
-                    Deselect some features on the left in order to reduce the
-                    number of data points to display.{' '}
-                    {selectedLabelCategory?.label_type && (
-                      <span>
-                        Or automatically keep{' '}
-                        {maxNFeatures >= DEFAULT_FEATURES_TO_KEEP
-                          ? `the ${DEFAULT_FEATURES_TO_KEEP} best features`
-                          : `the maximum number of features that can be displayed`}{' '}
-                        by clicking{' '}
-                        <Button
-                          color="link"
-                          className="p-0"
-                          onClick={handleAutoDeselect}
-                        >
-                          here
-                        </Button>
-                        !
-                      </span>
-                    )}
-                  </span>
-                </Alert>
               )}
             </td>
           </tr>
