@@ -237,20 +237,31 @@ export default function FeaturesList({
     }
   }, [customConfig]);
 
-  // Use the custom config only when the editor holds something that parsed to
-  // an actual object. Empty, whitespace-only or comment-only text (and the
-  // untouched editor, where customConfig is still null) fall back to the preset.
-  const effectiveConfig = useMemo(() => {
+  // Plain text or a list is valid YAML but not a configuration. Report it like
+  // a YAML error, which blocks extraction, instead of silently extracting with
+  // the preset.
+  const customConfigError = useMemo(() => {
+    if (!customConfig) return null;
+    if (parsedCustomConfig?.error) return parsedCustomConfig.error;
+    if (parsedCustomConfig === null || parsedCustomConfig === undefined)
+      return null;
     if (
-      customConfig &&
-      parsedCustomConfig &&
-      typeof parsedCustomConfig === 'object' &&
-      !parsedCustomConfig.error
-    ) {
+      typeof parsedCustomConfig !== 'object' ||
+      Array.isArray(parsedCustomConfig)
+    )
+      return 'the configuration must contain settings (key: value), not plain text or a list';
+    return null;
+  }, [customConfig, parsedCustomConfig]);
+
+  // Use the custom config only when the editor holds valid settings. Empty,
+  // whitespace-only or comment-only text (and the untouched editor, where
+  // customConfig is still null) fall back to the preset.
+  const effectiveConfig = useMemo(() => {
+    if (customConfig && parsedCustomConfig && !customConfigError) {
       return parsedCustomConfig;
     }
     return selectedPreset?.config;
-  }, [customConfig, parsedCustomConfig, selectedPreset]);
+  }, [customConfig, parsedCustomConfig, customConfigError, selectedPreset]);
 
   const selectAllROIs = () => {
     setSelectedROIs(Object.keys(albumROIs));
@@ -312,9 +323,9 @@ export default function FeaturesList({
               </FormGroup>
             ))}
 
-            {customConfig && parsedCustomConfig?.error ? (
+            {customConfigError ? (
               <Alert color="danger">
-                Invalid YAML configuration : {parsedCustomConfig.error}
+                Invalid YAML configuration : {customConfigError}
               </Alert>
             ) : (
               <RecursiveTreeView
@@ -340,7 +351,7 @@ export default function FeaturesList({
               <ConfigEditor
                 config={customConfig || selectedPreset['config-raw']}
                 setCustomConfig={setCustomConfig}
-                error={parsedCustomConfig?.error}
+                error={customConfigError}
               />
             )}
             {showImport && (
@@ -400,7 +411,7 @@ export default function FeaturesList({
                 <Button
                   color="success"
                   onClick={handleExtractFeaturesClick}
-                  disabled={albumROIs === null || parsedCustomConfig?.error}
+                  disabled={albumROIs === null || Boolean(customConfigError)}
                 >
                   <FontAwesomeIcon icon="cog"></FontAwesomeIcon>{' '}
                   <span>Extract Features</span>
