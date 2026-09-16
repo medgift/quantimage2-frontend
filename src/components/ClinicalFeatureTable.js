@@ -105,7 +105,8 @@ export default function ClinicalFeatureTable({
   );
 
   // Training only uses a feature name once when it appears in several files
-  // (newest file wins) — surface what that means for this album's data.
+  // (newest file with values wins) — surface what that means for this album's
+  // data.
   useEffect(() => {
     let cancelled = false;
     (async () => {
