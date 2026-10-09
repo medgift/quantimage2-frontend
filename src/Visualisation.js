@@ -1328,7 +1328,7 @@ export default function Visualisation({
         return;
       }
       setFdrNotice(
-        `No feature passes q = ${FDR_THRESHOLDS_LIST[index]}. Try a higher q-value in the advanced results.`
+        `No feature passes at q = ${FDR_THRESHOLDS_LIST[index]}. Try a higher q-value in the advanced results.`
       );
       setShowAdvancedFdr(true);
       return;

@@ -146,9 +146,8 @@ export default function FeatureSelection({
                   className="text-muted d-block mt-1"
                   style={{ whiteSpace: 'normal' }}
                 >
-                  FDR has already run for this outcome and training set. Running
-                  it again on the features it kept would weaken the correction;
-                  use Undo to go back before it.
+                  FDR has already run for this outcome and training set. Use
+                  Undo to go back before it.
                 </small>
               )}
             </div>
