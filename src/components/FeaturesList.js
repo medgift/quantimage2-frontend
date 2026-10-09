@@ -245,10 +245,8 @@ export default function FeaturesList({
     if (parsedCustomConfig?.error) return parsedCustomConfig.error;
     if (parsedCustomConfig === null || parsedCustomConfig === undefined)
       return null;
-    if (
-      typeof parsedCustomConfig !== 'object' ||
-      Array.isArray(parsedCustomConfig)
-    )
+    // A plain object only: js-yaml also turns a lone date into a Date.
+    if (!_.isPlainObject(parsedCustomConfig))
       return 'the configuration must contain settings (key: value), not plain text or a list';
     return null;
   }, [customConfig, parsedCustomConfig]);
