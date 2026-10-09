@@ -4,6 +4,14 @@
 
 These version numbers refer to frontend releases for this repository.
 
+### 3.4
+
+- **FDR feature selection** — The Feature Selection panel on the Visualisation page replaces F-value ranking with Benjamini-Hochberg FDR screening: each selected feature is tested on its own against the outcome, and a slider and chart show how many features are kept at each q-value (0.05 by default), along with the kept features and their adjusted p-values. Available once an outcome is selected, and requires the backend FDR endpoint (`POST /fdr/simpleFDR`).
+- **Clinical CSV uploads** — A CSV that matches none of the album's patients is rejected before anything is saved, and a failed upload no longer leaves an orphan file behind.
+- **Advanced extraction config** — Opening "Edit Configuration (Advanced)" without editing it no longer makes the extraction fail with a misleading backend error; the selected preset is used instead.
+- **Home page video** — The home page video loads again after SWITCHdrive changed how its public download links redirect.
+- **Clearer request errors** — When the server answers with a non-JSON error page, the message now shows the HTTP status instead of "Unexpected token '<'".
+
 ### 3.3
 
 - **Multi-file clinical features** — New clinical features structure allowing multiple CSV files per album. Clinical feature IDs are now namespaced as `<file_id>::<name>`, so columns with the same name from different files no longer collide.

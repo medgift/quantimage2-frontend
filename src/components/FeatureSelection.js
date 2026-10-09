@@ -1,49 +1,46 @@
-import { Button, UncontrolledTooltip } from 'reactstrap';
-import React, { useEffect } from 'react';
+import { Alert, Button, UncontrolledTooltip } from 'reactstrap';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { MODEL_TYPES } from '../config/constants';
 import UndoButton from './UndoButton';
-
-export const DEFAULT_MAX_FEATURES_TO_KEEP = 50;
-export const DEFAULT_FEATURES_TO_KEEP = 10;
+import FDRChart from './FDRChart';
+import FDRFeaturesListModal from './FDRFeaturesListModal';
+import FDRSurvivalWarning from './FDRSurvivalWarning';
 
 export default function FeatureSelection({
   modelType,
-  rankFeatures,
-  setRankFeatures,
-  maxNFeatures,
   selected,
   leafItems,
-  nFeatures,
-  setNFeatures,
-  keepNFeatures,
   dropCorrelatedFeatures,
+  selectFeaturesWithFDR,
+  isFdrRunning,
+  hasRunFdr,
+  isFdrFinished,
+  fdrError,
+  fdrNotice,
+  showAdvancedFdr,
+  handleShowAdvancedFdr,
+  selectedFdrThreshold,
+  FDR_THRESHOLDS_LIST,
+  fdrIndex,
+  fdrResults,
+  handleFdrIndexChange,
+  selectedFdrData,
   corrThreshold,
   setCorrThreshold,
   isRecomputingChart,
   handleUndo,
   selectedFeaturesHistory,
 }) {
-  // Adjust N features when dropped features change
-  useEffect(() => {
-    if (!selected) return;
-
-    const nbSelectedFeatures = selected
-      .filter((s) => leafItems[s])
-      .map((f) => leafItems[f]).length;
-
-    setNFeatures((n) => {
-      if (n > nbSelectedFeatures) return nbSelectedFeatures;
-      else return Math.min(nbSelectedFeatures, DEFAULT_FEATURES_TO_KEEP);
-    });
-  }, [setNFeatures, leafItems, selected]);
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
+  const toggleFeaturesModal = () => setShowFeaturesModal((open) => !open);
 
   return (
     <div style={{ flex: 1 }}>
       <div>
         <strong>Feature Selection</strong>
       </div>
-      {selectedFeaturesHistory.length > 1 && (
+      {/* Hidden during an FDR run: its results would overwrite the undo */}
+      {selectedFeaturesHistory.length > 1 && !isFdrRunning && (
         <UndoButton handleClick={handleUndo} />
       )}
       <div style={{ display: 'flex' }}>
@@ -94,7 +91,7 @@ export default function FeatureSelection({
                     console.log('Drop now', corrThreshold);
                     dropCorrelatedFeatures();
                   }}
-                  disabled={isRecomputingChart}
+                  disabled={isRecomputingChart || isFdrRunning}
                 >
                   {isRecomputingChart && (
                     <>
@@ -107,76 +104,132 @@ export default function FeatureSelection({
             </div>
           </div>
         </div>
-        {modelType && (
-          <div style={{ flex: 1 }}>
-            <div className="tools">
-              <p className="mt-4">
-                <strong>Feature ranking</strong>
-              </p>
+        <div style={{ flex: 1 }}>
+          <div className="tools">
+            <p className="mt-4">
+              <strong>
+                FDR correction{' '}
+                <FontAwesomeIcon icon="info-circle" id="fdr-explanation" />
+                <UncontrolledTooltip placement="right" target="fdr-explanation">
+                  Allows to select fewer and significant features while limiting
+                  false discoveries to 5% by default
+                </UncontrolledTooltip>
+              </strong>
+            </p>
+            <FDRSurvivalWarning
+              modelType={modelType}
+              selected={selected}
+              leafItems={leafItems}
+            />
+            <div>
+              <Button
+                color="primary"
+                onClick={selectFeaturesWithFDR}
+                disabled={
+                  isRecomputingChart || isFdrRunning || hasRunFdr || !modelType
+                }
+              >
+                {isFdrRunning && (
+                  <>
+                    <FontAwesomeIcon icon="sync" spin />{' '}
+                  </>
+                )}
+                Select features with FDR{' '}
+              </Button>
+              {!modelType && (
+                <small className="text-muted d-block mt-1">
+                  Select an outcome first
+                </small>
+              )}
+              {modelType && hasRunFdr && (
+                <small
+                  className="text-muted d-block mt-1"
+                  style={{ whiteSpace: 'normal' }}
+                >
+                  FDR has already run for this outcome and training set. Use
+                  Undo to go back before it.
+                </small>
+              )}
+            </div>
+            {fdrError && (
+              <Alert
+                color="danger"
+                className="mt-2 mb-0"
+                style={{ whiteSpace: 'normal' }}
+              >
+                FDR selection failed: {fdrError}
+              </Alert>
+            )}
+            {fdrNotice && (
+              <Alert
+                color="warning"
+                className="mt-2 mb-0"
+                style={{ whiteSpace: 'normal' }}
+              >
+                {fdrNotice}
+              </Alert>
+            )}
+            {isFdrFinished && (
               <div>
                 <input
-                  id="rank-feats"
+                  id="show-advanced-fdr"
                   type="checkbox"
-                  checked={rankFeatures}
+                  checked={showAdvancedFdr}
                   onChange={(e) => {
-                    setRankFeatures(e.target.checked);
+                    handleShowAdvancedFdr(e.target.checked);
                   }}
                 />{' '}
-                <label htmlFor="rank-feats">
-                  Rank by F-value{' '}
+                <label htmlFor="show-advanced-fdr">
+                  Show advanced results{' '}
                   <FontAwesomeIcon
                     icon="info-circle"
-                    id="ranking-explanation"
+                    id="advanced-fdr-explanation"
                   />
                   <UncontrolledTooltip
                     placement="right"
-                    target="ranking-explanation"
+                    target="advanced-fdr-explanation"
                   >
-                    Sort the features (lines of the chart) so that more
-                    predictive features (when taken individually) will appear at
-                    the top and less predictive features will appear at the
-                    bottom.
-                    {modelType === MODEL_TYPES.SURVIVAL &&
-                      'With Survival models, the features are ranked by the Event column.'}
+                    Allows you to explore the number of features retrieved
+                    depending on the q-value selected with the slider and the
+                    vertical line on the graph. Reminder that the higher the
+                    q-value, the higher will be the number of false positives.
                   </UncontrolledTooltip>
                 </label>
-                {rankFeatures && (
+                {showAdvancedFdr && fdrResults && (
                   <div>
-                    <label htmlFor="keep-n-feats">
-                      Number of features to keep
+                    <label htmlFor="qvalues">
+                      Qvalue selected: {selectedFdrThreshold}
                     </label>
-                    <br />
                     <input
-                      id="n-feats-to-keep"
+                      id="qvalues"
                       type="range"
-                      min={1}
-                      max={Math.min(
-                        selected
-                          .filter((s) => leafItems[s])
-                          .map((f) => leafItems[f]).length,
-                        maxNFeatures
-                      )}
-                      onChange={(e) => setNFeatures(+e.target.value)}
+                      min={0}
+                      max={FDR_THRESHOLDS_LIST.length - 1}
                       step={1}
-                      value={nFeatures}
-                      className="slider"
+                      value={fdrIndex}
+                      onChange={(e) =>
+                        handleFdrIndexChange(Number(e.target.value))
+                      }
                     />
-                    <span>{nFeatures}</span>
-                    <div>
-                      <Button
-                        color="primary"
-                        onClick={keepNFeatures}
-                        disabled={isRecomputingChart}
-                      >
-                        Keep {nFeatures} Best-Ranked Features
-                      </Button>
-                    </div>
+                    <FDRChart
+                      fdrResults={fdrResults}
+                      fdrIndex={fdrIndex}
+                      FDR_THRESHOLDS_LIST={FDR_THRESHOLDS_LIST}
+                    />
+                    <Button color="primary" onClick={toggleFeaturesModal}>
+                      Show Features and Qvalues
+                    </Button>
+                    <FDRFeaturesListModal
+                      isOpen={showFeaturesModal}
+                      toggle={toggleFeaturesModal}
+                      selectedFdrData={selectedFdrData}
+                    />
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

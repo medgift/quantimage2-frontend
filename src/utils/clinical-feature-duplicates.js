@@ -1,7 +1,8 @@
 // Shared phrasing for the clinical-feature duplicate advisory returned by
 // GET /clinical-features/duplicates. Training uses each feature name only
-// once when it appears in several files: the newest file wins. These helpers
-// keep the management page and the visualisation warning consistent.
+// once when it appears in several files: the newest file that has values wins
+// (the advisory's kept_file_name). These helpers keep the management page and
+// the visualisation warning consistent.
 
 import { makeClinicalFeatureId } from './clinical-feature-id';
 
@@ -31,7 +32,7 @@ export function formatDuplicateAdvisory(advisory) {
     `"${advisory.name}" appears in ${allFiles
       .map((n) => `"${n}"`)
       .join(' and ')} — only the copy from "${advisory.kept_file_name}" ` +
-    `(newest file) is used for training.`;
+    `(newest file with values) is used for training.`;
 
   if (isHarmlessDuplicate(advisory)) {
     return `${text} The values are identical, so no data is lost.`;
