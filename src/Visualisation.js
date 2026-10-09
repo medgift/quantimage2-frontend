@@ -818,11 +818,18 @@ export default function Visualisation({
   }, [leafItems, selected]);
 
   // Pending changes: in a collection, the selection differs from what was
-  // saved; otherwise, not every selectable feature is selected.
+  // saved; otherwise, not every selectable feature is selected. The saved IDs
+  // are compared as the tree opened them: without repeated clinical copies or
+  // features that no longer exist, which are never selected, and without the
+  // duplicates a legacy bare name and its `<file_id>::<name>` resolve to.
   useEffect(() => {
     if (savedFeatureIDs) {
+      const selectable = new Set(selectableFeatureIDs);
+      const savedSelectable = new Set(
+        savedFeatureIDs.filter((id) => selectable.has(id))
+      );
       setHasPendingChanges(
-        !_.isEqual([...savedFeatureIDs].sort(), [...selectedFeatureIDs].sort())
+        !_.isEqual([...savedSelectable].sort(), [...selectedFeatureIDs].sort())
       );
     } else {
       setHasPendingChanges(
