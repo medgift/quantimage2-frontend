@@ -5,13 +5,10 @@ import './FeatureTable.css';
 import { NON_FEATURE_FIELDS } from '../Train';
 import { Button } from 'reactstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { convertFeatureName } from '../utils/feature-naming';
+import { formatFeatureColumn } from '../utils/feature-label';
 import { SelectColumnFilter } from '../utils/feature-utils';
 
 import _ from 'lodash';
-
-const PYRADIOMICS_PREFIX = 'original';
-const ZRAD_PREFIX = 'zrad';
 
 export function FeatureTable({ columns, data }) {
   // Set up the react-table instance
@@ -183,46 +180,23 @@ export default function RadiomicsFeatureTable({ featuresTabular }) {
 
   const columnsDefinitions = useMemo(() => {
     let featureGroups = {};
-    let currentFeatureGroup = '';
     const header =
       _.uniq(_.flatten(featuresTabular.map((f) => Object.keys(f)))) || [];
 
     let presentModalities = _.uniq(featuresTabular.map((f) => f.Modality));
 
-    // Make groups of features
+    // Group features like the Feature Selection tree
+    // (Shape / Intensity / Texture › family), in order of appearance
     for (let featureName of header.filter(
       (c) => !NON_FEATURE_FIELDS.includes(c)
     )) {
-      /* TODO - Make this more elegant, maybe a convention for feature names is needed - Could use "groupFeatures" function from feature-naming? */
-      // Group PyRadiomics features by the second level,
-      // first level for other backends so far
-      let featureGroupName;
-
-      let convertedFeatureName = convertFeatureName(
+      const { group, name } = formatFeatureColumn(
         featureName,
         presentModalities
       );
 
-      // PET - Special case
-      if (featureName.startsWith('PET')) {
-        featureGroupName = 'PET';
-      } else if (featureName.startsWith(PYRADIOMICS_PREFIX)) {
-        featureGroupName = convertedFeatureName.split('_')[1];
-      } else if (featureName.startsWith(ZRAD_PREFIX)) {
-        featureGroupName = convertedFeatureName.split('_')[1];
-      } else {
-        featureGroupName =
-          convertedFeatureName.split('_')[0] +
-          '_' +
-          convertedFeatureName.split('_')[1];
-      }
-
-      if (featureGroupName !== currentFeatureGroup) {
-        featureGroups[featureGroupName] = [];
-        currentFeatureGroup = featureGroupName;
-      }
-
-      featureGroups[featureGroupName].push(featureName);
+      featureGroups[group] = featureGroups[group] || [];
+      featureGroups[group].push({ featureName, name });
     }
 
     console.log('feature groups', featureGroups);
@@ -230,8 +204,8 @@ export default function RadiomicsFeatureTable({ featuresTabular }) {
     let featureColumns = Object.keys(featureGroups).map((featureGroup) => ({
       Header: featureGroup,
       id: featureGroup,
-      columns: featureGroups[featureGroup].map((featureName) => ({
-        Header: convertFeatureName(featureName, presentModalities),
+      columns: featureGroups[featureGroup].map(({ featureName, name }) => ({
+        Header: () => <span title={featureName}>{name}</span>,
         accessor: featureName,
         disableFilters: true,
       })),

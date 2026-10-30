@@ -20,7 +20,12 @@ import HighchartsPatternFills from 'highcharts/modules/pattern-fill';
 import _ from 'lodash';
 import FilterTree from './components/FilterTree';
 import { Alert, Button, Form, FormGroup, Input, Label } from 'reactstrap';
-import { convertFeatureName, groupFeatures } from './utils/feature-naming';
+import { groupFeatures } from './utils/feature-naming';
+import {
+  FEATURE_ID_SEPARATOR,
+  formatFeatureLabel,
+  formatFeatureShortLabel,
+} from './utils/feature-label';
 import {
   makeClinicalFeatureId,
   CLINICAL_FEATURE_ID_SEPARATOR,
@@ -57,7 +62,8 @@ import UMAPAnalysis from './UMAPAnalysis';
 import { transformLabelsToTabular } from './utils/feature-utils';
 
 // ================= CONSTANTS =================
-export const FEATURE_ID_SEPARATOR = '‑'; // This is a non-breaking hyphen to distinguish with normal hyphens that can occur in ROI names
+// Non-breaking hyphen separating modality, ROI and feature name in feature IDs
+export { FEATURE_ID_SEPARATOR };
 
 // ...existing code...
 
@@ -957,6 +963,12 @@ export default function Visualisation({
         yAxis: {
           categories: filteredFeatures.map((f) => f.FeatureID),
           title: { text: 'Features' },
+          // Categories stay feature IDs (used on hover/click), only the label changes
+          labels: {
+            formatter: function () {
+              return formatFeatureLabel(this.value);
+            },
+          },
         },
         legend: {
           layout: 'vertical',
@@ -987,12 +999,8 @@ export default function Visualisation({
             let chart = this.series.chart;
             let yIndex = this.y;
 
-            let { modality, roi, featureName } =
-              chart.yAxis[0].categories[yIndex].match(featureIDRegex).groups;
-
-            let convertedFeatureName = convertFeatureName(featureName, [
-              modality,
-            ]);
+            let featureID = chart.yAxis[0].categories[yIndex];
+            let { modality, roi } = featureID.match(featureIDRegex).groups;
 
             return (
               `<strong>Patient:</strong> ${
@@ -1000,7 +1008,9 @@ export default function Visualisation({
               }<br />` +
               `<strong>Modality:</strong> ${modality}<br />` +
               `<strong>ROI:</strong> ${roi}<br />` +
-              `<strong>Feature:</strong> ${convertedFeatureName}<br />` +
+              `<strong>Feature:</strong> ${formatFeatureShortLabel(
+                featureID
+              )}<br />` +
               `<strong>Value:</strong> ${this.point.options.value}<br /><br />` +
               `<strong>INFO : Click to disable this feature</strong>`
             );

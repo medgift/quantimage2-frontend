@@ -1,0 +1,55 @@
+.extraction-summary {
+  text-align: left;
+}
+
+.extraction-summary-card .card-header {
+  background-color: #f8f9fa;
+}
+
+.extraction-summary-item {
+  margin-bottom: 0.4rem;
+}
+
+.extraction-summary-value {
+  font-weight: 500;
+  margin-left: 1rem;
+  text-align: right;
+}
+
+.extraction-summary-subtitle {
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+}
+
+.extraction-summary-list {
+  padding-left: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.extraction-summary-table {
+  font-size: 0.9rem;
+}
+
+.extraction-summary-table td {
+  white-space: nowrap;
+}
+
+.extraction-summary-family {
+  font-weight: normal;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.extraction-summary-tree summary {
+  cursor: pointer;
+}
+
+.extraction-summary-tree-children {
+  padding-left: 1.2rem;
+}
+
+.extraction-summary-feature-list {
+  padding-left: 1.2rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+}

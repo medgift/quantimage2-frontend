@@ -49,6 +49,15 @@ class Backend {
     }
   }
 
+  async extractionSummary(token, extractionID) {
+    try {
+      const url = `${endpoints.extractions}/${extractionID}/summary`;
+      return await request(url, { token: token });
+    } catch (err) {
+      throw err; // Just throw it for now
+    }
+  }
+
   async updateExtraction(token, extractionID, fields) {
     try {
       const url = `${endpoints.extractions}/${extractionID}`;

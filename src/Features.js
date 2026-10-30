@@ -11,7 +11,6 @@ import { useAlert } from 'react-alert';
 
 import Backend from './services/backend';
 import {
-  Badge,
   Button,
   Form,
   FormGroup,
@@ -24,7 +23,6 @@ import {
   NavLink,
   Spinner,
   TabContent,
-  Table,
   TabPane,
 } from 'reactstrap';
 
@@ -60,6 +58,7 @@ import {
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 import DataSplitting from './DataSplitting';
+import ExtractionSummary from './components/ExtractionSummary';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
 import useExitPrompt from './utils/useExitPrompt';
 
@@ -685,54 +684,15 @@ function Features() {
     navigate(`/features/${albumID}/overview`);
   };
 
-  // Print modalities
-  const printModalities = () => {
-    let modalities =
-      collectionID && currentCollection
-        ? currentCollection.modalities
-        : featureExtraction.modalities;
+  // Feature IDs (modality‑ROI‑feature) shown in the Overview, as in the
+  // Feature Selection tree
+  const overviewFeatureIDs = useMemo(() => {
+    if (collectionID && currentCollection)
+      return currentCollection.collection.feature_ids;
+    if (!featuresChart) return null;
 
-    if (!modalities) return null;
-
-    return modalities.map((modality) => (
-      <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
-        {modality}
-      </Badge>
-    ));
-  };
-
-  // Print ROIs
-  const printROIs = () => {
-    let rois =
-      collectionID && currentCollection
-        ? currentCollection.rois
-        : featureExtraction.rois;
-
-    if (!rois) return null;
-
-    return rois.map((roi) => (
-      <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
-        {roi}
-      </Badge>
-    ));
-  };
-
-  // Print data points
-  const printDataPoints = () => {
-    return dataPoints ? dataPoints.length : '';
-  };
-
-  // Print Features
-  const printFeatures = () => {
-    let features =
-      collectionID && currentCollection
-        ? currentCollection.features
-        : featureExtraction.feature_definitions;
-
-    if (!features) return 0;
-
-    return features.length;
-  };
+    return Array.from(new Set(featuresChart.map((f) => f.FeatureID)));
+  }, [collectionID, currentCollection, featuresChart]);
 
   // Data splitting type based on current extraction/collection
   const dataSplittingType =
@@ -971,49 +931,6 @@ function Features() {
                 <TabPane tabId="overview">
                   <div className="collection-overview">
                     <h3>Overview</h3>
-                    <Table bordered className="model-details-table mx-auto">
-                      <tbody>
-                        <tr>
-                          <td>
-                            {collectionID
-                              ? 'Collection created on'
-                              : 'Features extracted on'}
-                          </td>
-                          <td>
-                            {collectionID && currentCollection
-                              ? currentCollection.collection.created_at
-                              : featureExtraction.created_at}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Modalities in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printModalities()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            ROIs in {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printROIs()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Number of data points in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printDataPoints()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Number of feature types in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printFeatures()}</td>
-                        </tr>
-                      </tbody>
-                    </Table>
                     <div className="d-flex flex-row align-items-center justify-content-center">
                       <FormGroup className="mr-5">
                         <Label for="selected-collection-name">
@@ -1047,6 +964,39 @@ function Features() {
                         </Button>
                       </FormGroup>
                     </div>
+                    {tab === 'overview' && featureExtractionID && (
+                      <ExtractionSummary
+                        extractionID={featureExtractionID}
+                        patients={patients}
+                        allPatients={allPatients}
+                        unlabelledPatients={unlabelledPatients}
+                        selectedLabelCategory={selectedLabelCategory}
+                        featureNames={
+                          collectionID && currentCollection
+                            ? currentCollection.features
+                            : null
+                        }
+                        modalities={
+                          collectionID && currentCollection
+                            ? currentCollection.modalities
+                            : featureExtraction.modalities
+                        }
+                        rois={
+                          collectionID && currentCollection
+                            ? currentCollection.rois
+                            : featureExtraction.rois
+                        }
+                        createdAt={
+                          collectionID && currentCollection
+                            ? currentCollection.collection.created_at
+                            : featureExtraction.created_at
+                        }
+                        isCollection={!!collectionID}
+                        featureIDs={overviewFeatureIDs}
+                        dataSplittingType={dataSplittingType}
+                        trainTestSplitType={trainTestSplitType}
+                      />
+                    )}
                     {collectionID && (
                       <Form onSubmit={handleSaveCollectionNameClick}>
                         <FormGroup>
