@@ -3,6 +3,7 @@ import { Alert, Badge, Spinner, Table } from 'reactstrap';
 import { useKeycloak } from '@react-keycloak/web';
 
 import Backend from '../services/backend';
+import { buildFeatureTree } from '../utils/feature-label';
 import {
   DATA_SPLITTING_TYPES,
   MODEL_TYPES,
@@ -204,7 +205,77 @@ function ConfigurationCard({ config }) {
   );
 }
 
-function FeaturesCard({ features, modalities, rois }) {
+function FeatureList({ features }) {
+  if (features.length === 0) return null;
+
+  return (
+    <ul className="extraction-summary-feature-list">
+      {features.map((feature) => (
+        <li key={feature.id} title={feature.description}>
+          {feature.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TreeNode({ name, total, children }) {
+  return (
+    <details className="extraction-summary-tree">
+      <summary>
+        {name} <strong>{total}</strong>
+      </summary>
+      <div className="extraction-summary-tree-children">{children}</div>
+    </details>
+  );
+}
+
+// Same grouping as the Feature Selection tree:
+// modality › ROI › Shape / Intensity (SUV) / Texture › family › features
+function FeatureTree({ featureIDs }) {
+  const tree = useMemo(() => buildFeatureTree(featureIDs), [featureIDs]);
+
+  return (
+    <div data-testid="summary-feature-tree">
+      {tree.map((group) => (
+        <TreeNode key={group.name} name={group.name} total={group.total}>
+          {group.categories.map((category) => (
+            <TreeNode
+              key={category.name}
+              name={category.name}
+              total={category.total}
+            >
+              <FeatureList features={category.features} />
+              {category.subcategories.map((subcategory) => (
+                <TreeNode
+                  key={subcategory.name}
+                  name={subcategory.name}
+                  total={subcategory.total}
+                >
+                  <FeatureList features={subcategory.features} />
+                </TreeNode>
+              ))}
+            </TreeNode>
+          ))}
+        </TreeNode>
+      ))}
+    </div>
+  );
+}
+
+function FeaturesCard({ features, modalities, rois, featureIDs }) {
+  if (featureIDs && featureIDs.length > 0) {
+    return (
+      <SummaryCard title="Features" testID="summary-features">
+        <SummaryItem label="Feature types">{features.total}</SummaryItem>
+        <SummaryItem label="Features (all modalities and ROIs)">
+          {new Set(featureIDs).size}
+        </SummaryItem>
+        <FeatureTree featureIDs={featureIDs} />
+      </SummaryCard>
+    );
+  }
+
   return (
     <SummaryCard title="Features" testID="summary-features">
       <SummaryItem label="Feature types">{features.total}</SummaryItem>
@@ -383,6 +454,7 @@ export default function ExtractionSummary({
   trainTestSplitType,
   createdAt,
   isCollection,
+  featureIDs,
 }) {
   const { keycloak } = useKeycloak();
 
@@ -449,6 +521,7 @@ export default function ExtractionSummary({
         features={features}
         modalities={modalities || summary.features.modalities}
         rois={rois || summary.features.rois}
+        featureIDs={featureIDs}
       />
       <DatasetCard
         dataset={summary.dataset}

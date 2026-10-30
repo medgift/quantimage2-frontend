@@ -216,3 +216,44 @@ describe('overview polish', () => {
     );
   });
 });
+
+describe('feature tree', () => {
+  const S = '‑'; // FEATURE_ID_SEPARATOR
+
+  it('groups the features like the Feature Selection tab when IDs are given', async () => {
+    Backend.extractionSummary.mockResolvedValue(SUMMARY);
+    const { getByTestId, queryByText } = render(
+      <ExtractionSummary
+        extractionID={42}
+        allPatients={[]}
+        featureIDs={[
+          `CT${S} GTVn${S}original_glcm_Id`,
+          `CT${S} GTVn${S}original_glcm_Idm`,
+          `CT${S} GTVn${S}original_shape_Sphericity`,
+          `PT${S}GTVp${S}original_firstorder_Mean`,
+        ]}
+      />
+    );
+    await wait(() => getByTestId('summary-feature-tree'));
+
+    const tree = getByTestId('summary-feature-tree');
+    const summaries = Array.from(tree.querySelectorAll('summary')).map((s) =>
+      s.textContent.trim()
+    );
+    expect(summaries).toEqual([
+      'CT › GTVn 3',
+      'Shape 1',
+      'Texture 2',
+      'GLCM 2',
+      'PT › GTVp 1',
+      'SUV 1',
+    ]);
+    expect(tree.textContent).toContain('Sphericity');
+    expect(tree.textContent).not.toMatch(/original/);
+    expect(getByTestId('summary-features').textContent).toMatch(
+      /Features \(all modalities and ROIs\)\s*4/
+    );
+    // The family badges are replaced by the tree
+    expect(queryByText('By family')).toBeNull();
+  });
+});

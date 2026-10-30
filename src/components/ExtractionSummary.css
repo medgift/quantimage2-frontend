@@ -39,3 +39,17 @@
   font-size: 0.85rem;
   margin-bottom: 0.25rem;
 }
+
+.extraction-summary-tree summary {
+  cursor: pointer;
+}
+
+.extraction-summary-tree-children {
+  padding-left: 1.2rem;
+}
+
+.extraction-summary-feature-list {
+  padding-left: 1.2rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+}

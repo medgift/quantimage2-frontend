@@ -684,6 +684,16 @@ function Features() {
     navigate(`/features/${albumID}/overview`);
   };
 
+  // Feature IDs (modality‑ROI‑feature) shown in the Overview, as in the
+  // Feature Selection tree
+  const overviewFeatureIDs = useMemo(() => {
+    if (collectionID && currentCollection)
+      return currentCollection.collection.feature_ids;
+    if (!featuresChart) return null;
+
+    return Array.from(new Set(featuresChart.map((f) => f.FeatureID)));
+  }, [collectionID, currentCollection, featuresChart]);
+
   // Data splitting type based on current extraction/collection
   const dataSplittingType =
     collectionID && currentCollection
@@ -982,6 +992,7 @@ function Features() {
                             : featureExtraction.created_at
                         }
                         isCollection={!!collectionID}
+                        featureIDs={overviewFeatureIDs}
                         dataSplittingType={dataSplittingType}
                         trainTestSplitType={trainTestSplitType}
                       />
