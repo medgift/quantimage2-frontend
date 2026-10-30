@@ -3,6 +3,7 @@ import { useKeycloak } from '@react-keycloak/web';
 import Plotly from 'plotly.js-dist';
 import MyModal from './MyModal';
 import Backend from '../services/backend';
+import { formatFeatureLabels } from '../utils/feature-label';
 
 const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
   const [featureData, setFeatureData] = useState(null);
@@ -48,22 +49,19 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
 
     const featuresToShow = sortedFeatures;
 
-    // Build display labels (apply user edits if present)
-    const displayNames = featuresToShow.map(item => {
-      const original = item.feature_name;
-      const edited = featureLabels[original];
-      return edited && edited.trim().length > 0 ? edited.trim() : original;
-    }).reverse();
+    // Readable names (modality › ROI › category › name), unless edited by the user
+    const readableNames = formatFeatureLabels(featuresToShow.map(item => item.feature_name));
+    const labels = featuresToShow.map((item, i) => {
+      const edited = featureLabels[item.feature_name];
+      return edited && edited.trim().length > 0 ? edited.trim() : readableNames[i];
+    });
+
+    const displayNames = [...labels].reverse();
 
     const xValues = featuresToShow.map(item => item.importance_value).reverse();
 
     const hovertemplates = featuresToShow
-      .map(item => {
-        const original = item.feature_name;
-        const edited = featureLabels[original];
-        const label = edited && edited.trim().length > 0 ? edited.trim() : original;
-        return `<b>${label}</b><br>Importance: %{x:.4f}<br>Original: ${original}<extra></extra>`;
-      })
+      .map((item, i) => `<b>${labels[i]}</b><br>Importance: %{x:.4f}<br>Feature ID: ${item.feature_name}<extra></extra>`)
       .reverse();
 
     const trace = {
@@ -153,6 +151,7 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
       .slice()
       .sort((a, b) => Math.abs(b.importance_value) - Math.abs(a.importance_value))
       .filter(item => item.importance_value > 0);
+    const readableNames = formatFeatureLabels(sortedFeatures.map(item => item.feature_name));
 
     return (
       <div className="mb-3 p-2 bg-light rounded" style={{ maxHeight: 260, overflow: 'auto' }}>
@@ -171,13 +170,13 @@ const FeatureImportanceModal = ({ isOpen, toggle, modelId, modelName }) => {
               <div key={original} className="mb-2">
                 <label className="small mb-1 d-block text-truncate" style={{ maxWidth: '100%' }}>
                   <span className="text-muted">#{idx + 1}</span> &nbsp;
-                  <strong>{original}</strong>
+                  <strong title={original}>{readableNames[idx]}</strong>
                 </label>
                 <input
                   className="form-control form-control-sm"
                   value={featureLabels[original] ?? ''}
                   onChange={(e) => updateLabel(original, e.target.value)}
-                  placeholder="Enter custom label (leave empty to use original)"
+                  placeholder="Enter custom label (leave empty to use the default name)"
                   aria-label={`Edit label for ${original}`}
                 />
               </div>
