@@ -5,7 +5,7 @@ import './Train.css';
 import { useKeycloak } from '@react-keycloak/web';
 
 import Kheops from './services/kheops';
-import { trainModel } from './utils/feature-utils';
+import { trainModel, transformLabelsToTabular } from './utils/feature-utils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import MyModal from './components/MyModal';
 import {
@@ -14,8 +14,6 @@ import {
   TRAINING_PHASES,
   SOCKETIO_MESSAGES,
   CV_SPLITS,
-  CLASSIFICATION_OUTCOMES,
-  SURVIVAL_OUTCOMES,
 } from './config/constants';
 import TrainingQueue from './components/TrainingQueue';
 import SocketContext from './context/SocketContext';
@@ -133,26 +131,6 @@ export default function Train({
     else setCurrentAlgorithm(algorithm);
   };
 
-  const transformLabelsToTabular = (outcomes) => {
-    let tabularLabels = [];
-
-    let outcomeColumns =
-      selectedLabelCategory.label_type === MODEL_TYPES.CLASSIFICATION
-        ? CLASSIFICATION_OUTCOMES
-        : SURVIVAL_OUTCOMES;
-
-    for (let outcome of outcomes) {
-      let tabularLabel = [
-        outcome.patient_id,
-        ...outcomeColumns.map((column) => outcome.label_content[column] || ''),
-      ];
-
-      tabularLabels.push(tabularLabel);
-    }
-
-    return tabularLabels;
-  };
-
   // Handle model train click
   const handleTrainModelClick = async () => {
     setIsTraining(true);
@@ -163,7 +141,10 @@ export default function Train({
 
       // Turn labels into a tabular format for Melampus [ [PatientID,Outcome], ... ]
       // or [ [PatientID,Time,Event], ... ]
-      let labels = transformLabelsToTabular(outcomes);
+      let labels = transformLabelsToTabular(
+        outcomes,
+        selectedLabelCategory.label_type
+      );
 
       let { trainingID, nSteps } = await trainModel(
         featureExtractionID,
@@ -203,7 +184,8 @@ export default function Train({
     let transformedLabels = transformLabelsToTabular(
       dataSplittingType === DATA_SPLITTING_TYPES.TRAIN_TEST_SPLIT && patients
         ? outcomes.filter((o) => patients.includes(o.patient_id))
-        : outcomes
+        : outcomes,
+      selectedLabelCategory.label_type
     );
 
     // Filter out empty/incomplete labels

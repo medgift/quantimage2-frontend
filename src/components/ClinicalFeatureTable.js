@@ -58,6 +58,7 @@ export default function ClinicalFeatureTable({
   clinicalFeaturesValues,
   setClinicalFeaturesValues,
   clinicalFeaturesUniqueValues,
+  clinicalFeaturesError,
 }) {
   let { keycloak } = useKeycloak();
 
@@ -105,7 +106,8 @@ export default function ClinicalFeatureTable({
   );
 
   // Training only uses a feature name once when it appears in several files
-  // (newest file wins) — surface what that means for this album's data.
+  // (newest file with values wins) — surface what that means for this album's
+  // data.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -334,6 +336,21 @@ export default function ClinicalFeatureTable({
         };
       }
 
+      // Every column was dropped: discard the file instead of adding one that
+      // has no usable features.
+      if (Object.keys(definitionsToSave).length === 0) {
+        const reasons = Object.entries(newFilterMessages)
+          .map(([col, why]) => `"${col}" was dropped ${why}`)
+          .join('; ');
+        setUploadValid(false);
+        setUploadMessage(
+          `This CSV has no column with usable values, so the file was not added${
+            reasons ? ` (${reasons})` : ''
+          }.`
+        );
+        return;
+      }
+
       // Create the file row, then save its definitions and values.
       const fileRecord = await Backend.createClinicalFeatureFile(
         keycloak.token,
@@ -407,6 +424,14 @@ export default function ClinicalFeatureTable({
   };
 
   if (clinicalFeaturesDefinitions === null || clinicalFeaturesValues === null) {
+    if (clinicalFeaturesError) {
+      return (
+        <Alert color="danger" style={{ whiteSpace: 'normal' }}>
+          Could not load clinical features: {clinicalFeaturesError}. Reload the
+          page to try again.
+        </Alert>
+      );
+    }
     return (
       <>
         <FontAwesomeIcon icon="sync" spin={true} /> Loading...

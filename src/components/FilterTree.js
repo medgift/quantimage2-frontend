@@ -13,8 +13,8 @@ export default function FilterTree({
   selected,
   setSelected,
   disabled,
-  // Node IDs that can never be selected (e.g. superseded duplicate clinical
-  // features — training only uses the newest file's copy of a repeated name).
+  // Node IDs that can never be selected (e.g. repeated clinical features: only
+  // one file's copy of a name can be used).
   disabledNodeIds,
 }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set(['CT', 'PT', 'MR']));
@@ -202,16 +202,21 @@ export default function FilterTree({
               fontWeight: hasChildren ? 'bold' : 'normal',
               flex: 1,
               cursor: 'default',
-              ...(isSuperseded && {
-                color: '#999',
-                textDecoration: 'line-through',
-              })
+              ...(isSuperseded && { color: '#999' }),
             }}
           >
-            {node.name}
+            {/* Strike through the name only: a child can't remove its
+                parent's line-through, so the note would be crossed out too. */}
+            <span
+              style={
+                isSuperseded ? { textDecoration: 'line-through' } : undefined
+              }
+            >
+              {node.name}
+            </span>
             {isSuperseded && (
-              <em style={{ marginLeft: 6, textDecoration: 'none', fontSize: '11px' }}>
-                (repeated — the newer file's copy is used)
+              <em style={{ marginLeft: 6, fontSize: '11px' }}>
+                (repeated — another file's copy is used)
               </em>
             )}
           </span>

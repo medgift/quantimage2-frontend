@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import fileDownload from 'js-file-download';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAlert } from 'react-alert';
 
 import Backend from './services/backend';
 import {
-  Badge,
   Button,
   Form,
   FormGroup,
@@ -17,7 +23,6 @@ import {
   NavLink,
   Spinner,
   TabContent,
-  Table,
   TabPane,
 } from 'reactstrap';
 
@@ -53,12 +58,21 @@ import {
   TRAIN_TEST_SPLIT_TYPES,
 } from './config/constants';
 import DataSplitting from './DataSplitting';
+import ExtractionSummary from './components/ExtractionSummary';
 import { UnlabelledPatientsTitle } from './components/UnlabelledPatientsTitle';
 import useExitPrompt from './utils/useExitPrompt';
 
 function Features() {
   const { keycloak } = useKeycloak();
   const navigate = useNavigate();
+
+  // useAlert returns a new object whenever the alert provider re-renders, so
+  // effects read it through a ref instead of re-running because of it.
+  const alert = useAlert();
+  const alertRef = useRef(alert);
+  useEffect(() => {
+    alertRef.current = alert;
+  });
 
   // Check if the user is an "alternative" user, i.e. with no visualization features
   const isAlternativeUser = useMemo(
@@ -109,6 +123,7 @@ function Features() {
   let [clinicalFeaturesValues, setClinicalFeaturesValues] = useState(null);
   let [clinicalFeaturesUniqueValues, setClinicalFeaturesUniqueValues] =
     useState(null);
+  const [clinicalFeaturesError, setClinicalFeaturesError] = useState(null);
 
   // Keyed by canonical clinical feature id `<file_id>::<name>` so two CSVs
   // with the same column name don't collide.
@@ -431,8 +446,14 @@ function Features() {
         setClinicalFeatureFiles(files);
         setClinicalFeaturesDefinitions(clinicalFeaturesDefinitions);
         setClinicalFeaturesValues(clinicalFeatures);
+        setClinicalFeaturesError(null);
       } catch (err) {
+        // Without definitions the Visualisation and Clinical Features tabs
+        // would wait forever, so they show this error instead.
         console.error('Could not load clinical features', err);
+        const message = err?.message || String(err);
+        setClinicalFeaturesError(message);
+        alertRef.current.error(`Could not load clinical features: ${message}`);
       } finally {
         setIsLoading(false);
       }
@@ -663,54 +684,15 @@ function Features() {
     navigate(`/features/${albumID}/overview`);
   };
 
-  // Print modalities
-  const printModalities = () => {
-    let modalities =
-      collectionID && currentCollection
-        ? currentCollection.modalities
-        : featureExtraction.modalities;
+  // Feature IDs (modality‑ROI‑feature) shown in the Overview, as in the
+  // Feature Selection tree
+  const overviewFeatureIDs = useMemo(() => {
+    if (collectionID && currentCollection)
+      return currentCollection.collection.feature_ids;
+    if (!featuresChart) return null;
 
-    if (!modalities) return null;
-
-    return modalities.map((modality) => (
-      <Badge style={{ marginRight: '0.5em' }} color="primary" key={modality}>
-        {modality}
-      </Badge>
-    ));
-  };
-
-  // Print ROIs
-  const printROIs = () => {
-    let rois =
-      collectionID && currentCollection
-        ? currentCollection.rois
-        : featureExtraction.rois;
-
-    if (!rois) return null;
-
-    return rois.map((roi) => (
-      <Badge style={{ marginRight: '0.5em' }} color="primary" key={roi}>
-        {roi}
-      </Badge>
-    ));
-  };
-
-  // Print data points
-  const printDataPoints = () => {
-    return dataPoints ? dataPoints.length : '';
-  };
-
-  // Print Features
-  const printFeatures = () => {
-    let features =
-      collectionID && currentCollection
-        ? currentCollection.features
-        : featureExtraction.feature_definitions;
-
-    if (!features) return 0;
-
-    return features.length;
-  };
+    return Array.from(new Set(featuresChart.map((f) => f.FeatureID)));
+  }, [collectionID, currentCollection, featuresChart]);
 
   // Data splitting type based on current extraction/collection
   const dataSplittingType =
@@ -949,49 +931,6 @@ function Features() {
                 <TabPane tabId="overview">
                   <div className="collection-overview">
                     <h3>Overview</h3>
-                    <Table bordered className="model-details-table mx-auto">
-                      <tbody>
-                        <tr>
-                          <td>
-                            {collectionID
-                              ? 'Collection created on'
-                              : 'Features extracted on'}
-                          </td>
-                          <td>
-                            {collectionID && currentCollection
-                              ? currentCollection.collection.created_at
-                              : featureExtraction.created_at}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Modalities in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printModalities()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            ROIs in {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printROIs()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Number of data points in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printDataPoints()}</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            Number of feature types in{' '}
-                            {collectionID ? 'collection' : 'extraction'}
-                          </td>
-                          <td>{printFeatures()}</td>
-                        </tr>
-                      </tbody>
-                    </Table>
                     <div className="d-flex flex-row align-items-center justify-content-center">
                       <FormGroup className="mr-5">
                         <Label for="selected-collection-name">
@@ -1025,6 +964,39 @@ function Features() {
                         </Button>
                       </FormGroup>
                     </div>
+                    {tab === 'overview' && featureExtractionID && (
+                      <ExtractionSummary
+                        extractionID={featureExtractionID}
+                        patients={patients}
+                        allPatients={allPatients}
+                        unlabelledPatients={unlabelledPatients}
+                        selectedLabelCategory={selectedLabelCategory}
+                        featureNames={
+                          collectionID && currentCollection
+                            ? currentCollection.features
+                            : null
+                        }
+                        modalities={
+                          collectionID && currentCollection
+                            ? currentCollection.modalities
+                            : featureExtraction.modalities
+                        }
+                        rois={
+                          collectionID && currentCollection
+                            ? currentCollection.rois
+                            : featureExtraction.rois
+                        }
+                        createdAt={
+                          collectionID && currentCollection
+                            ? currentCollection.collection.created_at
+                            : featureExtraction.created_at
+                        }
+                        isCollection={!!collectionID}
+                        featureIDs={overviewFeatureIDs}
+                        dataSplittingType={dataSplittingType}
+                        trainTestSplitType={trainTestSplitType}
+                      />
+                    )}
                     {collectionID && (
                       <Form onSubmit={handleSaveCollectionNameClick}>
                         <FormGroup>
@@ -1148,6 +1120,7 @@ function Features() {
                         />
                         <Visualisation
                           isAlternativeUser={isAlternativeUser}
+                          clinicalFeaturesError={clinicalFeaturesError}
                           active={tab === 'visualize'}
                           selectedLabelCategory={selectedLabelCategory}
                           collectionInfos={
@@ -1238,6 +1211,7 @@ function Features() {
                       />
                       <ClinicalFeatures
                         dataPoints={allPatients}
+                        clinicalFeaturesError={clinicalFeaturesError}
                         albumID={albumID}
                         clinicalFeatureFiles={clinicalFeatureFiles}
                         setClinicalFeatureFiles={setClinicalFeatureFiles}

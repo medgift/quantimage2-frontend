@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DATA_SPLITTING_TYPES } from '../config/constants';
 import MyModal from './MyModal';
 import ListValues from './ListValues';
+import { formatFeatureLabels } from '../utils/feature-label';
 import FeatureImportanceModal from './FeatureImportanceModal';
 import { saveAs } from 'file-saver';
 import Backend from '../services/backend';
@@ -822,7 +823,9 @@ export default function ModelsTable({
         toggle={toggleFeatureNames}
         title={<span>Feature Names</span>}
       >
-        <ListValues values={featureNames} />
+        <ListValues
+          values={featureNames ? formatFeatureLabels(featureNames) : []}
+        />
       </MyModal>
       <MyModal
         isOpen={patientIDsOpen}
