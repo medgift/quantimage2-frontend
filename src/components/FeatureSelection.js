@@ -207,6 +207,7 @@ export default function FeatureSelection({
                       max={FDR_THRESHOLDS_LIST.length - 1}
                       step={1}
                       value={fdrIndex}
+                      disabled={isRecomputingChart}
                       onChange={(e) =>
                         handleFdrIndexChange(Number(e.target.value))
                       }
