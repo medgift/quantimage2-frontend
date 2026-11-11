@@ -30,8 +30,14 @@
   font-size: 0.9rem;
 }
 
-.extraction-summary-table td {
+.extraction-summary-table td,
+.extraction-summary-table th {
   white-space: nowrap;
+}
+
+.extraction-summary-table .extraction-summary-row-label {
+  font-weight: normal;
+  color: #6c757d;
 }
 
 .extraction-summary-family {

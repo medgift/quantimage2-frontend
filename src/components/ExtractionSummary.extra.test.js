@@ -124,8 +124,17 @@ describe('overview polish', () => {
   it('shows "none" for missing resampling and normalization', async () => {
     const { getByTestId } = await renderOk({ allPatients: [] });
 
-    const row = getByTestId('summary-config').querySelector('tbody tr');
-    expect(row.textContent).toBe('CTnone–none–');
+    const card = getByTestId('summary-config');
+    expect(card.querySelector('thead').textContent).toBe('SettingCT');
+    const rows = [...card.querySelectorAll('tbody tr')].map(
+      (tr) => tr.textContent
+    );
+    expect(rows).toEqual([
+      'Resamplingnone',
+      'Interpolation–',
+      'Normalizationnone',
+      'Discretization–',
+    ]);
   });
 
   it('hides the image filters row when only one filter was used', async () => {
