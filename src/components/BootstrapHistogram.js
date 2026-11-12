@@ -19,6 +19,8 @@ const BootstrapHistogram = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pValues, setPValues] = useState([]);
+  const [pValuesLoading, setPValuesLoading] = useState(false);
+  const [pValuesError, setPValuesError] = useState(null);
   const { keycloak } = useKeycloak();
 
   // Fetch real bootstrap data from backend
@@ -30,9 +32,12 @@ const BootstrapHistogram = ({
       }
 
       // Check if this is a survival model - Bootstrap AUC analysis doesn't apply
-      const isSurvivalModel = modelsData.length > 0 && modelsData[0].model_type === 'survival';
+      const isSurvivalModel =
+        modelsData.length > 0 && modelsData[0].model_type === 'survival';
       if (isSurvivalModel) {
-        setError('Bootstrap AUC analysis is not applicable for survival models. Survival models use C-index as their primary metric.');
+        setError(
+          'Bootstrap AUC analysis is not applicable for survival models. Survival models use C-index as their primary metric.'
+        );
         setLoading(false);
         return;
       }
@@ -184,7 +189,6 @@ const BootstrapHistogram = ({
           }
         }
 
-        
         data.forEach((model, index) => {
           const samples = model.samples;
           if (samples && samples.length > 0) {
@@ -216,20 +220,26 @@ const BootstrapHistogram = ({
     fetchBootstrapData();
   }, [modelsData, keycloak.token, metric, modelLabels]);
 
-  // Fetch p-values from backend when bootstrapData is ready
+  // Fetch p-values from backend when bootstrapData is ready (slow: the
+  // backend runs the pairwise bootstrap tests, can take tens of seconds)
   useEffect(() => {
+    setPValues([]);
+    setPValuesError(null);
     if (!bootstrapData || bootstrapData.length < 2) {
-      setPValues([]);
+      setPValuesLoading(false);
       return;
     }
+
+    let cancelled = false;
     const fetchPValues = async () => {
+      setPValuesLoading(true);
       try {
         const modelIds = bootstrapData.map((m) => m.modelId);
         const result = await Backend.compareModelsData(
           keycloak.token,
           modelIds
         );
-        // Convert backend p_values to the frontend format for annotations
+        // Convert backend p_values to one entry per model pair
         const pValueList = [];
         for (let i = 0; i < modelIds.length; i++) {
           for (let j = i + 1; j < modelIds.length; j++) {
@@ -244,13 +254,19 @@ const BootstrapHistogram = ({
             });
           }
         }
-        setPValues(pValueList);
+        if (!cancelled) setPValues(pValueList);
       } catch (err) {
-        setPValues([]);
-        setError('Failed to fetch p-values from backend');
+        if (!cancelled)
+          setPValuesError('Failed to fetch p-values from backend');
+      } finally {
+        if (!cancelled) setPValuesLoading(false);
       }
     };
     fetchPValues();
+
+    return () => {
+      cancelled = true;
+    };
   }, [bootstrapData, keycloak.token]);
 
   // Create bootstrap histogram plot
@@ -329,7 +345,6 @@ const BootstrapHistogram = ({
     const padding = safeRange * 0.05; // 5% padding
 
     const layout = {
-
       xaxis: {
         title: {
           text: `AUC Score`,
@@ -369,77 +384,22 @@ const BootstrapHistogram = ({
       plot_bgcolor: '#fafafa',
       paper_bgcolor: '#ffffff',
       margin: { l: 60, r: 30, t: 80, b: 160 },
-      annotations: [],
     };
-
-    // Add p-value annotations to the plot using backend p-values
-    if (pValues.length > 0) {
-      pValues.forEach((comparison, index) => {
-        // Display "< 0.001" for small values, but show exact value in hovertext (tooltip)
-        let displayP = 'N/A';
-        let hoverP = 'N/A';
-        if (comparison.pValue !== undefined) {
-          if (comparison.pValue < 0.001) {
-            displayP = '< 0.001';
-            hoverP = comparison.pValue.toExponential(3);
-          } else {
-            displayP = comparison.pValue.toFixed(3);
-            hoverP = comparison.pValue.toExponential(3);
-          }
-        }
-        layout.annotations.push({
-          x: 0.02,
-          y: 0.98 - index * 0.08,
-          xref: 'paper',
-          yref: 'paper',
-          text: `<b>${comparison.model1Name} vs ${
-            comparison.model2Name
-          }:</b> p=${displayP}${comparison.significant ? ' *' : ''}`,
-          showarrow: false,
-          font: {
-            size: 12,
-            color: comparison.significant ? '#e74c3c' : '#666666',
-          },
-          bgcolor: 'rgba(255,255,255,0.8)',
-          bordercolor: comparison.significant ? '#e74c3c' : '#dddddd',
-          borderwidth: 1,
-          // Add hovertext for precision
-          hovertext: `Exact p-value: ${hoverP}`,
-          captureevents: true,
-        });
-      });
-
-      // Add significance note
-      if (pValues.some((p) => p.significant)) {
-        layout.annotations.push({
-          x: 0.02,
-          y: 0.98 - pValues.length * 0.08 - 0.05,
-          xref: 'paper',
-          yref: 'paper',
-          text: '* p < 0.05 (statistically significant)',
-          showarrow: false,
-          font: {
-            size: 10,
-            color: '#e74c3c',
-          },
-        });
-      }
-    }
 
     const config = {
       responsive: true,
       displaylogo: false,
-      displayModeBar: true, 
-      modeBarButtonsToRemove: ['lasso2d', 'select2d'], 
-      editable: true,  
-  edits: {         
-    legendText: true,
-    legendPosition: true,
-    titleText: true,
-    axisTitleText: true,
-    annotationText: true,
-    annotationPosition: true
-  }
+      displayModeBar: true,
+      modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+      editable: true,
+      edits: {
+        legendText: true,
+        legendPosition: true,
+        titleText: true,
+        axisTitleText: true,
+        annotationText: true,
+        annotationPosition: true,
+      },
     };
 
     try {
@@ -449,7 +409,7 @@ const BootstrapHistogram = ({
       console.error('Plotly error:', plotError);
       setError(`Failed to create plot: ${plotError.message}`);
     }
-  }, [bootstrapData, metric, height, loading, pValues]);
+  }, [bootstrapData, metric, height, loading]);
 
   if (loading) {
     if (hideContainer) {
@@ -514,31 +474,142 @@ const BootstrapHistogram = ({
     );
   }
 
+  const plot = (
+    <div
+      ref={plotDivRef}
+      style={{
+        width: '100%',
+        height: `${height}px`,
+      }}
+    />
+  );
+
+  const pValuesSection = (
+    <PValuesTable
+      pValues={pValues}
+      loading={pValuesLoading}
+      error={pValuesError}
+      modelCount={bootstrapData.length}
+    />
+  );
+
   if (hideContainer) {
     return (
-      <div
-        ref={plotDivRef}
-        style={{
-          width: '100%',
-          height: `${height}px`,
-        }}
-      />
+      <>
+        {pValuesSection}
+        {plot}
+      </>
     );
   }
 
   return (
     <div className="card mt-3">
       <div className="card-body p-0">
-        <div
-          ref={plotDivRef}
-          style={{
-            width: '100%',
-            height: `${height}px`,
-          }}
-        />
+        <div className="px-3 pt-3">{pValuesSection}</div>
+        {plot}
       </div>
     </div>
   );
 };
+
+// "< 0.001" for tiny values, 3 decimals otherwise; exact value goes in the tooltip
+function formatPValue(pValue) {
+  if (typeof pValue !== 'number' || isNaN(pValue)) return 'N/A';
+  return pValue < 0.001 ? '< 0.001' : pValue.toFixed(3);
+}
+
+function PValuesTable({ pValues, loading, error, modelCount }) {
+  if (modelCount < 2) return null;
+
+  const pairCount = (modelCount * (modelCount - 1)) / 2;
+
+  return (
+    // Shrinks to the table's content and is centered; never wider than the
+    // container, so on narrow screens the model names wrap instead.
+    <div
+      className="bootstrap-pvalues text-left mb-3 mx-auto"
+      style={{ width: 'fit-content', maxWidth: '100%' }}
+      data-testid="bootstrap-pvalues"
+    >
+      <h6 className="mb-2">
+        Pairwise comparisons (AUC){' '}
+        <small className="text-muted">
+          {pairCount} pair{pairCount > 1 ? 's' : ''}
+        </small>
+      </h6>
+      {loading && (
+        <div className="text-muted py-2">
+          <FontAwesomeIcon icon="spinner" spin className="mr-2" />
+          Computing p-values for {pairCount} model pair
+          {pairCount > 1 ? 's' : ''}… this can take a while.
+        </div>
+      )}
+      {!loading && error && (
+        <div className="alert alert-warning mb-0">
+          <FontAwesomeIcon icon="exclamation-triangle" className="mr-2" />
+          {error}
+        </div>
+      )}
+      {!loading && !error && pValues.length > 0 && (
+        <>
+          <div
+            className="table-responsive"
+            style={{ maxHeight: '260px', overflowY: 'auto' }}
+          >
+            <table
+              className="table table-sm table-hover mb-1"
+              style={{ width: 'auto' }}
+            >
+              <thead
+                className="thead-light"
+                style={{ position: 'sticky', top: 0, zIndex: 1 }}
+              >
+                <tr>
+                  <th scope="col" className="pr-4">
+                    Model A
+                  </th>
+                  <th scope="col" className="pr-4">
+                    Model B
+                  </th>
+                  <th scope="col" className="text-right text-nowrap">
+                    p-value
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pValues.map((comparison) => (
+                  <tr
+                    key={`${comparison.model1Name}|${comparison.model2Name}`}
+                    className={comparison.significant ? 'text-danger' : ''}
+                  >
+                    <td className="pr-4">{comparison.model1Name}</td>
+                    <td className="pr-4">{comparison.model2Name}</td>
+                    <td
+                      className="text-right text-nowrap"
+                      title={
+                        typeof comparison.pValue === 'number'
+                          ? `Exact p-value: ${comparison.pValue.toExponential(
+                              3
+                            )}`
+                          : undefined
+                      }
+                    >
+                      {formatPValue(comparison.pValue)}
+                      {comparison.significant ? ' *' : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <small className="text-muted">
+            * p &lt; 0.05 (statistically significant, highlighted in red). Hover
+            a p-value for its exact value.
+          </small>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default BootstrapHistogram;

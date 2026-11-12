@@ -215,22 +215,9 @@ const ROCCurveComponent = ({
       });
     }
 
-    const isMultiModel = rocData.length > 1;
-    const titleText = isMultiModel
-      ? `ROC Curve Comparison - ${
-          plotType === 'train' ? 'Training' : 'Test'
-        } Set (${rocData.length} models)`
-      : `ROC Curve - ${plotType === 'train' ? 'Training' : 'Test'} Set (n=${
-          rocData[0].n_samples
-        })`;
-
     const layout = {
-      title: {
-        text: titleText,
-        font: { size: 16, family: 'Arial, sans-serif' },
-        x: 0.5,
-        xanchor: 'center',
-      },
+      // No preset title: left blank so the user can type one (editable plot),
+      // like the other model evaluation plots. The card header names the plot.
       xaxis: {
         title: {
           text: 'False Positive Rate (1 - Specificity)',
