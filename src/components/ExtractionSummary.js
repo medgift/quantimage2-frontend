@@ -114,6 +114,28 @@ function formatFlag(value) {
   return String(value);
 }
 
+const CONFIG_ROWS = [
+  {
+    label: 'Resampling',
+    format: (modality) => formatSpacing(modality.resampling),
+  },
+  {
+    label: 'Interpolation',
+    format: (modality) =>
+      (modality.resampling && modality.resampling.interpolation) ||
+      NOT_AVAILABLE,
+  },
+  {
+    label: 'Normalization',
+    format: (modality) =>
+      modality.normalization ? modality.normalization.type : NONE,
+  },
+  {
+    label: 'Discretization',
+    format: (modality) => formatDiscretization(modality.extractors || []),
+  },
+];
+
 function SummaryItem({ label, children }) {
   return (
     <div className="d-flex justify-content-between extraction-summary-item">
@@ -158,29 +180,30 @@ function ConfigurationCard({ config }) {
 
   return (
     <SummaryCard title="Configuration" testID="summary-config">
-      <Table size="sm" className="extraction-summary-table">
+      {/* Transposed (one column per modality) so it fits the narrow card;
+          scrolls horizontally inside the card when there are many modalities */}
+      <Table size="sm" responsive className="extraction-summary-table">
         <thead>
           <tr>
-            <th>Modality</th>
-            <th>Resampling</th>
-            <th>Interpolation</th>
-            <th>Normalization</th>
-            <th>Discretization</th>
+            <th scope="col">
+              <span className="sr-only">Setting</span>
+            </th>
+            {config.modalities.map((modality) => (
+              <th scope="col" key={modality.modality}>
+                {modality.modality}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {config.modalities.map((modality) => (
-            <tr key={modality.modality}>
-              <td>{modality.modality}</td>
-              <td>{formatSpacing(modality.resampling)}</td>
-              <td>
-                {(modality.resampling && modality.resampling.interpolation) ||
-                  NOT_AVAILABLE}
-              </td>
-              <td>
-                {modality.normalization ? modality.normalization.type : NONE}
-              </td>
-              <td>{formatDiscretization(modality.extractors || [])}</td>
+          {CONFIG_ROWS.map(({ label, format }) => (
+            <tr key={label}>
+              <th scope="row" className="extraction-summary-row-label">
+                {label}
+              </th>
+              {config.modalities.map((modality) => (
+                <td key={modality.modality}>{format(modality)}</td>
+              ))}
             </tr>
           ))}
         </tbody>

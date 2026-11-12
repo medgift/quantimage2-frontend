@@ -298,10 +298,11 @@ describe('ExtractionSummary data loading', () => {
 // ---------------------------------------------------------------------------
 
 describe('Configuration card', () => {
-  it('shows one row per modality with spacing, interpolation and bin width', async () => {
+  it('shows one column per modality with spacing, interpolation and bin width', async () => {
     const { getByTestId } = await renderLoaded();
 
-    const text = textOf(getByTestId('summary-config'));
+    const card = getByTestId('summary-config');
+    const text = textOf(card);
     expect(text).toContain('1 × 1 × 1 mm');
     expect(text).toContain('2 × 2 × 2 mm');
     expect(text).toContain('linear');
@@ -309,17 +310,25 @@ describe('Configuration card', () => {
     expect(hasNumber(text, 20)).toBe(true);
     expect(hasNumber(text, 0.2)).toBe(true);
 
-    // Row order: CT row (1 mm, linear) comes before PT row (2 mm, cubic)
-    const ct = text.indexOf('CT');
-    const pt = text.indexOf('PT');
-    expect(ct).toBeGreaterThanOrEqual(0);
-    expect(pt).toBeGreaterThan(ct);
-    expect(text.indexOf('1 × 1 × 1 mm')).toBeGreaterThan(ct);
-    expect(text.indexOf('1 × 1 × 1 mm')).toBeLessThan(pt);
-    expect(text.indexOf('linear')).toBeGreaterThan(ct);
-    expect(text.indexOf('linear')).toBeLessThan(pt);
-    expect(text.indexOf('2 × 2 × 2 mm')).toBeGreaterThan(pt);
-    expect(text.indexOf('cubic')).toBeGreaterThan(pt);
+    // Transposed table: header = modalities, one row per setting
+    const headers = [...card.querySelectorAll('thead th')].map((th) =>
+      th.textContent.trim()
+    );
+    const ctCol = headers.indexOf('CT');
+    const ptCol = headers.indexOf('PT');
+    expect(ctCol).toBeGreaterThan(0);
+    expect(ptCol).toBeGreaterThan(ctCol);
+
+    const cellOf = (setting, col) => {
+      const row = [...card.querySelectorAll('tbody tr')].find(
+        (tr) => tr.querySelector('th').textContent.trim() === setting
+      );
+      return row.children[col].textContent;
+    };
+    expect(cellOf('Resampling', ctCol)).toBe('1 × 1 × 1 mm');
+    expect(cellOf('Resampling', ptCol)).toBe('2 × 2 × 2 mm');
+    expect(cellOf('Interpolation', ctCol)).toBe('linear');
+    expect(cellOf('Interpolation', ptCol)).toBe('cubic');
   });
 
   it('shows the normalization type and the bin count', async () => {
